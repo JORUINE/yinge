@@ -1,0 +1,30 @@
+# 音格 · 论文与文档生产工具链
+# 安装：见 tools/setup_env.sh
+
+# ---- Word (.docx) ----
+python-docx==1.2.0          # 直写 docx：开题报告 / 论文 / 需求分析与设计文档
+docx2python                 # 读取 docx 内容（解析学校规范文档、老师批注）
+lxml                        # python-docx 的 XML 底层
+
+# ---- Excel (.xlsx) ----
+openpyxl                    # 后台管理数据表、规范要求的各类表格；也可生成 xlsx
+
+# ---- PPT (.pptx) ----
+python-pptx                 # 开题汇报 / 答辩演示文稿
+
+# ---- 图片与图表 ----
+Pillow                      # ER 图、架构图、分享图自绘（本机无 graphviz 时的主力）
+matplotlib                  # 论文里的数据图表（折线/柱状/饼图）
+numpy                       # matplotlib 依赖
+
+# ---- 驱动本机 Office（关键）----
+pywin32                     # COM 自动化：让 Word 刷新目录页码、docx 转 PDF、PPT 导出图片
+
+# ---- 文本与网络 ----
+markdown                    # Markdown -> HTML
+beautifulsoup4              # HTML 解析（从预览稿抽取结构化内容）
+requests                    # 调接口 / 下载音乐封面等素材
+httpx                       # 异步请求（html-for-docx 依赖）
+
+# ---- PDF ----
+pypdf                       # 合并/拆分/提取（学校规范文档、参考文献）

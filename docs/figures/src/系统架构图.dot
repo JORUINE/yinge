@@ -1,0 +1,23 @@
+digraph ARCH {
+  graph [fontname="Microsoft YaHei", bgcolor="white", compound=true];
+  node  [fontname="Microsoft YaHei", shape=plaintext, fontsize=11];
+  edge  [fontname="Microsoft YaHei", fontsize=9, color="#7A8A9E", arrowsize=0.7];
+
+  graph [rankdir=TB, nodesep=0.45, ranksep=0.8];
+  node  [shape=box, style="filled", penwidth=0, margin=0, fillcolor="white"];
+
+  client [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#2563EB" BGCOLOR="white"><TR><TD COLSPAN="1" BGCOLOR="#2563EB"><FONT COLOR="white"><B>客户端</B></FONT></TD></TR><TR><TD ALIGN="LEFT">浏览器（PC / 移动端）</TD></TR><TR><TD COLSPAN="1" BGCOLOR="#F8FAFC" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#64748B">Chrome / Edge · 响应式布局</FONT></TD></TR></TABLE>>];
+  front  [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#2563EB" BGCOLOR="white"><TR><TD COLSPAN="3" BGCOLOR="#2563EB"><FONT COLOR="white"><B>展示层 · 前端应用（Vue 3 + Vite）</B></FONT></TD></TR><TR><TD ALIGN="LEFT">首页 / 排行榜</TD><TD ALIGN="LEFT">专辑对决</TD><TD ALIGN="LEFT">音乐人格测评</TD></TR><TR><TD ALIGN="LEFT">结果分享图</TD><TD ALIGN="LEFT">个人中心</TD><TD ALIGN="LEFT">后台管理</TD></TR><TR><TD COLSPAN="3" BGCOLOR="#F8FAFC" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#64748B">Pinia 状态管理 · Vue Router 路由 · Axios 请求 · Element Plus 组件 · html2canvas 分享图</FONT></TD></TR></TABLE>>];
+  back   [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#059669" BGCOLOR="white"><TR><TD COLSPAN="3" BGCOLOR="#059669"><FONT COLOR="white"><B>业务服务层 · Node.js + Express</B></FONT></TD></TR><TR><TD ALIGN="LEFT">用户认证服务</TD><TD ALIGN="LEFT">音乐数据代理与缓存</TD><TD ALIGN="LEFT">对决业务服务</TD></TR><TR><TD ALIGN="LEFT">测评业务服务</TD><TD ALIGN="LEFT">榜单统计服务</TD><TD ALIGN="LEFT">后台管理服务</TD></TR><TR><TD COLSPAN="3" BGCOLOR="#F8FAFC" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#64748B">JWT 鉴权 · bcrypt 加密 · 输入校验 · 统一响应中间件</FONT></TD></TR></TABLE>>];
+  data   [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#D97706" BGCOLOR="white"><TR><TD COLSPAN="1" BGCOLOR="#D97706"><FONT COLOR="white"><B>数据层</B></FONT></TD></TR><TR><TD ALIGN="LEFT">MongoDB（Mongoose 建模，12 张集合）</TD></TR><TR><TD COLSPAN="1" BGCOLOR="#F8FAFC" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#64748B">用户 / 收藏 / 分享图 / 歌手 / 专辑 / 曲目 / 对决 / 场次 / 投票 / 题目 / 人格类型 / 测评结果</FONT></TD></TR></TABLE>>];
+  ext    [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#7C3AED" BGCOLOR="white"><TR><TD COLSPAN="1" BGCOLOR="#7C3AED"><FONT COLOR="white"><B>外部服务</B></FONT></TD></TR><TR><TD ALIGN="LEFT">iTunes Search API（音乐元数据 + 30 秒试听）</TD></TR><TR><TD ALIGN="LEFT">大语言模型接口（人格解读文案生成）</TD></TR><TR><TD COLSPAN="1" BGCOLOR="#F8FAFC" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#64748B">免密钥 · 无版权风险 · 可公开部署</FONT></TD></TR></TABLE>>];
+  dep    [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="7" COLOR="#64748B" BGCOLOR="white"><TR><TD COLSPAN="3" BGCOLOR="#64748B"><FONT COLOR="white"><B>部署方案</B></FONT></TD></TR><TR><TD ALIGN="LEFT">前端 → 静态托管平台</TD><TD ALIGN="LEFT">后端 → 云应用托管平台</TD><TD ALIGN="LEFT">数据库 → 云数据库服务</TD></TR><TR><TD COLSPAN="3" BGCOLOR="#F8FAFC" ALIGN="LEFT"><FONT POINT-SIZE="9" COLOR="#64748B">三端独立部署，提供可公开访问的线上地址</FONT></TD></TR></TABLE>>];
+
+  client -> front [label=" HTTP / HTTPS "];
+  front  -> back  [label=" REST API（JSON）· JWT "];
+  back   -> data  [label=" Mongoose ODM "];
+  back   -> ext   [label=" 外部调用（HTTPS） ", style=dashed];
+  data   -> dep   [label=" 部署 "];
+
+  { rank=same; data; ext; }
+}

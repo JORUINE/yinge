@@ -1,0 +1,25 @@
+digraph BRACKET {
+  graph [fontname="Microsoft YaHei", bgcolor="white", compound=true];
+  node  [fontname="Microsoft YaHei", shape=plaintext, fontsize=11];
+  edge  [fontname="Microsoft YaHei", fontsize=9, color="#7A8A9E", arrowsize=0.7];
+
+  graph [rankdir=TB, nodesep=0.4, ranksep=0.6];
+  node  [shape=box, style="rounded,filled", penwidth=1.3, fontsize=11];
+
+  start [label="选择范围\n歌手 / 流派 / 年代", fillcolor="#EFF6FF", color="#2563EB"];
+  fetch [label="拉取专辑清单\n（iTunes Search API + 本地缓存）", fillcolor="#EFF6FF", color="#2563EB"];
+  gen   [label="生成对阵表\n（非 2 的幂次时安排轮空）", fillcolor="#FFFBEB", color="#D97706"];
+  grp   [label="小组赛\n两两 PK · 每场可试听 30 秒", fillcolor="#FFFBEB", color="#D97706"];
+  rev   [label="复活赛\n小组第三名争夺剩余名额", fillcolor="#FEF3C7", color="#D97706"];
+  ko    [label="淘汰赛\n逐轮晋级", fillcolor="#FFFBEB", color="#D97706"];
+  fin   [label="冠军产生", fillcolor="#FEF2F2", color="#DC2626"];
+  share [label="「夺冠之路」分享图\n（html2canvas 导出）", fillcolor="#FDF2F8", color="#7C3AED"];
+  rank  [label="写入全球最受欢迎专辑榜", fillcolor="#ECFDF5", color="#059669"];
+  vote  [label="用户逐场投票（可试听）", shape=box, style="rounded,filled",
+         fillcolor="#F8FAFC", color="#94A3B8"];
+
+  start -> fetch -> gen -> grp -> rev -> ko -> fin -> share -> rank;
+  grp -> ko [label=" 直接晋级 ", constraint=false];
+  vote -> grp [style=dashed, arrowhead=none];
+  vote -> ko  [style=dashed, arrowhead=none];
+}
