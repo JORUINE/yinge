@@ -39,3 +39,9 @@ Thumbs.db
 *.tmp
 *.bak
 ~$*
+
+# ---- 个人资料（不上传）----
+docs/答辩手册.html
+docs/内部*.html
+docs/*-私密*
+_私密资料-不上传/
