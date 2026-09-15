@@ -1348,6 +1348,11 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 </code></pre>
 <h3 id="s47">6.6 人格类型详情　GET /api/personality/types/:code　（公开）</h3>
 <p>返回该类型的完整描述与推荐专辑列表，字段同上并增加 <code>recommendAlbums</code>。</p>
+<p><strong>推荐专辑的生成规则</strong>（对应 FR-15）</p>
+<p>（1）每种人格类型在数据库中配有一个"推荐专辑池"（<code>personality_types.recommendAlbumIds</code>），生成推荐时从该池取 3 张；</p>
+<p>（2）池内排序依据用户<strong>得分最高的维度</strong>，接口返回推荐项时附带 <code>matchedDimension</code> 与 <code>matchedScore</code> 两个字段，供前端展示"匹配 旋律敏感 9/10"这类说明——推荐必须能解释，不能是黑盒；</p>
+<p>（3）池子的来源分两步：<strong>初期由管理员在后台手工维护</strong>（每类 6 至 10 张，对应 FR-22 人格类型管理）；<strong>后续可根据真实行为统计自动补充</strong>，例如"该类型用户在对决中投票胜率最高的专辑"；</p>
+<p>（4）若某类型池为空，降级为按最高得分维度对应的风格标签在全库筛选，仍不足时返回空数组，前端隐藏推荐区，不展示占位内容。</p>
 <h3 id="s48">6.7 类型占比统计　GET /api/personality/stats　（公开）</h3>
 <p>供图鉴页绘制分布图。</p>
 <pre><code class="language-json">{
