@@ -45,3 +45,8 @@ docs/答辩手册.html
 docs/内部*.html
 docs/*-私密*
 _私密资料-不上传/
+
+# ---- 内部工具链（不上传，属工作材料）----
+tools/
+docs/工具链说明.md
+docs/工具链说明.html
