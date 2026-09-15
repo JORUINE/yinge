@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · 需求分析文档</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --line:#e4e7ee;
+  --tx:#1b2029; --tx2:#5b6572; --tx3:#8a93a1;
+  --blue:#185FA5; --blue-bg:#E6F1FB; --teal:#0F6E56; --amber:#854F0B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.8}
+.wrap{max-width:1000px;margin:0 auto;padding:34px 22px 90px}
+header.masthead{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:22px 26px;margin-bottom:22px}
+header.masthead h1{margin:0 0 6px;font-size:24px;font-weight:700}
+header.masthead .meta{color:var(--tx2);font-size:14px;margin:0}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:16px 22px;margin:0 0 26px}
+nav.toc b{display:block;font-size:12.5px;color:var(--tx3);letter-spacing:.6px;margin-bottom:8px}
+nav.toc a{color:var(--blue);text-decoration:none;font-size:14px;display:block;
+  padding:2px 0;border-bottom:1px solid transparent}
+nav.toc a:hover{background:var(--blue-bg);border-radius:4px}
+nav.toc a.lv3{padding-left:20px;font-size:13.3px;color:var(--tx2)}
+main{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:28px 34px 42px}
+main h1{display:none}
+main h2{font-size:20px;font-weight:700;margin:38px 0 10px;padding-left:12px;
+  border-left:4px solid var(--blue);scroll-margin-top:20px}
+main h2:first-of-type{margin-top:8px}
+main h3{font-size:16.5px;font-weight:700;margin:26px 0 8px;color:#26313f;scroll-margin-top:20px}
+main h4{font-size:14.5px;font-weight:700;margin:18px 0 6px;color:var(--tx2)}
+main p{margin:9px 0}
+main strong{font-weight:700}
+main table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+main th,main td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+main th{background:#f2f4f8;font-weight:700;font-size:13.2px;color:var(--tx2)}
+main tr:nth-child(even) td{background:#fafbfd}
+main code{background:#eef1f6;padding:1px 6px;border-radius:4px;
+  font-family:Consolas,"Courier New",monospace;font-size:13px;color:#26313f}
+main pre{background:#1f2430;color:#e7ecf3;padding:15px 17px;border-radius:10px;
+  overflow-x:auto;font-size:13px;line-height:1.65}
+main pre code{background:none;color:inherit;padding:0}
+main blockquote{margin:14px 0;padding:10px 16px;background:var(--blue-bg);
+  border-left:3px solid var(--blue);border-radius:0 8px 8px 0;color:#26313f;font-size:14.2px}
+main blockquote p{margin:3px 0}
+main ul,main ol{padding-left:24px;margin:9px 0}
+main li{margin:4px 0}
+main hr{border:none;border-top:1px solid var(--line);margin:26px 0}
+footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+<h1>音格 · 需求分析文档</h1>
+<p class="meta">项目名称：音格——音乐专辑对决与人格测评互动平台　｜　文档类型：需求分析文档（毕业设计提交材料之一）　｜　编制人：胡祖锐　　学号：9920250499　｜　学院／专业：新媒体学院 · 数字媒体技术（2025级专升本）</p>
+</header>
+<nav class="toc"><b>目录</b>
+<a class="lv2" href="#s0">一、文档说明</a>
+<a class="lv2" href="#s1">二、项目背景与建设目标</a>
+<a class="lv2" href="#s2">三、用户故事</a>
+<a class="lv2" href="#s3">四、功能需求</a>
+<a class="lv2" href="#s4">五、页面清单</a>
+<a class="lv2" href="#s5">六、非功能需求</a>
+<a class="lv2" href="#s6">七、数据需求</a>
+<a class="lv2" href="#s7">八、约束与假设</a>
+<a class="lv2" href="#s8">九、需求优先级与实施计划</a>
+</nav>
+<main>
+<h1>音格 · 需求分析文档</h1>
+<blockquote>
+<p>项目名称：音格——音乐专辑对决与人格测评互动平台</p>
+<p>文档类型：需求分析文档（毕业设计提交材料之一）</p>
+<p>编制人：胡祖锐　　学号：9920250499</p>
+<p>学院／专业：新媒体学院 · 数字媒体技术（2025级专升本）</p>
+<p>版本：v1.0　　编制日期：2026 年 9 月 15 日</p>
+</blockquote>
+<h2 id="s0">一、文档说明</h2>
+<h3 id="s9">1.1 编写目的</h3>
+<p>本文档用于明确"音格"平台的功能边界与质量要求，是后续系统设计、界面设计、编码实现与测试验收的共同依据。本文档回答三个问题：系统要做给谁用、系统要实现哪些功能、系统必须达到怎样的质量水平。</p>
+<h3 id="s10">1.2 项目概述</h3>
+<p>音格是一个以"音乐专辑对决"与"音乐人格测评"为核心玩法的音乐互动平台。平台通过开放音乐数据接口获取真实音乐数据，让用户以游戏化的方式完成两件事：一是对自己喜爱的作品进行评选与对比，二是获得基于自身音乐偏好的个性化人格画像。</p>
+<p>与现有音乐应用不同，本平台不提供完整曲库播放，而是聚焦于"比较"与"表达"这两类被长期忽视的用户行为，把用户的选择行为沉淀为可累积、可统计、可分享的数据资产。</p>
+<h3 id="s11">1.3 术语与缩写</h3>
+<table>
+<thead>
+<tr>
+<th>术语</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>对决</td>
+<td>由用户发起的一次专辑评选活动，包含若干轮比赛</td>
+</tr>
+<tr>
+<td>场次</td>
+<td>对决中的一场两两比较，由两张专辑对战</td>
+</tr>
+<tr>
+<td>轮空</td>
+<td>参赛专辑数为奇数时，某张专辑本轮无需比赛直接晋级</td>
+</tr>
+<tr>
+<td>复活赛</td>
+<td>在小组赛之后额外安排的轮次，给落败专辑再次晋级的机会</td>
+</tr>
+<tr>
+<td>人格类型</td>
+<td>音乐人格测评的最终结果分类，每类对应一段解读文本</td>
+</tr>
+<tr>
+<td>试听片段</td>
+<td>由音乐数据接口提供的 30 秒官方音频片段，用于辅助投票</td>
+</tr>
+<tr>
+<td>分享图</td>
+<td>由系统生成的可保存、可转发的图片，用于结果传播</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s12">1.4 读者对象</h3>
+<ul>
+<li>指导教师与答辩评审：了解系统的需求来源与设计依据；</li>
+<li>开发者（本人）：作为编码与测试的依据；</li>
+<li>后续维护者：理解各功能的用途与约束条件。</li>
+</ul>
+<h2 id="s1">二、项目背景与建设目标</h2>
+<h3 id="s13">2.1 项目背景</h3>
+<p>数字音乐已成为大众文化消费的主要形式，但现有应用的产品形态高度同质：以"推荐—播放"为主线，用户长期处于被动接受内容的位置。当用户产生"同一歌手哪张专辑更好"这类比较需求时，缺少顺手的工具，只能依赖聊天群内的口头讨论，过程零散且无法留存。</p>
+<p>与此同时，以性格测试为代表的"人格化标签"内容在社交网络中保持高传播度，其原因在于测试结果同时满足自我认知与社交表达两种需求。但现有音乐类测评普遍采用固定文案模板，同一类型的用户得到完全相同的解读，个性化程度低，也很少把"听感"这一音乐特有的感知维度纳入测评选型。</p>
+<h3 id="s14">2.2 建设目标</h3>
+<p>设计并实现一个可公开访问的音乐互动平台，达成以下目标：</p>
+<p>（1）实现对决与测评两条完整可用的业务流程，用户从进入到获得结果全程无阻断；</p>
+<p>（2）实现真实的数据流转，系统的内容由用户行为与外部数据共同产生，而非静态展示；</p>
+<p>（3）实现结果的可视化与可分享，使平台具备自传播能力；</p>
+<p>（4）完成前端、后端与数据库三端的云端部署，提供可公开访问的线上地址；</p>
+<p>（5）在实现过程中形成完整的需求、设计、测试文档，满足毕业设计的过程性要求。</p>
+<h3 id="s15">2.3 目标用户</h3>
+<table>
+<thead>
+<tr>
+<th>用户角色</th>
+<th>特征描述</th>
+<th>核心诉求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>游客</td>
+<td>未注册的访问者</td>
+<td>快速了解平台玩法，无需注册即可体验部分内容</td>
+</tr>
+<tr>
+<td>注册用户</td>
+<td>音乐爱好者，追求参与感与社交表达</td>
+<td>发起对决、参与投票、获得人格卡并分享</td>
+</tr>
+<tr>
+<td>活跃用户</td>
+<td>频繁使用、关注榜单变化</td>
+<td>查看历史记录、收藏专辑、观察榜单趋势</td>
+</tr>
+<tr>
+<td>后台管理员</td>
+<td>平台维护者</td>
+<td>维护题目与人格类型、管理音乐数据与用户</td>
+</tr>
+</tbody>
+</table>
+<h2 id="s2">三、用户故事</h2>
+<h3 id="s16">3.1 用户故事总览</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>角色</th>
+<th>用户故事</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>US-01</td>
+<td>游客</td>
+<td>我想在不注册的情况下先看看平台有哪些玩法，以便决定要不要用</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-02</td>
+<td>游客</td>
+<td>我想注册并登录账号，以便保存我的对决记录与测评结果</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-03</td>
+<td>注册用户</td>
+<td>我想按歌手挑选范围，以便只比较我关心的作品</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-04</td>
+<td>注册用户</td>
+<td>我想让系统自动生成对阵表，以便不用自己安排比赛顺序</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-05</td>
+<td>注册用户</td>
+<td>我想在投票前试听专辑片段，以便在没听过的情况下也能作出选择</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-06</td>
+<td>注册用户</td>
+<td>我想在两两对比中做出选择，以便表达我的真实偏好</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-07</td>
+<td>注册用户</td>
+<td>我想知道落败的作品还有没有机会，以便我的喜爱不会因一轮失误而终结</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>US-08</td>
+<td>注册用户</td>
+<td>我想看到最终冠军是怎么一路赢上来的，以便回顾整场评选过程</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-09</td>
+<td>注册用户</td>
+<td>我想把结果生成一张图片，以便分享到社交平台</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-10</td>
+<td>注册用户</td>
+<td>我想做一套音乐偏好测试，以便了解自己的音乐人格</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-11</td>
+<td>注册用户</td>
+<td>我想在测试中听到音乐片段再作答，以便结果贴合我的真实听感</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>US-12</td>
+<td>注册用户</td>
+<td>我想得到一段针对我个人作答的解读，而不是所有人一样的模板</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>US-13</td>
+<td>注册用户</td>
+<td>我想看到自己的人格类型在全体用户中的分布，以便了解自己在人群中的位置</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>US-14</td>
+<td>活跃用户</td>
+<td>我想查看历史对决与测评记录，以便回顾我做过的选择</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>US-15</td>
+<td>活跃用户</td>
+<td>我想收藏喜欢的专辑，以便下次快速找到</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>US-16</td>
+<td>活跃用户</td>
+<td>我想看到平台上最受欢迎的专辑排名，以便发现好作品</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>US-17</td>
+<td>管理员</td>
+<td>我想维护测评题目与分值，以便调整测评的准确度</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>US-18</td>
+<td>管理员</td>
+<td>我想删除违规用户，以便维护平台秩序</td>
+<td>P1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s17">3.2 关键用户故事详述</h3>
+<p><strong>US-03 按范围发起对决</strong></p>
+<p>作为注册用户，我想按歌手挑选范围，以便只比较我关心的作品。</p>
+<p>验收标准：</p>
+<p>（1）支持按歌手名称搜索，输入关键词后返回候选歌手列表；</p>
+<p>（2）选定歌手后自动获取其全部专辑，含封面、发行日期与曲目数；</p>
+<p>（3）当获取到的专辑少于 4 张时，提示用户更换范围，不进入对决流程；</p>
+<p>（4）专辑数据同时写入本地数据库，重复发起时直接读取缓存，不再请求外部接口。</p>
+<p><strong>US-05 投票前试听</strong></p>
+<p>作为注册用户，我想在投票前试听专辑片段，以便在没听过的情况下也能作出选择。</p>
+<p>验收标准：</p>
+<p>（1）每一场对战的两张专辑均可播放 30 秒试听片段；</p>
+<p>（2）同一时刻只允许一个音频在播放，切换专辑时自动停止上一个；</p>
+<p>（3）若某张专辑没有可用的试听片段，界面明确提示而不显示失效的播放按钮；</p>
+<p>（4）试听不阻塞投票操作，未听完也可直接投票。</p>
+<p><strong>US-08 查看冠军路径</strong></p>
+<p>作为注册用户，我想看到最终冠军是怎么一路赢上来的，以便回顾整场评选过程。</p>
+<p>验收标准：</p>
+<p>（1）结果页展示冠军专辑的封面、名称与所属歌手；</p>
+<p>（2）以图形方式展示冠军从首轮到决赛的全部对战路径；</p>
+<p>（3）展示每一轮的对手与得票情况；</p>
+<p>（4）支持点击历史场次回顾该场对战的两张专辑。</p>
+<p><strong>US-12 个性化解读</strong></p>
+<p>作为注册用户，我想得到一段针对我个人作答的解读，而不是所有人一样的模板。</p>
+<p>验收标准：</p>
+<p>（1）解读文案的输入包含作答选项组合、各维度得分与最终类型；</p>
+<p>（2）同一类型的用户，因作答组合不同可获得不同文本；</p>
+<p>（3）接口调用失败或超时时，自动使用模板文案降级，界面不出现报错；</p>
+<p>（4）解读生成后与测评结果一同入库，重复查看时直接读取，不重复调用接口。</p>
+<h2 id="s3">四、功能需求</h2>
+<h3 id="s18">4.1 功能结构</h3>
+<p>系统分为前台用户端与后台管理端两部分。前台包含 9 个功能模块，后台包含 5 个功能模块。</p>
+<h3 id="s19">4.2 前台功能模块</h3>
+<p><strong>模块一　首页与导航</strong></p>
+<p>（1）展示平台定位与两种玩法入口；</p>
+<p>（2）展示排行榜概览与近期热门专辑；</p>
+<p>（3）全局导航与移动端适配。</p>
+<p><strong>模块二　用户与账号</strong></p>
+<p>（1）用户注册与登录，密码单向加密存储；</p>
+<p>（2）登录状态维持与退出登录；</p>
+<p>（3）个人中心：我的对决记录、我的测评记录、我的收藏；</p>
+<p>（4）收藏与取消收藏。</p>
+<p><strong>模块三　音乐数据浏览</strong></p>
+<p>（1）按关键词搜索歌手；</p>
+<p>（2）查看歌手的专辑列表与专辑详情（曲目、发行日期、曲目数）；</p>
+<p>（3）数据缓存与过期更新策略。</p>
+<p><strong>模块四　专辑对决</strong></p>
+<p>（1）范围选择：按歌手、并支持流派与年代的筛选入口；</p>
+<p>（2）对阵表生成：自动配对，处理参赛数为奇数时的轮空；</p>
+<p>（3）逐场投票：每场展示两张专辑，用户二者择一；</p>
+<p>（4）轮次推进：小组赛、复活赛、淘汰赛；</p>
+<p>（5）冠军生成与结果汇总。</p>
+<p><strong>模块五　试听播放</strong></p>
+<p>（1）播放专辑的 30 秒试听片段；</p>
+<p>（2）播放状态管理与互斥控制；</p>
+<p>（3）无试听资源时的降级提示。</p>
+<p><strong>模块六　音乐人格测评</strong></p>
+<p>（1）测评说明页：玩法介绍与预计耗时；</p>
+<p>（2）作答流程：12 道题，含至少 2 道听感题；</p>
+<p>（3）计分模型：按选项累加各维度得分；</p>
+<p>（4）类型映射：由得分分布映射到人格类型；</p>
+<p>（5）结果展示：人格卡、维度得分、推荐专辑。</p>
+<p><strong>模块七　AI 个性化解读</strong></p>
+<p>（1）构造提示词，输入作答组合与得分；</p>
+<p>（2）调用大语言模型生成个性化解读文本；</p>
+<p>（3）超时与失败降级为模板文案；</p>
+<p>（4）结果缓存，避免重复调用。</p>
+<p><strong>模块八　结果可视化与分享</strong></p>
+<p>（1）对阵图与冠军路径图绘制；</p>
+<p>（2）人格卡绘制；</p>
+<p>（3）导出为图片供保存与分享；</p>
+<p>（4）分享记录入库，便于找回。</p>
+<p><strong>模块九　排行榜与人格图鉴</strong></p>
+<p>（1）全球最受欢迎专辑榜，按累计票数排序；</p>
+<p>（2）榜单支持按范围筛选与分页；</p>
+<p>（3）人格图鉴：展示全部人格类型及其占比分布。</p>
+<h3 id="s20">4.3 后台功能模块</h3>
+<p><strong>模块十　数据看板</strong></p>
+<p>展示用户数、对决次数、投票总数、测评完成数、人格类型分布等统计指标。</p>
+<p><strong>模块十一　测评题目管理</strong></p>
+<p>题目的新增、修改、删除与排序，以及每题选项与其对应分值的维护。</p>
+<p><strong>模块十二　人格类型管理</strong></p>
+<p>人格类型的类型码、名称、描述、推荐专辑的维护。</p>
+<p><strong>模块十三　音乐数据管理</strong></p>
+<p>查看缓存数据、手动刷新指定歌手数据、清理失效数据。</p>
+<p><strong>模块十四　用户管理</strong></p>
+<p>查看用户列表、检索用户、禁用违规账号。</p>
+<h3 id="s21">4.4 功能需求明细</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>所属模块</th>
+<th>功能名称</th>
+<th>说明</th>
+<th>优先级</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>FR-01</td>
+<td>用户与账号</td>
+<td>用户注册</td>
+<td>账号唯一性校验，密码加密存储</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-02</td>
+<td>用户与账号</td>
+<td>用户登录</td>
+<td>返回令牌，前端持久化登录状态</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-03</td>
+<td>用户与账号</td>
+<td>个人中心</td>
+<td>汇总三类个人数据</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-04</td>
+<td>用户与账号</td>
+<td>收藏管理</td>
+<td>收藏与取消收藏专辑</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-05</td>
+<td>音乐数据浏览</td>
+<td>歌手搜索</td>
+<td>关键词模糊搜索</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-06</td>
+<td>音乐数据浏览</td>
+<td>专辑列表</td>
+<td>展示封面、名称、发行日期、曲目数</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-07</td>
+<td>音乐数据浏览</td>
+<td>数据缓存</td>
+<td>外部数据落库，设定更新周期</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-08</td>
+<td>专辑对决</td>
+<td>对阵生成</td>
+<td>自动配对并处理轮空</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-09</td>
+<td>专辑对决</td>
+<td>逐场投票</td>
+<td>单场次单用户单票</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-10</td>
+<td>专辑对决</td>
+<td>复活赛</td>
+<td>按规则复活部分落败专辑</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-11</td>
+<td>专辑对决</td>
+<td>冠军汇总</td>
+<td>决出冠军并记录路径</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-12</td>
+<td>试听播放</td>
+<td>片段播放</td>
+<td>播放 30 秒试听片段</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-13</td>
+<td>音乐人格测评</td>
+<td>题目呈现</td>
+<td>按序出题，含听感题</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-14</td>
+<td>音乐人格测评</td>
+<td>计分与映射</td>
+<td>累加维度得分并映射类型</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-15</td>
+<td>音乐人格测评</td>
+<td>结果卡</td>
+<td>生成人格卡与推荐专辑</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-16</td>
+<td>AI 解读</td>
+<td>文本生成</td>
+<td>调用大模型生成个性化解读</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-17</td>
+<td>AI 解读</td>
+<td>失败降级</td>
+<td>超时或失败时使用模板文案</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-18</td>
+<td>可视化分享</td>
+<td>分享图导出</td>
+<td>导出结果为图片</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-19</td>
+<td>排行榜</td>
+<td>榜单统计</td>
+<td>按累计票数排序并分页</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-20</td>
+<td>人格图鉴</td>
+<td>图鉴展示</td>
+<td>人格类型列表与占比</td>
+<td>P2</td>
+</tr>
+<tr>
+<td>FR-21</td>
+<td>后台</td>
+<td>题目管理</td>
+<td>题目与分值的增删改排序</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-22</td>
+<td>后台</td>
+<td>类型管理</td>
+<td>人格类型维护</td>
+<td>P0</td>
+</tr>
+<tr>
+<td>FR-23</td>
+<td>后台</td>
+<td>音乐数据管理</td>
+<td>缓存查看与手动刷新</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-24</td>
+<td>后台</td>
+<td>用户管理</td>
+<td>用户检索与禁用</td>
+<td>P1</td>
+</tr>
+<tr>
+<td>FR-25</td>
+<td>后台</td>
+<td>数据看板</td>
+<td>核心指标统计展示</td>
+<td>P1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="s4">五、页面清单</h2>
+<p>依据功能需求，本设计共规划 19 个页面，其中前台 13 个、后台 6 个，满足并超过规范"至少 15 个页面"的要求。</p>
+<h3 id="s22">5.1 前台页面（13 个）</h3>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>页面名称</th>
+<th>主要内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>首页</td>
+<td>平台定位、两种玩法入口、榜单概览</td>
+</tr>
+<tr>
+<td>2</td>
+<td>登录 / 注册</td>
+<td>账号密码登录与注册</td>
+</tr>
+<tr>
+<td>3</td>
+<td>个人中心</td>
+<td>我的对决、我的测评、我的收藏</td>
+</tr>
+<tr>
+<td>4</td>
+<td>专辑对决 · 选择范围</td>
+<td>歌手搜索与流派年代筛选</td>
+</tr>
+<tr>
+<td>5</td>
+<td>专辑对决 · 对阵表</td>
+<td>赛程结构总览与轮次说明</td>
+</tr>
+<tr>
+<td>6</td>
+<td>专辑对决 · 对战投票</td>
+<td>两张专辑对比、试听、投票</td>
+</tr>
+<tr>
+<td>7</td>
+<td>专辑对决 · 冠军结果</td>
+<td>冠军展示与路径回溯</td>
+</tr>
+<tr>
+<td>8</td>
+<td>夺冠之路 · 分享图</td>
+<td>结果的图片化展示与导出</td>
+</tr>
+<tr>
+<td>9</td>
+<td>音乐人格测评 · 说明页</td>
+<td>玩法介绍与耗时说明</td>
+</tr>
+<tr>
+<td>10</td>
+<td>音乐人格测评 · 答题页</td>
+<td>逐题作答，含听感题</td>
+</tr>
+<tr>
+<td>11</td>
+<td>音乐人格测评 · 人格卡</td>
+<td>类型结果、维度得分、AI 解读、推荐专辑</td>
+</tr>
+<tr>
+<td>12</td>
+<td>人格图鉴</td>
+<td>全部人格类型与占比分布</td>
+</tr>
+<tr>
+<td>13</td>
+<td>专辑排行榜</td>
+<td>最受欢迎专辑排名与筛选</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s23">5.2 后台页面（6 个）</h3>
+<table>
+<thead>
+<tr>
+<th>序号</th>
+<th>页面名称</th>
+<th>主要内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>14</td>
+<td>后台登录</td>
+<td>管理员身份验证</td>
+</tr>
+<tr>
+<td>15</td>
+<td>数据看板</td>
+<td>核心运营指标</td>
+</tr>
+<tr>
+<td>16</td>
+<td>测评题目管理</td>
+<td>题目与分值维护</td>
+</tr>
+<tr>
+<td>17</td>
+<td>人格类型管理</td>
+<td>类型信息维护</td>
+</tr>
+<tr>
+<td>18</td>
+<td>音乐数据管理</td>
+<td>缓存数据查看与刷新</td>
+</tr>
+<tr>
+<td>19</td>
+<td>用户管理</td>
+<td>用户检索与状态管理</td>
+</tr>
+</tbody>
+</table>
+<h2 id="s5">六、非功能需求</h2>
+<h3 id="s24">6.1 性能需求</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求项</th>
+<th>指标</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-P1</td>
+<td>首页首屏加载</td>
+<td>常规网络下不超过 3 秒</td>
+</tr>
+<tr>
+<td>NFR-P2</td>
+<td>普通业务接口响应</td>
+<td>95% 请求不超过 800 毫秒</td>
+</tr>
+<tr>
+<td>NFR-P3</td>
+<td>榜单查询响应</td>
+<td>不超过 1 秒，列表分页返回</td>
+</tr>
+<tr>
+<td>NFR-P4</td>
+<td>音乐数据获取</td>
+<td>首次请求外部接口后落库，后续直接读缓存</td>
+</tr>
+<tr>
+<td>NFR-P5</td>
+<td>并发支持</td>
+<td>满足不少于 50 人同时在线访问的演示规模</td>
+</tr>
+<tr>
+<td>NFR-P6</td>
+<td>大模型生成</td>
+<td>设置超时上限，超时立即降级，不阻塞页面</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s25">6.2 安全需求</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求项</th>
+<th>措施</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-S1</td>
+<td>密码安全</td>
+<td>采用单向加密算法存储，数据库中不出现明文</td>
+</tr>
+<tr>
+<td>NFR-S2</td>
+<td>身份认证</td>
+<td>采用令牌机制，令牌设有有效期并校验签名</td>
+</tr>
+<tr>
+<td>NFR-S3</td>
+<td>接口鉴权</td>
+<td>需登录的接口统一校验令牌，后台接口额外校验角色</td>
+</tr>
+<tr>
+<td>NFR-S4</td>
+<td>输入校验</td>
+<td>所有入参做类型与范围校验，防止非法数据入库</td>
+</tr>
+<tr>
+<td>NFR-S5</td>
+<td>防刷票</td>
+<td>同一用户对同一场次只能投一票，重复提交被拒绝</td>
+</tr>
+<tr>
+<td>NFR-S6</td>
+<td>密钥保护</td>
+<td>大模型密钥与数据库连接串仅存于服务端，不下发前端</td>
+</tr>
+<tr>
+<td>NFR-S7</td>
+<td>越权防护</td>
+<td>用户只能访问与操作属于自己的记录</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s26">6.3 可用性需求</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求项</th>
+<th>措施</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-U1</td>
+<td>响应式布局</td>
+<td>适配 360 像素及以上宽度的移动端与桌面端</td>
+</tr>
+<tr>
+<td>NFR-U2</td>
+<td>外部依赖降级</td>
+<td>外部音乐接口不可用时使用本地缓存数据</td>
+</tr>
+<tr>
+<td>NFR-U3</td>
+<td>状态反馈</td>
+<td>加载、空数据、错误三类状态均有明确提示</td>
+</tr>
+<tr>
+<td>NFR-U4</td>
+<td>操作可逆</td>
+<td>关键操作提供二次确认，避免误操作</td>
+</tr>
+<tr>
+<td>NFR-U5</td>
+<td>时长可控</td>
+<td>单次对决与单次测评的预计耗时在入口处告知用户</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s27">6.4 兼容性需求</h3>
+<p>支持主流浏览器的近期版本（含 Chrome、Edge、Safari），并适配 iOS 与 Android 移动端浏览器。</p>
+<h3 id="s28">6.5 可维护性需求</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>需求项</th>
+<th>措施</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>NFR-M1</td>
+<td>架构清晰</td>
+<td>前后端分离，业务规则集中在服务端</td>
+</tr>
+<tr>
+<td>NFR-M2</td>
+<td>版本管理</td>
+<td>使用 Git 管理代码，保留完整演进记录</td>
+</tr>
+<tr>
+<td>NFR-M3</td>
+<td>配置外置</td>
+<td>端口、数据库地址、接口密钥通过环境变量配置</td>
+</tr>
+<tr>
+<td>NFR-M4</td>
+<td>文档齐备</td>
+<td>需求、设计、接口文档与代码同步更新</td>
+</tr>
+</tbody>
+</table>
+<h2 id="s6">七、数据需求</h2>
+<p>系统围绕四类业务对象组织数据：用户、音乐数据、对决过程、测评数据，共设计 12 张数据表，分别为用户、收藏、分享图记录、歌手、专辑、曲目、对决、对战场次、投票、测评题目、人格类型、测评结果。</p>
+<p>其中音乐类数据采用"外部获取 + 本地缓存"策略：首次访问时从开放接口获取并写入本地数据库，后续优先读取本地数据，既降低对外部接口的依赖，也避免触发接口调用频率限制。</p>
+<p>数据表的具体字段与实体关系详见《系统设计文档》中的数据库设计章节与实体关系图。</p>
+<h2 id="s7">八、约束与假设</h2>
+<h3 id="s29">8.1 约束条件</h3>
+<p>（1）音乐数据仅使用开放接口提供的元数据与 30 秒试听片段，不使用未授权的完整音频资源；</p>
+<p>（2）平台不提供完整曲库播放能力，定位为评选与测评工具；</p>
+<p>（3）大语言模型的调用存在费用与频率限制，必须有缓存与降级机制；</p>
+<p>（4）演示环境使用云平台免费额度，并发能力有限。</p>
+<h3 id="s30">8.2 假设条件</h3>
+<p>（1）假设用户使用的浏览器支持现代前端特性；</p>
+<p>（2）假设所选取的歌手在公开音乐数据接口中存在可获取的专辑数据；</p>
+<p>（3）假设用户在发起对决时有基本的音乐偏好判断能力。</p>
+<h2 id="s8">九、需求优先级与实施计划</h2>
+<h3 id="s31">9.1 优先级说明</h3>
+<table>
+<thead>
+<tr>
+<th>优先级</th>
+<th>含义</th>
+<th>处理原则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>必须实现</td>
+<td>缺失则核心流程不可用，不可削减</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>应当实现</td>
+<td>影响体验完整度，时间紧张时可延后但不取消</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>可以实现</td>
+<td>属于增强功能，视进度决定</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s32">9.2 实施计划</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>主要工作</th>
+<th>对应需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>第一阶段</td>
+<td>需求分析与系统设计，产出需求文档、架构图、实体关系图、界面设计稿</td>
+<td>全部需求的梳理与确认</td>
+</tr>
+<tr>
+<td>第二阶段</td>
+<td>后端与数据库实现，完成数据建模、认证、音乐数据缓存与各类业务接口</td>
+<td>FR-01 至 FR-07、FR-21 至 FR-25</td>
+</tr>
+<tr>
+<td>第三阶段</td>
+<td>前端页面与核心玩法实现，打通对决与测评两条完整流程</td>
+<td>FR-08 至 FR-15、FR-18</td>
+</tr>
+<tr>
+<td>第四阶段</td>
+<td>大模型接入、后台完善与三端云部署上线</td>
+<td>FR-16、FR-17、FR-19、FR-20</td>
+</tr>
+<tr>
+<td>第五阶段</td>
+<td>系统测试与用户试用反馈收集</td>
+<td>全部需求的验证</td>
+</tr>
+<tr>
+<td>第六阶段</td>
+<td>论文撰写与答辩准备</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s33">9.3 验收方式</h3>
+<p>（1）功能验收：逐条对照本文档用户故事的验收标准进行验证；</p>
+<p>（2）性能验收：使用浏览器开发者工具测量接口响应时间与首屏加载时间；</p>
+<p>（3）安全验收：验证密码非明文存储、未登录时受限接口被拒绝、重复投票被拒绝；</p>
+<p>（4）兼容性验收：在桌面端与移动端浏览器分别完成一次完整流程。</p>
+</main>
+<footer>音格 · 毕业设计文档　｜　由 md2html.py 自动生成，内容源：需求分析文档.md</footer>
+</div>
+</body>
+</html>
