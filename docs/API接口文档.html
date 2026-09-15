@@ -120,6 +120,14 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>时间格式</td>
 <td>ISO 8601 字符串，如 <code>2026-09-15T14:30:00.000Z</code></td>
 </tr>
+<tr>
+<td>音乐数据地区</td>
+<td>默认 <code>hk</code>，回退顺序 <code>hk → tw → us → cn</code>，可用环境变量 <code>ITUNES_COUNTRY</code> 覆盖</td>
+</tr>
+<tr>
+<td>封面地址</td>
+<td>接口返回 100×100 地址，服务端将路径中的 <code>100x100bb</code> 替换为 <code>600x600bb</code> 或更大尺寸后使用</td>
+</tr>
 </tbody>
 </table>
 <h3 id="s16">2.2 统一响应结构</h3>
@@ -335,7 +343,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>GET</td>
 <td>/api/music/artists/search</td>
 <td>公开</td>
-<td>FR-05</td>
+<td>FR-05、FR-28、FR-29</td>
 </tr>
 <tr>
 <td>M-02</td>
@@ -391,7 +399,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>POST</td>
 <td>/api/battles</td>
 <td>需要</td>
-<td>FR-08</td>
+<td>FR-08、FR-26、FR-27</td>
 </tr>
 <tr>
 <td>B-02</td>
@@ -807,6 +815,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 </code></pre>
 <h2 id="s3">四、音乐数据接口</h2>
 <h3 id="s27">4.1 搜索歌手　GET /api/music/artists/search　（公开）</h3>
+<p>检索歌手并返回候选列表，由用户确认后再查询专辑。<strong>服务端必须做相关性校验。</strong></p>
 <table>
 <thead>
 <tr>
@@ -821,7 +830,13 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>keyword</td>
 <td>string</td>
 <td>是</td>
-<td>歌手名称关键词</td>
+<td>歌手名称关键词，支持中文、繁体与英文</td>
+</tr>
+<tr>
+<td>limit</td>
+<td>number</td>
+<td>否</td>
+<td>候选数量，默认 5，上限 10</td>
 </tr>
 </tbody>
 </table>
@@ -830,12 +845,41 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
   &quot;message&quot;: &quot;ok&quot;,
   &quot;data&quot;: {
     &quot;list&quot;: [
-      { &quot;artistId&quot;: 455208, &quot;name&quot;: &quot;周杰伦&quot;, &quot;genre&quot;: &quot;国语流行&quot;, &quot;albumCount&quot;: 31 }
+      { &quot;artistId&quot;: 300117743, &quot;name&quot;: &quot;周杰倫&quot;, &quot;genre&quot;: &quot;国语流行&quot;, &quot;albumCount&quot;: 48, &quot;relevance&quot;: &quot;high&quot; },
+      { &quot;artistId&quot;: 216635866, &quot;name&quot;: &quot;林俊傑&quot;, &quot;genre&quot;: &quot;国语流行&quot;, &quot;albumCount&quot;: 80, &quot;relevance&quot;: &quot;low&quot; }
     ]
   }
 }
 </code></pre>
-<p>说明：本接口优先查询本地缓存；缓存未命中时请求外部音乐接口并将结果写入数据库。外部接口不可用时返回已有缓存并置 <code>message</code> 为提示文案，不返回错误码。</p>
+<p><strong>返回字段说明</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>官方歌手名，可能为繁体或罗马字，前端原样展示，不可自行转换</td>
+</tr>
+<tr>
+<td>albumCount</td>
+<td>该歌手名下专辑总数（未过滤），供用户判断是否为要找的人</td>
+</tr>
+<tr>
+<td>relevance</td>
+<td>相关性等级：<code>high</code> 名称直接命中；<code>low</code> 疑似但未命中（如关键词为中文而返回罗马字名）</td>
+</tr>
+</tbody>
+</table>
+<p><strong>地区与相关性约定</strong></p>
+<p>（1）请求外部接口时的地区参数由服务端配置注入，默认 <code>hk</code>。<strong>不得使用 <code>cn</code></strong>——实测大陆区对大量华语歌手无收录（李荣浩、邓紫棋、薛之谦、毛不易等在 <code>cn</code> 区均检索不到），且<strong>无匹配结果时不返回空数组，而是返回无关歌手</strong>（搜索这些名字会返回「周杰倫」）；</p>
+<p>（2）地区回退顺序 <code>hk → tw → us → cn</code>，前一地区返回空或全部低相关时依次尝试下一个；</p>
+<p>（3）当候选全部为 <code>low</code> 相关时，返回 <code>code: 1002</code> 与空列表，<code>message</code> 为"未找到相关歌手，请尝试其他写法"，<strong>不得把低相关结果当作命中直接返回</strong>；</p>
+<p>（4）实测各地覆盖情况：华语与海外歌手在 <code>hk</code> 区均可检索（Taylor Swift 200 张、Ed Sheeran 196 张、邓紫棋 92 张、毛不易 75 张）；日文名歌手可能返回罗马字（<code>米津玄師</code> → <code>Kenshi Yonezu</code>），此时按低相关处理但仍展示，由用户判断。</p>
+<p><strong>缓存约定</strong>：优先查询本地缓存；未命中时请求外部接口并将结果写入数据库。外部接口不可用时返回已有缓存并在 <code>message</code> 中提示，不返回错误码。</p>
 <h3 id="s28">4.2 歌手详情　GET /api/music/artists/:artistId　（公开）</h3>
 <pre><code class="language-json">{
   &quot;code&quot;: 0,
@@ -911,7 +955,39 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 </code></pre>
 <h2 id="s4">五、专辑对决接口</h2>
 <h3 id="s34">5.1 创建对决　POST /api/battles　（需要登录）</h3>
-<p>按选定范围创建一次对决，服务端自动生成对阵表并写入数据库。</p>
+<p>按选定范围创建一次对决。服务端先对候选专辑执行准入过滤，再按用户确认的名单生成对阵表并写入数据库。</p>
+<p>支持四种范围模式：</p>
+<table>
+<thead>
+<tr>
+<th>scopeType</th>
+<th>含义</th>
+<th>必填参数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>artist</code></td>
+<td>单歌手，该歌手的专辑互相比</td>
+<td><code>scopeKey</code></td>
+</tr>
+<tr>
+<td><code>multi-artist</code></td>
+<td><strong>多歌手混战</strong>，各位歌手的专辑进入同一池</td>
+<td><code>artists</code></td>
+</tr>
+<tr>
+<td><code>genre</code> / <code>era</code></td>
+<td>按流派或年代</td>
+<td><code>scopeKey</code>（<code>albumIds</code> 可选，用于收窄）</td>
+</tr>
+<tr>
+<td><code>custom</code></td>
+<td>手动挑选</td>
+<td><code>albumIds</code></td>
+</tr>
+</tbody>
+</table>
 <table>
 <thead>
 <tr>
@@ -926,19 +1002,43 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>scopeType</td>
 <td>string</td>
 <td>是</td>
-<td>范围类型：<code>artist</code> / <code>genre</code> / <code>era</code></td>
+<td>取值见上表</td>
 </tr>
 <tr>
 <td>scopeKey</td>
 <td>string</td>
+<td>否</td>
+<td><code>artist</code> / <code>genre</code> / <code>era</code> 模式下的关键字</td>
+</tr>
+<tr>
+<td>artists</td>
+<td>object[]</td>
+<td>否</td>
+<td><code>multi-artist</code> 模式下的歌手与抽取数量，最多 6 位</td>
+</tr>
+<tr>
+<td>artists[].artistId</td>
+<td>number</td>
 <td>是</td>
-<td>范围关键字，如歌手名</td>
+<td>歌手唯一标识</td>
+</tr>
+<tr>
+<td>artists[].pick</td>
+<td>number</td>
+<td>否</td>
+<td>该歌手抽取的专辑数，默认 4，范围 3 至 5</td>
+</tr>
+<tr>
+<td>artists[].albumIds</td>
+<td>string[]</td>
+<td>否</td>
+<td>该歌手指定专辑，填写时忽略 <code>pick</code></td>
 </tr>
 <tr>
 <td>albumIds</td>
 <td>string[]</td>
 <td>否</td>
-<td>手动指定参赛专辑，指定时忽略 scopeKey</td>
+<td><code>custom</code> 模式下手动指定的专辑</td>
 </tr>
 </tbody>
 </table>
@@ -947,17 +1047,55 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
   &quot;message&quot;: &quot;ok&quot;,
   &quot;data&quot;: {
     &quot;battleId&quot;: &quot;6512f1b2c9e77b1d2a4f8e22&quot;,
-    &quot;scopeType&quot;: &quot;artist&quot;,
-    &quot;scopeKey&quot;: &quot;周杰伦&quot;,
-    &quot;albumCount&quot;: 11,
-    &quot;roundCount&quot;: 4,
-    &quot;hasBye&quot;: true,
-    &quot;matchCount&quot;: 13
+    &quot;scopeType&quot;: &quot;multi-artist&quot;,
+    &quot;artists&quot;: [
+      { &quot;artistId&quot;: 300117743, &quot;name&quot;: &quot;周杰倫&quot;, &quot;picked&quot;: 4 },
+      { &quot;artistId&quot;: 216635866, &quot;name&quot;: &quot;林俊傑&quot;, &quot;picked&quot;: 3 },
+      { &quot;artistId&quot;: 137938148, &quot;name&quot;: &quot;陳奕迅&quot;, &quot;picked&quot;: 3 }
+    ],
+    &quot;albumCount&quot;: 10,
+    &quot;roundCount&quot;: 3,
+    &quot;hasBye&quot;: false,
+    &quot;matchCount&quot;: 13,
+    &quot;filtered&quot;: { &quot;single&quot;: 41, &quot;live&quot;: 9, &quot;soundtrack&quot;: 3, &quot;compilation&quot;: 12 }
   }
 }
 </code></pre>
-<p>失败情形：范围内专辑少于 4 张返回 <code>1001</code>；范围无法解析返回 <code>1002</code>。</p>
-<p>说明：返回体中的 <code>hasBye</code> 表示是否安排了轮空（参赛数为奇数时为 <code>true</code>），该字段是对"轮空处理"逻辑的直接体现。</p>
+<p><strong><code>filtered</code> 字段</strong>：返回本次因准入规则被剔除的专辑数量，按原因分类。用于前端展示"已自动过滤 X 张单曲 / 现场 / 原声 / 精选"，对应需求 FR-27 与 US-20。</p>
+<p><strong>专辑准入规则（服务端实现）</strong></p>
+<table>
+<thead>
+<tr>
+<th>规则</th>
+<th>判定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>类型</td>
+<td>接口返回类型必须为 Album，排除 Single 与 EP</td>
+</tr>
+<tr>
+<td>曲目数</td>
+<td>不少于 7 首</td>
+</tr>
+<tr>
+<td>名称</td>
+<td>不得匹配 现场｜演唱会｜音乐会｜原声带｜OST｜精选｜合集｜拼盘｜复刻｜伴奏｜致敬｜翻唱</td>
+</tr>
+<tr>
+<td>归属</td>
+<td>按 <code>artistId</code> 比对，<strong>不按名称比对</strong>（同一歌手在不同接口中可能返回简繁体不同的名字）</td>
+</tr>
+<tr>
+<td>去重</td>
+<td>同名专辑只保留最早发行、且不带豪华版后缀的版本</td>
+</tr>
+</tbody>
+</table>
+<p>实测该规则的效果：周杰伦 48 张筛出 17 张、林俊杰 80 张筛出 16 张、陈奕迅 122 张筛出 44 张、李荣浩 48 张筛出 8 张。</p>
+<p>失败情形：过滤后专辑少于 4 张返回 <code>1001</code>；范围无法解析或歌手检索无相关结果返回 <code>1002</code>；<code>multi-artist</code> 模式超过 6 位歌手返回 <code>1001</code>。</p>
+<p>说明：返回体中的 <code>hasBye</code> 表示是否安排了轮空（参赛数为奇数时为 <code>true</code>），该字段是"轮空处理"逻辑的直接体现；<code>filtered</code> 则体现准入过滤逻辑。</p>
 <h3 id="s35">5.2 对决详情　GET /api/battles/:id　（需要登录）</h3>
 <p>返回对决基本信息与完整对阵表。</p>
 <pre><code class="language-json">{
@@ -1582,9 +1720,19 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>发起用户</td>
 </tr>
 <tr>
-<td>scopeType / scopeKey</td>
+<td>scopeType</td>
 <td>string</td>
-<td>参赛范围</td>
+<td>范围模式：<code>artist</code> / <code>multi-artist</code> / <code>genre</code> / <code>era</code> / <code>custom</code></td>
+</tr>
+<tr>
+<td>scopeKey</td>
+<td>string</td>
+<td>范围关键字（单范围模式使用）</td>
+</tr>
+<tr>
+<td>artists</td>
+<td>array</td>
+<td>多歌手模式下参与的歌手标识与各自抽取数量</td>
 </tr>
 <tr>
 <td>status</td>
@@ -1671,6 +1819,8 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <p>（2）<strong>安全</strong>：A-01 至 A-06 与 D-01 至 D-14 均区分鉴权等级，对应 NFR-S2、NFR-S3；B-04 通过服务端校验重复投票，对应 NFR-S5；</p>
 <p>（3）<strong>可用性</strong>：P-02 返回 <code>aiCommentSource</code> 字段显式暴露降级状态，对应 FR-17 与 NFR-P6；</p>
 <p>（4）<strong>性能</strong>：R-02 聚合首页数据，减少首屏请求次数，对应 NFR-P1；全部列表接口支持分页，对应 NFR-P3。</p>
+<p>（5）<strong>跨歌手比较</strong>：B-01 的 <code>multi-artist</code> 模式允许最多 6 位歌手的专辑进入同一对决池，恢复"不同歌手放在一起比"的核心玩法，对应 FR-26 与 US-03；</p>
+<p>（6）<strong>数据准确性</strong>：M-01 的地区参数与相关性校验，以及 B-01 的五条专辑准入规则，共同对应 NFR-D1 至 NFR-D5。其中地区参数不得使用 <code>cn</code>、检索结果必须做相关性校验、专辑归属必须按标识而非名称比对，这三条均由实测发现，详见 4.1 与 5.1 节的说明。</p>
 </main>
 <footer>音格 · 毕业设计文档　｜　由 md2html.py 自动生成，内容源：API接口文档.md</footer>
 </div>

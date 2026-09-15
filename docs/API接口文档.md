@@ -37,6 +37,8 @@
 | 传输协议 | 开发环境 HTTP，线上环境 HTTPS |
 | 接口风格 | RESTful，资源名用复数名词，动作用 HTTP 方法表达 |
 | 时间格式 | ISO 8601 字符串，如 `2026-09-15T14:30:00.000Z` |
+| 音乐数据地区 | 默认 `hk`，回退顺序 `hk → tw → us → cn`，可用环境变量 `ITUNES_COUNTRY` 覆盖 |
+| 封面地址 | 接口返回 100×100 地址，服务端将路径中的 `100x100bb` 替换为 `600x600bb` 或更大尺寸后使用 |
 
 ### 2.2 统一响应结构
 
@@ -118,14 +120,14 @@
 | A-04 | 认证 | POST | /api/auth/logout | 需要 | FR-02 |
 | A-05 | 认证 | PUT | /api/users/me | 需要 | FR-03 |
 | A-06 | 认证 | GET | /api/users/me/stats | 需要 | FR-03 |
-| M-01 | 音乐数据 | GET | /api/music/artists/search | 公开 | FR-05 |
+| M-01 | 音乐数据 | GET | /api/music/artists/search | 公开 | FR-05、FR-28、FR-29 |
 | M-02 | 音乐数据 | GET | /api/music/artists/:artistId | 公开 | FR-05 |
 | M-03 | 音乐数据 | GET | /api/music/artists/:artistId/albums | 公开 | FR-06 |
 | M-04 | 音乐数据 | GET | /api/music/albums/:albumId | 公开 | FR-06 |
 | M-05 | 音乐数据 | GET | /api/music/albums/:albumId/tracks | 公开 | FR-06 |
 | M-06 | 音乐数据 | GET | /api/music/albums/:albumId/preview | 公开 | FR-12 |
 | M-07 | 音乐数据 | GET | /api/music/genres | 公开 | FR-05 |
-| B-01 | 专辑对决 | POST | /api/battles | 需要 | FR-08 |
+| B-01 | 专辑对决 | POST | /api/battles | 需要 | FR-08、FR-26、FR-27 |
 | B-02 | 专辑对决 | GET | /api/battles/:id | 需要 | FR-08 |
 | B-03 | 专辑对决 | GET | /api/battles/:id/next-match | 需要 | FR-09 |
 | B-04 | 专辑对决 | POST | /api/battles/:id/matches/:matchId/vote | 需要 | FR-09 |
@@ -255,9 +257,12 @@
 
 ### 4.1 搜索歌手　GET /api/music/artists/search　（公开）
 
+检索歌手并返回候选列表，由用户确认后再查询专辑。**服务端必须做相关性校验。**
+
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| keyword | string | 是 | 歌手名称关键词 |
+| keyword | string | 是 | 歌手名称关键词，支持中文、繁体与英文 |
+| limit | number | 否 | 候选数量，默认 5，上限 10 |
 
 ```json
 {
@@ -265,13 +270,32 @@
   "message": "ok",
   "data": {
     "list": [
-      { "artistId": 455208, "name": "周杰伦", "genre": "国语流行", "albumCount": 31 }
+      { "artistId": 300117743, "name": "周杰倫", "genre": "国语流行", "albumCount": 48, "relevance": "high" },
+      { "artistId": 216635866, "name": "林俊傑", "genre": "国语流行", "albumCount": 80, "relevance": "low" }
     ]
   }
 }
 ```
 
-说明：本接口优先查询本地缓存；缓存未命中时请求外部音乐接口并将结果写入数据库。外部接口不可用时返回已有缓存并置 `message` 为提示文案，不返回错误码。
+**返回字段说明**
+
+| 字段 | 说明 |
+| --- | --- |
+| name | 官方歌手名，可能为繁体或罗马字，前端原样展示，不可自行转换 |
+| albumCount | 该歌手名下专辑总数（未过滤），供用户判断是否为要找的人 |
+| relevance | 相关性等级：`high` 名称直接命中；`low` 疑似但未命中（如关键词为中文而返回罗马字名） |
+
+**地区与相关性约定**
+
+（1）请求外部接口时的地区参数由服务端配置注入，默认 `hk`。**不得使用 `cn`**——实测大陆区对大量华语歌手无收录（李荣浩、邓紫棋、薛之谦、毛不易等在 `cn` 区均检索不到），且**无匹配结果时不返回空数组，而是返回无关歌手**（搜索这些名字会返回「周杰倫」）；
+
+（2）地区回退顺序 `hk → tw → us → cn`，前一地区返回空或全部低相关时依次尝试下一个；
+
+（3）当候选全部为 `low` 相关时，返回 `code: 1002` 与空列表，`message` 为"未找到相关歌手，请尝试其他写法"，**不得把低相关结果当作命中直接返回**；
+
+（4）实测各地覆盖情况：华语与海外歌手在 `hk` 区均可检索（Taylor Swift 200 张、Ed Sheeran 196 张、邓紫棋 92 张、毛不易 75 张）；日文名歌手可能返回罗马字（`米津玄師` → `Kenshi Yonezu`），此时按低相关处理但仍展示，由用户判断。
+
+**缓存约定**：优先查询本地缓存；未命中时请求外部接口并将结果写入数据库。外部接口不可用时返回已有缓存并在 `message` 中提示，不返回错误码。
 
 ### 4.2 歌手详情　GET /api/music/artists/:artistId　（公开）
 
@@ -355,13 +379,26 @@
 
 ### 5.1 创建对决　POST /api/battles　（需要登录）
 
-按选定范围创建一次对决，服务端自动生成对阵表并写入数据库。
+按选定范围创建一次对决。服务端先对候选专辑执行准入过滤，再按用户确认的名单生成对阵表并写入数据库。
+
+支持四种范围模式：
+
+| scopeType | 含义 | 必填参数 |
+| --- | --- | --- |
+| `artist` | 单歌手，该歌手的专辑互相比 | `scopeKey` |
+| `multi-artist` | **多歌手混战**，各位歌手的专辑进入同一池 | `artists` |
+| `genre` / `era` | 按流派或年代 | `scopeKey`（`albumIds` 可选，用于收窄） |
+| `custom` | 手动挑选 | `albumIds` |
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| scopeType | string | 是 | 范围类型：`artist` / `genre` / `era` |
-| scopeKey | string | 是 | 范围关键字，如歌手名 |
-| albumIds | string[] | 否 | 手动指定参赛专辑，指定时忽略 scopeKey |
+| scopeType | string | 是 | 取值见上表 |
+| scopeKey | string | 否 | `artist` / `genre` / `era` 模式下的关键字 |
+| artists | object[] | 否 | `multi-artist` 模式下的歌手与抽取数量，最多 6 位 |
+| artists[].artistId | number | 是 | 歌手唯一标识 |
+| artists[].pick | number | 否 | 该歌手抽取的专辑数，默认 4，范围 3 至 5 |
+| artists[].albumIds | string[] | 否 | 该歌手指定专辑，填写时忽略 `pick` |
+| albumIds | string[] | 否 | `custom` 模式下手动指定的专辑 |
 
 ```json
 {
@@ -369,19 +406,38 @@
   "message": "ok",
   "data": {
     "battleId": "6512f1b2c9e77b1d2a4f8e22",
-    "scopeType": "artist",
-    "scopeKey": "周杰伦",
-    "albumCount": 11,
-    "roundCount": 4,
-    "hasBye": true,
-    "matchCount": 13
+    "scopeType": "multi-artist",
+    "artists": [
+      { "artistId": 300117743, "name": "周杰倫", "picked": 4 },
+      { "artistId": 216635866, "name": "林俊傑", "picked": 3 },
+      { "artistId": 137938148, "name": "陳奕迅", "picked": 3 }
+    ],
+    "albumCount": 10,
+    "roundCount": 3,
+    "hasBye": false,
+    "matchCount": 13,
+    "filtered": { "single": 41, "live": 9, "soundtrack": 3, "compilation": 12 }
   }
 }
 ```
 
-失败情形：范围内专辑少于 4 张返回 `1001`；范围无法解析返回 `1002`。
+**`filtered` 字段**：返回本次因准入规则被剔除的专辑数量，按原因分类。用于前端展示"已自动过滤 X 张单曲 / 现场 / 原声 / 精选"，对应需求 FR-27 与 US-20。
 
-说明：返回体中的 `hasBye` 表示是否安排了轮空（参赛数为奇数时为 `true`），该字段是对"轮空处理"逻辑的直接体现。
+**专辑准入规则（服务端实现）**
+
+| 规则 | 判定 |
+| --- | --- |
+| 类型 | 接口返回类型必须为 Album，排除 Single 与 EP |
+| 曲目数 | 不少于 7 首 |
+| 名称 | 不得匹配 现场｜演唱会｜音乐会｜原声带｜OST｜精选｜合集｜拼盘｜复刻｜伴奏｜致敬｜翻唱 |
+| 归属 | 按 `artistId` 比对，**不按名称比对**（同一歌手在不同接口中可能返回简繁体不同的名字） |
+| 去重 | 同名专辑只保留最早发行、且不带豪华版后缀的版本 |
+
+实测该规则的效果：周杰伦 48 张筛出 17 张、林俊杰 80 张筛出 16 张、陈奕迅 122 张筛出 44 张、李荣浩 48 张筛出 8 张。
+
+失败情形：过滤后专辑少于 4 张返回 `1001`；范围无法解析或歌手检索无相关结果返回 `1002`；`multi-artist` 模式超过 6 位歌手返回 `1001`。
+
+说明：返回体中的 `hasBye` 表示是否安排了轮空（参赛数为奇数时为 `true`），该字段是"轮空处理"逻辑的直接体现；`filtered` 则体现准入过滤逻辑。
 
 ### 5.2 对决详情　GET /api/battles/:id　（需要登录）
 
@@ -831,7 +887,9 @@
 | --- | --- | --- |
 | battleId | string | 对决标识 |
 | userId | string | 发起用户 |
-| scopeType / scopeKey | string | 参赛范围 |
+| scopeType | string | 范围模式：`artist` / `multi-artist` / `genre` / `era` / `custom` |
+| scopeKey | string | 范围关键字（单范围模式使用） |
+| artists | array | 多歌手模式下参与的歌手标识与各自抽取数量 |
 | status | string | `playing` / `finished` |
 | roundCount / currentRound | number | 总轮次与当前轮次 |
 | hasBye | boolean | 是否安排了轮空 |
@@ -880,3 +938,7 @@
 （3）**可用性**：P-02 返回 `aiCommentSource` 字段显式暴露降级状态，对应 FR-17 与 NFR-P6；
 
 （4）**性能**：R-02 聚合首页数据，减少首屏请求次数，对应 NFR-P1；全部列表接口支持分页，对应 NFR-P3。
+
+（5）**跨歌手比较**：B-01 的 `multi-artist` 模式允许最多 6 位歌手的专辑进入同一对决池，恢复"不同歌手放在一起比"的核心玩法，对应 FR-26 与 US-03；
+
+（6）**数据准确性**：M-01 的地区参数与相关性校验，以及 B-01 的五条专辑准入规则，共同对应 NFR-D1 至 NFR-D5。其中地区参数不得使用 `cn`、检索结果必须做相关性校验、专辑归属必须按标识而非名称比对，这三条均由实测发现，详见 4.1 与 5.1 节的说明。
