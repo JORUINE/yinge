@@ -133,6 +133,28 @@ def add_toc(doc):
     p._p.append(fld)
 
 
+def add_code(doc, text):
+    """代码块行：等宽字体、浅底纹、不缩进。中文回退到宋体。"""
+    p = doc.add_paragraph()
+    p.paragraph_format.line_spacing = 1.0
+    p.paragraph_format.space_after = Pt(0)
+    p.paragraph_format.left_indent = Pt(12)
+    ppr = p._p.get_or_add_pPr()
+    shd = OxmlElement("w:shd")
+    shd.set(qn("w:val"), "clear")
+    shd.set(qn("w:fill"), "F2F4F7")
+    ppr.append(shd)
+    r = p.add_run(text)
+    r.font.size = Pt(9)
+    r.font.color.rgb = RGBColor(0x26, 0x31, 0x3F)
+    rpr = r._element.get_or_add_rPr()
+    rf = rpr.makeelement(qn("w:rFonts"), {})
+    rf.set(qn("w:ascii"), "Consolas")
+    rf.set(qn("w:hAnsi"), "Consolas")
+    rf.set(qn("w:eastAsia"), SONG)
+    rpr.append(rf)
+
+
 def add_table(doc, rows):
     grid = [[c.strip() for c in r.strip(" |").split("|")] for r in rows]
     ncol = max(len(r) for r in grid)
@@ -161,8 +183,24 @@ def build(src, dst, indent=True):
             add_table(doc, tbl_buf)
             tbl_buf.clear()
 
+    fence = None
+
     for raw in lines:
         line = raw.rstrip()
+
+        # 代码块（``` 起止）：逐行渲染为等宽带底纹的段落
+        if line.strip().startswith("```"):
+            flush_tbl()
+            if fence is None:
+                fence = []
+            else:
+                for cl in fence:
+                    add_code(doc, cl if cl.strip() else " ")
+                fence = None
+            continue
+        if fence is not None:
+            fence.append(line)
+            continue
 
         if line.lstrip().startswith("|"):
             tbl_buf.append(line)

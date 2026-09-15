@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · API 接口文档</title>
+<style>
+:root{
+  --bg:#f6f7f9; --card:#fff; --line:#e4e7ee;
+  --tx:#1b2029; --tx2:#5b6572; --tx3:#8a93a1;
+  --blue:#185FA5; --blue-bg:#E6F1FB; --teal:#0F6E56; --amber:#854F0B;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:15px;line-height:1.8}
+.wrap{max-width:1000px;margin:0 auto;padding:34px 22px 90px}
+header.masthead{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:22px 26px;margin-bottom:22px}
+header.masthead h1{margin:0 0 6px;font-size:24px;font-weight:700}
+header.masthead .meta{color:var(--tx2);font-size:14px;margin:0}
+nav.toc{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:16px 22px;margin:0 0 26px}
+nav.toc b{display:block;font-size:12.5px;color:var(--tx3);letter-spacing:.6px;margin-bottom:8px}
+nav.toc a{color:var(--blue);text-decoration:none;font-size:14px;display:block;
+  padding:2px 0;border-bottom:1px solid transparent}
+nav.toc a:hover{background:var(--blue-bg);border-radius:4px}
+nav.toc a.lv3{padding-left:20px;font-size:13.3px;color:var(--tx2)}
+main{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:28px 34px 42px}
+main h1{display:none}
+main h2{font-size:20px;font-weight:700;margin:38px 0 10px;padding-left:12px;
+  border-left:4px solid var(--blue);scroll-margin-top:20px}
+main h2:first-of-type{margin-top:8px}
+main h3{font-size:16.5px;font-weight:700;margin:26px 0 8px;color:#26313f;scroll-margin-top:20px}
+main h4{font-size:14.5px;font-weight:700;margin:18px 0 6px;color:var(--tx2)}
+main p{margin:9px 0}
+main strong{font-weight:700}
+main table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+main th,main td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+main th{background:#f2f4f8;font-weight:700;font-size:13.2px;color:var(--tx2)}
+main tr:nth-child(even) td{background:#fafbfd}
+main code{background:#eef1f6;padding:1px 6px;border-radius:4px;
+  font-family:Consolas,"Courier New",monospace;font-size:13px;color:#26313f}
+main pre{background:#1f2430;color:#e7ecf3;padding:15px 17px;border-radius:10px;
+  overflow-x:auto;font-size:13px;line-height:1.65}
+main pre code{background:none;color:inherit;padding:0}
+main blockquote{margin:14px 0;padding:10px 16px;background:var(--blue-bg);
+  border-left:3px solid var(--blue);border-radius:0 8px 8px 0;color:#26313f;font-size:14.2px}
+main blockquote p{margin:3px 0}
+main ul,main ol{padding-left:24px;margin:9px 0}
+main li{margin:4px 0}
+main hr{border:none;border-top:1px solid var(--line);margin:26px 0}
+footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="masthead">
+<h1>音格 · API 接口文档</h1>
+<p class="meta">项目名称：音格——音乐专辑对决与人格测评互动平台　｜　文档类型：系统设计文档（组成部分：接口设计）　｜　编制人：胡祖锐　　学号：9920250499　｜　学院／专业：新媒体学院 · 数字媒体技术（2025级专升本）</p>
+</header>
+<nav class="toc"><b>目录</b>
+<a class="lv2" href="#s0">一、文档说明</a>
+<a class="lv2" href="#s1">二、接口规范总则</a>
+<a class="lv2" href="#s2">三、认证与用户接口</a>
+<a class="lv2" href="#s3">四、音乐数据接口</a>
+<a class="lv2" href="#s4">五、专辑对决接口</a>
+<a class="lv2" href="#s5">六、音乐人格测评接口</a>
+<a class="lv2" href="#s6">七、收藏与分享接口</a>
+<a class="lv2" href="#s7">八、排行榜接口</a>
+<a class="lv2" href="#s8">九、后台管理接口</a>
+<a class="lv2" href="#s9">十、关键数据结构</a>
+<a class="lv2" href="#s10">十一、典型调用时序</a>
+<a class="lv2" href="#s11">十二、接口设计与需求的对应说明</a>
+</nav>
+<main>
+<h1>音格 · API 接口文档</h1>
+<blockquote>
+<p>项目名称：音格——音乐专辑对决与人格测评互动平台</p>
+<p>文档类型：系统设计文档（组成部分：接口设计）</p>
+<p>编制人：胡祖锐　　学号：9920250499</p>
+<p>学院／专业：新媒体学院 · 数字媒体技术（2025级专升本）</p>
+<p>版本：v1.0　　编制日期：2026 年 9 月 15 日</p>
+</blockquote>
+<h2 id="s0">一、文档说明</h2>
+<h3 id="s12">1.1 编写目的</h3>
+<p>本文档定义"音格"平台前后端之间的接口契约，明确每个接口的请求方式、路径、参数、鉴权要求与返回结构。本文档同时作为后端开发的实现依据、前端联调的对接依据与系统测试的验证依据。</p>
+<h3 id="s13">1.2 读者对象</h3>
+<p>前端开发者、后端开发者、测试人员与答辩评审。</p>
+<h3 id="s14">1.3 依据文档</h3>
+<p>《音格需求分析文档》v1.0。接口与其中的功能需求编号（FR-XX）、页面清单一一对应。</p>
+<h2 id="s1">二、接口规范总则</h2>
+<h3 id="s15">2.1 基础信息</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>约定</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础路径</td>
+<td><code>/api</code></td>
+</tr>
+<tr>
+<td>数据格式</td>
+<td>请求与响应均为 <code>application/json</code>，字符编码 UTF-8</td>
+</tr>
+<tr>
+<td>传输协议</td>
+<td>开发环境 HTTP，线上环境 HTTPS</td>
+</tr>
+<tr>
+<td>接口风格</td>
+<td>RESTful，资源名用复数名词，动作用 HTTP 方法表达</td>
+</tr>
+<tr>
+<td>时间格式</td>
+<td>ISO 8601 字符串，如 <code>2026-09-15T14:30:00.000Z</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="s16">2.2 统一响应结构</h3>
+<p>所有接口（含错误）均返回如下结构，前端只需判断 <code>code</code> 字段：</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {}
+}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>code</td>
+<td>number</td>
+<td>业务状态码，<code>0</code> 表示成功，非 0 表示失败</td>
+</tr>
+<tr>
+<td>message</td>
+<td>string</td>
+<td>提示信息，失败时为可展示给用户的文案</td>
+</tr>
+<tr>
+<td>data</td>
+<td>object / array / null</td>
+<td>业务数据，失败时为 <code>null</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="s17">2.3 业务状态码</h3>
+<table>
+<thead>
+<tr>
+<th>状态码</th>
+<th>含义</th>
+<th>前端处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>成功</td>
+<td>正常取用 data</td>
+</tr>
+<tr>
+<td>1001</td>
+<td>参数校验失败</td>
+<td>提示 message</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>资源不存在</td>
+<td>提示并返回上一页</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>操作过于频繁</td>
+<td>提示稍后重试</td>
+</tr>
+<tr>
+<td>2001</td>
+<td>未登录或登录已过期</td>
+<td>跳转登录页</td>
+</tr>
+<tr>
+<td>2002</td>
+<td>权限不足</td>
+<td>提示无权限</td>
+</tr>
+<tr>
+<td>2003</td>
+<td>账号已被禁用</td>
+<td>提示并清除本地登录态</td>
+</tr>
+<tr>
+<td>3001</td>
+<td>重复操作（如重复投票）</td>
+<td>提示 message，不改变数据</td>
+</tr>
+<tr>
+<td>4001</td>
+<td>外部音乐接口异常</td>
+<td>提示使用缓存数据或稍后重试</td>
+</tr>
+<tr>
+<td>4002</td>
+<td>文本生成服务异常</td>
+<td>静默降级为模板文案</td>
+</tr>
+<tr>
+<td>5000</td>
+<td>服务器内部错误</td>
+<td>提示系统繁忙</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s18">2.4 认证方式</h3>
+<p>除标注为"公开"的接口外，其余接口均需在请求头携带令牌：</p>
+<pre><code class="language-json">{
+  &quot;Authorization&quot;: &quot;Bearer &lt;token&gt;&quot;
+}
+</code></pre>
+<p>令牌由登录接口返回，前端保存于本地存储，并在每次请求时附带。令牌含有效期，过期后服务端返回 <code>2001</code>，前端跳转登录页。</p>
+<p>后台接口除校验令牌外，还校验用户角色是否为管理员，否则返回 <code>2002</code>。</p>
+<h3 id="s19">2.5 分页约定</h3>
+<p>列表类接口统一使用以下查询参数与返回结构。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>默认</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>page</td>
+<td>number</td>
+<td>1</td>
+<td>页码，从 1 开始</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>number</td>
+<td>20</td>
+<td>每页条数，上限 100</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [],
+    &quot;total&quot;: 128,
+    &quot;page&quot;: 1,
+    &quot;pageSize&quot;: 20
+  }
+}
+</code></pre>
+<h3 id="s20">2.6 接口总览</h3>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>模块</th>
+<th>方法</th>
+<th>路径</th>
+<th>鉴权</th>
+<th>对应需求</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A-01</td>
+<td>认证</td>
+<td>POST</td>
+<td>/api/auth/register</td>
+<td>公开</td>
+<td>FR-01</td>
+</tr>
+<tr>
+<td>A-02</td>
+<td>认证</td>
+<td>POST</td>
+<td>/api/auth/login</td>
+<td>公开</td>
+<td>FR-02</td>
+</tr>
+<tr>
+<td>A-03</td>
+<td>认证</td>
+<td>GET</td>
+<td>/api/auth/me</td>
+<td>需要</td>
+<td>FR-02</td>
+</tr>
+<tr>
+<td>A-04</td>
+<td>认证</td>
+<td>POST</td>
+<td>/api/auth/logout</td>
+<td>需要</td>
+<td>FR-02</td>
+</tr>
+<tr>
+<td>A-05</td>
+<td>认证</td>
+<td>PUT</td>
+<td>/api/users/me</td>
+<td>需要</td>
+<td>FR-03</td>
+</tr>
+<tr>
+<td>A-06</td>
+<td>认证</td>
+<td>GET</td>
+<td>/api/users/me/stats</td>
+<td>需要</td>
+<td>FR-03</td>
+</tr>
+<tr>
+<td>M-01</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/artists/search</td>
+<td>公开</td>
+<td>FR-05</td>
+</tr>
+<tr>
+<td>M-02</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/artists/:artistId</td>
+<td>公开</td>
+<td>FR-05</td>
+</tr>
+<tr>
+<td>M-03</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/artists/:artistId/albums</td>
+<td>公开</td>
+<td>FR-06</td>
+</tr>
+<tr>
+<td>M-04</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/albums/:albumId</td>
+<td>公开</td>
+<td>FR-06</td>
+</tr>
+<tr>
+<td>M-05</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/albums/:albumId/tracks</td>
+<td>公开</td>
+<td>FR-06</td>
+</tr>
+<tr>
+<td>M-06</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/albums/:albumId/preview</td>
+<td>公开</td>
+<td>FR-12</td>
+</tr>
+<tr>
+<td>M-07</td>
+<td>音乐数据</td>
+<td>GET</td>
+<td>/api/music/genres</td>
+<td>公开</td>
+<td>FR-05</td>
+</tr>
+<tr>
+<td>B-01</td>
+<td>专辑对决</td>
+<td>POST</td>
+<td>/api/battles</td>
+<td>需要</td>
+<td>FR-08</td>
+</tr>
+<tr>
+<td>B-02</td>
+<td>专辑对决</td>
+<td>GET</td>
+<td>/api/battles/:id</td>
+<td>需要</td>
+<td>FR-08</td>
+</tr>
+<tr>
+<td>B-03</td>
+<td>专辑对决</td>
+<td>GET</td>
+<td>/api/battles/:id/next-match</td>
+<td>需要</td>
+<td>FR-09</td>
+</tr>
+<tr>
+<td>B-04</td>
+<td>专辑对决</td>
+<td>POST</td>
+<td>/api/battles/:id/matches/:matchId/vote</td>
+<td>需要</td>
+<td>FR-09</td>
+</tr>
+<tr>
+<td>B-05</td>
+<td>专辑对决</td>
+<td>POST</td>
+<td>/api/battles/:id/revival</td>
+<td>需要</td>
+<td>FR-10</td>
+</tr>
+<tr>
+<td>B-06</td>
+<td>专辑对决</td>
+<td>GET</td>
+<td>/api/battles/:id/result</td>
+<td>需要</td>
+<td>FR-11</td>
+</tr>
+<tr>
+<td>B-07</td>
+<td>专辑对决</td>
+<td>GET</td>
+<td>/api/battles</td>
+<td>需要</td>
+<td>FR-03</td>
+</tr>
+<tr>
+<td>B-08</td>
+<td>专辑对决</td>
+<td>DELETE</td>
+<td>/api/battles/:id</td>
+<td>需要</td>
+<td>FR-03</td>
+</tr>
+<tr>
+<td>P-01</td>
+<td>人格测评</td>
+<td>GET</td>
+<td>/api/personality/questions</td>
+<td>公开</td>
+<td>FR-13</td>
+</tr>
+<tr>
+<td>P-02</td>
+<td>人格测评</td>
+<td>POST</td>
+<td>/api/personality/submit</td>
+<td>需要</td>
+<td>FR-14</td>
+</tr>
+<tr>
+<td>P-03</td>
+<td>人格测评</td>
+<td>GET</td>
+<td>/api/personality/results/:id</td>
+<td>需要</td>
+<td>FR-15</td>
+</tr>
+<tr>
+<td>P-04</td>
+<td>人格测评</td>
+<td>GET</td>
+<td>/api/personality/results</td>
+<td>需要</td>
+<td>FR-03</td>
+</tr>
+<tr>
+<td>P-05</td>
+<td>人格测评</td>
+<td>GET</td>
+<td>/api/personality/types</td>
+<td>公开</td>
+<td>FR-20</td>
+</tr>
+<tr>
+<td>P-06</td>
+<td>人格测评</td>
+<td>GET</td>
+<td>/api/personality/types/:code</td>
+<td>公开</td>
+<td>FR-20</td>
+</tr>
+<tr>
+<td>P-07</td>
+<td>人格测评</td>
+<td>GET</td>
+<td>/api/personality/stats</td>
+<td>公开</td>
+<td>FR-20</td>
+</tr>
+<tr>
+<td>U-01</td>
+<td>收藏与分享</td>
+<td>POST</td>
+<td>/api/favorites</td>
+<td>需要</td>
+<td>FR-04</td>
+</tr>
+<tr>
+<td>U-02</td>
+<td>收藏与分享</td>
+<td>DELETE</td>
+<td>/api/favorites/:targetId</td>
+<td>需要</td>
+<td>FR-04</td>
+</tr>
+<tr>
+<td>U-03</td>
+<td>收藏与分享</td>
+<td>GET</td>
+<td>/api/favorites</td>
+<td>需要</td>
+<td>FR-04</td>
+</tr>
+<tr>
+<td>U-04</td>
+<td>收藏与分享</td>
+<td>POST</td>
+<td>/api/share-cards</td>
+<td>需要</td>
+<td>FR-18</td>
+</tr>
+<tr>
+<td>U-05</td>
+<td>收藏与分享</td>
+<td>GET</td>
+<td>/api/share-cards</td>
+<td>需要</td>
+<td>FR-18</td>
+</tr>
+<tr>
+<td>R-01</td>
+<td>排行榜</td>
+<td>GET</td>
+<td>/api/rank/albums</td>
+<td>公开</td>
+<td>FR-19</td>
+</tr>
+<tr>
+<td>R-02</td>
+<td>排行榜</td>
+<td>GET</td>
+<td>/api/rank/home</td>
+<td>公开</td>
+<td>FR-19</td>
+</tr>
+<tr>
+<td>D-01</td>
+<td>后台</td>
+<td>POST</td>
+<td>/api/admin/login</td>
+<td>公开</td>
+<td>FR-25</td>
+</tr>
+<tr>
+<td>D-02</td>
+<td>后台</td>
+<td>GET</td>
+<td>/api/admin/dashboard</td>
+<td>管理员</td>
+<td>FR-25</td>
+</tr>
+<tr>
+<td>D-03</td>
+<td>后台</td>
+<td>GET</td>
+<td>/api/admin/questions</td>
+<td>管理员</td>
+<td>FR-21</td>
+</tr>
+<tr>
+<td>D-04</td>
+<td>后台</td>
+<td>POST</td>
+<td>/api/admin/questions</td>
+<td>管理员</td>
+<td>FR-21</td>
+</tr>
+<tr>
+<td>D-05</td>
+<td>后台</td>
+<td>PUT</td>
+<td>/api/admin/questions/:id</td>
+<td>管理员</td>
+<td>FR-21</td>
+</tr>
+<tr>
+<td>D-06</td>
+<td>后台</td>
+<td>DELETE</td>
+<td>/api/admin/questions/:id</td>
+<td>管理员</td>
+<td>FR-21</td>
+</tr>
+<tr>
+<td>D-07</td>
+<td>后台</td>
+<td>GET</td>
+<td>/api/admin/types</td>
+<td>管理员</td>
+<td>FR-22</td>
+</tr>
+<tr>
+<td>D-08</td>
+<td>后台</td>
+<td>POST</td>
+<td>/api/admin/types</td>
+<td>管理员</td>
+<td>FR-22</td>
+</tr>
+<tr>
+<td>D-09</td>
+<td>后台</td>
+<td>PUT</td>
+<td>/api/admin/types/:id</td>
+<td>管理员</td>
+<td>FR-22</td>
+</tr>
+<tr>
+<td>D-10</td>
+<td>后台</td>
+<td>DELETE</td>
+<td>/api/admin/types/:id</td>
+<td>管理员</td>
+<td>FR-22</td>
+</tr>
+<tr>
+<td>D-11</td>
+<td>后台</td>
+<td>GET</td>
+<td>/api/admin/music</td>
+<td>管理员</td>
+<td>FR-23</td>
+</tr>
+<tr>
+<td>D-12</td>
+<td>后台</td>
+<td>POST</td>
+<td>/api/admin/music/refresh</td>
+<td>管理员</td>
+<td>FR-23</td>
+</tr>
+<tr>
+<td>D-13</td>
+<td>后台</td>
+<td>GET</td>
+<td>/api/admin/users</td>
+<td>管理员</td>
+<td>FR-24</td>
+</tr>
+<tr>
+<td>D-14</td>
+<td>后台</td>
+<td>PUT</td>
+<td>/api/admin/users/:id/status</td>
+<td>管理员</td>
+<td>FR-24</td>
+</tr>
+</tbody>
+</table>
+<h2 id="s2">三、认证与用户接口</h2>
+<h3 id="s21">3.1 注册　POST /api/auth/register　（公开）</h3>
+<p>创建新用户账号，密码经单向加密后存储。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>account</td>
+<td>string</td>
+<td>是</td>
+<td>账号，4 至 20 位字母或数字，全局唯一</td>
+</tr>
+<tr>
+<td>password</td>
+<td>string</td>
+<td>是</td>
+<td>密码，6 至 32 位</td>
+</tr>
+<tr>
+<td>nickname</td>
+<td>string</td>
+<td>否</td>
+<td>昵称，缺省时默认为账号</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;userId&quot;: &quot;6512f0a3c9e77b1d2a4f8e10&quot;, &quot;account&quot;: &quot;huzurui&quot; }
+}
+</code></pre>
+<p>失败情形：账号已存在返回 <code>1001</code>；参数不合规返回 <code>1001</code>。</p>
+<h3 id="s22">3.2 登录　POST /api/auth/login　（公开）</h3>
+<p>校验账号密码，成功后返回令牌与用户信息。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>account</td>
+<td>string</td>
+<td>是</td>
+<td>账号</td>
+</tr>
+<tr>
+<td>password</td>
+<td>string</td>
+<td>是</td>
+<td>密码</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,
+    &quot;expiresIn&quot;: 604800,
+    &quot;user&quot;: { &quot;userId&quot;: &quot;6512f...&quot;, &quot;account&quot;: &quot;huzurui&quot;, &quot;nickname&quot;: &quot;祖锐&quot;, &quot;role&quot;: &quot;user&quot; }
+  }
+}
+</code></pre>
+<p>失败情形：账号或密码错误返回 <code>1001</code>；账号被禁用返回 <code>2003</code>。</p>
+<h3 id="s23">3.3 获取当前用户　GET /api/auth/me　（需要登录）</h3>
+<p>用于页面刷新后恢复登录态。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;userId&quot;: &quot;6512f...&quot;, &quot;account&quot;: &quot;huzurui&quot;, &quot;nickname&quot;: &quot;祖锐&quot;, &quot;role&quot;: &quot;user&quot; }
+}
+</code></pre>
+<h3 id="s24">3.4 退出登录　POST /api/auth/logout　（需要登录）</h3>
+<p>服务端记录令牌失效，前端清除本地存储。</p>
+<pre><code class="language-json">{ &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: null }
+</code></pre>
+<h3 id="s25">3.5 修改个人资料　PUT /api/users/me　（需要登录）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nickname</td>
+<td>string</td>
+<td>否</td>
+<td>新昵称</td>
+</tr>
+<tr>
+<td>oldPassword</td>
+<td>string</td>
+<td>否</td>
+<td>原密码，修改密码时必填</td>
+</tr>
+<tr>
+<td>newPassword</td>
+<td>string</td>
+<td>否</td>
+<td>新密码，修改密码时必填</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{ &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: { &quot;updated&quot;: true } }
+</code></pre>
+<h3 id="s26">3.6 个人统计　GET /api/users/me/stats　（需要登录）</h3>
+<p>用于个人中心顶部概览。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;battleCount&quot;: 6, &quot;voteCount&quot;: 78, &quot;testCount&quot;: 3, &quot;favoriteCount&quot;: 12 }
+}
+</code></pre>
+<h2 id="s3">四、音乐数据接口</h2>
+<h3 id="s27">4.1 搜索歌手　GET /api/music/artists/search　（公开）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>keyword</td>
+<td>string</td>
+<td>是</td>
+<td>歌手名称关键词</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      { &quot;artistId&quot;: 455208, &quot;name&quot;: &quot;周杰伦&quot;, &quot;genre&quot;: &quot;国语流行&quot;, &quot;albumCount&quot;: 31 }
+    ]
+  }
+}
+</code></pre>
+<p>说明：本接口优先查询本地缓存；缓存未命中时请求外部音乐接口并将结果写入数据库。外部接口不可用时返回已有缓存并置 <code>message</code> 为提示文案，不返回错误码。</p>
+<h3 id="s28">4.2 歌手详情　GET /api/music/artists/:artistId　（公开）</h3>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;artistId&quot;: 455208, &quot;name&quot;: &quot;周杰伦&quot;, &quot;genre&quot;: &quot;国语流行&quot;, &quot;albumCount&quot;: 31, &quot;cachedAt&quot;: &quot;2026-09-15T06:00:00.000Z&quot; }
+}
+</code></pre>
+<h3 id="s29">4.3 歌手专辑列表　GET /api/music/artists/:artistId/albums　（公开）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>forceRefresh</td>
+<td>boolean</td>
+<td>否</td>
+<td>为 true 时跳过缓存重新拉取</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      {
+        &quot;albumId&quot;: 1440928842,
+        &quot;name&quot;: &quot;范特西&quot;,
+        &quot;artistId&quot;: 455208,
+        &quot;artistName&quot;: &quot;周杰伦&quot;,
+        &quot;artworkUrl&quot;: &quot;https://.../100x100bb.jpg&quot;,
+        &quot;trackCount&quot;: 10,
+        &quot;releaseDate&quot;: &quot;2001-09-14T07:00:00.000Z&quot;
+      }
+    ]
+  }
+}
+</code></pre>
+<h3 id="s30">4.4 专辑详情　GET /api/music/albums/:albumId　（公开）</h3>
+<p>返回单个专辑的完整信息，字段同 4.3 中的专辑对象。</p>
+<h3 id="s31">4.5 专辑曲目　GET /api/music/albums/:albumId/tracks　（公开）</h3>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      { &quot;trackId&quot;: 1440928850, &quot;name&quot;: &quot;爱在西元前&quot;, &quot;duration&quot;: 234000, &quot;hasPreview&quot;: true }
+    ]
+  }
+}
+</code></pre>
+<h3 id="s32">4.6 获取试听地址　GET /api/music/albums/:albumId/preview　（公开）</h3>
+<p>返回该专辑首支可用曲目的 30 秒试听地址，供投票页播放。若无可用片段，<code>data</code> 为 <code>null</code>，前端隐藏播放按钮。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;trackId&quot;: 1440928850, &quot;trackName&quot;: &quot;爱在西元前&quot;, &quot;previewUrl&quot;: &quot;https://.../preview.m4a&quot; }
+}
+</code></pre>
+<h3 id="s33">4.7 流派列表　GET /api/music/genres　（公开）</h3>
+<p>返回平台已缓存的流派标签，用于对决范围选择的筛选条件。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;list&quot;: [{ &quot;genre&quot;: &quot;国语流行&quot;, &quot;albumCount&quot;: 128 }] }
+}
+</code></pre>
+<h2 id="s4">五、专辑对决接口</h2>
+<h3 id="s34">5.1 创建对决　POST /api/battles　（需要登录）</h3>
+<p>按选定范围创建一次对决，服务端自动生成对阵表并写入数据库。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>scopeType</td>
+<td>string</td>
+<td>是</td>
+<td>范围类型：<code>artist</code> / <code>genre</code> / <code>era</code></td>
+</tr>
+<tr>
+<td>scopeKey</td>
+<td>string</td>
+<td>是</td>
+<td>范围关键字，如歌手名</td>
+</tr>
+<tr>
+<td>albumIds</td>
+<td>string[]</td>
+<td>否</td>
+<td>手动指定参赛专辑，指定时忽略 scopeKey</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;battleId&quot;: &quot;6512f1b2c9e77b1d2a4f8e22&quot;,
+    &quot;scopeType&quot;: &quot;artist&quot;,
+    &quot;scopeKey&quot;: &quot;周杰伦&quot;,
+    &quot;albumCount&quot;: 11,
+    &quot;roundCount&quot;: 4,
+    &quot;hasBye&quot;: true,
+    &quot;matchCount&quot;: 13
+  }
+}
+</code></pre>
+<p>失败情形：范围内专辑少于 4 张返回 <code>1001</code>；范围无法解析返回 <code>1002</code>。</p>
+<p>说明：返回体中的 <code>hasBye</code> 表示是否安排了轮空（参赛数为奇数时为 <code>true</code>），该字段是对"轮空处理"逻辑的直接体现。</p>
+<h3 id="s35">5.2 对决详情　GET /api/battles/:id　（需要登录）</h3>
+<p>返回对决基本信息与完整对阵表。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;battleId&quot;: &quot;6512f1b2c9e77b1d2a4f8e22&quot;,
+    &quot;status&quot;: &quot;playing&quot;,
+    &quot;roundCount&quot;: 4,
+    &quot;currentRound&quot;: 2,
+    &quot;championAlbumId&quot;: null,
+    &quot;matches&quot;: [
+      {
+        &quot;matchId&quot;: &quot;6512f1b2c9e77b1d2a4f8e30&quot;,
+        &quot;roundIndex&quot;: 1,
+        &quot;isRevival&quot;: false,
+        &quot;leftAlbum&quot;: { &quot;albumId&quot;: 1440928842, &quot;name&quot;: &quot;范特西&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot; },
+        &quot;rightAlbum&quot;: { &quot;albumId&quot;: 1440929700, &quot;name&quot;: &quot;叶惠美&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot; },
+        &quot;winnerAlbumId&quot;: 1440928842,
+        &quot;voteCount&quot;: 37
+      }
+    ]
+  }
+}
+</code></pre>
+<h3 id="s36">5.3 获取下一场待投票场次　GET /api/battles/:id/next-match　（需要登录）</h3>
+<p>前端据此渲染投票页。当前轮次全部投完时，服务端自动结算并推进到下一轮。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;matchId&quot;: &quot;6512f1b2c9e77b1d2a4f8e30&quot;,
+    &quot;roundIndex&quot;: 2,
+    &quot;isRevival&quot;: false,
+    &quot;left&quot;: { &quot;albumId&quot;: 1440928842, &quot;name&quot;: &quot;范特西&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot;, &quot;previewUrl&quot;: &quot;https://...&quot; },
+    &quot;right&quot;: { &quot;albumId&quot;: 1440929700, &quot;name&quot;: &quot;叶惠美&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot;, &quot;previewUrl&quot;: &quot;https://...&quot; },
+    &quot;finished&quot;: false
+  }
+}
+</code></pre>
+<p>说明：<code>finished</code> 为 <code>true</code> 表示全部轮次结束，前端跳转结果页。</p>
+<h3 id="s37">5.4 投票　POST /api/battles/:id/matches/:matchId/vote　（需要登录）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>albumId</td>
+<td>string</td>
+<td>是</td>
+<td>所投专辑，必须是该场次的左或右一方</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;matchId&quot;: &quot;6512f1b2c9e77b1d2a4f8e30&quot;, &quot;winnerAlbumId&quot;: 1440928842, &quot;nextReady&quot;: true }
+}
+</code></pre>
+<p>失败情形：同一场次重复投票返回 <code>3001</code>；<code>albumId</code> 不属于该场次返回 <code>1001</code>。</p>
+<h3 id="s38">5.5 确认复活赛　POST /api/battles/:id/revival　（需要登录）</h3>
+<p>小组赛结束后调用。服务端按规则选出复活专辑并生成复活赛场次。若该对决不含复活赛，返回 <code>1001</code>。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;revivedAlbumIds&quot;: [1440929700], &quot;newMatchCount&quot;: 1 }
+}
+</code></pre>
+<h3 id="s39">5.6 对决结果　GET /api/battles/:id/result　（需要登录）</h3>
+<p>返回冠军与完整的夺冠路径，供结果页与分享图使用。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;champion&quot;: { &quot;albumId&quot;: 1440928842, &quot;name&quot;: &quot;范特西&quot;, &quot;artistName&quot;: &quot;周杰伦&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot; },
+    &quot;path&quot;: [
+      { &quot;roundIndex&quot;: 1, &quot;opponentName&quot;: &quot;叶惠美&quot;, &quot;winVotes&quot;: 37, &quot;loseVotes&quot;: 22 },
+      { &quot;roundIndex&quot;: 2, &quot;opponentName&quot;: &quot;十一月的萧邦&quot;, &quot;winVotes&quot;: 41, &quot;loseVotes&quot;: 18 }
+    ],
+    &quot;totalVotes&quot;: 128
+  }
+}
+</code></pre>
+<h3 id="s40">5.7 我的对决列表　GET /api/battles　（需要登录）</h3>
+<p>支持分页，参数同 2.5 节。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      { &quot;battleId&quot;: &quot;6512f...&quot;, &quot;scopeKey&quot;: &quot;周杰伦&quot;, &quot;status&quot;: &quot;finished&quot;, &quot;championName&quot;: &quot;范特西&quot;, &quot;createdAt&quot;: &quot;2026-09-15T06:10:00.000Z&quot; }
+    ],
+    &quot;total&quot;: 6,
+    &quot;page&quot;: 1,
+    &quot;pageSize&quot;: 20
+  }
+}
+</code></pre>
+<h3 id="s41">5.8 删除对决记录　DELETE /api/battles/:id　（需要登录）</h3>
+<p>仅可删除属于自己的对决，否则返回 <code>2002</code>。</p>
+<pre><code class="language-json">{ &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: { &quot;deleted&quot;: true } }
+</code></pre>
+<h2 id="s5">六、音乐人格测评接口</h2>
+<h3 id="s42">6.1 获取题目　GET /api/personality/questions　（公开）</h3>
+<p>按 <code>order</code> 顺序返回全部题目。听感题带试听地址。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      {
+        &quot;questionId&quot;: &quot;6512f2a1c9e77b1d2a4f8f01&quot;,
+        &quot;order&quot;: 1,
+        &quot;type&quot;: &quot;normal&quot;,
+        &quot;title&quot;: &quot;听到一首陌生的歌，你最先注意到的是？&quot;,
+        &quot;options&quot;: [
+          { &quot;key&quot;: &quot;A&quot;, &quot;text&quot;: &quot;旋律好不好听&quot;, &quot;scores&quot;: { &quot;melody&quot;: 2 } },
+          { &quot;key&quot;: &quot;B&quot;, &quot;text&quot;: &quot;编曲的层次&quot;, &quot;scores&quot;: { &quot;texture&quot;: 2 } }
+        ]
+      },
+      {
+        &quot;questionId&quot;: &quot;6512f2a1c9e77b1d2a4f8f07&quot;,
+        &quot;order&quot;: 7,
+        &quot;type&quot;: &quot;audio&quot;,
+        &quot;title&quot;: &quot;听完这段片段，你的第一感觉是？&quot;,
+        &quot;audioUrl&quot;: &quot;https://.../preview.m4a&quot;,
+        &quot;options&quot;: [
+          { &quot;key&quot;: &quot;A&quot;, &quot;text&quot;: &quot;想跟着动起来&quot;, &quot;scores&quot;: { &quot;rhythm&quot;: 2 } },
+          { &quot;key&quot;: &quot;B&quot;, &quot;text&quot;: &quot;想安静听完&quot;, &quot;scores&quot;: { &quot;calm&quot;: 2 } }
+        ]
+      }
+    ]
+  }
+}
+</code></pre>
+<p>说明：选项中的 <code>scores</code> 即计分维度权重，是"结果可复现"的依据——同一组答案必然得到同一得分。</p>
+<h3 id="s43">6.2 提交作答　POST /api/personality/submit　（需要登录）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>answers</td>
+<td>object[]</td>
+<td>是</td>
+<td>作答数组</td>
+</tr>
+<tr>
+<td>answers[].questionId</td>
+<td>string</td>
+<td>是</td>
+<td>题目 ID</td>
+</tr>
+<tr>
+<td>answers[].optionKey</td>
+<td>string</td>
+<td>是</td>
+<td>所选选项标识</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;resultId&quot;: &quot;6512f3c4c9e77b1d2a4f9011&quot;,
+    &quot;typeCode&quot;: &quot;MEL&quot;,
+    &quot;typeName&quot;: &quot;旋律捕手&quot;,
+    &quot;scores&quot;: { &quot;melody&quot;: 9, &quot;rhythm&quot;: 5, &quot;calm&quot;: 4, &quot;texture&quot;: 6 },
+    &quot;aiComment&quot;: &quot;你对旋律的敏感度很高……&quot;,
+    &quot;aiCommentSource&quot;: &quot;llm&quot;,
+    &quot;recommendAlbums&quot;: [
+      { &quot;albumId&quot;: 1440928842, &quot;name&quot;: &quot;范特西&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot; }
+    ]
+  }
+}
+</code></pre>
+<p>说明：<code>aiCommentSource</code> 取值 <code>llm</code> 表示由大语言模型生成，<code>template</code> 表示因调用失败而使用模板兜底。该字段保证降级行为对前端透明、对测试可验证。</p>
+<p>失败情形：答案数量不足或题目 ID 不合法返回 <code>1001</code>。</p>
+<h3 id="s44">6.3 获取测评结果　GET /api/personality/results/:id　（需要登录）</h3>
+<p>返回与提交时一致的结果内容，用于"我的测评记录"回看，不重复调用文本生成接口。</p>
+<h3 id="s45">6.4 我的测评记录　GET /api/personality/results　（需要登录）</h3>
+<p>支持分页，返回该用户的全部测评结果摘要。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      { &quot;resultId&quot;: &quot;6512f...&quot;, &quot;typeCode&quot;: &quot;MEL&quot;, &quot;typeName&quot;: &quot;旋律捕手&quot;, &quot;createdAt&quot;: &quot;2026-09-15T06:20:00.000Z&quot; }
+    ],
+    &quot;total&quot;: 3,
+    &quot;page&quot;: 1,
+    &quot;pageSize&quot;: 20
+  }
+}
+</code></pre>
+<h3 id="s46">6.5 人格类型列表（图鉴）　GET /api/personality/types　（公开）</h3>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      { &quot;code&quot;: &quot;MEL&quot;, &quot;name&quot;: &quot;旋律捕手&quot;, &quot;description&quot;: &quot;对旋律线极度敏感……&quot;, &quot;userCount&quot;: 128, &quot;ratio&quot;: 0.21 }
+    ]
+  }
+}
+</code></pre>
+<h3 id="s47">6.6 人格类型详情　GET /api/personality/types/:code　（公开）</h3>
+<p>返回该类型的完整描述与推荐专辑列表，字段同上并增加 <code>recommendAlbums</code>。</p>
+<h3 id="s48">6.7 类型占比统计　GET /api/personality/stats　（公开）</h3>
+<p>供图鉴页绘制分布图。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;totalUsers&quot;: 612, &quot;distribution&quot;: [{ &quot;code&quot;: &quot;MEL&quot;, &quot;name&quot;: &quot;旋律捕手&quot;, &quot;count&quot;: 128, &quot;ratio&quot;: 0.21 }] }
+}
+</code></pre>
+<h2 id="s6">七、收藏与分享接口</h2>
+<h3 id="s49">7.1 添加收藏　POST /api/favorites　（需要登录）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>targetType</td>
+<td>string</td>
+<td>是</td>
+<td>收藏对象类型：<code>album</code> / <code>battle</code> / <code>personality</code></td>
+</tr>
+<tr>
+<td>targetId</td>
+<td>string</td>
+<td>是</td>
+<td>对象 ID</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{ &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: { &quot;favoriteId&quot;: &quot;6512f4d5c9e77b1d2a4fa101&quot; } }
+</code></pre>
+<p>失败情形：重复收藏返回 <code>3001</code>。</p>
+<h3 id="s50">7.2 取消收藏　DELETE /api/favorites/:targetId　（需要登录）</h3>
+<pre><code class="language-json">{ &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: { &quot;deleted&quot;: true } }
+</code></pre>
+<h3 id="s51">7.3 我的收藏　GET /api/favorites　（需要登录）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>targetType</td>
+<td>string</td>
+<td>否</td>
+<td>按类型筛选，缺省返回全部</td>
+</tr>
+</tbody>
+</table>
+<p>返回结构为分页列表，元素含 <code>targetType</code>、<code>targetId</code> 与对象的展示信息（名称、封面）。</p>
+<h3 id="s52">7.4 保存分享图记录　POST /api/share-cards　（需要登录）</h3>
+<p>分享图由前端生成，本接口仅记录归属，便于"我的分享"找回。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>type</td>
+<td>string</td>
+<td>是</td>
+<td>分享图类型：<code>battle</code> / <code>personality</code></td>
+</tr>
+<tr>
+<td>refId</td>
+<td>string</td>
+<td>是</td>
+<td>关联的对决 ID 或测评结果 ID</td>
+</tr>
+<tr>
+<td>imageUrl</td>
+<td>string</td>
+<td>否</td>
+<td>图片存储地址，缺省时仅记录生成行为</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{ &quot;code&quot;: 0, &quot;message&quot;: &quot;ok&quot;, &quot;data&quot;: { &quot;shareCardId&quot;: &quot;6512f5e6c9e77b1d2a4fb201&quot; } }
+</code></pre>
+<h3 id="s53">7.5 我的分享图　GET /api/share-cards　（需要登录）</h3>
+<p>支持分页，返回该用户生成的分享图记录列表。</p>
+<h2 id="s7">八、排行榜接口</h2>
+<h3 id="s54">8.1 最受欢迎专辑榜　GET /api/rank/albums　（公开）</h3>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>scopeType</td>
+<td>string</td>
+<td>否</td>
+<td>筛选范围类型</td>
+</tr>
+<tr>
+<td>scopeKey</td>
+<td>string</td>
+<td>否</td>
+<td>筛选关键字</td>
+</tr>
+<tr>
+<td>period</td>
+<td>string</td>
+<td>否</td>
+<td>统计周期：<code>all</code>（默认）/ <code>week</code> / <code>month</code></td>
+</tr>
+<tr>
+<td>page</td>
+<td>number</td>
+<td>否</td>
+<td>页码</td>
+</tr>
+<tr>
+<td>pageSize</td>
+<td>number</td>
+<td>否</td>
+<td>每页条数</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;list&quot;: [
+      { &quot;rank&quot;: 1, &quot;albumId&quot;: 1440928842, &quot;name&quot;: &quot;范特西&quot;, &quot;artistName&quot;: &quot;周杰伦&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot;, &quot;winCount&quot;: 24, &quot;voteCount&quot;: 386 }
+    ],
+    &quot;total&quot;: 213,
+    &quot;page&quot;: 1,
+    &quot;pageSize&quot;: 20
+  }
+}
+</code></pre>
+<p>说明：排序依据为累计得票数，并列时以胜场数次序排列。</p>
+<h3 id="s55">8.2 首页概览　GET /api/rank/home　（公开）</h3>
+<p>一次请求返回首页所需的全部数据，减少首屏请求次数。</p>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;topAlbums&quot;: [],
+    &quot;hotArtists&quot;: [{ &quot;artistId&quot;: 455208, &quot;name&quot;: &quot;周杰伦&quot;, &quot;battleCount&quot;: 42 }],
+    &quot;stats&quot;: { &quot;userCount&quot;: 612, &quot;battleCount&quot;: 318, &quot;voteCount&quot;: 18642 }
+  }
+}
+</code></pre>
+<h2 id="s8">九、后台管理接口</h2>
+<p>后台全部接口均需管理员令牌，路径前缀为 <code>/api/admin</code>。</p>
+<h3 id="s56">9.1 后台登录　POST /api/admin/login　（公开）</h3>
+<p>参数与返回同 3.2 节，但校验角色必须为管理员，否则返回 <code>2002</code>。</p>
+<h3 id="s57">9.2 数据看板　GET /api/admin/dashboard　（管理员）</h3>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;userCount&quot;: 612,
+    &quot;battleCount&quot;: 318,
+    &quot;voteCount&quot;: 18642,
+    &quot;resultCount&quot;: 487,
+    &quot;typeDistribution&quot;: [{ &quot;code&quot;: &quot;MEL&quot;, &quot;count&quot;: 128, &quot;ratio&quot;: 0.21 }],
+    &quot;dailyTrend&quot;: [{ &quot;date&quot;: &quot;2026-09-15&quot;, &quot;battleCount&quot;: 26, &quot;voteCount&quot;: 1420 }]
+  }
+}
+</code></pre>
+<h3 id="s58">9.3 题目管理</h3>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>题目列表</td>
+<td>GET</td>
+<td>/api/admin/questions</td>
+<td>支持分页与关键词筛选</td>
+</tr>
+<tr>
+<td>新增题目</td>
+<td>POST</td>
+<td>/api/admin/questions</td>
+<td>参数含 order、type、title、options</td>
+</tr>
+<tr>
+<td>修改题目</td>
+<td>PUT</td>
+<td>/api/admin/questions/:id</td>
+<td>可改题干、选项、分值与排序</td>
+</tr>
+<tr>
+<td>删除题目</td>
+<td>DELETE</td>
+<td>/api/admin/questions/:id</td>
+<td>删除后不影响既有测评结果</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: {
+    &quot;questionId&quot;: &quot;6512f2a1c9e77b1d2a4f8f01&quot;,
+    &quot;order&quot;: 1,
+    &quot;type&quot;: &quot;normal&quot;,
+    &quot;title&quot;: &quot;听到一首陌生的歌，你最先注意到的是？&quot;,
+    &quot;options&quot;: [{ &quot;key&quot;: &quot;A&quot;, &quot;text&quot;: &quot;旋律好不好听&quot;, &quot;scores&quot;: { &quot;melody&quot;: 2 } }]
+  }
+}
+</code></pre>
+<h3 id="s59">9.4 人格类型管理</h3>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>类型列表</td>
+<td>GET</td>
+<td>/api/admin/types</td>
+<td>含各类型人数</td>
+</tr>
+<tr>
+<td>新增类型</td>
+<td>POST</td>
+<td>/api/admin/types</td>
+<td>参数含 code、name、description、recommendAlbumIds</td>
+</tr>
+<tr>
+<td>修改类型</td>
+<td>PUT</td>
+<td>/api/admin/types/:id</td>
+<td>修改描述与推荐专辑</td>
+</tr>
+<tr>
+<td>删除类型</td>
+<td>DELETE</td>
+<td>/api/admin/types/:id</td>
+<td>已被引用的类型不允许删除，返回 <code>3001</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="s60">9.5 音乐数据管理</h3>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>缓存列表</td>
+<td>GET</td>
+<td>/api/admin/music</td>
+<td>按歌手或专辑维度分页查看缓存</td>
+</tr>
+<tr>
+<td>刷新缓存</td>
+<td>POST</td>
+<td>/api/admin/music/refresh</td>
+<td>参数 scopeType 与 scopeKey，重新拉取并覆盖本地数据</td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;refreshed&quot;: { &quot;artists&quot;: 1, &quot;albums&quot;: 31, &quot;tracks&quot;: 412 }, &quot;cachedAt&quot;: &quot;2026-09-15T06:30:00.000Z&quot; }
+}
+</code></pre>
+<h3 id="s61">9.6 用户管理</h3>
+<table>
+<thead>
+<tr>
+<th>接口</th>
+<th>方法</th>
+<th>路径</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户列表</td>
+<td>GET</td>
+<td>/api/admin/users</td>
+<td>支持按账号、昵称、状态筛选</td>
+</tr>
+<tr>
+<td>修改用户状态</td>
+<td>PUT</td>
+<td>/api/admin/users/:id/status</td>
+<td>参数 status：<code>active</code> / <code>disabled</code></td>
+</tr>
+</tbody>
+</table>
+<pre><code class="language-json">{
+  &quot;code&quot;: 0,
+  &quot;message&quot;: &quot;ok&quot;,
+  &quot;data&quot;: { &quot;userId&quot;: &quot;6512f...&quot;, &quot;status&quot;: &quot;disabled&quot;, &quot;effectiveAt&quot;: &quot;2026-09-15T06:31:00.000Z&quot; }
+}
+</code></pre>
+<p>说明：禁用后该用户的令牌在下次校验时被拒绝，接口返回 <code>2003</code>。</p>
+<h2 id="s9">十、关键数据结构</h2>
+<h3 id="s62">10.1 专辑对象</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>albumId</td>
+<td>number</td>
+<td>专辑外部标识</td>
+</tr>
+<tr>
+<td>name</td>
+<td>string</td>
+<td>专辑名称</td>
+</tr>
+<tr>
+<td>artistId</td>
+<td>number</td>
+<td>所属歌手标识</td>
+</tr>
+<tr>
+<td>artistName</td>
+<td>string</td>
+<td>歌手名称（聚合时填充）</td>
+</tr>
+<tr>
+<td>artworkUrl</td>
+<td>string</td>
+<td>封面地址</td>
+</tr>
+<tr>
+<td>trackCount</td>
+<td>number</td>
+<td>曲目数</td>
+</tr>
+<tr>
+<td>releaseDate</td>
+<td>string</td>
+<td>发行日期</td>
+</tr>
+</tbody>
+</table>
+<h3 id="s63">10.2 对决对象</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>battleId</td>
+<td>string</td>
+<td>对决标识</td>
+</tr>
+<tr>
+<td>userId</td>
+<td>string</td>
+<td>发起用户</td>
+</tr>
+<tr>
+<td>scopeType / scopeKey</td>
+<td>string</td>
+<td>参赛范围</td>
+</tr>
+<tr>
+<td>status</td>
+<td>string</td>
+<td><code>playing</code> / <code>finished</code></td>
+</tr>
+<tr>
+<td>roundCount / currentRound</td>
+<td>number</td>
+<td>总轮次与当前轮次</td>
+</tr>
+<tr>
+<td>hasBye</td>
+<td>boolean</td>
+<td>是否安排了轮空</td>
+</tr>
+<tr>
+<td>championAlbumId</td>
+<td>string</td>
+<td>冠军专辑，未结束时为 <code>null</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="s64">10.3 测评结果对象</h3>
+<table>
+<thead>
+<tr>
+<th>字段</th>
+<th>类型</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>resultId</td>
+<td>string</td>
+<td>结果标识</td>
+</tr>
+<tr>
+<td>userId</td>
+<td>string</td>
+<td>作答用户</td>
+</tr>
+<tr>
+<td>typeCode / typeName</td>
+<td>string</td>
+<td>人格类型码与名称</td>
+</tr>
+<tr>
+<td>scores</td>
+<td>object</td>
+<td>各维度得分</td>
+</tr>
+<tr>
+<td>aiComment</td>
+<td>string</td>
+<td>个性化解读文本</td>
+</tr>
+<tr>
+<td>aiCommentSource</td>
+<td>string</td>
+<td><code>llm</code> 或 <code>template</code></td>
+</tr>
+<tr>
+<td>recommendAlbums</td>
+<td>array</td>
+<td>推荐专辑列表</td>
+</tr>
+</tbody>
+</table>
+<h2 id="s10">十一、典型调用时序</h2>
+<p>以下为"完成一次专辑对决"的完整接口调用顺序，可直接作为联调与测试的脚本依据。</p>
+<p>（1）<code>POST /api/auth/login</code> 获取令牌；</p>
+<p>（2）<code>GET /api/music/artists/search?keyword=周杰伦</code> 取得歌手标识；</p>
+<p>（3）<code>GET /api/music/artists/:artistId/albums</code> 取得全部专辑（首次请求会写入缓存）；</p>
+<p>（4）<code>POST /api/battles</code> 创建对决，返回对阵表规模与是否含轮空；</p>
+<p>（5）循环调用 <code>GET /api/battles/:id/next-match</code> 取下一场，用户点击试听时使用返回体中的 <code>previewUrl</code>；</p>
+<p>（6）每场结束后调用 <code>POST /api/battles/:id/matches/:matchId/vote</code> 提交选择；</p>
+<p>（7）小组赛结束时按需调用 <code>POST /api/battles/:id/revival</code> 确认复活赛；</p>
+<p>（8）全部轮次结束后 <code>GET /api/battles/:id/result</code> 获取冠军与夺冠路径；</p>
+<p>（9）前端生成分享图后调用 <code>POST /api/share-cards</code> 记录归属。</p>
+<h2 id="s11">十二、接口设计与需求的对应说明</h2>
+<p>（1）<strong>数据驱动</strong>：M-01 至 M-06 六个接口均写入本地数据库缓存，使系统在外部接口不可用时仍可运行，对应需求文档 NFR-U2；</p>
+<p>（2）<strong>安全</strong>：A-01 至 A-06 与 D-01 至 D-14 均区分鉴权等级，对应 NFR-S2、NFR-S3；B-04 通过服务端校验重复投票，对应 NFR-S5；</p>
+<p>（3）<strong>可用性</strong>：P-02 返回 <code>aiCommentSource</code> 字段显式暴露降级状态，对应 FR-17 与 NFR-P6；</p>
+<p>（4）<strong>性能</strong>：R-02 聚合首页数据，减少首屏请求次数，对应 NFR-P1；全部列表接口支持分页，对应 NFR-P3。</p>
+</main>
+<footer>音格 · 毕业设计文档　｜　由 md2html.py 自动生成，内容源：API接口文档.md</footer>
+</div>
+</body>
+</html>
