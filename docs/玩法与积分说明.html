@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · 玩法与积分说明（速览）</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f6fb; color: #1f2937; line-height: 1.7;
+    padding: 32px 18px; max-width: 980px; margin: 0 auto;
+  }
+  h1 { font-size: 26px; margin-bottom: 4px; color: #0f172a; }
+  .sub { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+  .card {
+    background: #fff; border-radius: 14px; padding: 22px 24px;
+    margin-bottom: 18px; box-shadow: 0 2px 12px rgba(15,23,42,.06);
+    border: 1px solid #eef2f7;
+  }
+  h2 { font-size: 18px; margin-bottom: 14px; color: #0ea5e9; display: flex; align-items: center; gap: 8px; }
+  h2 .n { background: #0ea5e9; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+  p { font-size: 15px; margin-bottom: 10px; }
+  .lead { font-size: 16px; background: #eef9ff; border-left: 4px solid #0ea5e9; padding: 12px 16px; border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+  th, td { border: 1px solid #e2e8f0; padding: 9px 11px; text-align: left; vertical-align: top; }
+  th { background: #f1f5f9; color: #334155; font-weight: 600; }
+  tr:nth-child(even) td { background: #fafcff; }
+  .tag { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .t-real { background: #dcfce7; color: #15803d; }
+  .t-fake { background: #fef3c7; color: #b45309; }
+  .t-vote { background: #e0e7ff; color: #4338ca; }
+  .win { color: #dc2626; font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 680px){ .grid2 { grid-template-columns: 1fr; } }
+  .mini { font-size: 13px; color: #475569; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 12px 14px; }
+  code { background: #f1f5f9; padding: 1px 6px; border-radius: 5px; font-size: 13px; }
+  .note { background: #fff7ed; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; font-size: 14px; }
+  .footer { text-align: center; color: #94a3b8; font-size: 12px; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>音格 · 玩法与积分说明（速览）</h1>
+<div class="sub">毕业设计互动平台「音格」· 内部校对稿 · 2026-09-16</div>
+
+<div class="card">
+  <h2><span class="n">1</span>先说结论：「积分」到底是什么</h2>
+  <div class="lead">
+    我们平台里 <b>只有一个地方是"真积分"</b>——对位赛的「胜场积分」。
+    另外两处只是界面上借用了"积分"这个词，本质并不是账户里的分数。
+  </div>
+  <p style="margin-top:14px;">你之前混的点，是把下面三种东西当成了一回事，其实它们是三件不同的事：</p>
+  <table>
+    <tr><th>你看到的词</th><th>它到底是什么</th><th>是不是"真积分"</th></tr>
+    <tr>
+      <td>对位赛的「胜场积分」</td>
+      <td>每胜一场 +1 分，全部比完按累计胜场排名次</td>
+      <td><span class="tag t-real">是 · 真积分</span></td>
+    </tr>
+    <tr>
+      <td>小组赛的「小组战绩」</td>
+      <td>只是个表名，里面真正决定排名的是「胜场数」（胜 / 负 / 得票率）</td>
+      <td><span class="tag t-fake">不是 · 是战绩</span></td>
+    </tr>
+    <tr>
+      <td>全球榜的「累计票数」</td>
+      <td>按被投的票数多少排，跟胜场、跟积分都没关系</td>
+      <td><span class="tag t-vote">不是 · 是票数</span></td>
+    </tr>
+  </table>
+  <div class="mini">
+    💡 一句话记忆：<b>对决拼的是"胜场"，榜单拼的是"票数"，只有对位赛把胜场叫成"积分"。</b>
+    已在原型与文档中把小组赛那张表改名为「小组战绩」，避免和"积分"混淆（详见文末说明）。
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">2</span>五种范围模式总表（你之前问的"都怎么对决"）</h2>
+  <p>用户先选「范围模式」决定<b>哪些专辑参赛</b>，再走同一套赛制。五种模式只是"选谁参赛"的方式不同，不是五套独立玩法。</p>
+  <table>
+    <tr><th>模式</th><th>标识</th><th>用户怎么选</th><th>谁跟谁打</th><th>结果怎么呈现</th></tr>
+    <tr>
+      <td>单歌手</td><td><code>artist</code></td>
+      <td>选 1 位歌手</td>
+      <td>他自己的专辑互相打</td>
+      <td>决出"这位歌手哪张最强"</td>
+    </tr>
+    <tr>
+      <td>多歌手混战</td><td><code>multi-artist</code></td>
+      <td>加 2–6 位歌手</td>
+      <td>所有人的专辑混进一个池随机配对</td>
+      <td>跨歌手排出总冠军（本平台核心卖点）</td>
+    </tr>
+    <tr>
+      <td>按流派 / 年代</td><td><code>genre</code> / <code>era</code></td>
+      <td>选流派或年代区间</td>
+      <td>符合条件的歌手专辑自动汇集</td>
+      <td>"某年代 / 某流派最强专辑"</td>
+    </tr>
+    <tr>
+      <td>手动挑选</td><td><code>custom</code></td>
+      <td>逐张勾选专辑</td>
+      <td>你指定的名单互相打</td>
+      <td>完全自定义的擂台</td>
+    </tr>
+    <tr>
+      <td><b>对位赛</b></td><td><code>aligned</code></td>
+      <td>选 2–4 位歌手，各取前 N 张</td>
+      <td><b>第 1 张打第 1 张、第 2 张打第 2 张…</b>（同序号同组）</td>
+      <td>一张"逐张对照表"，胜场积分定优胜</td>
+    </tr>
+  </table>
+  <div class="mini">
+    ✅ 你之前问的"<b>拿陶喆蓝专打周杰伦首张、再各拿第二张比拼</b>"——就是对位赛，<b>完全可以实现</b>。
+    前面四种（除对位赛）都是"混合配对 + 淘汰制"；只有对位赛是"按序号对齐 + 积分制"。
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">3</span>两种赛制流程（场次怎么算）</h2>
+  <div class="grid2">
+    <div>
+      <p><b>① 标准淘汰赛</b>（前四种模式通用）</p>
+      <table>
+        <tr><th>阶段</th><th>场次</th><th>晋级</th></tr>
+        <tr><td>小组赛</td><td>12 场</td><td>各组第一 → 4 强</td></tr>
+        <tr><td>复活赛（可选）</td><td>2 场</td><td>胜者补 4 强</td></tr>
+        <tr><td>半决赛</td><td>2 场</td><td>胜者 2 张</td></tr>
+        <tr><td>决赛</td><td>1 场</td><td>冠军</td></tr>
+        <tr><td><b>合计</b></td><td><b>15 场</b></td><td>（不含复活赛）</td></tr>
+      </table>
+      <p style="font-size:13px;color:#64748b;">分母"15"只能由公式算出，不许手填。这是之前 16→15 改的那处。</p>
+    </div>
+    <div>
+      <p><b>② 对位赛 · 积分制</b>（不淘汰）</p>
+      <table>
+        <tr><th>歌手数 A</th><th>组内配对</th><th>总场次</th></tr>
+        <tr><td>2</td><td>C(2,2)=1</td><td>N 场</td></tr>
+        <tr><td>3</td><td>C(3,2)=3</td><td>3N 场</td></tr>
+        <tr><td>4</td><td>C(4,2)=6</td><td>6N 场</td></tr>
+      </table>
+      <p style="font-size:13px;color:#64748b;">例：2 位歌手各取 5 张 = 5 场；3 位各取 5 张 = 15 场；4 位各取 3 张 = 18 场。</p>
+      <p style="font-size:13px;color:#64748b;">为什么不用淘汰：淘汰会切断后半段对位（第 3 张胜者没第 4 张对手）。</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2><span class="n">4</span>对位赛「胜场积分」怎么算（重点）</h2>
+  <p>每场胜者 <span class="win">+1 分</span>，全部比完按各歌手累计胜场排名，最多者获「对位赛优胜」。</p>
+  <p>示例（陶喆 vs 周杰伦，各取 3 张）：</p>
+  <table>
+    <tr><th>序号</th><th>陶喆</th><th>比分</th><th>周杰伦</th><th>胜者</th><th>本场积分</th></tr>
+    <tr><td>第 1 张</td><td>David Tao(1997)</td><td>14 : 6</td><td>Jay(2000)</td><td>陶喆</td><td>陶喆 +1</td></tr>
+    <tr><td>第 2 张</td><td>I'm OK(1999)</td><td>9 : 11</td><td>范特西(2001)</td><td>周杰伦</td><td>周杰伦 +1</td></tr>
+    <tr><td>第 3 张</td><td>黑色柳丁(2002)</td><td>12 : 8</td><td>八度空间(2002)</td><td>陶喆</td><td>陶喆 +1</td></tr>
+    <tr><td><b>累计</b></td><td colspan="3"></td><td><b>陶喆 2 : 1 周杰伦</b></td><td><b>陶喆优胜</b></td></tr>
+  </table>
+  <p style="font-size:13px;color:#64748b;">并列时依次比：总得票数 → 单场最大分差 → 靠前组胜场。</p>
+</div>
+
+<div class="card">
+  <h2><span class="n">5</span>破除误解：小组赛那张"小组战绩"是什么</h2>
+  <p>UI 第 5 页点开小组详情看到的「小组战绩」，列是：<b>排名 / 封面 / 名称 / 胜 / 负 / 得票率</b>。</p>
+  <p>它里面并没有一个叫"积分"的字段——真正决定排名的是<b>胜场数</b>（胜场相同再比总得票数）。所以把它叫"积分表"容易让人以为有一笔可累加的分数，其实只是<b>小组战绩榜</b>。已正式改名（现统一称"小组战绩"），和"对位赛积分"区分开。</p>
+  <table>
+    <tr><th>模式</th><th>核心度量</th><th>用途</th></tr>
+    <tr><td>小组赛</td><td>胜场数（胜/负/得票率）</td><td>决定谁晋级 → 再淘汰</td></tr>
+    <tr><td>对位赛</td><td>胜场积分（每胜+1，可累加）</td><td>直接定优胜，不淘汰</td></tr>
+    <tr><td>全球榜</td><td>累计票数</td><td>排序展示热门专辑</td></tr>
+  </table>
+</div>
+
+  <div class="card note">
+  <b>已采纳的设计建议（已落地）：</b><br>
+  1. 小组赛表已改名为「小组战绩」，与"积分"区分；<br>
+  2. 全平台统一术语：对决用"胜场"，榜单用"票数"，积分仅留给对位赛；<br>
+  3. 论文第三章/第四章论述数据流时，明确这三者的字段来源（<code>battle_matches</code> 的胜负记录 → 聚合出胜场；<code>votes</code> 集合 → 聚合出票数）。
+</div>
+
+<div class="footer">本页为内部梳理稿，可与《需求分析文档》《系统设计文档》对照阅读。尚未提交进仓库。</div>
+
+</body>
+</html>
