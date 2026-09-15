@@ -1014,7 +1014,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>artists</td>
 <td>object[]</td>
 <td>否</td>
-<td><code>multi-artist</code> 模式下的歌手与抽取数量，最多 6 位</td>
+<td><code>multi-artist</code> 模式下的歌手与抽取数量，最少 2 位、最多 6 位</td>
 </tr>
 <tr>
 <td>artists[].artistId</td>
@@ -1094,7 +1094,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 </tbody>
 </table>
 <p>实测该规则的效果：周杰伦 48 张筛出 17 张、林俊杰 80 张筛出 16 张、陈奕迅 122 张筛出 44 张、李荣浩 48 张筛出 8 张。</p>
-<p>失败情形：过滤后专辑少于 4 张返回 <code>1001</code>；范围无法解析或歌手检索无相关结果返回 <code>1002</code>；<code>multi-artist</code> 模式超过 6 位歌手返回 <code>1001</code>。</p>
+<p>失败情形：过滤后专辑少于 4 张返回 <code>1001</code>；范围无法解析或歌手检索无相关结果返回 <code>1002</code>；<code>multi-artist</code> 模式下歌手少于 2 位或超过 6 位返回 <code>1001</code>。</p>
 <p>说明：返回体中的 <code>hasBye</code> 表示是否安排了轮空（参赛数为奇数时为 <code>true</code>），该字段是"轮空处理"逻辑的直接体现；<code>filtered</code> 则体现准入过滤逻辑。</p>
 <h3 id="s35">5.2 对决详情　GET /api/battles/:id　（需要登录）</h3>
 <p>返回对决基本信息与完整对阵表。</p>
