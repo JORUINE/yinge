@@ -986,7 +986,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <h2 id="s4">五、专辑对决接口</h2>
 <h3 id="s34">5.1 创建对决　POST /api/battles　（需要登录）</h3>
 <p>按选定范围创建一次对决。服务端先对候选专辑执行准入过滤，再按用户确认的名单生成对阵表并写入数据库。</p>
-<p>支持四种范围模式：</p>
+<p>支持五种范围模式：</p>
 <table>
 <thead>
 <tr>
@@ -1016,6 +1016,11 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>手动挑选</td>
 <td><code>albumIds</code></td>
 </tr>
+<tr>
+<td><code>aligned</code></td>
+<td><strong>对位赛</strong>，2 至 4 位歌手按发行日期先后逐张对位，第 k 张对第 k 张</td>
+<td><code>artists</code> + <code>alignCount</code></td>
+</tr>
 </tbody>
 </table>
 <table>
@@ -1033,6 +1038,12 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>string</td>
 <td>是</td>
 <td>取值见上表</td>
+</tr>
+<tr>
+<td>alignCount</td>
+<td>number</td>
+<td>否</td>
+<td><code>aligned</code> 模式下的对位张数，默认 5，上限取各歌手专辑数的较小值</td>
 </tr>
 <tr>
 <td>scopeKey</td>
@@ -1096,29 +1107,45 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <table>
 <thead>
 <tr>
+<th>序号</th>
 <th>规则</th>
 <th>判定</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>类型</td>
-<td>接口返回类型必须为 Album，排除 Single 与 EP</td>
+<td>1</td>
+<td>类型与体量</td>
+<td>返回类型必须为 Album，排除 Single 与 EP；曲目数不少于 7 首</td>
 </tr>
 <tr>
-<td>曲目数</td>
-<td>不少于 7 首</td>
-</tr>
-<tr>
-<td>名称</td>
-<td>不得匹配 现场｜演唱会｜音乐会｜原声带｜OST｜精选｜合集｜拼盘｜复刻｜伴奏｜致敬｜翻唱</td>
-</tr>
-<tr>
+<td>2</td>
 <td>归属</td>
 <td>按 <code>artistId</code> 比对，<strong>不按名称比对</strong>（同一歌手在不同接口中可能返回简繁体不同的名字）</td>
 </tr>
 <tr>
-<td>去重</td>
+<td>3</td>
+<td>非现场</td>
+<td>名称不得匹配 现场｜演唱会｜音乐会</td>
+</tr>
+<tr>
+<td>4</td>
+<td>非原声</td>
+<td>名称不得匹配 原声带｜OST</td>
+</tr>
+<tr>
+<td>5</td>
+<td>非精选</td>
+<td>名称不得匹配 精选｜合集</td>
+</tr>
+<tr>
+<td>6</td>
+<td>非合辑</td>
+<td>名称不得匹配 拼盘｜合辑；且不得含多歌手连接符</td>
+</tr>
+<tr>
+<td>7</td>
+<td>同名去重</td>
 <td>同名专辑只保留最早发行、且不带豪华版后缀的版本</td>
 </tr>
 </tbody>
@@ -1757,7 +1784,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <tr>
 <td>scopeType</td>
 <td>string</td>
-<td>范围模式：<code>artist</code> / <code>multi-artist</code> / <code>genre</code> / <code>era</code> / <code>custom</code></td>
+<td>范围模式：<code>artist</code> / <code>multi-artist</code> / <code>genre</code> / <code>era</code> / <code>custom</code> / <code>aligned</code></td>
 </tr>
 <tr>
 <td>scopeKey</td>
@@ -1855,7 +1882,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <p>（3）<strong>可用性</strong>：P-02 返回 <code>aiCommentSource</code> 字段显式暴露降级状态，对应 FR-17 与 NFR-P6；</p>
 <p>（4）<strong>性能</strong>：R-02 聚合首页数据，减少首屏请求次数，对应 NFR-P1；全部列表接口支持分页，对应 NFR-P3。</p>
 <p>（5）<strong>跨歌手比较</strong>：B-01 的 <code>multi-artist</code> 模式允许最多 6 位歌手的专辑进入同一对决池，恢复"不同歌手放在一起比"的核心玩法，对应 FR-26 与 US-03；</p>
-<p>（6）<strong>数据准确性</strong>：M-01 的地区参数与相关性校验，以及 B-01 的五条专辑准入规则，共同对应 NFR-D1 至 NFR-D5。其中地区参数不得使用 <code>cn</code>、检索结果必须做相关性校验、专辑归属必须按标识而非名称比对，这三条均由实测发现，详见 4.1 与 5.1 节的说明。</p>
+<p>（6）<strong>数据准确性</strong>：M-01 的地区参数与相关性校验，以及 B-01 的七条专辑准入规则，共同对应 NFR-D1 至 NFR-D5。其中地区参数不得使用 <code>cn</code>、检索结果必须做相关性校验、专辑归属必须按标识而非名称比对，这三条均由实测发现，详见 4.1 与 5.1 节的说明。</p>
 </main>
 <footer>音格 · 毕业设计文档　｜　由 md2html.py 自动生成，内容源：API接口文档.md</footer>
 </div>

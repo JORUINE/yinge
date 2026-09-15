@@ -270,7 +270,20 @@ body[data-theme="dark"] .pd .vote{color:var(--brand)}
   border:1px solid rgba(14,165,233,.22);border-left:3px solid var(--brand);font-size:12.8px;color:var(--text2)}
 .note b{color:var(--text)}
 
-.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0 6px}
+.modes{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:22px 0 6px}
+.alignbox{margin-top:14px;border:1px solid var(--gbd);border-radius:var(--r-s);background:var(--glass2);padding:14px 16px}
+.alignbox .ah{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.alignbox .ah b{font-size:14px}
+.alignbox .ah span{font-size:11.5px;color:var(--text3)}
+.alignbox .arow{display:grid;grid-template-columns:64px 1fr 76px 1fr 62px;align-items:center;gap:10px;
+  padding:8px 0;border-top:1px dashed var(--line);font-size:12.5px}
+.alignbox .arow:first-of-type{border-top:0}
+.alignbox .arow .k{font-size:11px;color:var(--text3);letter-spacing:.5px}
+.alignbox .arow .nm{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alignbox .arow .sc{text-align:center;font-weight:700;font-variant-numeric:tabular-nums;font-size:13px}
+.alignbox .arow .wn{font-size:11.5px;color:var(--brand-deep);text-align:right;font-weight:700}
+.alignbox .arow.hi{background:rgba(14,165,233,.07);border-radius:8px}
+.alignbox .af{margin-top:10px;font-size:11.5px;color:var(--text3);line-height:1.7}
 .mode{padding:14px 16px;border-radius:var(--r-s);border:1px solid var(--gbd);background:var(--glass2);
   cursor:pointer;transition:all .2s}
 .mode:hover{border-color:var(--brand)}
@@ -1250,6 +1263,17 @@ body[data-theme="dark"] .breason{border-left-color:#FCA5A5}
           <div class="mode on"><b>多歌手混战<span class="badge">首选</span></b><span>几位歌手的专辑放一起比</span></div>
           <div class="mode"><b>按流派 / 年代</b><span>如华语流行 · 2000 年代</span></div>
           <div class="mode"><b>手动挑选</b><span>自己勾专辑入池</span></div>
+          <div class="mode"><b>对位赛<span class="badge">逐张对照</span></b><span>第 1 张打第 1 张，第 2 张打第 2 张</span></div>
+        </div>
+
+        <div class="alignbox">
+          <div class="ah"><b>对位赛长什么样</b><span>选 2 至 4 位歌手 · 按发行先后逐张对位 · 胜场积分制</span></div>
+          <div class="arow"><div class="k">第 1 张</div><div class="nm">David Tao · 1997</div><div class="sc" style="color:var(--brand)">14 : 6</div><div class="nm">Jay · 2000</div><div class="wn">陶喆 胜</div></div>
+          <div class="arow"><div class="k">第 2 张</div><div class="nm">I'm OK · 1999</div><div class="sc" style="color:var(--text3)">9 : 11</div><div class="nm">范特西 · 2001</div><div class="wn">周杰伦 胜</div></div>
+          <div class="arow hi"><div class="k">第 3 张</div><div class="nm">黑色柳丁 · 2002</div><div class="sc" style="color:var(--brand)">12 : 8</div><div class="nm">八度空間 · 2002</div><div class="wn">陶喆 胜</div></div>
+          <div class="af">逐张取各自发行顺序的第 k 张，同序号互相比 —— 回答的是"两位歌手同阶段的作品谁更强"。<br>
+            与混战模式的区别：混战会打乱专辑序号，首张专辑可能对上对方第五张，比较失去意义。<br>
+            胜负按 <b>胜场积分</b> 统计（本图 陶喆 2 胜 1 负，周杰伦 1 胜 2 负）；不用淘汰制，否则第 3 张的胜者没有第 4 张对手，赛程会断裂。</div>
         </div>
 
         <div class="block">
@@ -1298,7 +1322,7 @@ body[data-theme="dark"] .breason{border-left-color:#FCA5A5}
             开始对决</span>
         </div>
 
-        <div class="note"><b>页面说明：</b>把"范围选择"做成整套流程的第一屏。四种模式里"多歌手混战"是默认项，
+        <div class="note"><b>页面说明：</b>把"范围选择"做成整套流程的第一屏。五种模式里"多歌手混战"是默认项，
         因为这是作品的初衷——不同歌手的专辑要能放在一起比。过滤条把"系统替你剔了哪些"讲明白，避免用户困惑"我的专辑怎么少了"。</div>
       </div>
     </div>
@@ -2422,11 +2446,14 @@ body[data-theme="dark"] .breason{border-left-color:#FCA5A5}
               <p class="ps">每次拉取都会执行，不符合的专辑不会进入对决池</p>
               <table class="tbl">
                 <tr><th style="width:150px">规则</th><th>作用</th><th style="width:100px">本次剔除</th></tr>
-                <tr><td><b>类型须为专辑</b></td><td>排除 Single 与 EP</td><td>—</td></tr>
-                <tr><td><b>曲目数 ≥ 7</b></td><td>挡掉只有一两首的单曲</td><td>—</td></tr>
-                <tr><td><b>名称排除词</b></td><td>现场 / 演唱会 / 原声带 / OST / 精选 / 复刻 / 拼盘 / 伴奏</td><td>—</td></tr>
-                <tr><td><b>按 artistId 归属</b></td><td>按编号比对而非名称，避免繁简体差异误判</td><td>—</td></tr>
-                <tr><td><b>同名去重</b></td><td>保留最早发行、不带豪华版后缀的版本</td><td>—</td></tr>
+                <tr><td><b>① 类型与体量</b></td><td>须为专辑类型，且曲目数不少于 7 首（排除 Single 与 EP）</td><td>20</td></tr>
+                <tr><td><b>② 署名为本人</b></td><td>按 artistId 编号比对而非名称，避免繁简体差异误判</td><td>2</td></tr>
+                <tr><td><b>③ 非现场</b></td><td>名称排除：现场 / 演唱会 / 音乐会</td><td>4</td></tr>
+                <tr><td><b>④ 非原声</b></td><td>名称排除：原声带 / OST</td><td>2</td></tr>
+                <tr><td><b>⑤ 非精选</b></td><td>名称排除：精选 / 合集</td><td>1</td></tr>
+                <tr><td><b>⑥ 非合辑</b></td><td>名称排除：拼盘 / 合辑，且不含多歌手连接符</td><td>1</td></tr>
+                <tr><td><b>⑦ 同名去重</b></td><td>保留最早发行、不带豪华版后缀的版本</td><td>1</td></tr>
+                <tr><td colspan="2" style="text-align:right;color:var(--text3)"><b>剔除合计</b></td><td><b style="color:var(--brand-deep)">31</b></td></tr>
               </table>
             </div>
           </div>
@@ -2436,7 +2463,8 @@ body[data-theme="dark"] .breason{border-left-color:#FCA5A5}
         两个信息最关键：<b>①缓存状态</b>（新鲜 / 将过期 / 已过期）——决定要不要重新请求外部接口，
         平台因此能在外部接口不可用时继续跑；<b>②符合准入的专辑数</b>——
         例如周杰伦接口返回 48 张，真正进池的只有 17 张，这个差距就是准入规则的直接体现。
-        底部把五条规则列出来，答辩时一眼能说清"为什么池子里只有这么多"。</div>
+        底部把七条规则逐条列出并给出各自剔除数，<b>剔除合计 31 张、进池 17 张，与上表的 48 张完全对得上</b>，
+        答辩时一眼能说清"为什么池子里只有这么多"。</div>
       </div>
     </div>
   </section>
