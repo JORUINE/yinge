@@ -1,0 +1,2745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · UI 设计稿（高保真原型）</title>
+<style>
+body[data-theme="light"]{
+  --bg:#EDF6FC; --a1:rgba(56,189,248,.58); --a2:rgba(13,148,136,.32); --a3:rgba(37,99,235,.30);
+  --glass:rgba(255,255,255,.80); --glass2:rgba(255,255,255,.60);
+  --gbd:rgba(255,255,255,.95); --gsh:rgba(255,255,255,.95), rgba(8,58,92,.14);
+  --text:#0B2A42; --text2:#46647E; --text3:#6D8AA3;
+  --brand:#0EA5E9; --brand-deep:#0369A1; --brand-ink:#04263C;
+  --blue2:#2563EB; --teal:#0D9488; --gold:#E08700; --ok:#0F766E;
+  --line:rgba(11,42,66,.11); --r:24px; --r-s:16px; --ray:rgba(255,255,255,.55);
+}
+body[data-theme="dark"]{
+  --bg:#04121D; --a1:rgba(56,189,248,.36); --a2:rgba(45,212,191,.22); --a3:rgba(59,130,246,.30);
+  --glass:rgba(140,200,235,.10); --glass2:rgba(140,200,235,.05);
+  --gbd:rgba(140,200,235,.19); --gsh:rgba(140,200,235,.10), rgba(0,0,0,.55);
+  --text:#E6F2FA; --text2:#A5BFD2; --text3:#83A1B9;   /* 三级文字整体提亮：暗底上小字才看得清 */
+  --brand:#38BDF8; --brand-deep:#7DD3FC; --brand-ink:#04202F;
+  --blue2:#60A5FA; --teal:#2DD4BF; --gold:#FBBF24; --ok:#5EEAD4;
+  --line:rgba(140,200,235,.13); --r:24px; --r-s:16px; --ray:rgba(120,200,240,.10);
+}
+/* ============ 深海模式专项微调 ============
+   1) 硬编码深色（#DC2626 / #0D9488）在暗底上会糊成一团 → 换成暗底可读的浅色
+   2) 内联写入的强调色（--ac / --pc）无法被 CSS 覆盖 → 用 filter 提亮
+   3) 暗底上"败方压暗"要克制，否则彻底看不见 */
+body[data-theme="dark"] .tagx.off{background:rgba(248,113,113,.16);color:#FCA5A5}
+body[data-theme="dark"] .up{color:#FCA5A5}
+body[data-theme="dark"] .down{color:#5EEAD4}
+body[data-theme="dark"] .ptcode,
+body[data-theme="dark"] .ai2 h4,
+body[data-theme="dark"] .alb .ar,
+body[data-theme="dark"] .at .num,
+body[data-theme="dark"] .at .pct,
+body[data-theme="dark"] .tcard .tch b,
+body[data-theme="dark"] .tpv b,
+body[data-theme="dark"] .oi.on .k{filter:brightness(1.22)}
+body[data-theme="dark"] .admnav{background:rgba(140,200,235,.06)}
+body[data-theme="dark"] .panel,
+body[data-theme="dark"] .k4,
+body[data-theme="dark"] .tcard{background:rgba(140,200,235,.09)}
+body[data-theme="dark"] .pside.lose{opacity:.62}
+body[data-theme="dark"] .pside.lose .art{filter:grayscale(.45);opacity:.75}
+body[data-theme="dark"] .tbl tr:hover td{background:rgba(56,189,248,.05)}
+body[data-theme="dark"] .mini:hover{background:rgba(56,189,248,.12)}
+body[data-theme="dark"] .list .r:hover{background:rgba(56,189,248,.07)}
+body[data-theme="dark"] .oi:hover{background:rgba(56,189,248,.08)}
+body[data-theme="dark"] .admnav a:hover,
+body[data-theme="dark"] .side a:hover{background:rgba(56,189,248,.10)}
+/* 暗底上玻璃的"内高光"要更明显，否则玻璃像一块死板的灰板 */
+body[data-theme="dark"] .glass::before{background:linear-gradient(180deg,rgba(160,215,245,.20),rgba(255,255,255,0))}
+body[data-theme="dark"] .frame{box-shadow:0 16px 46px rgba(0,0,0,.5), inset 0 1px 0 rgba(160,215,245,.12)}
+/* 暗底上封面投影要更重，否则封面浮不起来 */
+body[data-theme="dark"] .alb .art,
+body[data-theme="dark"] .cv .art,
+body[data-theme="dark"] .rec .art{box-shadow:0 26px 54px rgba(0,0,0,.55), 0 8px 26px var(--acs,rgba(56,189,248,.18))}
+body[data-theme="dark"] .th,
+body[data-theme="dark"] .grow .art,
+body[data-theme="dark"] .pside .art{box-shadow:0 8px 20px rgba(0,0,0,.45), 0 3px 10px var(--acs,rgba(56,189,248,.16))}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro SC","Segoe UI","Microsoft YaHei",sans-serif;
+  font-size:14px;line-height:1.6;transition:background .3s,color .3s;-webkit-font-smoothing:antialiased}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.aurora .blob{position:absolute;border-radius:50%;filter:blur(100px)}
+.aurora .b1{width:680px;height:680px;left:-180px;top:-220px;background:var(--a1)}
+.aurora .b2{width:760px;height:760px;right:-260px;top:40px;background:var(--a3)}
+.aurora .b3{width:620px;height:620px;left:30%;bottom:-320px;background:var(--a2)}
+.aurora .ray{position:absolute;top:-30%;width:240px;height:160%;transform:rotate(13deg);
+  background:linear-gradient(180deg,var(--ray),transparent 72%);filter:blur(30px)}
+.aurora .r1{left:32%} .aurora .r2{left:66%;width:150px;transform:rotate(9deg)}
+
+.app{position:relative;z-index:1;display:flex;min-height:100vh}
+.side{width:232px;flex:0 0 232px;padding:20px 14px;border-right:1px solid var(--gbd);
+  background:var(--glass);backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+  position:sticky;top:0;height:100vh;overflow-y:auto}
+.side-brand{font-weight:700;font-size:16px;padding:0 8px 4px}
+.side-brand i{color:var(--brand);font-style:normal}
+.side-sub{font-size:11.5px;color:var(--text3);padding:0 8px 14px;border-bottom:1px solid var(--line)}
+.prog{display:flex;align-items:center;gap:8px;padding:12px 8px 6px;font-size:11.5px;color:var(--text2)}
+.prog .bar{flex:1;height:5px;border-radius:99px;background:var(--line);overflow:hidden}
+.prog .bar i{display:block;height:100%;width:21%;background:var(--brand);border-radius:99px}
+.grp{font-size:10.5px;letter-spacing:1.4px;color:var(--text3);font-weight:700;padding:14px 8px 6px}
+.side a{display:block;font-size:13px;padding:7px 10px;border-radius:10px;color:var(--text2);
+  text-decoration:none;cursor:pointer;margin-bottom:2px;transition:all .15s}
+.side a:hover{background:var(--glass2);color:var(--brand-deep)}
+.side a.on{background:var(--brand);color:var(--brand-ink);font-weight:600}
+.side a.todo{color:var(--text3);cursor:default;opacity:.55}
+.side a.todo:hover{background:none;color:var(--text3)}
+.side a.todo::after{content:"待设计";float:right;font-size:9.5px;opacity:.8}
+.tabs{display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--glass2);
+  border:1px solid var(--gbd);margin-top:16px}
+.tabs button{flex:1;font:inherit;font-size:12px;padding:6px 0;border-radius:999px;border:0;cursor:pointer;
+  background:transparent;color:var(--text2);transition:all .2s}
+.tabs button.on{background:var(--brand);color:var(--brand-ink);font-weight:700}
+
+.main{flex:1;min-width:0;padding:26px 30px 70px}
+.page{display:none}
+.page.on{display:block}
+.frame{border-radius:var(--r);border:1px solid var(--gbd);overflow:hidden;
+  background:var(--glass2);backdrop-filter:blur(16px) saturate(160%);box-shadow:0 14px 44px var(--gsh);
+  max-width:1180px}
+.frame-bar{height:36px;display:flex;align-items:center;gap:6px;padding:0 16px;background:var(--glass);
+  border-bottom:1px solid var(--gbd)}
+.frame-bar .d{width:9px;height:9px;border-radius:50%;background:var(--line)}
+.frame-bar span{margin-left:10px;font-size:11.5px;color:var(--text3)}
+.screen{padding:24px 28px 28px}
+
+.nav{display:flex;align-items:center;gap:22px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.nav .logo{font-weight:700;font-size:17px}
+.nav .logo i{color:var(--brand);font-style:normal}
+.nav a{font-size:13.5px;color:var(--text2);text-decoration:none;cursor:pointer;transition:color .2s}
+.nav a:hover{color:var(--brand-deep)}
+.nav a.on{color:var(--text);font-weight:600}
+.nav .me{margin-left:auto;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:11.5px;font-weight:700;color:var(--brand-ink);background:var(--brand);cursor:pointer}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:13.5px;padding:11px 22px;
+  border-radius:999px;border:0;cursor:pointer;font-weight:700;transition:all .2s;font-family:inherit}
+.btn.pri{background:var(--brand);color:var(--brand-ink);box-shadow:0 10px 26px rgba(14,165,233,.32)}
+.btn.pri:hover{background:var(--brand-deep);color:#fff}
+.btn.blue{background:var(--blue2);color:#fff}
+.btn.blue:hover{filter:brightness(.9)}
+.btn.ghost{background:var(--glass2);color:var(--text);border:1px solid var(--gbd);font-weight:600}
+.btn.ghost:hover{color:var(--brand-deep);border-color:var(--brand)}
+.btn.sm{padding:8px 15px;font-size:12.5px}
+.btn.wide{width:100%}
+.ico{width:16px;height:16px;flex:0 0 auto}
+
+.hero{display:grid;grid-template-columns:1fr 318px;gap:30px;align-items:center;margin:26px 0 10px}
+.hero .art{width:100%;aspect-ratio:1;border-radius:var(--r-s);overflow:hidden;
+  box-shadow:0 28px 64px rgba(8,58,92,.34)}
+.hero .art img{width:100%;height:100%;object-fit:cover;display:block}
+.hero .tag{display:inline-block;font-size:12px;letter-spacing:1.3px;color:var(--brand-deep);font-weight:700;
+  background:rgba(14,165,233,.14);padding:4px 12px;border-radius:999px;margin-bottom:12px}
+body[data-theme="dark"] .hero .tag{color:var(--brand);background:rgba(56,189,248,.14)}
+.hero h1{margin:0 0 12px;font-size:37px;line-height:1.15;letter-spacing:-1.3px}
+.hero h1 em{font-style:normal;color:var(--brand-deep)}
+body[data-theme="dark"] .hero h1 em{color:var(--brand)}
+.hero p{margin:0 0 20px;color:var(--text2);font-size:14.5px}
+
+.duo{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-top:22px}
+.tile{padding:20px;border-radius:var(--r);position:relative;overflow:hidden}
+.tile.sea{background:linear-gradient(150deg,#7DD3FC,#0EA5E9 58%,#0369A1);color:#04263C;
+  border:1px solid rgba(255,255,255,.5)}
+.tile.sea h3{color:#04263C} .tile.sea p{color:#0B3A5C}
+.tile.ghost{background:var(--glass);border:1px solid var(--gbd)}
+.tile h3{margin:0 0 6px;font-size:19px;letter-spacing:-.3px}
+.tile p{margin:0 0 15px;font-size:13px;color:var(--text2)}
+.tile .ring{position:absolute;right:-46px;bottom:-52px;width:170px;height:170px;border-radius:50%;
+  border:1px solid currentColor;opacity:.2}
+.tile .ring::after{content:"";position:absolute;inset:30px;border-radius:50%;border:1px solid currentColor;opacity:.6}
+.tile.sea .btn{background:#04263C;color:#E6F2FA;border:0}
+
+.shelf{margin-top:24px}
+.hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.hd b{font-size:16px}
+.hd span{font-size:12.5px;color:var(--text2)}
+.covers{display:grid;grid-template-columns:repeat(5,1fr);gap:13px}
+.cv{cursor:pointer}
+.cv .art{width:100%;aspect-ratio:1;border-radius:var(--r-s);overflow:hidden;
+  box-shadow:0 12px 28px rgba(8,58,92,.22);transition:transform .2s,box-shadow .2s}
+.cv .art img{width:100%;height:100%;object-fit:cover;display:block}
+.cv:hover .art{transform:translateY(-5px);box-shadow:0 20px 40px rgba(8,58,92,.32)}
+.cv b{display:block;font-size:12.5px;margin-top:8px;font-weight:600;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.cv span{font-size:11.5px;color:var(--text2);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.list{margin-top:24px;border-radius:var(--r-s);overflow:hidden;background:var(--glass);border:1px solid var(--gbd)}
+.list .r{display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--line);
+  cursor:pointer;transition:background .2s}
+.list .r:first-child{border-top:0}
+.list .r:hover{background:rgba(14,165,233,.08)}
+.nw{width:26px;font-size:13px;font-weight:700;color:var(--text3);text-align:center}
+.nw.hot{color:#04263C;background:var(--gold);border-radius:6px;padding:2px 0}
+.th{width:42px;height:42px;border-radius:10px;overflow:hidden;flex:0 0 auto}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.m{flex:1;min-width:0}
+.m b{display:block;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m span{font-size:12px;color:var(--text2)}
+.v{font-size:12.5px;color:var(--text2);font-variant-numeric:tabular-nums;text-align:right}
+.v b{color:var(--brand-deep)} body[data-theme="dark"] .v b{color:var(--brand)}
+.up{color:#DC2626;font-size:11px} .down{color:#0D9488;font-size:11px}
+
+.nowbar{margin-top:24px;display:flex;align-items:center;gap:14px;padding:12px 18px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--gbd);backdrop-filter:blur(24px) saturate(200%);
+  box-shadow:0 16px 40px var(--gsh)}
+.nowbar .a{width:38px;height:38px;border-radius:10px;overflow:hidden;flex:0 0 auto}
+.nowbar .a img{width:100%;height:100%;object-fit:cover}
+.nowbar .t{flex:1;min-width:0}
+.nowbar .t b{display:block;font-size:13.5px}
+.nowbar .t span{font-size:11.5px;color:var(--text2)}
+.wave{display:flex;align-items:flex-end;gap:3px;height:20px}
+.wave i{width:3px;border-radius:2px;background:var(--brand)}
+.wave i:nth-child(1){height:9px}.wave i:nth-child(2){height:18px}.wave i:nth-child(3){height:12px}
+.wave i:nth-child(4){height:20px}.wave i:nth-child(5){height:8px}
+.pp{width:34px;height:34px;border-radius:50%;background:var(--brand);border:0;cursor:pointer;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;transition:background .2s}
+.pp svg{width:14px;height:14px;fill:var(--brand-ink)}
+.pp:hover{background:var(--brand-deep)} .pp:hover svg{fill:#fff}
+
+.authwrap{display:grid;grid-template-columns:1fr 400px;gap:40px;align-items:center;padding:34px 8px}
+.authwrap .side-txt h2{margin:0 0 12px;font-size:32px;letter-spacing:-1px;line-height:1.2}
+.authwrap .side-txt h2 em{font-style:normal;color:var(--brand-deep)}
+body[data-theme="dark"] .authwrap .side-txt h2 em{color:var(--brand)}
+.authwrap .side-txt p{margin:0 0 18px;color:var(--text2)}
+.feat{display:flex;gap:10px;flex-wrap:wrap}
+.feat span{font-size:12.5px;padding:6px 14px;border-radius:999px;background:var(--glass);
+  border:1px solid var(--gbd);color:var(--text2)}
+.card{padding:26px 28px;border-radius:var(--r);background:var(--glass);border:1px solid var(--gbd);
+  backdrop-filter:blur(20px) saturate(180%);box-shadow:0 18px 46px var(--gsh)}
+.seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--glass2);border:1px solid var(--gbd);margin-bottom:20px}
+.seg button{flex:1;font:inherit;font-size:13px;padding:8px 0;border-radius:999px;border:0;cursor:pointer;
+  background:transparent;color:var(--text2);font-weight:600;transition:all .2s}
+.seg button.on{background:var(--brand);color:var(--brand-ink)}
+.fld{margin-bottom:14px}
+.fld label{display:block;font-size:12.5px;color:var(--text2);margin-bottom:6px}
+.fld input{width:100%;font:inherit;font-size:14px;padding:11px 14px;border-radius:12px;
+  border:1px solid var(--gbd);background:var(--glass2);color:var(--text);outline:none;transition:border .2s}
+.fld input:focus{border-color:var(--brand)}
+.fld .hint{font-size:11.5px;color:var(--text3);margin-top:5px}
+.authfoot{font-size:12.5px;color:var(--text2);text-align:center;margin-top:16px}
+.authfoot a{color:var(--brand-deep);cursor:pointer;text-decoration:none}
+
+.uh{display:flex;align-items:center;gap:18px;padding:22px;border-radius:var(--r);background:var(--glass);
+  border:1px solid var(--gbd);box-shadow:0 14px 38px var(--gsh)}
+.uh .av{width:64px;height:64px;border-radius:50%;background:var(--brand);color:var(--brand-ink);
+  display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;flex:0 0 auto}
+.uh .who b{display:block;font-size:20px;letter-spacing:-.3px}
+.uh .who span{font-size:12.5px;color:var(--text2)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+.stat{padding:16px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd);text-align:center}
+.stat b{display:block;font-size:24px;letter-spacing:-.5px;color:var(--brand-deep)}
+body[data-theme="dark"] .stat b{color:var(--brand)}
+.stat span{font-size:12px;color:var(--text2)}
+.tabline{display:flex;gap:22px;margin:24px 0 4px;border-bottom:1px solid var(--line)}
+.tabline div{font-size:14px;padding:8px 2px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent}
+.tabline div.on{color:var(--text);font-weight:600;border-color:var(--brand)}
+
+.filter{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:22px 0 6px}
+.filter .pill{font-size:12.5px;padding:7px 15px;border-radius:999px;background:var(--glass2);
+  border:1px solid var(--gbd);color:var(--text2);cursor:pointer;transition:all .2s}
+.filter .pill:hover{border-color:var(--brand);color:var(--brand-deep)}
+.filter .pill.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+.filter .lb{font-size:12px;color:var(--text3);margin-right:2px}
+.podium{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.pd{padding:14px;border-radius:var(--r);background:var(--glass);border:1px solid var(--gbd);text-align:center;
+  cursor:pointer;transition:all .2s}
+.pd:hover{transform:translateY(-4px);border-color:var(--brand)}
+.pd .art{width:100%;aspect-ratio:1;border-radius:var(--r-s);overflow:hidden;margin-bottom:10px;
+  box-shadow:0 14px 32px rgba(8,58,92,.26)}
+.pd .art img{width:100%;height:100%;object-fit:cover}
+.pd .rk{display:inline-block;font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;
+  background:var(--gold);color:#04263C;margin-bottom:7px}
+.pd b{display:block;font-size:14.5px}
+.pd span{font-size:12px;color:var(--text2)}
+.pd .vote{margin-top:8px;font-size:12.5px;color:var(--brand-deep);font-weight:600}
+body[data-theme="dark"] .pd .vote{color:var(--brand)}
+.pager{display:flex;gap:6px;justify-content:center;align-items:center;margin-top:20px;font-size:13px}
+.pager i{font-style:normal;padding:6px 12px;border-radius:9px;background:var(--glass2);border:1px solid var(--gbd);
+  cursor:pointer}
+.pager i.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:700}
+
+.note{margin-top:16px;padding:12px 18px;border-radius:var(--r-s);background:rgba(14,165,233,.09);
+  border:1px solid rgba(14,165,233,.22);border-left:3px solid var(--brand);font-size:12.8px;color:var(--text2)}
+.note b{color:var(--text)}
+
+.modes{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0 6px}
+.mode{padding:14px 16px;border-radius:var(--r-s);border:1px solid var(--gbd);background:var(--glass2);
+  cursor:pointer;transition:all .2s}
+.mode:hover{border-color:var(--brand)}
+.mode.on{border-color:var(--brand);background:rgba(14,165,233,.12);box-shadow:0 8px 22px rgba(14,165,233,.18)}
+.mode b{display:block;font-size:14.5px;margin-bottom:4px}
+.mode span{font-size:12px;color:var(--text2)}
+.mode .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;
+  background:var(--brand);color:var(--brand-ink);margin-left:6px;vertical-align:2px}
+.block{margin-top:20px;padding:18px 20px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd)}
+.block h4{margin:0 0 12px;font-size:14.5px}
+.block h4 em{font-style:normal;font-size:12px;color:var(--text2);font-weight:400}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:var(--glass2);
+  border:1px solid var(--gbd);font-size:13px;cursor:pointer;transition:all .2s}
+.chip:hover{border-color:var(--brand)}
+.chip i{font-style:normal;font-size:11.5px;color:var(--text2)}
+.chip.add{border-style:dashed;color:var(--brand-deep);font-weight:600}
+body[data-theme="dark"] .chip.add{color:var(--brand)}
+.chip .x{width:16px;height:16px;border-radius:50%;background:var(--line);display:flex;align-items:center;
+  justify-content:center;font-size:11px;color:var(--text2)}
+.tipbar{display:flex;align-items:center;gap:10px;margin-top:14px;padding:11px 16px;border-radius:var(--r-s);
+  background:rgba(13,148,136,.10);border:1px solid rgba(13,148,136,.28);border-left:3px solid var(--teal);
+  font-size:12.8px;color:var(--text2)}
+.tipbar b{color:var(--ok)}
+.tipbar svg{width:16px;height:16px;fill:var(--teal);flex:0 0 auto}
+.pool{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:14px}
+.pk{cursor:pointer;transition:transform .2s}
+.pk .art{position:relative;width:100%;aspect-ratio:1;border-radius:var(--r-s);overflow:hidden;
+  box-shadow:0 10px 24px rgba(8,58,92,.22);transition:box-shadow .2s}
+.pk .art img{width:100%;height:100%;object-fit:cover;display:block}
+.pk:hover .art{box-shadow:0 16px 34px rgba(8,58,92,.32)}
+.pk .ck{position:absolute;right:7px;top:7px;width:22px;height:22px;border-radius:50%;background:var(--brand);
+  border:1px solid rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center}
+.pk .ck svg{width:12px;height:12px;fill:var(--brand-ink)}
+.pk.off .art{opacity:.32;filter:grayscale(.6)}
+.pk.off .ck{background:rgba(255,255,255,.75);border-color:var(--line)}
+.pk.off .ck svg{display:none}
+.pk b{display:block;font-size:12px;margin-top:8px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk span{font-size:11px;color:var(--text2);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.startbar{margin-top:20px;display:flex;align-items:center;gap:16px;padding:14px 20px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--gbd);backdrop-filter:blur(24px);box-shadow:0 16px 40px var(--gsh);flex-wrap:wrap}
+.startbar .info{font-size:13px;color:var(--text2)}
+.startbar .info b{color:var(--text);font-size:15px}
+.startbar .sp{margin-left:auto}
+.arena-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.pillx{font-size:12px;padding:5px 14px;border-radius:999px;font-weight:700;background:rgba(14,165,233,.15);
+  color:var(--brand-deep);border:1px solid rgba(14,165,233,.24)}
+body[data-theme="dark"] .pillx{color:var(--brand);background:rgba(56,189,248,.14)}
+.progline{height:7px;border-radius:999px;background:var(--line);overflow:hidden}
+.progline i{display:block;height:100%;width:38%;border-radius:999px;
+  background:linear-gradient(90deg,#38BDF8,#0EA5E9 55%,#0D9488)}
+.arena{display:grid;grid-template-columns:1fr 106px 1fr;align-items:center;gap:14px;margin:26px 0 14px}
+.acard{padding:18px;border-radius:var(--r);text-align:center;background:var(--glass);border:1px solid var(--gbd);
+  backdrop-filter:blur(20px) saturate(180%);box-shadow:0 16px 40px var(--gsh);cursor:pointer;transition:all .2s}
+.acard:hover{border-color:var(--brand);transform:translateY(-4px);box-shadow:0 22px 50px rgba(14,165,233,.26)}
+.acard .art{width:100%;aspect-ratio:1;border-radius:var(--r-s);margin-bottom:14px;overflow:hidden;
+  box-shadow:0 18px 40px rgba(8,58,92,.3)}
+.acard .art img{width:100%;height:100%;object-fit:cover;display:block}
+.acard b{display:block;font-size:17px}
+.acard .who{display:inline-block;font-size:11.5px;padding:2px 10px;border-radius:999px;margin:6px 0 4px;
+  background:rgba(14,165,233,.14);color:var(--brand-deep);font-weight:600}
+body[data-theme="dark"] .acard .who{color:var(--brand);background:rgba(56,189,248,.14)}
+.acard .yr{font-size:12.5px;color:var(--text2)}
+.acard .plays{margin-top:14px}
+.vs .orb{width:76px;height:76px;margin:0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:19px;font-weight:800;font-style:italic;background:var(--glass);border:1px solid var(--gbd);
+  color:var(--brand-deep);backdrop-filter:blur(20px);
+  box-shadow:0 14px 34px var(--gsh), inset 0 1px 0 rgba(255,255,255,.6)}
+body[data-theme="dark"] .vs .orb{color:var(--brand)}
+.groups{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:20px}
+.gcard{padding:16px 18px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd)}
+.gcard .gt{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.gcard .gt b{font-size:14px}
+.gcard .gt span{font-size:11.5px;color:var(--text2)}
+.glist{display:flex;gap:9px}
+.grow{flex:1;text-align:center;cursor:pointer}
+.grow .art{width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;margin-bottom:6px;
+  box-shadow:0 8px 18px rgba(8,58,92,.2)}
+.grow .art img{width:100%;height:100%;object-fit:cover;display:block}
+.grow .nm{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.grow .rec{font-size:10.5px;color:var(--ok);font-weight:700}
+.tree{margin-top:20px;padding:18px;border-radius:var(--r-s);background:var(--glass2);border:1px solid var(--gbd)}
+.tree .tt{font-size:13px;color:var(--text2);margin-bottom:14px}
+.rounds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;align-items:center}
+.rcol h5{margin:0 0 10px;font-size:12px;color:var(--text3);letter-spacing:.8px;font-weight:700;text-align:center}
+.tie{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:var(--glass);
+  border:1px solid var(--gbd);margin-bottom:10px}
+.tie .t1,.tie .t2{width:26px;height:26px;border-radius:7px;overflow:hidden;flex:0 0 auto}
+.tie .t1 img,.tie .t2 img{width:100%;height:100%;object-fit:cover;display:block}
+.tie .tn{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tie .t1.win,.tie .t2.win{outline:2px solid var(--brand);outline-offset:1px}
+.tie .t1.lose img,.tie .t2.lose img{opacity:.35}
+.path{margin-top:18px}
+.srow{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--r-s);
+  background:var(--glass);border:1px solid var(--gbd);margin-bottom:10px}
+.srow .rd{font-size:11.5px;font-weight:700;color:var(--brand-deep);width:58px;flex:0 0 auto}
+body[data-theme="dark"] .srow .rd{color:var(--brand)}
+.srow .art{width:44px;height:44px;border-radius:10px;overflow:hidden;flex:0 0 auto}
+.srow .art img{width:100%;height:100%;object-fit:cover;display:block}
+.srow .mt{flex:1;min-width:0}
+.srow .mt b{display:block;font-size:13.5px}
+.srow .mt span{font-size:11.5px;color:var(--text2)}
+.srow .sc{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--ok)}
+.sharewrap{display:grid;grid-template-columns:330px 1fr;gap:30px;margin-top:22px;align-items:start}
+.scard{width:100%;aspect-ratio:3/4;border-radius:20px;overflow:hidden;position:relative;
+  background:linear-gradient(160deg,#0B3A5C,#04263C 62%,#021A29);color:#E6F2FA;
+  box-shadow:0 24px 60px rgba(8,58,92,.4);padding:22px 20px;display:flex;flex-direction:column}
+.scard .stop{font-size:11px;letter-spacing:1.6px;opacity:.7}
+.scard .stitle{font-size:15px;font-weight:700;margin-top:4px}
+.scard .smain{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px}
+.scard .smain .art{width:58%;aspect-ratio:1;border-radius:16px;overflow:hidden;box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.scard .smain .art img{width:100%;height:100%;object-fit:cover;display:block}
+.scard .crown{font-size:10.5px;letter-spacing:2px;color:var(--gold);font-weight:700}
+.scard .cname{font-size:20px;font-weight:700;letter-spacing:-.4px;text-align:center}
+.scard .cartist{font-size:12px;opacity:.75;margin-top:-6px}
+.scard .spath{display:flex;gap:6px;justify-content:center;margin-top:4px}
+.scard .spath div{width:32px;height:32px;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,.3)}
+.scard .spath img{width:100%;height:100%;object-fit:cover}
+.scard .sfoot{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;opacity:.72;margin-top:12px}
+.scard .qr{width:38px;height:38px;border-radius:6px;background:rgba(255,255,255,.9)}
+.opts{margin-top:4px}
+.opt{display:flex;align-items:center;gap:12px;padding:13px 16px;border-radius:var(--r-s);background:var(--glass);
+  border:1px solid var(--gbd);margin-bottom:10px;cursor:pointer;transition:all .2s}
+.opt:hover{border-color:var(--brand)}
+.opt.on{border-color:var(--brand);background:rgba(14,165,233,.10)}
+.opt .rd2{width:18px;height:18px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto}
+.opt.on .rd2{border-color:var(--brand);background:var(--brand);box-shadow:inset 0 0 0 3px var(--glass2)}
+.opt .tx{flex:1}
+.opt .tx b{display:block;font-size:13.5px}
+.opt .tx span{font-size:11.5px;color:var(--text2)}
+.crown-wrap{display:flex;align-items:center;gap:26px;padding:24px;border-radius:var(--r);background:var(--glass);
+  border:1px solid var(--gbd);box-shadow:0 16px 44px var(--gsh);margin-top:22px}
+.crown-wrap .art{width:150px;height:150px;border-radius:var(--r-s);overflow:hidden;flex:0 0 auto;
+  box-shadow:0 20px 48px rgba(8,58,92,.32)}
+.crown-wrap .art img{width:100%;height:100%;object-fit:cover;display:block}
+.crown-wrap .cinfo .cw{font-size:11.5px;letter-spacing:2.4px;color:var(--gold);font-weight:700}
+.crown-wrap .cinfo h3{margin:8px 0 4px;font-size:30px;letter-spacing:-.9px}
+.crown-wrap .cinfo p{margin:0 0 14px;color:var(--text2);font-size:13.5px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.kpi{padding:14px;border-radius:var(--r-s);background:var(--glass2);border:1px solid var(--gbd);text-align:center}
+.kpi b{display:block;font-size:20px;color:var(--brand-deep);letter-spacing:-.4px}
+body[data-theme="dark"] .kpi b{color:var(--brand)}
+.kpi span{font-size:11.5px;color:var(--text2)}
+
+/* ============ 专辑呈现（参考 Apple Music：弱边框、强投影、封面本体是主角）============ */
+/* 封面上不叠加任何光效：专辑原图必须保持原样，光只打在背景上 */
+.albc{position:relative;border-radius:10px;overflow:hidden}
+.albc img{width:100%;height:100%;object-fit:cover;display:block}
+
+.alb{text-align:center;cursor:pointer;--ac:#0EA5E9;--acs:rgba(14,165,233,.3)}
+.alb .art{width:100%;aspect-ratio:1;
+  box-shadow:0 24px 48px rgba(0,0,0,.34), 0 10px 32px var(--acs);
+  transition:box-shadow .3s cubic-bezier(.4,0,.2,1)}
+.alb b{display:block;font-size:23px;margin-top:15px;letter-spacing:-.5px;line-height:1.16}
+.alb .accent{width:44px;height:4px;border-radius:99px;margin:12px auto 0;
+  background:linear-gradient(90deg,var(--ac),transparent)}
+.alb .ar{font-size:15px;color:var(--ac);font-weight:600;margin-top:11px;
+  display:flex;align-items:center;justify-content:center;gap:7px}
+.alb .ar i{width:7px;height:7px;border-radius:50%;background:var(--ac);font-style:normal;display:block}
+.alb .mt{font-size:12.5px;color:var(--text2);margin-top:3px}
+.alb .plays{margin-top:15px}
+.btn.tune{padding:11px 22px;font-size:14px;background:transparent;
+  border:1.5px solid var(--ac);color:var(--ac)}
+.btn.tune:hover{background:var(--ac);color:#fff}
+.alb:hover .art{box-shadow:0 30px 58px rgba(0,0,0,.42), 0 14px 40px var(--acs)}
+
+/* 阳光照在玻璃：默认几乎看不见，鼠标移到哪张专辑，光才明显照过去 */
+.sunlit{position:relative;overflow:hidden}
+.sunlit::before{content:"";position:absolute;inset:-30% -10%;pointer-events:none;z-index:3;
+  background:linear-gradient(118deg,transparent 42%,rgba(255,255,255,.06) 50%,transparent 60%);
+  mix-blend-mode:screen;filter:blur(3px)}
+body[data-theme="dark"] .sunlit::before{
+  background:linear-gradient(118deg,transparent 42%,rgba(190,230,255,.05) 50%,transparent 60%)}
+
+.gbeam{position:absolute;inset:0;pointer-events:none;z-index:4;
+  background:radial-gradient(34% 40% at var(--lx,50%) var(--ly,46%),
+    rgba(255,255,255,.42) 0%, rgba(255,255,255,.11) 42%, transparent 72%);
+  mix-blend-mode:screen;filter:blur(18px);opacity:.05;
+  transition:opacity .55s cubic-bezier(.4,0,.2,1), background .75s cubic-bezier(.4,0,.2,1)}
+body[data-theme="dark"] .gbeam{
+  background:radial-gradient(34% 40% at var(--lx,50%) var(--ly,46%),
+    rgba(200,235,255,.26) 0%, rgba(200,235,255,.06) 42%, transparent 72%)}
+.vstage[data-lit="l"] .gbeam{--lx:20%;--ly:44%;opacity:1}
+.vstage[data-lit="c"] .gbeam{--lx:50%;--ly:44%;opacity:1}
+.vstage[data-lit="r"] .gbeam{--lx:80%;--ly:44%;opacity:1}
+
+.spark{position:absolute;border-radius:50%;background:#fff;opacity:0;filter:blur(.7px);z-index:5;pointer-events:none;
+  transition:opacity .55s cubic-bezier(.4,0,.2,1)}
+.sp1{width:4px;height:4px;left:24%;top:23%}
+.sp2{width:2px;height:2px;left:36%;top:59%}
+.sp3{width:3px;height:3px;right:22%;top:33%}
+.sp4{width:2px;height:2px;right:34%;top:62%}
+.vstage[data-lit="l"] .sp1,.vstage[data-lit="l"] .sp2{opacity:.85}
+.vstage[data-lit="r"] .sp3,.vstage[data-lit="r"] .sp4{opacity:.85}
+
+/* 播放条上的曲目切换（紧挨播放键，默认不起眼） */
+.trk{width:32px;height:32px;border-radius:50%;background:var(--glass2);border:1px solid var(--gbd);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex:0 0 auto;transition:all .2s}
+.trk svg{width:13px;height:13px;fill:var(--text2)}
+.trk:hover{border-color:var(--brand);background:rgba(14,165,233,.10)}
+.trk:hover svg{fill:var(--brand-deep)}
+.tno{font-size:11px;color:var(--text3);font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:34px;text-align:center}
+
+/* 对决舞台：背景光晕由两张专辑的主色决定 */
+.vstage{position:relative;border-radius:var(--r);padding:22px 24px 20px;overflow:hidden;
+  border:1px solid var(--gbd);background:var(--glass);backdrop-filter:blur(28px) saturate(185%);
+  -webkit-backdrop-filter:blur(28px) saturate(185%);box-shadow:0 26px 64px var(--gsh);margin-top:16px}
+.vglow{position:absolute;inset:0;z-index:0;pointer-events:none}
+.vglow i{position:absolute;display:block;border-radius:50%;filter:blur(74px);will-change:transform,opacity}
+.vglow .gl{width:460px;height:460px;left:-120px;top:-90px;background:var(--gl);opacity:.40;
+  transition:opacity .5s cubic-bezier(.4,0,.2,1), transform .7s cubic-bezier(.4,0,.2,1)}
+.vglow .gr{width:460px;height:460px;right:-120px;bottom:-110px;background:var(--gr);opacity:.40;
+  transition:opacity .5s cubic-bezier(.4,0,.2,1), transform .7s cubic-bezier(.4,0,.2,1)}
+.vstage[data-lit="l"] .vglow .gl{opacity:1;transform:scale(1.3)}
+.vstage[data-lit="r"] .vglow .gr{opacity:1;transform:scale(1.3)}
+.vstage[data-lit="l"] .vglow .gr{opacity:.16}
+.vstage[data-lit="r"] .vglow .gl{opacity:.16}
+.vstage>*{position:relative;z-index:1}
+
+/* 快速开始预设 */
+.presets{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.preset{display:flex;align-items:center;gap:9px;padding:8px 15px 8px 10px;border-radius:999px;
+  background:var(--glass2);border:1px solid var(--gbd);font-size:12.5px;cursor:pointer;transition:all .2s}
+.preset:hover{border-color:var(--brand);color:var(--brand-deep)}
+.preset .avs{display:flex}
+.preset .avs img{width:20px;height:20px;border-radius:5px;object-fit:cover;display:block;
+  border:1px solid rgba(255,255,255,.6)}
+.preset .avs img+img{margin-left:-7px}
+.preset i{font-style:normal;color:var(--text3);font-size:11.5px}
+
+/* ==================== 音乐人格测评 ==================== */
+.qintro{display:grid;grid-template-columns:1fr 330px;gap:34px;align-items:center;margin-top:26px}
+.qintro h2{margin:0 0 12px;font-size:34px;letter-spacing:-1.2px;line-height:1.16}
+.qintro h2 em{font-style:normal;color:var(--brand-deep)}
+body[data-theme="dark"] .qintro h2 em{color:var(--brand)}
+.qintro p{margin:0 0 18px;color:var(--text2);font-size:14.5px}
+.qfacts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+.qfacts span{font-size:13px;padding:8px 16px;border-radius:999px;background:var(--glass);
+  border:1px solid var(--gbd);color:var(--text2)}
+.typesprev{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tpv{padding:13px 15px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd);
+  border-left:3px solid var(--tc);cursor:pointer;transition:all .2s}
+.tpv:hover{transform:translateY(-3px)}
+.tpv b{display:block;font-size:13.5px;color:var(--tc)}
+.tpv span{font-size:11px;color:var(--text2)}
+
+.quizwrap{max-width:780px;margin:24px auto 0}
+.qbar{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.qbar .dots{flex:1;display:flex;gap:5px}
+.qbar .dots i{flex:1;height:5px;border-radius:99px;background:var(--line)}
+.qbar .dots i.done{background:var(--brand)}
+.qbar .dots i.cur{background:var(--brand);box-shadow:0 0 0 2px rgba(14,165,233,.30)}
+.qbar .cnt{font-size:12.5px;color:var(--text2);font-variant-numeric:tabular-nums}
+.qcard2{padding:28px 30px 24px;border-radius:var(--r);background:var(--glass);border:1px solid var(--gbd);
+  backdrop-filter:blur(24px) saturate(180%);box-shadow:0 20px 52px var(--gsh);margin-bottom:20px}
+.qcard2 .qno{font-size:11.5px;letter-spacing:1.8px;color:var(--brand-deep);font-weight:700}
+body[data-theme="dark"] .qcard2 .qno{color:var(--brand)}
+.qcard2 h3{margin:10px 0 6px;font-size:22px;letter-spacing:-.45px;line-height:1.38}
+.qcard2 .qtip{font-size:12.5px;color:var(--text3);margin:0 0 20px}
+.audioplay{display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:var(--r-s);
+  background:rgba(14,165,233,.09);border:1px solid rgba(14,165,233,.24);margin-bottom:18px}
+.audioplay .bb{width:44px;height:44px;border-radius:50%;background:var(--brand);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;flex:0 0 auto;transition:background .2s}
+.audioplay .bb:hover{background:var(--brand-deep)}
+.audioplay .bb svg{width:17px;height:17px;fill:var(--brand-ink)}
+.audioplay .tx3{flex:1;min-width:0}
+.audioplay .tx3 b{display:block;font-size:13.5px}
+.audioplay .tx3 span{font-size:11.5px;color:var(--text2)}
+.audioplay .tm{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.oi{display:flex;align-items:center;gap:14px;padding:15px 18px;border-radius:var(--r-s);
+  background:var(--glass2);border:1px solid var(--gbd);cursor:pointer;transition:all .2s;margin-bottom:10px}
+.oi:last-child{margin-bottom:0}
+.oi:hover{border-color:var(--brand);background:rgba(14,165,233,.07)}
+.oi.on{border-color:var(--brand);background:rgba(14,165,233,.13)}
+.oi .k{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;background:var(--glass);border:1px solid var(--gbd);color:var(--text2);flex:0 0 auto}
+.oi.on .k{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.oi .tx2{font-size:14.5px}
+.qnav{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.statelabel{font-size:11.5px;letter-spacing:1.4px;color:var(--text3);font-weight:700;margin:26px 0 10px}
+
+.ptcard{border-radius:var(--r);padding:30px 34px;background:var(--glass);border:1px solid var(--gbd);
+  backdrop-filter:blur(26px) saturate(185%);box-shadow:0 24px 60px var(--gsh);position:relative;overflow:hidden;
+  margin-top:22px;--pc:#E0554F;--pc2:rgba(224,85,79,.30)}
+.ptcard .glowc{position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(58% 88% at 10% 6%,var(--pc2),transparent 70%)}
+.ptcard>*{position:relative;z-index:1}
+.pthd{display:grid;grid-template-columns:1fr 296px;gap:32px;align-items:center}
+.ptcode{font-size:12px;letter-spacing:2.6px;font-weight:800;color:var(--pc)}
+.ptname{font-size:38px;font-weight:700;letter-spacing:-1.5px;margin:10px 0 14px;line-height:1.08}
+.accent2{width:58px;height:5px;border-radius:99px;background:linear-gradient(90deg,var(--pc),transparent);margin:0 0 16px}
+.ptdesc{font-size:14.5px;color:var(--text2);margin:0 0 20px}
+.dim2{margin-bottom:15px}
+.dim2 .lb{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:6px}
+.dim2 .lb span{color:var(--text2)}
+.dim2 .bar2{height:9px;border-radius:99px;background:var(--line);overflow:hidden}
+.dim2 .bar2 i{display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--pc),var(--pc2))}
+.ai2{margin-top:22px;padding:18px 22px;border-radius:var(--r-s);background:var(--glass2);
+  border:1px solid var(--gbd);border-left:3px solid var(--pc)}
+.ai2 h4{margin:0 0 8px;font-size:12px;letter-spacing:1.3px;color:var(--pc)}
+.ai2 p{margin:0;font-size:13.5px;color:var(--text2);line-height:1.85}
+.ai2 .src{display:inline-block;margin-top:10px;font-size:11px;padding:2px 9px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--gbd);color:var(--text3)}
+
+.atlas{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+.at{padding:18px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd);
+  cursor:pointer;transition:all .2s;--tc:#0EA5E9}
+.at:hover{transform:translateY(-4px);border-color:var(--tc)}
+.at .num{font-size:26px;font-weight:700;color:var(--tc);letter-spacing:-.7px}
+.at .nm{font-size:15px;font-weight:600;margin:8px 0 4px}
+.at .ds{font-size:11.5px;color:var(--text2);line-height:1.65}
+.at .pct{font-size:12px;color:var(--tc);font-weight:600;margin-top:10px}
+.dist{margin-top:22px;padding:22px 24px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd)}
+.dist h4{margin:0 0 16px;font-size:14.5px}
+.dist .dr{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:13px}
+.dist .dr b{width:80px;flex:0 0 auto;font-weight:600}
+.dist .dr .bb2{flex:1;height:8px;border-radius:99px;background:var(--line);overflow:hidden}
+.dist .dr .bb2 i{display:block;height:100%;border-radius:99px}
+.dist .dr .vv{width:56px;text-align:right;color:var(--text2);font-variant-numeric:tabular-nums;font-size:12px}
+
+/* 推荐专辑 */
+.recs{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.rec{padding:12px;border-radius:var(--r-s);text-align:center;background:var(--glass);
+  border:1px solid var(--gbd);cursor:pointer;transition:all .2s}
+.rec:hover{transform:translateY(-3px);border-color:var(--brand)}
+.rec .art{width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;margin-bottom:10px;
+  box-shadow:0 12px 26px rgba(0,0,0,.26)}
+.rec .art img{width:100%;height:100%;object-fit:cover;display:block}
+.rec span{font-size:13px;color:var(--text2)}
+
+/* ============ 三栏舞台（推荐专辑用，光跟着三张走）============ */
+.vglow .g1,.vglow .g2,.vglow .g3{position:absolute;display:block;border-radius:50%;
+  filter:blur(76px);opacity:.30;will-change:transform,opacity;
+  transition:opacity .5s cubic-bezier(.4,0,.2,1), transform .7s cubic-bezier(.4,0,.2,1)}
+.vglow .g1{width:380px;height:380px;left:-40px;top:-100px;background:var(--g1)}
+.vglow .g2{width:380px;height:380px;left:34%;bottom:-130px;background:var(--g2)}
+.vglow .g3{width:380px;height:380px;right:-40px;top:-80px;background:var(--g3)}
+.vstage[data-lit] .vglow .g1,
+.vstage[data-lit] .vglow .g2,
+.vstage[data-lit] .vglow .g3{opacity:.12}
+.vstage[data-lit="l"] .vglow .g1{opacity:1;transform:scale(1.28)}
+.vstage[data-lit="c"] .vglow .g2{opacity:1;transform:scale(1.28)}
+.vstage[data-lit="r"] .vglow .g3{opacity:1;transform:scale(1.28)}
+.recstage{margin-top:16px}
+.recstage .recs{margin-top:0}
+.recstage .alb .art{box-shadow:0 20px 44px rgba(0,0,0,.32), 0 8px 26px var(--acs)}
+
+/* ============ 夺冠之路：把"谁胜了谁、各得多少票"写清楚 ============ */
+.mres{padding:16px 18px 14px;border-radius:var(--r-s);background:var(--glass);
+  border:1px solid var(--gbd);margin-bottom:12px}
+.mres.final{border-color:var(--gold);box-shadow:0 0 0 1px rgba(224,135,0,.18)}
+.mhd{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.mhd .rd{font-size:11.5px;font-weight:700;letter-spacing:.5px;padding:3px 11px;border-radius:999px;
+  background:rgba(14,165,233,.13);color:var(--brand-deep)}
+body[data-theme="dark"] .mhd .rd{color:var(--brand);background:rgba(56,189,248,.13)}
+.mres.final .mhd .rd{background:rgba(224,135,0,.16);color:var(--gold)}
+.mhd .say{font-size:13px;color:var(--text2)}
+.mhd .say b{color:var(--text);font-weight:700}
+.mhd .say i{font-style:normal;color:var(--text3)}
+.pside{display:flex;align-items:center;gap:13px;padding:10px 14px;border-radius:13px;margin-bottom:7px}
+.pside:last-child{margin-bottom:0}
+.pside .art{width:48px;height:48px;border-radius:10px;overflow:hidden;flex:0 0 auto}
+.pside .art img{width:100%;height:100%;object-fit:cover;display:block}
+.pside .tx{flex:1;min-width:0}
+.pside .tx b{display:block;font-size:14.5px;letter-spacing:-.2px}
+.pside .tx span{font-size:11.5px;color:var(--text2)}
+.pside .pc{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.pside.win{background:rgba(14,165,233,.11);border:1px solid rgba(14,165,233,.30)}
+.pside.win .pc{color:var(--brand-deep)}
+body[data-theme="dark"] .pside.win .pc{color:var(--brand)}
+.pside.win .tx b{font-weight:700}
+.pside.lose{background:var(--glass2);border:1px solid var(--line)}
+.pside.lose .tx b{color:var(--text2);font-weight:500}
+.pside.lose .pc{color:var(--text3);font-size:15px}
+.pside.lose .art{filter:grayscale(.55);opacity:.7}
+.bw{font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;flex:0 0 auto;
+  background:var(--brand);color:var(--brand-ink)}
+
+/* 答题页：原型演示用的题型切换（真实产品里只有一道题） */
+.qswitch{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--glass2);
+  border:1px solid var(--gbd);margin-bottom:18px}
+.qswitch button{font:inherit;font-size:12.5px;padding:7px 17px;border-radius:999px;border:0;cursor:pointer;
+  background:transparent;color:var(--text2);font-weight:600;transition:all .2s}
+.qswitch button.on{background:var(--brand);color:var(--brand-ink)}
+.qstate{display:none}
+.qstate.on{display:block}
+.demoflag{display:inline-block;font-size:11px;padding:3px 10px;border-radius:999px;margin-left:10px;
+  background:rgba(224,135,0,.15);color:var(--gold);font-weight:700}
+
+/* ==================== 后台管理端 ==================== */
+.admbar{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.admbar .lg{font-weight:700;font-size:15px}
+.admbar .lg i{color:var(--brand);font-style:normal}
+.admbar .sp{margin-left:auto;font-size:12.5px;color:var(--text2)}
+.adm{display:grid;grid-template-columns:186px 1fr;min-height:580px;border-radius:var(--r);
+  border:1px solid var(--gbd);overflow:hidden;background:var(--glass2);margin-top:18px}
+.admnav{padding:18px 14px;border-right:1px solid var(--line);background:var(--glass)}
+.admnav .tt{font-size:10.5px;letter-spacing:1.5px;color:var(--text3);font-weight:700;padding:0 8px 12px}
+.admnav a{display:flex;align-items:center;gap:9px;font-size:13.5px;padding:9px 12px;border-radius:10px;
+  color:var(--text2);cursor:pointer;margin-bottom:3px;transition:all .15s}
+.admnav a:hover{background:var(--glass2);color:var(--brand-deep)}
+.admnav a.on{background:var(--brand);color:var(--brand-ink);font-weight:600}
+.admnav a svg{width:15px;height:15px;fill:currentColor;flex:0 0 auto}
+.admnav .sep{height:1px;background:var(--line);margin:12px 4px}
+.admmain{padding:22px 24px 26px}
+.admhd{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.admhd h3{margin:0;font-size:19px;letter-spacing:-.35px}
+.admhd p{margin:4px 0 0;font-size:12.5px;color:var(--text2)}
+.kpi4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.k4{padding:16px 18px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd)}
+.k4 b{display:block;font-size:27px;letter-spacing:-.9px;color:var(--brand-deep);line-height:1.1}
+body[data-theme="dark"] .k4 b{color:var(--brand)}
+.k4 span{font-size:11.5px;color:var(--text2);display:block;margin-top:3px}
+.k4 .dl{font-size:11px;margin-top:6px}
+.panel{padding:20px 22px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd);margin-top:16px}
+.panel h4{margin:0 0 4px;font-size:14.5px}
+.panel .ps{font-size:11.5px;color:var(--text3);margin:0 0 16px}
+.bars{display:flex;align-items:flex-end;gap:12px;height:140px}
+.bars .bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.bars .bv{width:100%;border-radius:9px 9px 0 0;background:linear-gradient(180deg,var(--brand),rgba(14,165,233,.22))}
+.bars .bl{font-size:10.5px;color:var(--text3)}
+.trend{display:flex;align-items:flex-end;gap:6px;height:100px}
+.trend i{flex:1;border-radius:5px;background:linear-gradient(180deg,#7DD3FC,rgba(125,211,252,.20))}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th,.tbl td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line)}
+.tbl th{font-size:11px;color:var(--text3);font-weight:700;letter-spacing:.5px}
+.tbl tr:last-child td{border-bottom:0}
+.tbl td.act{text-align:right;white-space:nowrap}
+.tbl .ell{max-width:270px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini{font-size:12px;padding:5px 12px;border-radius:8px;background:var(--glass2);border:1px solid var(--gbd);
+  cursor:pointer;color:var(--text2);transition:all .2s;margin-left:6px}
+.mini:hover{border-color:var(--brand);color:var(--brand-deep)}
+.tagx{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 10px;border-radius:999px}
+.tagx.ok{background:rgba(13,148,136,.14);color:var(--ok)}
+.tagx.off{background:rgba(220,38,38,.13);color:#DC2626}
+.tagx.tp{background:rgba(14,165,233,.13);color:var(--brand-deep)}
+body[data-theme="dark"] .tagx.tp{color:var(--brand)}
+.tagx.wn{background:rgba(224,135,0,.15);color:var(--gold)}
+.tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.tcard{padding:16px 18px;border-radius:var(--r-s);background:var(--glass);border:1px solid var(--gbd);
+  border-left:3px solid var(--tc)}
+.tcard .tch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.tcard .tch b{font-size:15px;color:var(--tc);flex:1;min-width:0;white-space:nowrap}
+.tcard .tch span{font-size:10.5px;color:var(--text3);letter-spacing:1px;flex:0 0 auto}
+.tcard .ds{font-size:12px;color:var(--text2);line-height:1.65;margin-bottom:12px}
+.tcard .ft{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--text3)}
+.sbox{display:flex;gap:8px;align-items:center;background:var(--glass2);border:1px solid var(--gbd);
+  border-radius:999px;padding:7px 15px}
+.sbox svg{width:14px;height:14px;fill:var(--text3);flex:0 0 auto}
+.sbox input{border:0;background:transparent;outline:none;font:inherit;font-size:13px;color:var(--text);width:176px}
+
+/* ============ 统一视觉语言：所有摆放专辑的地方，投影都带专辑自身色晕 ============
+   规则：大图（对决页 / 推荐区 / 排行榜前三）用完整 .alb 组件（含色条、歌手名着色、跟随光）；
+        小缩略图（列表 42-48px）只统一投影质感，保证一眼看出是同一套东西。 */
+.list{--acs:rgba(14,165,233,.16)}
+.th{box-shadow:0 6px 16px rgba(0,0,0,.24), 0 3px 10px var(--acs,rgba(14,165,233,.18))}
+.cv .art{box-shadow:0 12px 28px rgba(0,0,0,.26), 0 6px 18px var(--acs,rgba(14,165,233,.18))}
+.cv:hover .art{transform:translateY(-5px);
+  box-shadow:0 20px 40px rgba(0,0,0,.32), 0 10px 26px var(--acs,rgba(14,165,233,.26))}
+.grow .art{box-shadow:0 8px 18px rgba(0,0,0,.24), 0 4px 12px var(--acs,rgba(14,165,233,.18))}
+.pside .art{box-shadow:0 6px 14px rgba(0,0,0,.22), 0 3px 9px var(--acs,rgba(14,165,233,.16))}
+.rec .art{box-shadow:0 12px 26px rgba(0,0,0,.26), 0 6px 16px var(--acs,rgba(14,165,233,.18))}
+.pd .art{overflow:hidden;border-radius:10px}
+
+/* ============ 遮罩层：新手引导 / 禁用提醒 ============ */
+.scrim{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;
+  padding:28px;background:rgba(3,10,18,.60);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px)}
+.scrim.on{display:flex}
+.obcard{width:100%;max-width:540px;border-radius:var(--r);padding:30px 34px 24px;
+  background:var(--glass);border:1px solid var(--gbd);
+  backdrop-filter:blur(30px) saturate(185%);-webkit-backdrop-filter:blur(30px) saturate(185%);
+  box-shadow:0 30px 72px rgba(0,0,0,.5);position:relative;overflow:hidden}
+.obcard::before{content:"";position:absolute;left:0;right:0;top:0;height:44%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,0))}
+body[data-theme="dark"] .obcard::before{background:linear-gradient(180deg,rgba(160,215,245,.18),rgba(255,255,255,0))}
+.obcard>*{position:relative}
+.obstep{font-size:11.5px;letter-spacing:1.5px;color:var(--brand-deep);font-weight:700}
+.obcard h3{margin:10px 0 10px;font-size:25px;letter-spacing:-.7px}
+.obcard p{margin:0 0 18px;font-size:14px;color:var(--text2);line-height:1.8}
+.obdots{display:flex;gap:6px;margin-bottom:18px}
+.obdots i{width:26px;height:5px;border-radius:99px;background:var(--line)}
+.obdots i.on{background:var(--brand)}
+.obnav{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.obnav .skp{font-size:12.5px;color:var(--text3);cursor:pointer}
+.obnav .skp:hover{color:var(--brand-deep)}
+.obsteps2{display:flex;flex-direction:column;gap:14px;margin:20px 0 24px}
+.obrow{display:flex;align-items:center;gap:14px}
+.obrow .ic{width:40px;height:40px;border-radius:12px;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;background:rgba(14,165,233,.13)}
+.obrow .ic svg{width:20px;height:20px;fill:var(--brand-deep)}
+body[data-theme="dark"] .obrow .ic svg{fill:var(--brand)}
+.obrow .tx b{display:block;font-size:14px}
+.obrow .tx span{font-size:12px;color:var(--text2)}
+.banned{max-width:470px;text-align:center}
+.banned .bico{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;
+  justify-content:center;background:rgba(220,38,38,.13)}
+body[data-theme="dark"] .banned .bico{background:rgba(248,113,113,.16)}
+.banned .bico svg{width:32px;height:32px;fill:#DC2626}
+body[data-theme="dark"] .banned .bico svg{fill:#FCA5A5}
+.banned h3{margin:0 0 14px;font-size:23px;letter-spacing:-.5px}
+.breason{margin:0 0 18px;padding:15px 18px;border-radius:var(--r-s);background:var(--glass2);
+  border:1px solid var(--gbd);border-left:3px solid #DC2626;text-align:left;font-size:13.5px;line-height:1.85}
+body[data-theme="dark"] .breason{border-left-color:#FCA5A5}
+.breason b{display:block;margin-bottom:5px}
+.breason span{color:var(--text2)}
+.banned .bnote{font-size:12px;color:var(--text3);margin:16px 0 0;line-height:1.75}
+
+/* ============ 小组对战详情（点小组卡片弹出） ============ */
+.gdet{width:100%;max-width:570px}
+.gdet .ghd{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.gdet .ghd .sub{font-size:12.5px;color:var(--text2)}
+.gdet h3{margin:0 0 18px;font-size:19px;letter-spacing:-.4px}
+.gdet h3 em{font-style:normal;color:var(--gold)}
+.stand{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px}
+.stand th,.stand td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line)}
+.stand th{font-size:10.5px;color:var(--text3);letter-spacing:.5px;font-weight:700}
+.stand tr:last-child td{border-bottom:0}
+.stand .rk{width:30px;font-weight:700;color:var(--text3)}
+.stand tr.adv .rk{color:var(--gold)}
+.stand tr.adv td{background:rgba(224,135,0,.08)}
+.stand .th2{width:36px}
+.stand .th2 div{width:36px;height:36px;border-radius:9px;overflow:hidden}
+.stand .th2 img{width:100%;height:100%;object-fit:cover;display:block}
+.stand .nm2{font-weight:600}
+.stand .num{font-variant-numeric:tabular-nums;text-align:right}
+.gsection{font-size:11.5px;letter-spacing:1.3px;color:var(--text3);font-weight:700;margin:0 0 10px}
+.mi2{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:12px;
+  background:var(--glass2);border:1px solid var(--gbd);margin-bottom:8px;font-size:13px}
+.mi2 .w{font-weight:700}
+.mi2 .l{color:var(--text3)}
+.mi2 .sc2{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--text2);font-size:12.5px}
+
+/* 投票页：小组赛 / 淘汰赛 演示切换 */
+.vswitch{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:var(--glass2);
+  border:1px solid var(--gbd);margin-bottom:16px}
+.vswitch button{font:inherit;font-size:12.5px;padding:7px 17px;border-radius:999px;border:0;cursor:pointer;
+  background:transparent;color:var(--text2);font-weight:600;transition:all .2s}
+.vswitch button.on{background:var(--brand);color:var(--brand-ink)}
+.vstate{display:none}
+.vstate.on{display:block}
+.gstrip{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:var(--r-s);
+  background:var(--glass);border:1px solid var(--gbd);margin-bottom:16px;flex-wrap:wrap}
+.gstrip .lb2{font-size:11.5px;color:var(--text3);letter-spacing:.8px;font-weight:700}
+.gstrip .it{display:flex;align-items:center;gap:9px}
+.gstrip .it .th3{width:30px;height:30px;border-radius:8px;overflow:hidden}
+.gstrip .it .th3 img{width:100%;height:100%;object-fit:cover;display:block}
+.gstrip .it .nm3{font-size:12.5px;font-weight:600}
+.gstrip .it .rc3{font-size:11px;color:var(--text2)}
+.gstrip .it.adv .nm3{color:var(--gold)}
+</style>
+</head>
+<body data-theme="light">
+
+<div class="aurora">
+  <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+  <span class="ray r1"></span><span class="ray r2"></span>
+</div>
+
+<div class="app">
+  <aside class="side">
+    <div class="side-brand">音<i>格</i> · UI 原型</div>
+    <div class="side-sub">19 个页面 · PC 端</div>
+    <div class="tabs" style="margin:0 0 14px">
+      <button class="on" data-t="light">☀ 浅海</button>
+      <button data-t="dark">☾ 深海</button>
+    </div>
+    <div class="prog"><span>进度</span><span class="bar"><i style="width:100%"></i></span><span>19/19</span></div>
+
+    <div class="grp">前台用户端</div>
+    <a data-go="p1" class="on">1&nbsp;&nbsp;首页</a>
+    <a data-go="p2">2&nbsp;&nbsp;登录 / 注册</a>
+    <a data-go="p3">3&nbsp;&nbsp;个人中心</a>
+    <a data-go="p4">4&nbsp;&nbsp;对决 · 选择范围</a>
+    <a data-go="p5">5&nbsp;&nbsp;对决 · 对阵表</a>
+    <a data-go="p6">6&nbsp;&nbsp;对决 · 对战投票</a>
+    <a data-go="p7">7&nbsp;&nbsp;对决 · 冠军结果</a>
+    <a data-go="p8">8&nbsp;&nbsp;夺冠之路 · 分享图</a>
+    <a data-go="p9">9&nbsp;&nbsp;测评 · 说明页</a>
+    <a data-go="p10">10&nbsp;&nbsp;测评 · 答题页</a>
+    <a data-go="p11">11&nbsp;&nbsp;测评 · 人格卡</a>
+    <a data-go="p12">12&nbsp;&nbsp;人格图鉴</a>
+    <a data-go="p13">13&nbsp;&nbsp;专辑排行榜</a>
+
+    <div class="grp">后台管理端</div>
+    <a data-go="p14">14&nbsp;&nbsp;后台登录</a>
+    <a data-go="p15">15&nbsp;&nbsp;数据看板</a>
+    <a data-go="p16">16&nbsp;&nbsp;测评题目管理</a>
+    <a data-go="p17">17&nbsp;&nbsp;人格类型管理</a>
+    <a data-go="p18">18&nbsp;&nbsp;音乐数据管理</a>
+    <a data-go="p19">19&nbsp;&nbsp;用户管理</a>
+  </aside>
+
+  <main class="main">
+
+  <!-- ================= 1 首页 ================= -->
+  <section class="page on" id="p1">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="qswitch" id="obtog" style="margin:0">
+        <button class="on" data-ob="on">首次进入 · 显示引导</button>
+        <button data-ob="off">已看过 · 不显示</button>
+      </span>
+      <span class="demoflag">原型演示用</span>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app — 首页</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a class="on">首页</a><a>专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="hero">
+          <div>
+            <div class="tag">本周精选 · 跨歌手混战</div>
+            <h1>你的最爱专辑<br><em>由你亲手决出</em></h1>
+            <p>选几位歌手，把他们的专辑放进同一个擂台，两两对决、逐轮投票，最后生成一张夺冠之路。</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <span class="btn pri">
+                <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                开始对决</span>
+              <span class="btn blue">
+                <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3l2.1 5.4L20 9.3l-4 3.9.9 5.8L12 16.3 7.1 19l.9-5.8-4-3.9 5.9-.9z"/></svg>
+                测音乐人格</span>
+            </div>
+          </div>
+          <div class="art"><img src="assets/covers/hero.jpg" alt="范特西 专辑封面"></div>
+        </div>
+
+        <div class="duo">
+          <div class="tile sea">
+            <div class="ring"></div>
+            <h3>专辑对决</h3>
+            <p>单歌手 / 多歌手混战 · 自动生成对阵 · 每场可试听 30 秒 · 小组赛 + 复活赛</p>
+            <span class="btn">开始对决</span>
+          </div>
+          <div class="tile ghost">
+            <div class="ring"></div>
+            <h3>音乐人格</h3>
+            <p>12 道题，含听感题</p>
+            <span class="btn ghost">去测一测</span>
+          </div>
+        </div>
+
+        <div class="shelf">
+          <div class="hd"><b>正在被投票的专辑</b><span>华语 213 张 · 海外 128 张 · 查看全部</span></div>
+          <div class="covers">
+            <div class="cv"><div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div><b>范特西</b><span>周杰伦</span></div>
+            <div class="cv"><div class="art"><img src="assets/global/g7.jpg" alt="I AM GLORIA"></div><b>I AM GLORIA</b><span>邓紫棋</span></div>
+            <div class="cv"><div class="art"><img src="assets/pool/p6.jpg" alt="第二天堂"></div><b>第二天堂</b><span>林俊杰</span></div>
+            <div class="cv"><div class="art"><img src="assets/global/g1.jpg" alt="The Life of a Showgirl"></div><b>The Life of a Showgirl</b><span>Taylor Swift</span></div>
+            <div class="cv"><div class="art"><img src="assets/pool/p9.jpg" alt="與我常在"></div><b>與我常在</b><span>陈奕迅</span></div>
+          </div>
+        </div>
+
+        <div class="list">
+          <div class="r"><div class="nw hot">1</div><div class="th"><img src="assets/pool/p2.jpg" alt=""></div>
+            <div class="m"><b>范特西</b><span>周杰伦 · 2001</span></div><div class="v"><b>386</b> 票 <span class="up">↑</span></div></div>
+          <div class="r"><div class="nw">2</div><div class="th"><img src="assets/pool/p4.jpg" alt=""></div>
+            <div class="m"><b>葉惠美</b><span>周杰伦 · 2003</span></div><div class="v"><b>351</b> 票 <span class="up">↑</span></div></div>
+          <div class="r"><div class="nw">3</div><div class="th"><img src="assets/global/g3.jpg" alt=""></div>
+            <div class="m"><b>25</b><span>Adele · 2015</span></div><div class="v"><b>298</b> 票 <span class="down">↓</span></div></div>
+        </div>
+
+        <div class="nowbar">
+          <div class="a"><img src="assets/pool/p2.jpg" alt=""></div>
+          <div class="t"><b>爱在西元前</b><span>范特西 · 试听片段</span></div>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+          <button class="pp"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+        </div>
+
+        <div class="panel" style="margin-top:22px;border-left:3px solid var(--gold)">
+          <h4>投票规范 · 花一分钟看一眼</h4>
+          <p class="ps">榜单的可信度靠大家一起维护，以下行为会被系统记录并分级处理</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div class="obrow"><span class="ic" style="background:rgba(13,148,136,.14)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+              <span class="tx"><b>同一场次只能投一票</b><span>重复提交会被接口拒绝，提示"你已投过这场"</span></span></div>
+            <div class="obrow"><span class="ic" style="background:rgba(224,135,0,.15)">
+              <svg viewBox="0 0 24 24"><path d="M11 15h2v2h-2zm0-8h2v6h-2zm1-5a10 10 0 100 20 10 10 0 000-20z"/></svg></span>
+              <span class="tx"><b>别用极快速度连点</b><span>间隔小于 3 秒、或 1 分钟超 20 场，判为异常</span></span></div>
+            <div class="obrow"><span class="ic" style="background:rgba(220,38,38,.13)">
+              <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM4 12a8 8 0 0113.7-5.6L6.4 17.7A7.9 7.9 0 014 12zm14.4 3.3L7.7 4.9A8 8 0 0118.4 15.3z"/></svg></span>
+              <span class="tx"><b>不要注册多个账号刷票</b><span>同一设备或 IP 批量投票会被标记</span></span></div>
+            <div class="obrow"><span class="ic" style="background:rgba(14,165,233,.13)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3l7 4v6c0 4.4-3 8-7 8s-7-3.6-7-8V7z"/></svg></span>
+              <span class="tx"><b>先警告，多次才禁用</b><span>累计 3 次警告自动停权 24 小时；数据保留，可申诉</span></span></div>
+          </div>
+          <p style="margin:16px 0 0;font-size:12px;color:var(--text3);line-height:1.75">
+            完整约定见《社区规范》。被判定为异常的投票
+            <b style="color:var(--text2)">不计入榜单与人格分布统计</b>，
+            所以刷票既改变不了结果，还会让你失去账号。</p>
+        </div>
+      </div>
+    </div>
+    <div class="note"><b>页面说明：</b>首屏强调"跨歌手混战"，专辑架与榜单里华语与海外混排，一眼看出平台不限于某一位歌手。
+      另外：<b>首次进入会弹出三张新手引导卡</b>（下方演示开关可切换显示/不显示），
+      讲清"怎么发起对决 / 怎么测人格 / 结果怎么用"这三件事。</div>
+
+    <div class="scrim on" id="ob-scrim">
+      <div class="obcard">
+        <div class="obstep" id="ob-no">STEP 1 / 3</div>
+        <h3 id="ob-t">先选几位歌手，让他们的专辑打擂台</h3>
+        <p id="ob-p">不只是同一位歌手的专辑互相比——你可以把周杰伦、林俊杰、陈奕迅的专辑
+        放进同一个池子，看看谁的作品更经得起投票。也可以只挑两位，来一场正面对决。</p>
+
+        <div class="obsteps2" id="ob-b1">
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 001.6-4.2 6.5 6.5 0 10-6.5 6.5c1.6 0 3.1-.6 4.2-1.6l.3.3v.8l5 5 1.5-1.5-5-5zM10 14a4 4 0 110-8 4 4 0 010 8z"/></svg></span>
+            <span class="tx"><b>搜索歌手，加进池子</b><span>最少 2 位、最多 6 位，每位抽取 3 至 5 张专辑</span></span></div>
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M5 5h6v6H5zm8 0h6v6h-6zM5 13h6v6H5zm8 0h6v6h-6z"/></svg></span>
+            <span class="tx"><b>系统自动过滤</b><span>单曲、现场、影视原声、精选、拼盘不会进入池子</span></span></div>
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            <span class="tx"><b>逐场投票</b><span>每场可先试听 30 秒再决定，也可以跳过</span></span></div>
+        </div>
+
+        <div class="obsteps2" id="ob-b2" style="display:none">
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l2.1 5.4L20 9.3l-4 3.9.9 5.8L12 16.3 7.1 19l.9-5.8-4-3.9 5.9-.9z"/></svg></span>
+            <span class="tx"><b>12 道题，含 2 道听感题</b><span>听感题要先听 30 秒片段再作答，约 3 分钟做完</span></span></div>
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 18h4v-8H4zm6 0h4V6h-4zm6 0h4v-5h-4z"/></svg></span>
+            <span class="tx"><b>得到四个维度得分</b><span>旋律 / 节奏 / 编曲 / 安静，结果可复查，不是黑盒</span></span></div>
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M8 8l4-4 4 4M5 20h14"/></svg></span>
+            <span class="tx"><b>生成人格卡</b><span>可导出成图片分享到社交平台</span></span></div>
+        </div>
+
+        <div class="obsteps2" id="ob-b3" style="display:none">
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3 1.2-6.5L2.5 8.9 9.1 8z"/></svg></span>
+            <span class="tx"><b>冠军会留下「夺冠之路」</b><span>每一轮战胜了谁、各得多少票，都能回看</span></span></div>
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 16V4M8 8l4-4 4 4M5 20h14"/></svg></span>
+            <span class="tx"><b>导出成图片分享</b><span>竖版 1080×1440 适合朋友圈，方形适合九宫格</span></span></div>
+          <div class="obrow"><span class="ic"><svg viewBox="0 0 24 24"><path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zm-8 0c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5z"/></svg></span>
+            <span class="tx"><b>不登录也能看，登录才留记录</b><span>投票记录、人格卡、收藏都存在你账号里</span></span></div>
+        </div>
+
+        <div class="obdots"><i class="on"></i><i></i><i></i></div>
+        <div class="obnav">
+          <span class="skp" id="ob-skip">跳过</span>
+          <div style="display:flex;gap:10px">
+            <span class="btn ghost sm" id="ob-prev" style="display:none">上一步</span>
+            <span class="btn pri sm" id="ob-next">下一步</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 2 登录 / 注册 ================= -->
+  <section class="page" id="p2">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+      <span class="qswitch" id="bantog" style="margin:0">
+        <button class="on" data-ban="ok">正常登录</button>
+        <button data-ban="ban">账号被禁用时</button>
+      </span>
+      <span class="demoflag">原型演示用</span>
+    </div>
+
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app — 登录 / 注册</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="authwrap">
+          <div class="side-txt">
+            <h2>登录后<br><em>你的选择才留得下</em></h2>
+            <p>对决记录、测评结果、收藏的专辑，都会存进你的账号。下次打开就能接着投票。</p>
+            <div class="feat">
+              <span>保存对决记录</span><span>回看人格卡</span><span>收藏专辑</span><span>参与排行榜</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="seg">
+              <button class="on">登录</button>
+              <button>注册</button>
+            </div>
+            <div class="fld">
+              <label>账号</label>
+              <input type="text" placeholder="4 至 20 位字母或数字" value="huzurui">
+            </div>
+            <div class="fld">
+              <label>密码</label>
+              <input type="password" placeholder="6 至 32 位" value="········">
+              <div class="hint">密码经单向加密存储，数据库不保留明文</div>
+            </div>
+            <span class="btn pri wide" style="margin-top:6px">登录</span>
+            <div class="authfoot">还没有账号？<a>立即注册</a></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><b>页面说明：</b>左侧讲清"为什么要登录"，右侧表单只保留两个字段；密码提示直接写明加密存储，对应安全需求 NFR-S1。
+      另外：<b>被禁用的账号登录时会看到一段明确的说明弹窗</b>（右上角演示开关可切换），
+      写清被禁用的原因、时间和申诉方式——不能让用户莫名其妙登不进去。</div>
+
+    <div class="scrim" id="ban-scrim">
+      <div class="obcard banned">
+        <div class="bico"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zM4 12a8 8 0 0113.7-5.6L6.4 17.7A7.9 7.9 0 014 12zm14.4 3.3L7.7 4.9A8 8 0 0118.4 15.3z"/></svg></div>
+        <h3>账号已被禁用</h3>
+        <div class="breason">
+          <b>原因：刷票行为</b>
+          <span>系统检测到你的账号存在重复投票（同一场次提交多次），
+          于 <b>2026-09-15 21:07</b> 由管理员禁用。</span>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <span class="btn pri">提交申诉</span>
+          <span class="btn ghost">联系管理员</span>
+        </div>
+        <p class="bnote">
+          你的历史数据仍然完整保留，只是无法再登录与投票。<br>
+          如果认为判断有误，可以提交申诉，管理员核实后会恢复账号（状态会改为"正常"）。<br>
+          <b>如不再使用，也可以申请彻底删除账号及其全部数据。</b>
+        </p>
+        <div style="margin-top:20px">
+          <span class="skp" id="ban-close">关闭</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3 个人中心 ================= -->
+  <section class="page" id="p3">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app — 个人中心</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="uh" style="margin-top:22px">
+          <div class="av">锐</div>
+          <div class="who">
+            <b>胡祖锐</b>
+            <span>账号 huzurui · 加入于 2026 年 9 月 · 已进行 6 次对决、3 次测评</span>
+          </div>
+          <span class="btn ghost sm" style="margin-left:auto">编辑资料</span>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><b>6</b><span>发起对决</span></div>
+          <div class="stat"><b>78</b><span>累计投票</span></div>
+          <div class="stat"><b>3</b><span>完成测评</span></div>
+          <div class="stat"><b>12</b><span>收藏专辑</span></div>
+        </div>
+
+        <div class="tabline">
+          <div class="on">我的对决</div>
+          <div>我的测评</div>
+          <div>我的收藏</div>
+        </div>
+
+        <div class="list">
+          <div class="r"><div class="th"><img src="assets/covers/c2.jpg" alt=""></div>
+            <div class="m"><b>周杰伦 × 林俊杰 × 陈奕迅 · 混战</b>
+              <span>16 张专辑 · 已完赛 · 冠军《范特西》 · 2026-09-14</span></div>
+            <div class="v"><span class="btn ghost sm">回看</span></div></div>
+          <div class="r"><div class="th"><img src="assets/pool/p4.jpg" alt=""></div>
+            <div class="m"><b>周杰伦 专辑对决</b>
+              <span>17 张专辑 · 进行中 · 已投 12 / 15 场 · 2026-09-15</span></div>
+            <div class="v"><span class="btn pri sm">继续</span></div></div>
+          <div class="r"><div class="th"><img src="assets/global/g3.jpg" alt=""></div>
+            <div class="m"><b>Adele 专辑对决</b>
+              <span>8 张专辑 · 已完赛 · 冠军《25》 · 2026-09-13</span></div>
+            <div class="v"><span class="btn ghost sm">回看</span></div></div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>顶部四格统计让用户一眼看到自己的参与度；三个标签对应"我做过什么"，是"数据驱动"最直观的体现。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 13 专辑排行榜 ================= -->
+  <section class="page" id="p13">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app — 专辑排行榜</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a>音乐人格</a><a class="on">排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="hd" style="margin-top:22px">
+          <b style="font-size:20px;letter-spacing:-.3px">最受欢迎专辑</b>
+          <span>按累计票数排序 · 共 213 张 · 更新于 10 分钟前</span>
+        </div>
+
+        <div class="filter">
+          <span class="lb">地区</span>
+          <span class="pill on">全部</span><span class="pill">华语</span><span class="pill">欧美</span><span class="pill">日韩</span>
+          <span class="lb" style="margin-left:10px">年代</span>
+          <span class="pill">全部</span><span class="pill on">2000s</span><span class="pill">2010s</span><span class="pill">2020s</span>
+          <span class="lb" style="margin-left:10px">周期</span>
+          <span class="pill on">总榜</span><span class="pill">本周</span><span class="pill">本月</span>
+        </div>
+
+        <div class="vstage recstage" style="--g1:#D60007;--g2:#0D7C4F;--g3:#7C6530">
+          <div class="vglow"><i class="g1"></i><i class="g2"></i><i class="g3"></i></div>
+          <div class="sunlit" style="position:absolute;inset:0;z-index:3;pointer-events:none"></div>
+          <div class="gbeam"></div>
+          <div class="recs">
+            <div class="alb" data-side="l" style="--ac:#B92B30;--acs:rgba(214,0,7,.32)">
+              <div style="margin-bottom:11px">
+                <span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;
+                  border-radius:999px;background:var(--gold);color:#04263C">NO.1</span></div>
+              <div class="art albc"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+              <b>范特西</b>
+              <div class="accent"></div>
+              <div class="ar"><i></i>周杰伦</div>
+              <div class="mt">2001 年 · 386 票 · 胜 24 场</div>
+            </div>
+            <div class="alb" data-side="c" style="--ac:#2F6B4E;--acs:rgba(13,124,79,.30)">
+              <div style="margin-bottom:11px">
+                <span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;
+                  border-radius:999px;background:var(--glass2);border:1px solid var(--gbd);color:var(--text2)">NO.2</span></div>
+              <div class="art albc"><img src="assets/pool/p4.jpg" alt="葉惠美"></div>
+              <b>葉惠美</b>
+              <div class="accent"></div>
+              <div class="ar"><i></i>周杰伦</div>
+              <div class="mt">2003 年 · 351 票 · 胜 21 场</div>
+            </div>
+            <div class="alb" data-side="r" style="--ac:#8A6A2C;--acs:rgba(124,101,48,.30)">
+              <div style="margin-bottom:11px">
+                <span style="display:inline-block;font-size:11px;font-weight:700;padding:3px 12px;
+                  border-radius:999px;background:var(--glass2);border:1px solid var(--gbd);color:var(--text2)">NO.3</span></div>
+              <div class="art albc"><img src="assets/global/g3.jpg" alt="25"></div>
+              <b>25</b>
+              <div class="accent"></div>
+              <div class="ar"><i></i>Adele</div>
+              <div class="mt">2015 年 · 298 票 · 胜 18 场</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="list">
+          <div class="r"><div class="nw">4</div><div class="th"><img src="assets/pool/p5.jpg" alt=""></div>
+            <div class="m"><b>樂行者</b><span>林俊杰 · 2003</span></div><div class="v"><b>276</b> 票 <span class="up">↑2</span></div></div>
+          <div class="r"><div class="nw">5</div><div class="th"><img src="assets/global/g7.jpg" alt=""></div>
+            <div class="m"><b>I AM GLORIA</b><span>邓紫棋 · 2025</span></div><div class="v"><b>251</b> 票 <span class="up">↑5</span></div></div>
+          <div class="r"><div class="nw">6</div><div class="th"><img src="assets/pool/p9.jpg" alt=""></div>
+            <div class="m"><b>與我常在</b><span>陈奕迅 · 1997</span></div><div class="v"><b>233</b> 票 <span class="down">↓1</span></div></div>
+          <div class="r"><div class="nw">7</div><div class="th"><img src="assets/global/g8.jpg" alt=""></div>
+            <div class="m"><b>守村人</b><span>薛之谦 · 2024</span></div><div class="v"><b>219</b> 票 <span class="up">↑3</span></div></div>
+          <div class="r"><div class="nw">8</div><div class="th"><img src="assets/global/g1.jpg" alt=""></div>
+            <div class="m"><b>The Life of a Showgirl</b><span>Taylor Swift · 2025</span></div><div class="v"><b>204</b> 票 <span class="up">↑7</span></div></div>
+        </div>
+
+        <div class="pager">
+          <i>上一页</i><i class="on">1</i><i>2</i><i>3</i><i>…</i><i>11</i><i>下一页</i>
+        </div>
+
+        <div class="note"><b>页面说明：</b>前三名单独做成领奖台卡片（唯一使用金色的地方，作为冷色调里的视觉锚点）；
+        榜单支持地区 / 年代 / 周期三重筛选，把"华语与海外同榜"这件事直接摆出来。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 4 对决 · 选择范围 ================= -->
+  <section class="page" id="p4">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / battle / new</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a class="on">专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="modes">
+          <div class="mode"><b>单歌手</b><span>某位歌手的专辑互相比</span></div>
+          <div class="mode on"><b>多歌手混战<span class="badge">首选</span></b><span>几位歌手的专辑放一起比</span></div>
+          <div class="mode"><b>按流派 / 年代</b><span>如华语流行 · 2000 年代</span></div>
+          <div class="mode"><b>手动挑选</b><span>自己勾专辑入池</span></div>
+        </div>
+
+        <div class="block">
+          <h4>参赛歌手 <em>最少 2 位、最多 6 位 · 每位歌手抽取 3 至 5 张</em></h4>
+          <div class="chips">
+            <div class="chip"><b>周杰伦</b><i>抽 4 张</i><span class="x">×</span></div>
+            <div class="chip"><b>林俊杰</b><i>抽 3 张</i><span class="x">×</span></div>
+            <div class="chip"><b>陈奕迅</b><i>抽 3 张</i><span class="x">×</span></div>
+            <div class="chip"><b>李荣浩</b><i>抽 2 张</i><span class="x">×</span></div>
+            <div class="chip add">＋ 添加歌手</div>
+          </div>
+          <h4 style="margin:18px 0 0">或从常用组合开始</h4>
+          <div class="presets">
+            <div class="preset"><span class="avs"><img src="assets/pool/p2.jpg" alt=""><img src="assets/pool/p5.jpg" alt=""></span>周杰伦 <b style="opacity:.5;font-weight:400">vs</b> 林俊杰 <i>两位对决</i></div>
+            <div class="preset"><span class="avs"><img src="assets/pool/p2.jpg" alt=""><img src="assets/pool/p6.jpg" alt=""><img src="assets/pool/p8.jpg" alt=""></span>华语三强混战</div>
+            <div class="preset"><span class="avs"><img src="assets/global/g1.jpg" alt=""><img src="assets/global/g3.jpg" alt=""><img src="assets/global/g5.jpg" alt=""></span>欧美经典对决</div>
+            <div class="preset"><span class="avs"><img src="assets/pool/p2.jpg" alt=""><img src="assets/global/g1.jpg" alt=""></span>中外对决</div>
+          </div>
+
+          <div class="tipbar">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z"/></svg>
+            <span>已按准入规则自动过滤：<b>单曲 41 张 · 现场与演唱会 9 张 · 影视原声 3 张 · 精选与复刻 12 张</b>，
+            保留 <b>12 张</b>正式专辑进入池子。你也可以取消勾选任意一张。</span>
+          </div>
+
+          <div class="pool">
+            <div class="pk"><div class="art"><img src="assets/pool/p2.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>范特西</b><span>周杰伦</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p6.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>第二天堂</b><span>林俊杰</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p8.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>一滴眼淚</b><span>陈奕迅</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p5.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>樂行者</b><span>林俊杰</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p3.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>八度空間</b><span>周杰伦</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p11.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>Model</b><span>李荣浩</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p7.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>編號89757</b><span>林俊杰</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p1.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>杰倫</b><span>周杰伦</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p13.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>有理想</b><span>李荣浩</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p4.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>葉惠美</b><span>周杰伦</span></div>
+            <div class="pk"><div class="art"><img src="assets/pool/p9.jpg" alt=""><span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span></div><b>與我常在</b><span>陈奕迅</span></div>
+            <div class="pk off"><div class="art"><img src="assets/pool/p12.jpg" alt=""><span class="ck"></span></div><b>李榮浩</b><span>李荣浩</span></div>
+          </div>
+        </div>
+
+        <div class="startbar">
+          <span class="info">已选 <b>12</b> 张专辑 · 来自 <b>4</b> 位歌手 · 赛程：<b>4 组小组赛 → 复活赛 → 4 强淘汰赛</b></span>
+          <span class="btn pri sp">
+            <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            开始对决</span>
+        </div>
+
+        <div class="note"><b>页面说明：</b>把"范围选择"做成整套流程的第一屏。四种模式里"多歌手混战"是默认项，
+        因为这是作品的初衷——不同歌手的专辑要能放在一起比。过滤条把"系统替你剔了哪些"讲明白，避免用户困惑"我的专辑怎么少了"。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 5 对决 · 对阵表 ================= -->
+  <section class="page" id="p5">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / battle / bracket</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a class="on">专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="arena-top" style="margin-top:22px">
+          <div><span class="pillx">跨歌手混战</span>
+            <span style="margin-left:12px;font-size:13px;color:var(--text2)">12 张专辑 · 4 位歌手 · 共 15 场 · <b style="color:var(--text)">已投 12 / 15</b></span></div>
+          <div style="font-size:12.5px;color:var(--text3)">小组赛已全部结束 · 点击任意小组可查看该组的对战详情</div>
+        </div>
+        <div class="progline"><i style="width:80%"></i></div>
+
+        <div class="groups">
+          <div class="gcard" data-group="A" style="cursor:pointer">
+            <div class="gt"><b>A 组</b><span>林俊杰 / 周杰伦 / 李荣浩</span></div>
+            <div class="glist">
+              <div class="grow"><div class="art"><img src="assets/pool/p5.jpg" alt=""></div><div class="nm">樂行者</div><div class="rec">2 胜 0 负 · 晋级</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p3.jpg" alt=""></div><div class="nm">八度空間</div><div class="rec" style="color:var(--text3)">1 胜 1 负</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p11.jpg" alt=""></div><div class="nm">Model</div><div class="rec" style="color:var(--text3)">0 胜 2 负</div></div>
+            </div>
+          </div>
+          <div class="gcard" data-group="B" style="cursor:pointer">
+            <div class="gt"><b>B 组</b><span>周杰伦 / 林俊杰 / 李荣浩</span></div>
+            <div class="glist">
+              <div class="grow"><div class="art"><img src="assets/pool/p2.jpg" alt=""></div><div class="nm">范特西</div><div class="rec">2 胜 0 负 · 晋级</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p6.jpg" alt=""></div><div class="nm">第二天堂</div><div class="rec" style="color:var(--text3)">1 胜 1 负</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p13.jpg" alt=""></div><div class="nm">有理想</div><div class="rec" style="color:var(--text3)">0 胜 2 负</div></div>
+            </div>
+          </div>
+          <div class="gcard" data-group="C" style="cursor:pointer">
+            <div class="gt"><b>C 组</b><span>林俊杰 / 周杰伦 / 李荣浩</span></div>
+            <div class="glist">
+              <div class="grow"><div class="art"><img src="assets/pool/p7.jpg" alt=""></div><div class="nm">編號89757</div><div class="rec">2 胜 0 负 · 晋级</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p1.jpg" alt=""></div><div class="nm">杰倫</div><div class="rec" style="color:var(--text3)">1 胜 1 负</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p12.jpg" alt=""></div><div class="nm">李榮浩</div><div class="rec" style="color:var(--text3)">0 胜 2 负</div></div>
+            </div>
+          </div>
+          <div class="gcard" data-group="D" style="cursor:pointer">
+            <div class="gt"><b>D 组</b><span>周杰伦 / 陈奕迅 / 陈奕迅</span></div>
+            <div class="glist">
+              <div class="grow"><div class="art"><img src="assets/pool/p8.jpg" alt=""></div><div class="nm">一滴眼淚</div><div class="rec">2 胜 0 负 · 晋级</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p4.jpg" alt=""></div><div class="nm">葉惠美</div><div class="rec" style="color:var(--text3)">1 胜 1 负</div></div>
+              <div class="grow"><div class="art"><img src="assets/pool/p9.jpg" alt=""></div><div class="nm">與我常在</div><div class="rec" style="color:var(--text3)">0 胜 2 负</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tree">
+          <div class="tt">小组赛已全部结束（12 场）· 当前进度 <b style="color:var(--text)">12 / 15</b> 场，下一场是「半决赛 · 第一场」</div>
+          <div class="rounds">
+            <div class="rcol">
+              <h5>半决赛</h5>
+              <div class="tie" style="border-color:var(--brand)">
+                <div class="t1 win"><img src="assets/pool/p2.jpg" alt=""></div>
+                <div class="tn">范特西</div>
+                <div style="font-size:10.5px;color:var(--text3)">待投</div>
+                <div class="tn" style="text-align:right">樂行者</div>
+                <div class="t2"><img src="assets/pool/p5.jpg" alt=""></div>
+              </div>
+              <div class="tie">
+                <div class="t1"><img src="assets/pool/p7.jpg" alt=""></div>
+                <div class="tn">編號89757</div>
+                <div style="font-size:10.5px;color:var(--text3)">待投</div>
+                <div class="tn" style="text-align:right">一滴眼淚</div>
+                <div class="t2"><img src="assets/pool/p8.jpg" alt=""></div>
+              </div>
+            </div>
+            <div class="rcol">
+              <h5>决赛</h5>
+              <div class="tie">
+                <div class="t1"><img src="assets/pool/p2.jpg" alt="" style="opacity:.35"></div>
+                <div class="tn" style="color:var(--text3)">待定</div>
+                <div style="font-size:10.5px;color:var(--text3)">未开始</div>
+                <div class="tn" style="text-align:right;color:var(--text3)">待定</div>
+                <div class="t2"><img src="assets/pool/p8.jpg" alt="" style="opacity:.35"></div>
+              </div>
+            </div>
+            <div class="rcol">
+              <h5>冠军</h5>
+              <div class="tie" style="justify-content:center;border-style:dashed">
+                <div style="font-size:12px;color:var(--text3)">等待决出</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>对阵表是"赛制设计"最直观的证据。12 张专辑不是 2 的幂，所以先分 4 组打单循环（每组 3 场，共 12 场），
+        再取各组第一进淘汰赛（2 场半决赛 + 1 场决赛）。这一页能直接回答"非 2 的幂怎么处理"这个答辩必问点。</div>
+      </div>
+    </div>
+
+    <div class="scrim" id="gd-scrim">
+      <div class="obcard gdet">
+        <div class="ghd">
+          <span class="pillx" id="gd-title">A 组</span>
+          <span class="sub">小组赛已结束 · 组内 3 场已全部投完</span>
+        </div>
+        <h3>晋级淘汰赛：<em id="gd-adv">樂行者</em></h3>
+        <table class="stand">
+          <tr><th class="rk">#</th><th class="th2"></th><th>专辑</th>
+            <th class="num" style="width:56px">胜</th><th class="num" style="width:56px">负</th>
+            <th class="num" style="width:76px">得票率</th></tr>
+          <tbody id="gd-stand"></tbody>
+        </table>
+        <p class="gsection">组内三场对阵明细</p>
+        <div id="gd-matches"></div>
+        <div class="obnav" style="margin-top:18px">
+          <span class="skp" id="gd-close">关闭</span>
+          <span class="btn ghost sm" id="gd-close2">知道了</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 6 对决 · 对战投票 ================= -->
+  <section class="page" id="p6">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / battle / vote</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a class="on">专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div style="margin-top:22px">
+          <span class="vswitch">
+            <button data-v="group">小组赛 · 第一轮</button>
+            <button class="on" data-v="semi">淘汰赛 · 半决赛</button>
+          </span>
+          <span class="demoflag">原型演示用：一场对决里这两种页面来回切换</span>
+        </div>
+
+        <div class="vstate on" id="v-semi">
+          <div class="arena-top">
+            <div><span class="pillx">半决赛 · 第 1 场</span>
+              <span style="margin-left:12px;font-size:13px;color:var(--text2)">跨歌手混战 · 已投 12 / 15 场</span></div>
+            <div style="font-size:12.5px;color:var(--text3)">没听过？先试听 30 秒再投，也可以直接跳过</div>
+          </div>
+          <div class="progline"><i style="width:80%"></i></div>
+
+          <div class="vstage" style="--gl:#E30003;--gr:#9452CF">
+            <div class="vglow"><i class="gl"></i><i class="gr"></i></div>
+            <div class="sunlit" style="position:absolute;inset:0;z-index:3;pointer-events:none"></div>
+            <div class="gbeam"></div>
+            <span class="spark sp1"></span><span class="spark sp2"></span><span class="spark sp3"></span><span class="spark sp4"></span>
+
+            <div style="display:grid;grid-template-columns:1fr 96px 1fr;align-items:center;gap:16px">
+              <div class="alb" data-side="l" style="--ac:#B92B30;--acs:rgba(227,0,3,.34)">
+                <div class="art albc"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+                <b>范特西</b>
+                <div class="accent"></div>
+                <div class="ar"><i></i>周杰伦</div>
+                <div class="mt">2001 年 · 10 首</div>
+                <div class="plays"><span class="btn tune">
+                  <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  试听 30 秒</span></div>
+              </div>
+              <div class="vs"><div class="orb">VS</div></div>
+              <div class="alb" data-side="r" style="--ac:#7A3FB0;--acs:rgba(148,82,207,.34)">
+                <div class="art albc"><img src="assets/pool/p5.jpg" alt="樂行者"></div>
+                <b>樂行者</b>
+                <div class="accent"></div>
+                <div class="ar"><i></i>林俊杰</div>
+                <div class="mt">2003 年 · 11 首</div>
+                <div class="plays"><span class="btn tune">
+                  <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  试听 30 秒</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:18px">
+              <span class="btn" style="background:#B92B30;color:#fff;padding:12px 26px">投给《范特西》</span>
+              <span class="btn" style="background:#7A3FB0;color:#fff;padding:12px 26px">投给《樂行者》</span>
+              <span class="btn ghost">跳过本场</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vstate" id="v-group">
+          <div class="arena-top">
+            <div><span class="pillx">小组赛 · A 组 第 1 场</span>
+              <span style="margin-left:12px;font-size:13px;color:var(--text2)">跨歌手混战 · 已投 0 / 15 场</span></div>
+            <div style="font-size:12.5px;color:var(--text3)">组内 3 张专辑两两对阵，每张打 2 场</div>
+          </div>
+          <div class="progline"><i style="width:2%"></i></div>
+
+          <div class="gstrip" style="margin-top:16px">
+            <span class="lb2">A 组积分</span>
+            <span class="it"><span class="th3"><img src="assets/pool/p5.jpg" alt=""></span>
+              <span><span class="nm3">樂行者</span><br><span class="rc3">0 胜 0 负</span></span></span>
+            <span class="it"><span class="th3"><img src="assets/pool/p3.jpg" alt=""></span>
+              <span><span class="nm3">八度空間</span><br><span class="rc3">0 胜 0 负</span></span></span>
+            <span class="it"><span class="th3"><img src="assets/pool/p11.jpg" alt=""></span>
+              <span><span class="nm3">Model</span><br><span class="rc3">0 胜 0 负</span></span></span>
+          </div>
+
+          <div class="vstage" style="--gl:#9452CF;--gr:#FF6200">
+            <div class="vglow"><i class="gl"></i><i class="gr"></i></div>
+            <div class="sunlit" style="position:absolute;inset:0;z-index:3;pointer-events:none"></div>
+            <div class="gbeam"></div>
+            <span class="spark sp1"></span><span class="spark sp2"></span><span class="spark sp3"></span><span class="spark sp4"></span>
+
+            <div style="display:grid;grid-template-columns:1fr 96px 1fr;align-items:center;gap:16px">
+              <div class="alb" data-side="l" style="--ac:#7A3FB0;--acs:rgba(148,82,207,.34)">
+                <div class="art albc"><img src="assets/pool/p5.jpg" alt="樂行者"></div>
+                <b>樂行者</b>
+                <div class="accent"></div>
+                <div class="ar"><i></i>林俊杰</div>
+                <div class="mt">2003 年 · 11 首</div>
+                <div class="plays"><span class="btn tune">
+                  <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  试听 30 秒</span></div>
+              </div>
+              <div class="vs"><div class="orb">VS</div></div>
+              <div class="alb" data-side="r" style="--ac:#B85A1E;--acs:rgba(255,98,0,.30)">
+                <div class="art albc"><img src="assets/pool/p3.jpg" alt="八度空間"></div>
+                <b>八度空間</b>
+                <div class="accent"></div>
+                <div class="ar"><i></i>周杰伦</div>
+                <div class="mt">2002 年 · 10 首</div>
+                <div class="plays"><span class="btn tune">
+                  <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                  试听 30 秒</span></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:18px">
+              <span class="btn" style="background:#7A3FB0;color:#fff;padding:12px 26px">投给《樂行者》</span>
+              <span class="btn" style="background:#A8531B;color:#fff;padding:12px 26px">投给《八度空間》</span>
+              <span class="btn ghost">跳过本场</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="nowbar">
+          <div class="a"><img src="assets/pool/p2.jpg" alt=""></div>
+          <div class="t"><b>爱在西元前</b><span>《范特西》第 1 首 · 00:12 / 00:30 · 想换一首听点右边的箭头</span></div>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+          <button class="trk" title="上一首"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z"/></svg></button>
+          <button class="pp" title="播放 / 暂停"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></button>
+          <button class="trk" title="下一首"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg></button>
+          <span class="tno">1 / 10</span>
+        </div>
+
+        <div class="note"><b>页面说明（本页重点重做过）：</b>
+        <b>①封面保持原样，上面不加任何光效</b>——之前我在封面上叠了一道斜向反光，结果把专辑本身糊住了，
+        现在<b>完全去掉</b>：封面就是原图，圆角 10px，只靠投影托起来。光只打在背景上。
+        <b>②背景跟着专辑变</b>——舞台背景的三团光晕颜色不是写死的，而是<b>用程序从两张封面的实际像素里提取主色调</b>
+        （范特西取到 #E30003 红，樂行者取到 #9452CF 紫），换任何两张专辑，背景都会自动呼应。
+        <b>③光要"你去点它才亮"</b>——默认状态几乎没有光。鼠标移到哪张专辑，
+        <b>那侧背景光晕明显变亮并放大 1.3 倍、柔光聚过去、闪点浮出来，另一侧同时暗下去</b>；移开慢慢复原。
+        光用径向渐变而非硬色带，所以是"照过来"不是打聚光灯。
+        <b>④专辑配色贯穿到底</b>——每张专辑的主色不只用在背景，还用在：封面投影的色晕、
+        歌名下方的一小段色条、歌手名前的圆点与文字颜色、试听按钮的描边（悬停时填充为该色）、以及投票按钮。
+        所以整屏是"两张专辑各自的颜色在对峙"，而不是共用一个蓝色主题色。
+        <b>⑤字号放大、留白收紧</b>——专辑名 17.5px → <b>23px</b>，歌手名 13px → <b>15px</b> 加粗，
+        试听按钮从小号灰框换成描边色按钮并加大；同时把舞台内边距和行间距收掉一圈，避免空旷。
+        <b>⑥试听曲目默认第 1 首，想换才换</b>——播放条右侧是 <b>⏮ ▶ ⏭</b> 三键紧挨着，
+        最右边一个"1 / 10"看进度。不做"选代表曲"这一步：对决对象是专辑不是单曲，
+        代表曲只帮你听个大概、不参与计票。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 7 对决 · 冠军结果 ================= -->
+  <section class="page" id="p7">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / battle / result</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a class="on">专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="crown-wrap">
+          <div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+          <div class="cinfo">
+            <div class="cw">CHAMPION · 冠军</div>
+            <h3>范特西</h3>
+            <p>周杰伦 · 2001 · 10 首 · 在 12 张专辑、4 位歌手的混战中胜出</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <span class="btn pri">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M8 8l4-4 4 4M5 20h14"/></svg>
+                生成夺冠之路</span>
+              <span class="btn ghost">再玩一次</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><b>4</b><span>夺冠轮次</span></div>
+          <div class="kpi"><b>88</b><span>累计得票</span></div>
+          <div class="kpi"><b>38</b><span>对手总票数</span></div>
+        </div>
+
+        <div class="hd" style="margin-top:26px"><b>夺冠之路</b><span>每一场：谁赢了谁，各自得了多少票</span></div>
+        <div class="path">
+          <div class="mres">
+            <div class="mhd"><span class="rd">小组赛 1</span>
+              <span class="say"><b>《范特西》</b> 战胜 <i>《第二天堂》</i></span></div>
+            <div class="pside win">
+              <div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+              <div class="tx"><b>范特西</b><span>周杰伦 · 2001</span></div>
+              <div class="pc">63%</div><span class="bw">胜</span>
+            </div>
+            <div class="pside lose">
+              <div class="art"><img src="assets/pool/p6.jpg" alt="第二天堂"></div>
+              <div class="tx"><b>第二天堂</b><span>林俊杰 · 2004</span></div>
+              <div class="pc">37%</div>
+            </div>
+          </div>
+
+          <div class="mres">
+            <div class="mhd"><span class="rd">小组赛 2</span>
+              <span class="say"><b>《范特西》</b> 战胜 <i>《有理想》</i></span></div>
+            <div class="pside win">
+              <div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+              <div class="tx"><b>范特西</b><span>周杰伦 · 2001</span></div>
+              <div class="pc">79%</div><span class="bw">胜</span>
+            </div>
+            <div class="pside lose">
+              <div class="art"><img src="assets/pool/p13.jpg" alt="有理想"></div>
+              <div class="tx"><b>有理想</b><span>李荣浩 · 2016</span></div>
+              <div class="pc">21%</div>
+            </div>
+          </div>
+
+          <div class="mres">
+            <div class="mhd"><span class="rd">半决赛</span>
+              <span class="say"><b>《范特西》</b> 战胜 <i>《樂行者》</i></span></div>
+            <div class="pside win">
+              <div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+              <div class="tx"><b>范特西</b><span>周杰伦 · 2001</span></div>
+              <div class="pc">62%</div><span class="bw">胜</span>
+            </div>
+            <div class="pside lose">
+              <div class="art"><img src="assets/pool/p5.jpg" alt="樂行者"></div>
+              <div class="tx"><b>樂行者</b><span>林俊杰 · 2003</span></div>
+              <div class="pc">38%</div>
+            </div>
+          </div>
+
+          <div class="mres final">
+            <div class="mhd"><span class="rd">决赛</span>
+              <span class="say"><b>《范特西》</b> 战胜 <i>《一滴眼淚》</i>，拿下冠军</span></div>
+            <div class="pside win">
+              <div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+              <div class="tx"><b>范特西</b><span>周杰伦 · 2001</span></div>
+              <div class="pc">57%</div><span class="bw">胜</span>
+            </div>
+            <div class="pside lose">
+              <div class="art"><img src="assets/pool/p8.jpg" alt="一滴眼淚"></div>
+              <div class="tx"><b>一滴眼淚</b><span>陈奕迅 · 1997</span></div>
+              <div class="pc">43%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明（本轮重做过）：</b>原来那一版每轮只有一行"胜 第二天堂 · 得票率 63%"，
+        问题很明显：<b>得票率是谁的？对手得了多少？谁赢了？全靠猜</b>。
+        <br>现在改成<b>每轮两行对照</b>：
+        <b>①</b>轮次标题旁直接写一句白话——<b>《范特西》战胜《第二天堂》</b>，不用推理；
+        <b>②</b>胜方一行有底色、加粗、"胜"徽章，得票率用大字且着色；败方一行整体压暗、封面转灰、票数变小；
+        <b>③</b><b>双方的得票率都写出来</b>（63% / 37%），加起来是 100%，能互相印证。
+        <br>决赛那一轮用金色描边单独区分。这一页同时是分享图的素材来源。
+        注意对手分别是林俊杰、李荣浩、林俊杰、陈奕迅——<b>跨歌手对决的故事在这页讲得最清楚</b>。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 8 夺冠之路 · 分享图 ================= -->
+  <section class="page" id="p8">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / battle / share</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a class="on">专辑对决</a><a>音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="sharewrap">
+          <div>
+            <div class="scard">
+              <div>
+                <div class="stop">音格 · YINGE.APP</div>
+                <div class="stitle">我的专辑对决</div>
+              </div>
+              <div class="smain">
+                <div class="crown">★ 冠 军 ★</div>
+                <div class="art"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+                <div class="cname">范特西</div>
+                <div class="cartist">周杰伦 · 2001</div>
+                <div class="spath">
+                  <div><img src="assets/pool/p6.jpg" alt=""></div>
+                  <div><img src="assets/pool/p13.jpg" alt=""></div>
+                  <div><img src="assets/pool/p5.jpg" alt=""></div>
+                  <div><img src="assets/pool/p8.jpg" alt=""></div>
+                </div>
+                <div style="font-size:10.5px;opacity:.7">小组赛 → 小组赛 → 半决赛 → 决赛</div>
+              </div>
+              <div class="sfoot">
+                <span>12 张专辑 · 4 位歌手 · 126 人参与投票</span>
+                <span class="qr"></span>
+              </div>
+            </div>
+            <p style="font-size:11.5px;color:var(--text3);text-align:center;margin-top:10px">
+              预览效果 · 导出尺寸 1080 × 1440</p>
+          </div>
+
+          <div>
+            <div class="hd"><b>导出设置</b><span>选择后点下载即可保存到本地</span></div>
+            <div class="opts">
+              <div class="opt on"><span class="rd2"></span>
+                <span class="tx"><b>竖版长图 1080 × 1440</b><span>适合发朋友圈、小红书、微博</span></span></div>
+              <div class="opt"><span class="rd2"></span>
+                <span class="tx"><b>方形图 1080 × 1080</b><span>适合发 Instagram、微博九宫格</span></span></div>
+              <div class="opt on"><span class="rd2"></span>
+                <span class="tx"><b>带上平台二维码</b><span>别人扫码就能来同一场对决投票</span></span></div>
+              <div class="opt"><span class="rd2"></span>
+                <span class="tx"><b>隐藏具体票数</b><span>只展示胜负关系，避免泄露投票结果</span></span></div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <span class="btn pri">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M8 8l4-4 4 4M5 20h14"/></svg>
+                下载图片</span>
+              <span class="btn ghost">复制链接分享</span>
+            </div>
+            <div class="note" style="margin-top:18px"><b>页面说明：</b>分享图是作品的"自传播"出口。
+            实现方式为前端把 DOM 结构转成图片（html2canvas），后端只记录一条分享记录用于"我的分享"找回。
+            提供尺寸与内容开关，因为不同平台的图片比例要求不同。<b>投票环节不需要登录也能分享</b>——这是传播的关键。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 9 测评 · 说明页 ================= -->
+  <section class="page" id="p9">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / personality</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a class="on">音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="qintro">
+          <div>
+            <div class="hero-tag" style="display:inline-block;font-size:12px;letter-spacing:1.3px;color:var(--brand-deep);font-weight:700;background:rgba(14,165,233,.14);padding:4px 12px;border-radius:999px;margin-bottom:14px">MUSIC PERSONALITY · 音乐人格</div>
+            <h2>你的音乐口味<br><em>是一种什么样的人格</em></h2>
+            <p>12 道题，其中两题需要先听一段音乐再作答。答完会得到一张可分享的人格卡，
+            以及一段针对你个人作答生成的解读——不是所有人共用的模板。</p>
+            <div class="qfacts">
+              <span>12 道题</span><span>含 2 道听感题</span><span>约 3 分钟</span><span>6 种人格类型</span>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <span class="btn pri">
+                <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                开始测评</span>
+              <span class="btn ghost">先看看有哪些人格</span>
+            </div>
+          </div>
+          <div class="typesprev">
+            <div class="tpv" style="--tc:#E0554F"><b>旋律捕手</b><span>被旋律牵着走</span></div>
+            <div class="tpv" style="--tc:#E8873A"><b>节拍动物</b><span>先动起来再说</span></div>
+            <div class="tpv" style="--tc:#C9A227"><b>词句收藏家</b><span>先看歌词写什么</span></div>
+            <div class="tpv" style="--tc:#3F8F7A"><b>音色控</b><span>在意声音的质感</span></div>
+            <div class="tpv" style="--tc:#5B7FA8"><b>安静聆听者</b><span>要的是氛围</span></div>
+            <div class="tpv" style="--tc:#8A6BC1"><b>探索者</b><span>喜欢没听过的</span></div>
+          </div>
+        </div>
+
+        <div class="note" style="margin-top:28px"><b>页面说明：</b>入口页要把三件事讲清楚——
+        <b>要做多少题、要花多久、做完能拿到什么</b>。右侧先把 6 种人格亮出来，让用户有预期，
+        也顺带告诉用户"这个测试有分布、不是随便给你贴个标签"。
+        文案特意点明"含两题要先听音乐"，因为这是音乐测评与普通问卷最本质的区别。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 10 测评 · 答题页 ================= -->
+  <section class="page" id="p10">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / personality / quiz</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a class="on">音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="quizwrap">
+          <div class="qbar">
+            <div class="dots">
+              <i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i>
+              <i class="cur"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <span class="cnt">第 5 / 12 题</span>
+          </div>
+
+          <div style="margin-bottom:16px">
+            <span class="qswitch">
+              <button class="on" data-q="normal">普通题</button>
+              <button data-q="audio">听感题</button>
+            </span>
+            <span class="demoflag">原型演示用：真实产品一屏只出一道题，答完自动进下一题</span>
+          </div>
+
+          <div class="qstate on" id="q-normal">
+            <div class="qcard2">
+              <div class="qno">Q5</div>
+              <h3>听到一首陌生的歌，你最先注意到的是？</h3>
+              <p class="qtip">凭第一直觉选就好，不用想太久</p>
+              <div>
+                <div class="oi on"><span class="k">A</span><span class="tx2">旋律好不好听，副歌能不能记住</span></div>
+                <div class="oi"><span class="k">B</span><span class="tx2">鼓点和低音够不够带劲</span></div>
+                <div class="oi"><span class="k">C</span><span class="tx2">歌词在讲什么事</span></div>
+                <div class="oi"><span class="k">D</span><span class="tx2">音色和整体氛围对不对味</span></div>
+              </div>
+              <div class="qnav">
+                <span class="btn ghost">上一题</span>
+                <span class="btn pri">下一题</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="qstate" id="q-audio">
+            <div class="qcard2">
+              <div class="qno">Q7 · 听感题</div>
+              <h3>听完这段片段，你的第一感觉是？</h3>
+              <p class="qtip">先听，再答——这是音乐测评与普通问卷的区别所在</p>
+              <div class="audioplay">
+                <span class="bb"><svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg></span>
+                <span class="tx3"><b>测试片段 · 30 秒</b><span>来自《叶惠美》· 以父之名</span></span>
+                <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+                <span class="tm">00:08 / 00:30</span>
+              </div>
+              <div>
+                <div class="oi"><span class="k">A</span><span class="tx2">想跟着动起来</span></div>
+                <div class="oi on"><span class="k">B</span><span class="tx2">想安静把它听完</span></div>
+                <div class="oi"><span class="k">C</span><span class="tx2">想看看是谁做的编曲</span></div>
+                <div class="oi"><span class="k">D</span><span class="tx2">说不上来，就是喜欢</span></div>
+              </div>
+              <div class="qnav">
+                <span class="btn ghost">上一题</span>
+                <span class="btn pri">下一题</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>答题页的关键是<b>不让人在中途放弃</b>。三个手法：
+        <b>①顶部 12 个进度点</b>，一眼知道还剩多少，不是"看不到头的问卷"；
+        <b>②一次只出一道题</b>——上一版我把两种题型上下堆在一页里，那是错的，
+        正式流程是<b>答完一道自动进下一题</b>，一屏永远只有一道题；
+        <b>③听感题必须能播出来</b>——播放器嵌在题干下方，播完再作答。
+        <br>页面上那个「普通题 / 听感题」切换是<b>原型演示用的</b>（方便一次看完两种题型），
+        真实产品里没有这个开关。答辩时可以展开讲：<b>听感题让测评不只依赖自我描述，而是引入了真实的听觉反应</b>，
+        这是本作品区别于常规 MBTI 类问卷的地方。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 11 测评 · 人格卡 ================= -->
+  <section class="page" id="p11">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / personality / result</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a class="on">音乐人格</a><a>排行榜</a><a>人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="ptcard" style="--pc:#E0554F;--pc2:rgba(224,85,79,.32)">
+          <div class="glowc"></div>
+          <div class="pthd">
+            <div>
+              <div class="ptcode">MEL · 旋律捕手</div>
+              <div class="ptname">你是被旋律<br>牵着走的人</div>
+              <div class="accent2"></div>
+              <p class="ptdesc">你对旋律线的敏感度远高于平均。一段好听的前奏，就足以让你决定要不要继续听下去——
+              编曲、歌词、节奏对你来说都是次要的，旋律好不好听，是第一道门槛。</p>
+              <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <span class="btn pri">
+                  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M8 8l4-4 4 4M5 20h14"/></svg>
+                  生成人格卡图片</span>
+                <span class="btn ghost">看看其他人格</span>
+              </div>
+            </div>
+            <div>
+              <div class="dim2"><div class="lb"><span>旋律敏感</span><span>9 / 10</span></div>
+                <div class="bar2"><i style="width:90%"></i></div></div>
+              <div class="dim2"><div class="lb"><span>节奏偏好</span><span>5 / 10</span></div>
+                <div class="bar2"><i style="width:50%"></i></div></div>
+              <div class="dim2"><div class="lb"><span>编曲层次</span><span>6 / 10</span></div>
+                <div class="bar2"><i style="width:60%"></i></div></div>
+              <div class="dim2"><div class="lb"><span>安静倾向</span><span>4 / 10</span></div>
+                <div class="bar2"><i style="width:40%"></i></div></div>
+            </div>
+          </div>
+
+          <div class="ai2">
+            <h4>AI 个性解读</h4>
+            <p>你在第 3 题选了"先记住旋律"，第 7 题的听感题又偏向"想安静听完"——
+            这说明你偏爱旋律驱动、情绪线清楚的作品，而不是靠节奏推进的类型。
+            编曲层次给了 6 分，说明你不排斥复杂的制作，但前提是旋律得站得住。
+            建议从旋律优先、编曲克制的专辑入手，更容易一次听进去。</p>
+            <span class="src">由大语言模型根据你的作答生成 · 非模板文案</span>
+          </div>
+        </div>
+
+        <div class="hd" style="margin-top:26px"><b>为你推荐的 3 张专辑</b><span>依据人格类型与维度得分匹配</span></div>
+        <div class="vstage recstage" style="--g1:#0D7C4F;--g2:#D60007;--g3:#7C7C51">
+          <div class="vglow"><i class="g1"></i><i class="g2"></i><i class="g3"></i></div>
+          <div class="sunlit" style="position:absolute;inset:0;z-index:3;pointer-events:none"></div>
+          <div class="gbeam"></div>
+          <div class="recs">
+            <div class="alb" data-side="l" style="--ac:#2F6B4E;--acs:rgba(13,124,79,.32)">
+              <div class="art albc"><img src="assets/pool/p4.jpg" alt="葉惠美"></div>
+              <b>葉惠美</b>
+              <div class="accent"></div>
+              <div class="ar"><i></i>周杰伦</div>
+              <div class="mt">2003 年 · 11 首</div>
+              <div style="font-size:11.5px;color:var(--ac);margin-top:7px;font-weight:700">
+                匹配 旋律敏感 9/10</div>
+            </div>
+            <div class="alb" data-side="c" style="--ac:#B92B30;--acs:rgba(214,0,7,.32)">
+              <div class="art albc"><img src="assets/pool/p2.jpg" alt="范特西"></div>
+              <b>范特西</b>
+              <div class="accent"></div>
+              <div class="ar"><i></i>周杰伦</div>
+              <div class="mt">2001 年 · 10 首</div>
+              <div style="font-size:11.5px;color:var(--ac);margin-top:7px;font-weight:700">
+                匹配 旋律敏感 9/10 · 编曲 6/10</div>
+            </div>
+            <div class="alb" data-side="r" style="--ac:#6B6B58;--acs:rgba(124,124,81,.32)">
+              <div class="art albc"><img src="assets/pool/p6.jpg" alt="第二天堂"></div>
+              <b>第二天堂</b>
+              <div class="accent"></div>
+              <div class="ar"><i></i>林俊杰</div>
+              <div class="mt">2004 年 · 11 首</div>
+              <div style="font-size:11.5px;color:var(--ac);margin-top:7px;font-weight:700">
+                匹配 安静倾向 4/10</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>这是测评的"交付物"页面，四件事：
+        <b>①整张卡的配色跟着人格类型走</b>——旋律捕手是珊瑚红，换成安静聆听者就变成雾蓝（复用对决赛页同一套 `--pc` 变量机制）；
+        <b>②四根维度条不是装饰</b>，它把"为什么是这个类型"摊开给用户看，结果才有说服力；
+        <b>③AI 解读标明来源</b>——tag 里写清"由大语言模型根据你的作答生成"，把加分项显式说出来；
+        <b>④推荐专辑怎么来的（答辩会问）</b>——不是随机推。每种人格类型在后台配有一个"推荐专辑池"，
+        库里存 <code>recommendAlbumIds</code>；生成时从这个池里取 3 张，并按<b>该用户得分最高的维度</b>排序，
+        卡片上那行"匹配 旋律敏感 9/10"就是这个依据的可视化。池子初期由管理员在后台维护（每类 6 至 10 张），
+        后续可以根据真实行为统计自动补充（某类型用户投票胜率最高的专辑）。
+        这是"冷启动靠人工、增长靠数据"的常规做法。
+        <br>推荐区的三张专辑<b>与对决页同一套呈现</b>：封面保持原图、大而柔的投影带专辑自身色晕、
+        专辑名下方色条、歌手名着色；鼠标移上去柔光会跟过去（三张分别是绿 / 红 / 橄榄色光）。
+        <b>人格卡图片本身不叠任何光效</b>，保证导出的图是干净的。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 12 人格图鉴 ================= -->
+  <section class="page" id="p12">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / personality / atlas</span></div>
+      <div class="screen">
+        <div class="nav">
+          <div class="logo">音<i>格</i></div>
+          <a>首页</a><a>专辑对决</a><a>音乐人格</a><a>排行榜</a><a class="on">人格图鉴</a>
+          <div class="me">锐</div>
+        </div>
+
+        <div class="hd" style="margin-top:22px">
+          <b style="font-size:20px;letter-spacing:-.3px">音乐人格图鉴</b>
+          <span>6 种人格 · 已有 612 人完成测评 · 数据每日更新</span>
+        </div>
+
+        <div class="atlas">
+          <div class="at" style="--tc:#E0554F"><div class="num">MEL</div><div class="nm">旋律捕手</div>
+            <div class="ds">先记住旋律，再听其他。副歌能不能立住，决定了一切。</div>
+            <div class="pct">22% · 135 人</div></div>
+          <div class="at" style="--tc:#E8873A"><div class="num">RHY</div><div class="nm">节拍动物</div>
+            <div class="ds">身体先有反应，脑子后到。鼓点一进来就想动。</div>
+            <div class="pct">18% · 110 人</div></div>
+          <div class="at" style="--tc:#C9A227"><div class="num">LYR</div><div class="nm">词句收藏家</div>
+            <div class="ds">歌词是一首歌的灵魂，会为了一句词反复听同一段。</div>
+            <div class="pct">15% · 92 人</div></div>
+          <div class="at" style="--tc:#3F8F7A"><div class="num">TMB</div><div class="nm">音色控</div>
+            <div class="ds">在意声音本身的质感，合成器、人声处理都能听出来。</div>
+            <div class="pct">14% · 86 人</div></div>
+          <div class="at" style="--tc:#5B7FA8"><div class="num">CLM</div><div class="nm">安静聆听者</div>
+            <div class="ds">要的是氛围，不是信息量。适合一个人戴耳机听。</div>
+            <div class="pct">17% · 104 人</div></div>
+          <div class="at" style="--tc:#8A6BC1"><div class="num">EXP</div><div class="nm">探索者</div>
+            <div class="ds">越没听过越有兴趣，重复的歌单会让你难受。</div>
+            <div class="pct">14% · 85 人</div></div>
+        </div>
+
+        <div class="dist">
+          <h4>六种人格的分布情况</h4>
+          <div class="dr"><b>旋律捕手</b><span class="bb2"><i style="width:22%;background:#E0554F"></i></span><span class="vv">22%</span></div>
+          <div class="dr"><b>节拍动物</b><span class="bb2"><i style="width:18%;background:#E8873A"></i></span><span class="vv">18%</span></div>
+          <div class="dr"><b>安静聆听者</b><span class="bb2"><i style="width:17%;background:#5B7FA8"></i></span><span class="vv">17%</span></div>
+          <div class="dr"><b>词句收藏家</b><span class="bb2"><i style="width:15%;background:#C9A227"></i></span><span class="vv">15%</span></div>
+          <div class="dr"><b>音色控</b><span class="bb2"><i style="width:14%;background:#3F8F7A"></i></span><span class="vv">14%</span></div>
+          <div class="dr"><b>探索者</b><span class="bb2"><i style="width:14%;background:#8A6BC1"></i></span><span class="vv">14%</span></div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>图鉴的作用不只是"展示分类"，而是让用户<b>看到自己在人群中的位置</b>——
+        每张卡上都写着占比与人数。这一页也是"数据沉淀"最直接的证据：这些数字来自真实用户作答的累计，
+        清空数据库就会归零。分布条特意做了颜色区分（每类用自己的类型色），一眼能对上。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 14 后台登录 ================= -->
+  <section class="page" id="p14">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / admin / login</span></div>
+      <div class="screen">
+        <div class="authwrap" style="grid-template-columns:1fr 380px">
+          <div class="side-txt">
+            <h2>音格<br><em>管理后台</em></h2>
+            <p>管理测评题目、人格类型、音乐数据缓存与用户。所有操作会记入日志。</p>
+            <div class="feat">
+              <span>题目管理</span><span>类型配置</span><span>数据刷新</span><span>用户管理</span>
+            </div>
+          </div>
+          <div class="card">
+            <div class="seg" style="visibility:hidden"><button class="on">登录</button></div>
+            <div class="fld">
+              <label>管理员账号</label>
+              <input type="text" placeholder="请输入管理员账号" value="admin">
+            </div>
+            <div class="fld">
+              <label>密码</label>
+              <input type="password" placeholder="请输入密码" value="········">
+              <div class="hint">账号权限与普通用户分离，普通账号无法进入后台</div>
+            </div>
+            <span class="btn pri wide" style="margin-top:8px">登录后台</span>
+            <div class="authfoot">忘记密码请联系系统管理员</div>
+          </div>
+        </div>
+        <div class="note"><b>页面说明：</b>后台入口刻意做得<b>克制</b>——没有海洋光效、没有渐变装饰，
+        只有一个朴素的登录框。原因：后台是工具不是展品，视觉上要和前台拉开区分；
+        更重要的是<b>权限必须独立</b>：管理员账号与普通用户账号分表管理，普通账号请求后台接口一律返回 2002 无权限。
+        这一点对应安全需求 NFR-S3。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 15 数据看板 ================= -->
+  <section class="page" id="p15">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / admin / dashboard</span></div>
+      <div class="screen">
+        <div class="admbar">
+          <div class="lg">音<i>格</i></div>
+          <span class="tagx tp">管理后台</span>
+          <span class="sp">管理员：胡祖锐 · 上次登录 2026-09-15 23:41</span>
+          <span class="mini">退出</span>
+        </div>
+
+        <div class="adm">
+          <div class="admnav">
+            <div class="tt">DATA</div>
+            <a class="on"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v5h-8zM3 13h8v8H3zm10-5h8v13h-8z"/></svg>数据看板</a>
+            <a data-go="p16"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>测评题目</a>
+            <a data-go="p17"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3 1.2-6.5L2.5 8.9 9.1 8z"/></svg>人格类型</a>
+            <a data-go="p18"><svg viewBox="0 0 24 24"><path d="M12 3v10.6A4 4 0 1014 17V7h6V3z"/></svg>音乐数据</a>
+            <a data-go="p19"><svg viewBox="0 0 24 24"><path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zm-8 0c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-.9.1 1.4.8 2.4 1.9 2.9 3.4H21v-2.5c0-1.3-1.8-2.2-5-2.2z"/></svg>用户管理</a>
+            <div class="sep"></div>
+            <a data-go="p1">← 返回前台</a>
+          </div>
+
+          <div class="admmain">
+            <div class="admhd">
+              <div><h3>数据看板</h3><p>截至 2026-09-15 23:50 · 数据每 10 分钟更新一次</p></div>
+              <div style="display:flex;gap:8px">
+                <span class="mini">今日</span><span class="mini">近 7 天</span><span class="mini">全部</span>
+              </div>
+            </div>
+
+            <div class="kpi4">
+              <div class="k4"><b>612</b><span>注册用户</span><div class="dl up">较昨日 +14</div></div>
+              <div class="k4"><b>318</b><span>发起对决</span><div class="dl up">较昨日 +26</div></div>
+              <div class="k4"><b>18,642</b><span>累计投票</span><div class="dl up">较昨日 +1,420</div></div>
+              <div class="k4"><b>487</b><span>完成测评</span><div class="dl up">较昨日 +31</div></div>
+            </div>
+
+            <div class="panel">
+              <h4>近 6 个月对决发起量</h4>
+              <p class="ps">单位：场 · 反映平台活跃趋势</p>
+              <div class="bars">
+                <div class="bc"><div class="bv" style="height:32%"></div><span class="bl">4月</span></div>
+                <div class="bc"><div class="bv" style="height:46%"></div><span class="bl">5月</span></div>
+                <div class="bc"><div class="bv" style="height:38%"></div><span class="bl">6月</span></div>
+                <div class="bc"><div class="bv" style="height:58%"></div><span class="bl">7月</span></div>
+                <div class="bc"><div class="bv" style="height:71%"></div><span class="bl">8月</span></div>
+                <div class="bc"><div class="bv" style="height:96%"></div><span class="bl">9月</span></div>
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+              <div class="panel" style="margin-top:0">
+                <h4>近 14 天投票量</h4>
+                <p class="ps">每日累计投票数</p>
+                <div class="trend">
+                  <i style="height:34%"></i><i style="height:46%"></i><i style="height:28%"></i>
+                  <i style="height:58%"></i><i style="height:72%"></i><i style="height:52%"></i>
+                  <i style="height:66%"></i><i style="height:88%"></i><i style="height:44%"></i>
+                  <i style="height:62%"></i><i style="height:79%"></i><i style="height:91%"></i>
+                  <i style="height:70%"></i><i style="height:96%"></i>
+                </div>
+              </div>
+              <div class="panel" style="margin-top:0">
+                <h4>人格类型分布</h4>
+                <p class="ps">共 487 人完成测评</p>
+                <div class="dist" style="margin:0;padding:0;border:0;background:none">
+                  <div class="dr"><b>旋律捕手</b><span class="bb2"><i style="width:22%;background:#E0554F"></i></span><span class="vv">22%</span></div>
+                  <div class="dr"><b>节拍动物</b><span class="bb2"><i style="width:18%;background:#E8873A"></i></span><span class="vv">18%</span></div>
+                  <div class="dr"><b>安静聆听者</b><span class="bb2"><i style="width:17%;background:#5B7FA8"></i></span><span class="vv">17%</span></div>
+                  <div class="dr"><b>词句收藏家</b><span class="bb2"><i style="width:15%;background:#C9A227"></i></span><span class="vv">15%</span></div>
+                  <div class="dr"><b>音色控</b><span class="bb2"><i style="width:14%;background:#3F8F7A"></i></span><span class="vv">14%</span></div>
+                  <div class="dr"><b>探索者</b><span class="bb2"><i style="width:14%;background:#8A6BC1"></i></span><span class="vv">14%</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>看板只放<b>真正会被看的四个数</b>（用户 / 对决 / 投票 / 测评），
+        不做花哨图表堆砌。两张图都用手写 CSS 画（柱状 + 折线 + 分布条），
+        不引入图表库——对毕设来说，减少一个依赖就少一个安装和部署时的失败点。
+        左侧导航是后台六页共用的，保证页面间跳转一致。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 16 测评题目管理 ================= -->
+  <section class="page" id="p16">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / admin / questions</span></div>
+      <div class="screen">
+        <div class="admbar">
+          <div class="lg">音<i>格</i></div><span class="tagx tp">管理后台</span>
+          <span class="sp">管理员：胡祖锐</span><span class="mini">退出</span>
+        </div>
+
+        <div class="adm">
+          <div class="admnav">
+            <div class="tt">DATA</div>
+            <a data-go="p15"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v5h-8zM3 13h8v8H3zm10-5h8v13h-8z"/></svg>数据看板</a>
+            <a class="on"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>测评题目</a>
+            <a data-go="p17"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3 1.2-6.5L2.5 8.9 9.1 8z"/></svg>人格类型</a>
+            <a data-go="p18"><svg viewBox="0 0 24 24"><path d="M12 3v10.6A4 4 0 1014 17V7h6V3z"/></svg>音乐数据</a>
+            <a data-go="p19"><svg viewBox="0 0 24 24"><path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zm-8 0c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-.9.1 1.4.8 2.4 1.9 2.9 3.4H21v-2.5c0-1.3-1.8-2.2-5-2.2z"/></svg>用户管理</a>
+            <div class="sep"></div><a data-go="p1">← 返回前台</a>
+          </div>
+
+          <div class="admmain">
+            <div class="admhd">
+              <div><h3>测评题目管理</h3><p>共 12 题 · 含 2 道听感题 · 修改后立即对前台生效</p></div>
+              <div style="display:flex;gap:8px">
+                <span class="sbox"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 001.6-4.2 6.5 6.5 0 10-6.5 6.5c1.6 0 3.1-.6 4.2-1.6l.3.3v.8l5 5 1.5-1.5-5-5zM10 14a4 4 0 110-8 4 4 0 010 8z"/></svg>
+                  <input type="text" placeholder="搜索题干关键词"></span>
+                <span class="btn pri sm">＋ 新增题目</span>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:0">
+              <table class="tbl">
+                <tr><th style="width:52px">题号</th><th style="width:76px">类型</th><th>题干</th>
+                  <th style="width:78px">选项数</th><th style="width:88px">状态</th><th style="width:170px">操作</th></tr>
+                <tr><td><b>1</b></td><td><span class="tagx tp">普通</span></td>
+                  <td class="ell">听到一首陌生的歌，你最先注意到的是？</td><td>4</td>
+                  <td><span class="tagx ok">启用</span></td>
+                  <td class="act"><span class="mini">编辑</span><span class="mini">下移</span><span class="mini">删除</span></td></tr>
+                <tr><td><b>2</b></td><td><span class="tagx tp">普通</span></td>
+                  <td class="ell">你更常在什么场景下听音乐？</td><td>4</td>
+                  <td><span class="tagx ok">启用</span></td>
+                  <td class="act"><span class="mini">编辑</span><span class="mini">下移</span><span class="mini">删除</span></td></tr>
+                <tr><td><b>3</b></td><td><span class="tagx tp">普通</span></td>
+                  <td class="ell">一首歌听第二遍时，你通常会？</td><td>4</td>
+                  <td><span class="tagx ok">启用</span></td>
+                  <td class="act"><span class="mini">编辑</span><span class="mini">下移</span><span class="mini">删除</span></td></tr>
+                <tr><td><b>7</b></td><td><span class="tagx wn">听感</span></td>
+                  <td class="ell">听完这段片段，你的第一感觉是？（片段：《以父之名》）</td><td>4</td>
+                  <td><span class="tagx ok">启用</span></td>
+                  <td class="act"><span class="mini">编辑</span><span class="mini">下移</span><span class="mini">删除</span></td></tr>
+                <tr><td><b>9</b></td><td><span class="tagx wn">听感</span></td>
+                  <td class="ell">这段编曲里最吸引你的是？（片段：《晴天》）</td><td>4</td>
+                  <td><span class="tagx ok">启用</span></td>
+                  <td class="act"><span class="mini">编辑</span><span class="mini">下移</span><span class="mini">删除</span></td></tr>
+                <tr><td><b>12</b></td><td><span class="tagx tp">普通</span></td>
+                  <td class="ell">朋友推荐一张你完全没听过的专辑，你会？</td><td>4</td>
+                  <td><span class="tagx off">停用</span></td>
+                  <td class="act"><span class="mini">编辑</span><span class="mini">上移</span><span class="mini">启用</span></td></tr>
+              </table>
+            </div>
+
+            <div class="panel">
+              <h4>编辑题目 · 第 3 题</h4>
+              <p class="ps">选项分值决定该题影响哪些维度，修改会影响计分结果</p>
+              <div class="fld">
+                <label>题干</label>
+                <input type="text" value="一首歌听第二遍时，你通常会？">
+              </div>
+              <table class="tbl">
+                <tr><th style="width:52px">选项</th><th>选项文本</th><th style="width:120px">影响维度</th><th style="width:74px">分值</th></tr>
+                <tr><td><b>A</b></td><td><input type="text" value="跟着哼旋律" style="width:100%;font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--gbd);background:var(--glass2);color:var(--text)"></td>
+                  <td>旋律敏感</td><td>+2</td></tr>
+                <tr><td><b>B</b></td><td><input type="text" value="注意鼓点和低音" style="width:100%;font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--gbd);background:var(--glass2);color:var(--text)"></td>
+                  <td>节奏偏好</td><td>+2</td></tr>
+                <tr><td><b>C</b></td><td><input type="text" value="看歌词在讲什么" style="width:100%;font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--gbd);background:var(--glass2);color:var(--text)"></td>
+                  <td>词句关注</td><td>+2</td></tr>
+                <tr><td><b>D</b></td><td><input type="text" value="闭上眼感受整体氛围" style="width:100%;font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--gbd);background:var(--glass2);color:var(--text)"></td>
+                  <td>安静倾向</td><td>+2</td></tr>
+              </table>
+              <div style="display:flex;gap:10px;margin-top:16px">
+                <span class="btn pri sm">保存修改</span><span class="btn ghost sm">取消</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>题目管理的关键不是"能增删改"，
+        而是<b>把计分规则暴露出来</b>——每个选项后面都写着它影响哪个维度、加几分。
+        这样"结果是怎么算出来的"是可查的，而不是黑盒。
+        <b>题号可上移下移</b>（顺序影响出题顺序），<b>支持停用而非删除</b>——
+        因为删除题目会让历史测评结果无法解释。这两点对应需求 FR-21。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 17 人格类型管理 ================= -->
+  <section class="page" id="p17">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / admin / types</span></div>
+      <div class="screen">
+        <div class="admbar">
+          <div class="lg">音<i>格</i></div><span class="tagx tp">管理后台</span>
+          <span class="sp">管理员：胡祖锐</span><span class="mini">退出</span>
+        </div>
+
+        <div class="adm">
+          <div class="admnav">
+            <div class="tt">DATA</div>
+            <a data-go="p15"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v5h-8zM3 13h8v8H3zm10-5h8v13h-8z"/></svg>数据看板</a>
+            <a data-go="p16"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>测评题目</a>
+            <a class="on"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3 1.2-6.5L2.5 8.9 9.1 8z"/></svg>人格类型</a>
+            <a data-go="p18"><svg viewBox="0 0 24 24"><path d="M12 3v10.6A4 4 0 1014 17V7h6V3z"/></svg>音乐数据</a>
+            <a data-go="p19"><svg viewBox="0 0 24 24"><path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zm-8 0c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-.9.1 1.4.8 2.4 1.9 2.9 3.4H21v-2.5c0-1.3-1.8-2.2-5-2.2z"/></svg>用户管理</a>
+            <div class="sep"></div><a data-go="p1">← 返回前台</a>
+          </div>
+
+          <div class="admmain">
+            <div class="admhd">
+              <div><h3>人格类型管理</h3><p>6 种类型 · 推荐专辑池决定给用户推什么</p></div>
+              <span class="btn pri sm">＋ 新增类型</span>
+            </div>
+
+            <div class="tgrid">
+              <div class="tcard" style="--tc:#E0554F">
+                <div class="tch"><b>旋律捕手</b><span>MEL</span></div>
+                <div class="ds">被旋律牵着走的人。副歌能不能立住，决定了一切。</div>
+                <div class="ft"><span>推荐池 8 张 · 占比 22%</span>
+                  <span><span class="mini">编辑</span><span class="mini">配专辑</span></span></div>
+              </div>
+              <div class="tcard" style="--tc:#E8873A">
+                <div class="tch"><b>节拍动物</b><span>RHY</span></div>
+                <div class="ds">身体先有反应，脑子后到。鼓点一进来就想动。</div>
+                <div class="ft"><span>推荐池 8 张 · 占比 18%</span>
+                  <span><span class="mini">编辑</span><span class="mini">配专辑</span></span></div>
+              </div>
+              <div class="tcard" style="--tc:#5B7FA8">
+                <div class="tch"><b>安静聆听者</b><span>CLM</span></div>
+                <div class="ds">要的是氛围，不是信息量。适合一个人戴耳机听。</div>
+                <div class="ft"><span>推荐池 6 张 · 占比 17%</span>
+                  <span><span class="mini">编辑</span><span class="mini">配专辑</span></span></div>
+              </div>
+              <div class="tcard" style="--tc:#C9A227">
+                <div class="tch"><b>词句收藏家</b><span>LYR</span></div>
+                <div class="ds">歌词是一首歌的灵魂，会为了一句词反复听同一段。</div>
+                <div class="ft"><span>推荐池 6 张 · 占比 15%</span>
+                  <span><span class="mini">编辑</span><span class="mini">配专辑</span></span></div>
+              </div>
+              <div class="tcard" style="--tc:#3F8F7A">
+                <div class="tch"><b>音色控</b><span>TMB</span></div>
+                <div class="ds">在意声音本身的质感，合成器、人声处理都能听出来。</div>
+                <div class="ft"><span>推荐池 6 张 · 占比 14%</span>
+                  <span><span class="mini">编辑</span><span class="mini">配专辑</span></span></div>
+              </div>
+              <div class="tcard" style="--tc:#8A6BC1">
+                <div class="tch"><b>探索者</b><span>EXP</span></div>
+                <div class="ds">越没听过越有兴趣，重复的歌单会让你难受。</div>
+                <div class="ft"><span>推荐池 <b style="color:#DC2626">0 张</b> · 占比 14%</span>
+                  <span><span class="mini">编辑</span><span class="mini">配专辑</span></span></div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h4>配置推荐专辑 · 探索者（EXP）</h4>
+              <p class="ps">当前推荐池为空，测评结果页会隐藏推荐区。建议先配 6 至 10 张。</p>
+              <div class="sbox" style="margin-bottom:14px">
+                <svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 001.6-4.2 6.5 6.5 0 10-6.5 6.5c1.6 0 3.1-.6 4.2-1.6l.3.3v.8l5 5 1.5-1.5-5-5zM10 14a4 4 0 110-8 4 4 0 010 8z"/></svg>
+                <input type="text" placeholder="搜索歌手或专辑名，添加到推荐池">
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;color:var(--text3);font-size:12.5px;padding:18px 0">
+                暂无推荐专辑 —— 搜索后点"添加"即可加入
+              </div>
+              <div style="display:flex;gap:10px">
+                <span class="btn pri sm">保存</span>
+                <span class="btn ghost sm">按投票数据自动填充</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>这一页直接对应前面讲的<b>推荐机制</b>——
+        每种类型有一个"推荐专辑池"，卡片上显示池里有多少张。
+        特意留了一个<b>池为空的类型（探索者）</b>来演示降级：池空时结果页隐藏推荐区，
+        而不是显示占位或随机拉几张充数（随机推荐等于没有推荐）。
+        底部提供"按投票数据自动填充"，就是从真实行为统计反向补充池子。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 18 音乐数据管理 ================= -->
+  <section class="page" id="p18">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / admin / music</span></div>
+      <div class="screen">
+        <div class="admbar">
+          <div class="lg">音<i>格</i></div><span class="tagx tp">管理后台</span>
+          <span class="sp">管理员：胡祖锐</span><span class="mini">退出</span>
+        </div>
+
+        <div class="adm">
+          <div class="admnav">
+            <div class="tt">DATA</div>
+            <a data-go="p15"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v5h-8zM3 13h8v8H3zm10-5h8v13h-8z"/></svg>数据看板</a>
+            <a data-go="p16"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>测评题目</a>
+            <a data-go="p17"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3 1.2-6.5L2.5 8.9 9.1 8z"/></svg>人格类型</a>
+            <a class="on"><svg viewBox="0 0 24 24"><path d="M12 3v10.6A4 4 0 1014 17V7h6V3z"/></svg>音乐数据</a>
+            <a data-go="p19"><svg viewBox="0 0 24 24"><path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zm-8 0c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-.9.1 1.4.8 2.4 1.9 2.9 3.4H21v-2.5c0-1.3-1.8-2.2-5-2.2z"/></svg>用户管理</a>
+            <div class="sep"></div><a data-go="p1">← 返回前台</a>
+          </div>
+
+          <div class="admmain">
+            <div class="admhd">
+              <div><h3>音乐数据管理</h3>
+                <p>本地缓存 <b style="color:var(--brand-deep)">1,284</b> 张专辑 · 数据地区 <b>hk</b> · 缓存有效期 30 天</p></div>
+              <div style="display:flex;gap:8px">
+                <span class="mini">＋ 拉取新歌手</span><span class="btn pri sm">全部刷新</span>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top:0;display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap">
+              <div style="flex:1;min-width:280px">
+                <h4>「状态」是什么意思</h4>
+                <p class="ps" style="margin-bottom:14px">
+                  平台不每次都实时请求外部接口，而是把数据存在自己库里，按状态决定要不要重新拉</p>
+                <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--text2)">
+                  <div><span class="tagx ok">新鲜</span> &nbsp;30 天以内更新过 —— 直接读本地，<b style="color:var(--text)">不请求外部接口</b></div>
+                  <div><span class="tagx wn">将过期</span> &nbsp;已超过 25 天 —— 仍在使用，但下次有人访问时顺手刷新</div>
+                  <div><span class="tagx off">已过期</span> &nbsp;超过 30 天 —— 用户发起对决时<b style="color:var(--text)">强制重新拉取</b></div>
+                </div>
+              </div>
+              <div style="flex:0 0 auto;max-width:310px;font-size:12.5px;line-height:1.8;color:var(--text2);
+                padding:15px 17px;border-radius:13px;background:var(--glass2);border:1px solid var(--gbd)">
+                <b style="color:var(--text)">为什么必须做缓存</b><br>
+                外部接口有调用频率限制，也不可能让用户每次都等它返回。
+                做了本地缓存之后，<b style="color:var(--text)">即使外部接口临时不可用，平台仍然能正常跑</b>——
+                这就是需求里那条「外部依赖降级」。</div>
+            </div>
+
+            <div class="panel">
+              <table class="tbl">
+                <tr><th>歌手</th><th style="width:78px">专辑</th><th style="width:78px">曲目</th>
+                  <th style="width:88px">符合准入</th><th style="width:130px">更新时间</th>
+                  <th style="width:88px">状态</th><th style="width:150px">操作</th></tr>
+                <tr><td><b>周杰倫</b></td><td>48</td><td>412</td><td>17 张</td><td>2026-09-15 17:02</td>
+                  <td><span class="tagx ok">新鲜</span></td>
+                  <td class="act"><span class="mini">刷新</span><span class="mini">明细</span></td></tr>
+                <tr><td><b>林俊傑</b></td><td>80</td><td>566</td><td>16 张</td><td>2026-09-15 19:31</td>
+                  <td><span class="tagx ok">新鲜</span></td>
+                  <td class="act"><span class="mini">刷新</span><span class="mini">明细</span></td></tr>
+                <tr><td><b>陳奕迅</b></td><td>122</td><td>894</td><td>44 张</td><td>2026-08-30 12:10</td>
+                  <td><span class="tagx wn">将过期</span></td>
+                  <td class="act"><span class="mini">刷新</span><span class="mini">明细</span></td></tr>
+                <tr><td><b>李荣浩</b></td><td>48</td><td>203</td><td>8 张</td><td>2026-07-11 09:44</td>
+                  <td><span class="tagx off">已过期</span></td>
+                  <td class="act"><span class="mini">刷新</span><span class="mini">明细</span></td></tr>
+                <tr><td><b>Taylor Swift</b></td><td>200</td><td>—</td><td>未统计</td><td>2026-09-15 20:05</td>
+                  <td><span class="tagx ok">新鲜</span></td>
+                  <td class="act"><span class="mini">刷新</span><span class="mini">明细</span></td></tr>
+              </table>
+            </div>
+
+            <div class="panel">
+              <h4>准入规则过滤说明</h4>
+              <p class="ps">每次拉取都会执行，不符合的专辑不会进入对决池</p>
+              <table class="tbl">
+                <tr><th style="width:150px">规则</th><th>作用</th><th style="width:100px">本次剔除</th></tr>
+                <tr><td><b>类型须为专辑</b></td><td>排除 Single 与 EP</td><td>—</td></tr>
+                <tr><td><b>曲目数 ≥ 7</b></td><td>挡掉只有一两首的单曲</td><td>—</td></tr>
+                <tr><td><b>名称排除词</b></td><td>现场 / 演唱会 / 原声带 / OST / 精选 / 复刻 / 拼盘 / 伴奏</td><td>—</td></tr>
+                <tr><td><b>按 artistId 归属</b></td><td>按编号比对而非名称，避免繁简体差异误判</td><td>—</td></tr>
+                <tr><td><b>同名去重</b></td><td>保留最早发行、不带豪华版后缀的版本</td><td>—</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>这一页是整个"数据驱动"设计的控制台。
+        两个信息最关键：<b>①缓存状态</b>（新鲜 / 将过期 / 已过期）——决定要不要重新请求外部接口，
+        平台因此能在外部接口不可用时继续跑；<b>②符合准入的专辑数</b>——
+        例如周杰伦接口返回 48 张，真正进池的只有 17 张，这个差距就是准入规则的直接体现。
+        底部把五条规则列出来，答辩时一眼能说清"为什么池子里只有这么多"。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 19 用户管理 ================= -->
+  <section class="page" id="p19">
+    <div class="frame">
+      <div class="frame-bar"><i class="d"></i><i class="d"></i><i class="d"></i><span>yinge.app / admin / users</span></div>
+      <div class="screen">
+        <div class="admbar">
+          <div class="lg">音<i>格</i></div><span class="tagx tp">管理后台</span>
+          <span class="sp">管理员：胡祖锐</span><span class="mini">退出</span>
+        </div>
+
+        <div class="adm">
+          <div class="admnav">
+            <div class="tt">DATA</div>
+            <a data-go="p15"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v5h-8zM3 13h8v8H3zm10-5h8v13h-8z"/></svg>数据看板</a>
+            <a data-go="p16"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h10v2H4z"/></svg>测评题目</a>
+            <a data-go="p17"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17l-5.9 3 1.2-6.5L2.5 8.9 9.1 8z"/></svg>人格类型</a>
+            <a data-go="p18"><svg viewBox="0 0 24 24"><path d="M12 3v10.6A4 4 0 1014 17V7h6V3z"/></svg>音乐数据</a>
+            <a class="on"><svg viewBox="0 0 24 24"><path d="M16 11c1.7 0 3-1.3 3-3s-1.3-3-3-3-3 1.3-3 3 1.3 3 3 3zm-8 0c1.7 0 3-1.3 3-3S9.7 5 8 5 5 6.3 5 8s1.3 3 3 3zm0 2c-2.3 0-7 1.2-7 3.5V19h14v-2.5c0-2.3-4.7-3.5-7-3.5zm8 0c-.3 0-.6 0-.9.1 1.4.8 2.4 1.9 2.9 3.4H21v-2.5c0-1.3-1.8-2.2-5-2.2z"/></svg>用户管理</a>
+            <div class="sep"></div><a data-go="p1">← 返回前台</a>
+          </div>
+
+          <div class="admmain">
+            <div class="admhd">
+              <div><h3>用户管理</h3><p>共 612 位用户 · 其中 2 位已禁用</p></div>
+              <span class="sbox"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 001.6-4.2 6.5 6.5 0 10-6.5 6.5c1.6 0 3.1-.6 4.2-1.6l.3.3v.8l5 5 1.5-1.5-5-5zM10 14a4 4 0 110-8 4 4 0 010 8z"/></svg>
+                <input type="text" placeholder="搜索账号或昵称"></span>
+            </div>
+
+            <div class="panel" style="margin-top:0">
+              <table class="tbl">
+                <tr><th>用户</th><th style="width:130px">加入时间</th><th style="width:70px">对决</th>
+                  <th style="width:70px">投票</th><th style="width:70px">测评</th>
+                  <th style="width:88px">状态</th><th style="width:130px">操作</th></tr>
+                <tr><td><b>huzurui</b> <span style="color:var(--text2);font-size:12px">胡祖锐</span></td>
+                  <td>2026-09-15</td><td>6</td><td>78</td><td>3</td>
+                  <td><span class="tagx ok">正常</span></td>
+                  <td class="act"><span class="mini">详情</span><span class="mini">禁用</span></td></tr>
+                <tr><td><b>chenyi</b> <span style="color:var(--text2);font-size:12px">陈一</span></td>
+                  <td>2026-09-12</td><td>11</td><td>164</td><td>2</td>
+                  <td><span class="tagx ok">正常</span></td>
+                  <td class="act"><span class="mini">详情</span><span class="mini">禁用</span></td></tr>
+                <tr><td><b>music_lover</b></td><td>2026-09-08</td><td>3</td><td>41</td><td>1</td>
+                  <td><span class="tagx ok">正常</span></td>
+                  <td class="act"><span class="mini">详情</span><span class="mini">禁用</span></td></tr>
+                <tr><td><b>spam_001</b></td><td>2026-09-14</td><td>0</td><td>0</td><td>0</td>
+                  <td><span class="tagx off">已禁用</span></td>
+                  <td class="act"><span class="mini">详情</span><span class="mini">启用</span></td></tr>
+                <tr><td><b>test999</b></td><td>2026-09-13</td><td>0</td><td>0</td><td>0</td>
+                  <td><span class="tagx off">已禁用</span></td>
+                  <td class="act"><span class="mini">详情</span><span class="mini">启用</span></td></tr>
+              </table>
+            </div>
+
+            <div class="panel">
+              <h4>刷票到底是怎么判断出来的</h4>
+              <p class="ps">
+                <b style="color:var(--text)">不是"投得多就等于刷票"</b>——
+                正常用户一天投几十场很常见。系统看的是<b style="color:var(--text)">行为特征</b>，分三级判定</p>
+              <table class="tbl">
+                <tr><th style="width:100px">等级</th><th>触发条件</th><th style="width:190px">处理</th></tr>
+                <tr><td><span class="tagx ok">轻度</span></td>
+                  <td>连续两次投票间隔 <b>&lt; 3 秒</b>；或 <b>1 分钟 &gt; 20 场</b>；或 <b>1 天 &gt; 300 场</b></td>
+                  <td>返回"操作过于频繁"，<b>不计违规</b></td></tr>
+                <tr><td><span class="tagx wn">中度</span></td>
+                  <td>对同一场次重复提交（绕过前端直接调接口）；或<b>连续 15 场总是投同一侧</b>；
+                    或注册不足 1 小时却已投 50 场以上</td>
+                  <td>该票作废 + 弹出警告，<b>记 1 次违规</b></td></tr>
+                <tr><td><span class="tagx off">重度</span></td>
+                  <td>同一 IP 或设备指纹下，<b>多个账号集中投同一张专辑</b></td>
+                  <td>标记全部相关账号，转管理员复核</td></tr>
+              </table>
+              <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+                <b style="font-size:13.5px">违规累计后的分级处理</b>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:12.5px">
+                  <span class="tagx tp">第 1 次</span> 站内警告
+                  <span class="tagx tp">第 2 次</span> 警告 + 48 小时限流
+                  <span class="tagx wn">第 3 次</span> 自动停权 24 小时
+                  <span class="tagx off">第 5 次</span> 长期禁用（可申诉）
+                </div>
+                <p style="margin:14px 0 0;font-size:12.5px;color:var(--text2);line-height:1.8">
+                  <b style="color:var(--text)">最关键的一点</b>：被判定为异常的投票
+                  <b style="color:var(--text)">不计入排行榜与人格分布统计</b>。
+                  也就是说刷票既改变不了结果，还会赔上账号——这条规则同时写在了首页的投票规范里。</p>
+              </div>
+            </div>
+
+            <div class="panel">
+              <h4>什么情况下会禁用用户</h4>
+              <p class="ps">目前由管理员人工判定，满足任一条即可处理；处理记录会保留在操作日志中</p>
+              <table class="tbl">
+                <tr><th style="width:150px">情况</th><th>怎么判定</th><th style="width:118px">处理</th></tr>
+                <tr><td><b>刷票</b></td>
+                  <td>同一账号对同一场次重复投票，或短时间内高频投票（接口返回「重复操作」的次数明显异常）</td>
+                  <td><span class="tagx off">禁用</span></td></tr>
+                <tr><td><b>垃圾内容</b></td>
+                  <td>昵称或账号名含广告、违法违规、攻击性内容</td>
+                  <td><span class="tagx off">禁用</span></td></tr>
+                <tr><td><b>恶意请求</b></td>
+                  <td>绕过前端直接高频调用接口，对服务造成压力</td>
+                  <td><span class="tagx off">禁用</span></td></tr>
+                <tr><td><b>本人申请</b></td>
+                  <td>用户主动要求注销账号</td>
+                  <td><span class="tagx off">禁用</span></td></tr>
+                <tr><td><b>误判申诉</b></td>
+                  <td>用户说明情况、核实确属误判</td>
+                  <td><span class="tagx ok">恢复启用</span></td></tr>
+              </table>
+            </div>
+
+            <div class="panel">
+              <h4>为什么只做"禁用"不做"删除"</h4>
+              <p class="ps">对应需求 FR-24 与 NFR-D5</p>
+              <p style="margin:0;font-size:13px;color:var(--text2);line-height:1.85">
+                用户产生的投票记录是排行榜与人格分布的数据来源。
+                如果直接删账号，这些历史数据会变成"没有主人的孤儿记录"，
+                榜单和统计口径就会失真。所以这里的处理是<b style="color:var(--text)">禁用</b>：
+                账号保留、数据保留，但令牌在下次校验时被拒绝（接口返回 2003），
+                该用户无法再登录与投票，也不会污染新的统计。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="note"><b>页面说明：</b>最后一页我放了一个"为什么不做删除"的说明块。
+        这类<b>克制型设计决策</b>在答辩时很好用——它说明你考虑过后果，而不是只实现了功能表面。
+        后台六页到这里结束，19 个页面全部完成。</div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+function go(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.toggle('on', p.id===id);});
+  document.querySelectorAll('.side a[data-go], .admnav a[data-go]').forEach(function(a){
+    a.classList.toggle('on', a.dataset.go===id);});
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.side a[data-go], .admnav a[data-go]').forEach(function(a){
+  a.addEventListener('click', function(){ go(a.dataset.go); });
+});
+document.querySelectorAll('.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){
+    document.querySelectorAll('.tabs button').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    document.body.setAttribute('data-theme', b.dataset.t);
+  });
+});
+document.querySelectorAll('.seg').forEach(function(s){
+  s.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      s.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+      b.classList.add('on');
+    });
+  });
+});
+document.querySelectorAll('.tabline').forEach(function(t){
+  t.querySelectorAll('div').forEach(function(d){
+    d.addEventListener('click', function(){
+      t.querySelectorAll('div').forEach(function(x){x.classList.remove('on');});
+      d.classList.add('on');
+    });
+  });
+});
+document.querySelectorAll('.filter').forEach(function(f){
+  f.querySelectorAll('.pill').forEach(function(p){
+    p.addEventListener('click', function(){ p.classList.toggle('on'); });
+  });
+});
+/* 阳光跟着鼠标：移到哪张专辑，光就柔柔地打到哪一边 */
+document.querySelectorAll('.vstage').forEach(function(st){
+  st.querySelectorAll('.alb').forEach(function(a){
+    a.addEventListener('mouseenter', function(){ st.dataset.lit = a.dataset.side; });
+    a.addEventListener('mouseleave', function(){ delete st.dataset.lit; });
+  });
+});
+/* 答题页：原型演示用的题型切换（真实产品一屏只出一道题） */
+document.querySelectorAll('.qswitch').forEach(function(sw){
+  sw.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      sw.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      document.querySelectorAll('.qstate').forEach(function(s){ s.classList.remove('on'); });
+      var t = document.getElementById('q-' + b.dataset.q);
+      if (t) t.classList.add('on');
+    });
+  });
+});
+/* 新手引导（首次进入） */
+(function(){
+  var steps = [
+    {no:'STEP 1 / 3', t:'先选几位歌手，让他们的专辑打擂台',
+     p:'不只是同一位歌手的专辑互相比——你可以把周杰伦、林俊杰、陈奕迅的专辑放进同一个池子，看看谁的作品更经得起投票。也可以只挑两位，来一场正面对决。'},
+    {no:'STEP 2 / 3', t:'12 道题，测出你的音乐人格',
+     p:'其中两题需要先听 30 秒音乐片段再作答。做完会得到四个维度的得分、一种人格类型，以及一段针对你个人作答生成的解读——不是所有人共用的模板。'},
+    {no:'STEP 3 / 3', t:'结果可以回看，也可以分享',
+     p:'对决结束会生成「夺冠之路」，人格结果可以导出成图片。这两样不用登录也能看，登录之后才会存进你的账号。'}];
+  var i = 0, scrim = document.getElementById('ob-scrim');
+  if (!scrim) return;
+  function render(){
+    var s = steps[i];
+    document.getElementById('ob-no').textContent = s.no;
+    document.getElementById('ob-t').textContent = s.t;
+    document.getElementById('ob-p').textContent = s.p;
+    ['ob-b1','ob-b2','ob-b3'].forEach(function(id,k){
+      document.getElementById(id).style.display = (k===i) ? '' : 'none';});
+    scrim.querySelectorAll('.obdots i').forEach(function(d,k){ d.classList.toggle('on', k===i); });
+    document.getElementById('ob-prev').style.display = (i===0) ? 'none' : '';
+    document.getElementById('ob-next').textContent = (i===2) ? '开始使用' : '下一步';
+  }
+  function hide(){ scrim.classList.remove('on'); }
+  document.getElementById('ob-next').addEventListener('click', function(){
+    if (i < 2) { i++; render(); }
+    else { hide(); document.querySelector('#obtog [data-ob="off"]').click(); }});
+  document.getElementById('ob-prev').addEventListener('click', function(){ if (i > 0) { i--; render(); } });
+  document.getElementById('ob-skip').addEventListener('click', hide);
+  document.querySelectorAll('#obtog button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#obtog button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      if (b.dataset.ob === 'on') { i = 0; render(); scrim.classList.add('on'); } else hide(); });});
+  render();
+})();
+
+/* 账号被禁用的提醒 */
+(function(){
+  var s = document.getElementById('ban-scrim');
+  if (!s) return;
+  document.getElementById('ban-close').addEventListener('click', function(){ s.classList.remove('on'); });
+  document.querySelectorAll('#bantog button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#bantog button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      s.classList.toggle('on', b.dataset.ban === 'ban'); });});
+})();
+/* 投票页：小组赛 / 淘汰赛 演示切换 */
+document.querySelectorAll('.vswitch').forEach(function(sw){
+  sw.querySelectorAll('button').forEach(function(b){
+    b.addEventListener('click', function(){
+      sw.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      document.querySelectorAll('.vstate').forEach(function(s){ s.classList.remove('on'); });
+      var t = document.getElementById('v-' + b.dataset.v);
+      if (t) t.classList.add('on');
+    });});});
+
+/* 点击小组查看对战详情 */
+(function(){
+  var G = {
+    A: { adv:'樂行者', rows:[
+        ['樂行者','assets/pool/p5.jpg',2,0,'68%',true],
+        ['八度空間','assets/pool/p3.jpg',1,1,'49%',false],
+        ['Model','assets/pool/p11.jpg',0,2,'33%',false]],
+      ms:[['樂行者','八度空間','14 : 6'],['樂行者','Model','16 : 4'],['八度空間','Model','11 : 9']] },
+    B: { adv:'范特西', rows:[
+        ['范特西','assets/pool/p2.jpg',2,0,'71%',true],
+        ['第二天堂','assets/pool/p6.jpg',1,1,'52%',false],
+        ['有理想','assets/pool/p13.jpg',0,2,'28%',false]],
+      ms:[['范特西','第二天堂','13 : 7'],['范特西','有理想','17 : 3'],['第二天堂','有理想','12 : 8']] },
+    C: { adv:'編號89757', rows:[
+        ['編號89757','assets/pool/p7.jpg',2,0,'66%',true],
+        ['杰倫','assets/pool/p1.jpg',1,1,'47%',false],
+        ['李榮浩','assets/pool/p12.jpg',0,2,'37%',false]],
+      ms:[['編號89757','杰倫','12 : 8'],['編號89757','李榮浩','15 : 5'],['杰倫','李榮浩','10 : 9']] },
+    D: { adv:'一滴眼淚', rows:[
+        ['一滴眼淚','assets/pool/p8.jpg',2,0,'63%',true],
+        ['葉惠美','assets/pool/p4.jpg',1,1,'55%',false],
+        ['與我常在','assets/pool/p9.jpg',0,2,'33%',false]],
+      ms:[['一滴眼淚','葉惠美','11 : 9'],['一滴眼淚','與我常在','14 : 6'],['葉惠美','與我常在','13 : 7']] }
+  };
+  var scrim = document.getElementById('gd-scrim');
+  if (!scrim) return;
+  function open(k){
+    var g = G[k]; if (!g) return;
+    document.getElementById('gd-title').textContent = k + ' 组';
+    document.getElementById('gd-adv').textContent = g.adv;
+    document.getElementById('gd-stand').innerHTML = g.rows.map(function(r,i){
+      return '<tr class="' + (r[5] ? 'adv' : '') + '"><td class="rk">' + (i+1) + '</td>' +
+        '<td class="th2"><div><img src="' + r[1] + '" alt=""></div></td>' +
+        '<td class="nm2">' + r[0] + '</td>' +
+        '<td class="num">' + r[2] + '</td><td class="num">' + r[3] + '</td>' +
+        '<td class="num">' + r[4] + '</td></tr>';
+    }).join('');
+    document.getElementById('gd-matches').innerHTML = g.ms.map(function(m){
+      return '<div class="mi2"><span class="w">' + m[0] + '</span>' +
+        '<span style="color:var(--text3)">胜</span><span class="l">' + m[1] + '</span>' +
+        '<span class="sc2">' + m[2] + '</span></div>';
+    }).join('');
+    scrim.classList.add('on');
+  }
+  function close(){ scrim.classList.remove('on'); }
+  document.querySelectorAll('.gcard[data-group]').forEach(function(c){
+    c.addEventListener('click', function(){ open(c.dataset.group); });
+  });
+  document.getElementById('gd-close').addEventListener('click', close);
+  document.getElementById('gd-close2').addEventListener('click', close);
+  scrim.addEventListener('click', function(e){ if (e.target === scrim) close(); });
+})();
+</script>
+</body>
+</html>

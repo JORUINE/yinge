@@ -1,0 +1,93 @@
+[
+  {
+    "artist": "周杰倫",
+    "name": "杰倫",
+    "year": "2000",
+    "tracks": 10,
+    "file": "assets/pool/p1.jpg"
+  },
+  {
+    "artist": "周杰倫",
+    "name": "范特西",
+    "year": "2001",
+    "tracks": 10,
+    "file": "assets/pool/p2.jpg"
+  },
+  {
+    "artist": "周杰倫",
+    "name": "八度空間",
+    "year": "2002",
+    "tracks": 10,
+    "file": "assets/pool/p3.jpg"
+  },
+  {
+    "artist": "周杰倫",
+    "name": "葉惠美",
+    "year": "2003",
+    "tracks": 11,
+    "file": "assets/pool/p4.jpg"
+  },
+  {
+    "artist": "林俊傑",
+    "name": "樂行者",
+    "year": "2003",
+    "tracks": 11,
+    "file": "assets/pool/p5.jpg"
+  },
+  {
+    "artist": "林俊傑",
+    "name": "第二天堂(江南)",
+    "year": "2004",
+    "tracks": 11,
+    "file": "assets/pool/p6.jpg"
+  },
+  {
+    "artist": "林俊傑",
+    "name": "編號89757",
+    "year": "2005",
+    "tracks": 11,
+    "file": "assets/pool/p7.jpg"
+  },
+  {
+    "artist": "陳奕迅",
+    "name": "一滴眼淚",
+    "year": "1997",
+    "tracks": 10,
+    "file": "assets/pool/p8.jpg"
+  },
+  {
+    "artist": "陳奕迅",
+    "name": "與我常在",
+    "year": "1997",
+    "tracks": 11,
+    "file": "assets/pool/p9.jpg"
+  },
+  {
+    "artist": "陳奕迅",
+    "name": "醞釀",
+    "year": "1997",
+    "tracks": 12,
+    "file": "assets/pool/p10.jpg"
+  },
+  {
+    "artist": "李荣浩",
+    "name": "Model",
+    "year": "2013",
+    "tracks": 10,
+    "file": "assets/pool/p11.jpg"
+  },
+  {
+    "artist": "李荣浩",
+    "name": "李榮浩",
+    "year": "2014",
+    "tracks": 10,
+    "file": "assets/pool/p12.jpg"
+  },
+  {
+    "artist": "李荣浩",
+    "name": "有理想",
+    "year": "2016",
+    "tracks": 11,
+    "file": "assets/pool/p13.jpg"
+  }
+]

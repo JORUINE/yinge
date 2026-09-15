@@ -1,0 +1,62 @@
+[
+  {
+    "artist": "Taylor Swift",
+    "name": "The Life of a Showgirl",
+    "year": "2025",
+    "file": "assets/global/g1.jpg"
+  },
+  {
+    "artist": "Taylor Swift",
+    "name": "The Life of a Showgirl + Acoustic Collection",
+    "year": "2025",
+    "file": "assets/global/g2.jpg"
+  },
+  {
+    "artist": "Adele",
+    "name": "25",
+    "year": "2015",
+    "file": "assets/global/g3.jpg"
+  },
+  {
+    "artist": "Adele",
+    "name": "30",
+    "year": "2021",
+    "file": "assets/global/g4.jpg"
+  },
+  {
+    "artist": "Ed Sheeran",
+    "name": "Play",
+    "year": "2025",
+    "file": "assets/global/g5.jpg"
+  },
+  {
+    "artist": "陳奕迅",
+    "name": "CHIN UP!",
+    "year": "2023",
+    "file": "assets/global/g6.jpg"
+  },
+  {
+    "artist": "鄧紫棋",
+    "name": "I AM GLORIA",
+    "year": "2025",
+    "file": "assets/global/g7.jpg"
+  },
+  {
+    "artist": "薛之谦",
+    "name": "守村人",
+    "year": "2024",
+    "file": "assets/global/g8.jpg"
+  },
+  {
+    "artist": "毛不易",
+    "name": "冒險精神",
+    "year": "2024",
+    "file": "assets/global/g9.jpg"
+  },
+  {
+    "artist": "Kenshi Yonezu",
+    "name": "BOOTLEG",
+    "year": "2017",
+    "file": "assets/global/g10.jpg"
+  }
+]

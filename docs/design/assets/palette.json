@@ -1,0 +1,197 @@
+{
+ "covers/c1.jpg": {
+  "base": "#1B263E",
+  "glow": "#00277C",
+  "deep": "#050B1A"
+ },
+ "covers/c10.jpg": {
+  "base": "#163A4B",
+  "glow": "#00547C",
+  "deep": "#00151F"
+ },
+ "covers/c11.jpg": {
+  "base": "#92D5DD",
+  "glow": "#4AEBFF",
+  "deep": "#2C575C"
+ },
+ "covers/c12.jpg": {
+  "base": "#1D242F",
+  "glow": "#1C417C",
+  "deep": "#080C13"
+ },
+ "covers/c13.jpg": {
+  "base": "#221411",
+  "glow": "#7C1A05",
+  "deep": "#0E0503"
+ },
+ "covers/c14.jpg": {
+  "base": "#724D40",
+  "glow": "#843012",
+  "deep": "#2F1810"
+ },
+ "covers/c15.jpg": {
+  "base": "#83B2BE",
+  "glow": "#4ABEDC",
+  "deep": "#28474F"
+ },
+ "covers/c2.jpg": {
+  "base": "#C4191C",
+  "glow": "#E30003",
+  "deep": "#520001"
+ },
+ "covers/c3.jpg": {
+  "base": "#EB9955",
+  "glow": "#FF7300",
+  "deep": "#62320A"
+ },
+ "covers/c4.jpg": {
+  "base": "#031D1A",
+  "glow": "#007C6D",
+  "deep": "#000C0A"
+ },
+ "covers/c5.jpg": {
+  "base": "#334B31",
+  "glow": "#297C23",
+  "deep": "#0F1F0E"
+ },
+ "covers/c6.jpg": {
+  "base": "#F1E7DC",
+  "glow": "#FFD8AE",
+  "deep": "#655B50"
+ },
+ "covers/c7.jpg": {
+  "base": "#312B27",
+  "glow": "#7C573E",
+  "deep": "#14100D"
+ },
+ "covers/c8.jpg": {
+  "base": "#96484A",
+  "glow": "#AE0206",
+  "deep": "#3F0F10"
+ },
+ "covers/c9.jpg": {
+  "base": "#6C3518",
+  "glow": "#7D2B00",
+  "deep": "#2D0F00"
+ },
+ "covers/hero.jpg": {
+  "base": "#C4191C",
+  "glow": "#E30003",
+  "deep": "#520001"
+ },
+ "pool/p1.jpg": {
+  "base": "#27293E",
+  "glow": "#1E267C",
+  "deep": "#0B0C1A"
+ },
+ "pool/p10.jpg": {
+  "base": "#1C1D17",
+  "glow": "#717C3E",
+  "deep": "#0B0C07"
+ },
+ "pool/p11.jpg": {
+  "base": "#69A0BB",
+  "glow": "#1E9BD8",
+  "deep": "#1B3D4E"
+ },
+ "pool/p12.jpg": {
+  "base": "#2D2F2E",
+  "glow": "#5D7C6C",
+  "deep": "#101312"
+ },
+ "pool/p13.jpg": {
+  "base": "#D3D2CD",
+  "glow": "#F4EBBD",
+  "deep": "#58564C"
+ },
+ "pool/p2.jpg": {
+  "base": "#B92B30",
+  "glow": "#D60007",
+  "deep": "#4D0002"
+ },
+ "pool/p3.jpg": {
+  "base": "#DC8C5A",
+  "glow": "#FF6200",
+  "deep": "#5C2C0E"
+ },
+ "pool/p4.jpg": {
+  "base": "#264639",
+  "glow": "#0D7C4F",
+  "deep": "#091D15"
+ },
+ "pool/p5.jpg": {
+  "base": "#9C82B3",
+  "glow": "#9452CF",
+  "deep": "#3B294B"
+ },
+ "pool/p6.jpg": {
+  "base": "#5F5F55",
+  "glow": "#7C7C51",
+  "deep": "#27271E"
+ },
+ "pool/p7.jpg": {
+  "base": "#75563C",
+  "glow": "#874208",
+  "deep": "#311E0E"
+ },
+ "pool/p8.jpg": {
+  "base": "#262822",
+  "glow": "#6B7C48",
+  "deep": "#0F100B"
+ },
+ "pool/p9.jpg": {
+  "base": "#2D3545",
+  "glow": "#22407C",
+  "deep": "#0D121C"
+ },
+ "global/g1.jpg": {
+  "base": "#908142",
+  "glow": "#A78600",
+  "deep": "#3C330D"
+ },
+ "global/g10.jpg": {
+  "base": "#6B4244",
+  "glow": "#7C1C20",
+  "deep": "#2C1214"
+ },
+ "global/g2.jpg": {
+  "base": "#815244",
+  "glow": "#952C0D",
+  "deep": "#361910"
+ },
+ "global/g3.jpg": {
+  "base": "#24211A",
+  "glow": "#7C6530",
+  "deep": "#0F0D08"
+ },
+ "global/g4.jpg": {
+  "base": "#25444B",
+  "glow": "#04667C",
+  "deep": "#081B1F"
+ },
+ "global/g5.jpg": {
+  "base": "#E24C8C",
+  "glow": "#FF006C",
+  "deep": "#5E062C"
+ },
+ "global/g6.jpg": {
+  "base": "#065D99",
+  "glow": "#0069B1",
+  "deep": "#002640"
+ },
+ "global/g7.jpg": {
+  "base": "#B24F60",
+  "glow": "#CE0023",
+  "deep": "#4A0F19"
+ },
+ "global/g8.jpg": {
+  "base": "#755D4E",
+  "glow": "#874D29",
+  "deep": "#312117"
+ },
+ "global/g9.jpg": {
+  "base": "#325C6F",
+  "glow": "#005880",
+  "deep": "#09232E"
+ }
+}

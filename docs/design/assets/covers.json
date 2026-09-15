@@ -1,0 +1,107 @@
+[
+  {
+    "name": "同名專輯",
+    "year": "2000",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c1.jpg"
+  },
+  {
+    "name": "范特西",
+    "year": "2001",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c2.jpg"
+  },
+  {
+    "name": "八度空間",
+    "year": "2002",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c3.jpg"
+  },
+  {
+    "name": "葉惠美",
+    "year": "2003",
+    "tracks": 11,
+    "artist": "周杰伦",
+    "file": "assets/covers/c4.jpg"
+  },
+  {
+    "name": "七里香",
+    "year": "2004",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c5.jpg"
+  },
+  {
+    "name": "11月的蕭邦",
+    "year": "2005",
+    "tracks": 12,
+    "artist": "周杰伦",
+    "file": "assets/covers/c6.jpg"
+  },
+  {
+    "name": "依然范特西",
+    "year": "2006",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c7.jpg"
+  },
+  {
+    "name": "我很忙",
+    "year": "2007",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c8.jpg"
+  },
+  {
+    "name": "魔杰座",
+    "year": "2008",
+    "tracks": 11,
+    "artist": "周杰伦",
+    "file": "assets/covers/c9.jpg"
+  },
+  {
+    "name": "跨時代",
+    "year": "2010",
+    "tracks": 11,
+    "artist": "周杰伦",
+    "file": "assets/covers/c10.jpg"
+  },
+  {
+    "name": "驚嘆號",
+    "year": "2011",
+    "tracks": 11,
+    "artist": "周杰伦",
+    "file": "assets/covers/c11.jpg"
+  },
+  {
+    "name": "十二新作",
+    "year": "2012",
+    "tracks": 12,
+    "artist": "周杰伦",
+    "file": "assets/covers/c12.jpg"
+  },
+  {
+    "name": "哎呦, 不錯哦",
+    "year": "2014",
+    "tracks": 12,
+    "artist": "周杰伦",
+    "file": "assets/covers/c13.jpg"
+  },
+  {
+    "name": "周杰倫的床邊故事",
+    "year": "2016",
+    "tracks": 10,
+    "artist": "周杰伦",
+    "file": "assets/covers/c14.jpg"
+  },
+  {
+    "name": "最伟大的作品",
+    "year": "2022",
+    "tracks": 12,
+    "artist": "周杰伦",
+    "file": "assets/covers/c15.jpg"
+  }
+]
