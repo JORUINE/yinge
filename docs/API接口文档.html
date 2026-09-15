@@ -937,14 +937,44 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
   }
 }
 </code></pre>
-<h3 id="s32">4.6 获取试听地址　GET /api/music/albums/:albumId/preview　（公开）</h3>
-<p>返回该专辑首支可用曲目的 30 秒试听地址，供投票页播放。若无可用片段，<code>data</code> 为 <code>null</code>，前端隐藏播放按钮。</p>
+<h3 id="s32">4.6 获取试听曲目　GET /api/music/albums/:albumId/preview　（公开）</h3>
+<p>返回该专辑的试听曲目列表与默认试听项，供投票页播放与切换。</p>
+<table>
+<thead>
+<tr>
+<th>参数</th>
+<th>类型</th>
+<th>必填</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>trackIndex</td>
+<td>number</td>
+<td>否</td>
+<td>指定曲序，从 1 开始；省略时返回列表与默认项</td>
+</tr>
+</tbody>
+</table>
 <pre><code class="language-json">{
   &quot;code&quot;: 0,
   &quot;message&quot;: &quot;ok&quot;,
-  &quot;data&quot;: { &quot;trackId&quot;: 1440928850, &quot;trackName&quot;: &quot;爱在西元前&quot;, &quot;previewUrl&quot;: &quot;https://.../preview.m4a&quot; }
+  &quot;data&quot;: {
+    &quot;albumId&quot;: 1440928842,
+    &quot;total&quot;: 10,
+    &quot;defaultIndex&quot;: 1,
+    &quot;current&quot;: { &quot;trackId&quot;: 1440928850, &quot;trackName&quot;: &quot;爱在西元前&quot;, &quot;trackNumber&quot;: 1, &quot;previewUrl&quot;: &quot;https://.../preview.m4a&quot; },
+    &quot;tracks&quot;: [
+      { &quot;trackId&quot;: 1440928850, &quot;trackName&quot;: &quot;爱在西元前&quot;, &quot;trackNumber&quot;: 1, &quot;previewUrl&quot;: &quot;https://.../preview.m4a&quot; }
+    ]
+  }
 }
 </code></pre>
+<p><strong>曲目选择约定</strong></p>
+<p>（1）<strong>默认取曲序第 1 首</strong>作为代表曲。外部音乐接口不提供单曲热度数据，无法按播放量排序；曲序第一首通常是专辑主打，是当前可得的最接近"代表作"的信号；</p>
+<p>（2）<strong>不要求用户预先选择代表曲</strong>——对决的对象是专辑而非单曲，代表曲只用于辅助试听、不参与计票，因此不增加额外选择步骤，避免界面臃肿；</p>
+<p>（3）前端在播放条上提供上一首 / 下一首切换（对应 <code>trackIndex</code> 递增递减）。无可用曲目或该专辑无试听片段时 <code>current</code> 为 <code>null</code>，前端隐藏播放按钮。</p>
 <h3 id="s33">4.7 流派列表　GET /api/music/genres　（公开）</h3>
 <p>返回平台已缓存的流派标签，用于对决范围选择的筛选条件。</p>
 <pre><code class="language-json">{

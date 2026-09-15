@@ -351,17 +351,37 @@
 }
 ```
 
-### 4.6 获取试听地址　GET /api/music/albums/:albumId/preview　（公开）
+### 4.6 获取试听曲目　GET /api/music/albums/:albumId/preview　（公开）
 
-返回该专辑首支可用曲目的 30 秒试听地址，供投票页播放。若无可用片段，`data` 为 `null`，前端隐藏播放按钮。
+返回该专辑的试听曲目列表与默认试听项，供投票页播放与切换。
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| trackIndex | number | 否 | 指定曲序，从 1 开始；省略时返回列表与默认项 |
 
 ```json
 {
   "code": 0,
   "message": "ok",
-  "data": { "trackId": 1440928850, "trackName": "爱在西元前", "previewUrl": "https://.../preview.m4a" }
+  "data": {
+    "albumId": 1440928842,
+    "total": 10,
+    "defaultIndex": 1,
+    "current": { "trackId": 1440928850, "trackName": "爱在西元前", "trackNumber": 1, "previewUrl": "https://.../preview.m4a" },
+    "tracks": [
+      { "trackId": 1440928850, "trackName": "爱在西元前", "trackNumber": 1, "previewUrl": "https://.../preview.m4a" }
+    ]
+  }
 }
 ```
+
+**曲目选择约定**
+
+（1）**默认取曲序第 1 首**作为代表曲。外部音乐接口不提供单曲热度数据，无法按播放量排序；曲序第一首通常是专辑主打，是当前可得的最接近"代表作"的信号；
+
+（2）**不要求用户预先选择代表曲**——对决的对象是专辑而非单曲，代表曲只用于辅助试听、不参与计票，因此不增加额外选择步骤，避免界面臃肿；
+
+（3）前端在播放条上提供上一首 / 下一首切换（对应 `trackIndex` 递增递减）。无可用曲目或该专辑无试听片段时 `current` 为 `null`，前端隐藏播放按钮。
 
 ### 4.7 流派列表　GET /api/music/genres　（公开）
 
