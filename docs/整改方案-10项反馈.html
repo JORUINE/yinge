@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>音格 · 10 项反馈整改方案</title>
+<style>
+  :root{--brand:#0ea5e9;--accent:#f97316;--bg:#edf6fc;--ink:#0f172a;--muted:#64748b;
+    --line:#d6e6f2;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--card:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    color:var(--ink);background:linear-gradient(180deg,#e8f4fc,#edf6fc 240px);line-height:1.7}
+  .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
+  .pill{display:inline-block;background:var(--brand);color:#fff;font-size:12px;padding:3px 10px;
+    border-radius:999px;margin-bottom:12px;letter-spacing:.04em}
+  h1{font-size:30px;margin:0 0 6px}
+  header p{color:var(--muted);margin:0}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;
+    margin:16px 0;box-shadow:0 6px 22px rgba(14,165,233,.06)}
+  h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--brand);color:#fff;min-width:26px;height:26px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:0 6px}
+  p,li{color:#1f2d3d;margin:6px 0}
+  code{background:#eef6fc;color:#0b5c8a;padding:2px 7px;border-radius:6px;font-size:13px;
+    font-family:ui-monospace,Menlo,monospace}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f1f8ff}
+  .tag{font-size:12px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .t-bug{background:#fee2e2;color:#b91c1c}
+  .t-ux{background:#fef3c7;color:#92400e}
+  .t-design{background:#e0e7ff;color:#3730a3}
+  .t-ok{background:#dcfce7;color:#15803d}
+  .issue{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0;background:#fbfdff}
+  .issue h3{margin:0 0 8px;font-size:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .row{display:grid;grid-template-columns:78px 1fr;gap:6px 12px;font-size:14px}
+  .row .k{color:var(--muted)}
+  .fix{border-left:4px solid var(--ok);background:#f0fdf4;padding:8px 12px;border-radius:0 8px 8px 0;margin-top:8px}
+  .evi{background:#0f2438;color:#d6f0ff;padding:10px 12px;border-radius:8px;font-size:12.5px;
+    font-family:ui-monospace,Menlo,monospace;overflow:auto;margin:6px 0}
+  .note{border-left:4px solid var(--warn);background:#fff7ed;padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+  .batch{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:760px){.batch{grid-template-columns:1fr 1fr}}
+  .bcard{background:#f7fbff;border:1px solid var(--line);border-radius:12px;padding:12px}
+  .bcard h4{margin:0 0 6px;font-size:14px;color:var(--brand)}
+  .bcard ul{margin:0;padding-left:18px;font-size:13px}
+  footer{color:var(--muted);font-size:13px;text-align:center;margin-top:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="pill">音格 · 反馈整改</span>
+    <h1>10 项反馈 · 诊断与整改方案</h1>
+    <p>逐条核对了代码：<b>5 条是真 bug</b>（不是没做，是写错/漏筛），4 条体验问题，1 条 UI 还原。附我的处理决定与分批计划。</p>
+  </header>
+
+  <!-- 速览 -->
+  <section>
+    <h2><span class="n">速览</span>一眼看全</h2>
+    <table>
+      <tr><th style="width:38px">#</th><th>你反馈的问题</th><th style="width:78px">类型</th><th>我的结论</th></tr>
+      <tr><td>1</td><td>1~2 秒点一下就提示"操作过于频繁"</td><td><span class="tag t-bug">真BUG</span></td><td>后端硬性要求两次投票间隔 ≥ <b>3 秒</b>，太紧，必须放宽</td></tr>
+      <tr><td>2</td><td>Soul Power 这种演唱会专辑也算进来了？</td><td><span class="tag t-bug">真BUG</span></td><td>规则本要排除现场专辑，但关键词只写了简体「现场」，繁体「現場」漏了 → 漏筛</td></tr>
+      <tr><td>3</td><td>3 个歌手要比 30 多场，太长、懵</td><td><span class="tag t-bug">真BUG</span></td><td>多歌手没限制每人张数，把每歌手<b>全部</b>专辑都拉进来了</td></tr>
+      <tr><td>4</td><td>夺冠之路"战胜 — 0 : 0"看着莫名其妙</td><td><span class="tag t-bug">真BUG</span></td><td>轮空（bye）被当成一场"战胜空对手"显示</td></tr>
+      <tr><td>5</td><td>按年代模式直接报错，是没做吗？</td><td><span class="tag t-bug">真BUG</span></td><td>选择页没有年代输入框 + 后端该模式返回空歌手 → <b>必然报错</b>，等于不可用</td></tr>
+      <tr><td>6</td><td>小组赛→半决赛没有任何过渡</td><td><span class="tag t-ux">体验</span></td><td>确实没做过渡，加"本轮结束→进入X轮"动效</td></tr>
+      <tr><td>7</td><td>夺冠之路太单薄，冠军"只打败这么点"</td><td><span class="tag t-ux">体验</span></td><td>显示太简，重做成完整晋级路线</td></tr>
+      <tr><td>8</td><td>指定对决只选几张结束太快、没意思</td><td><span class="tag t-ux">体验</span></td><td>功能对，结果页太草率，增强呈现</td></tr>
+      <tr><td>9</td><td>选歌手显示一串编号，同名分不清</td><td><span class="tag t-ux">体验</span></td><td>把 iTunes 编号换成头像 + 流派</td></tr>
+      <tr><td>10</td><td>对位赛打平没意义；最多 10 张对周杰伦不友好</td><td><span class="tag t-design">设计</span></td><td>加"平局比总票数"裁决 + 放宽张数上限（我定稿）</td></tr>
+      <tr><td>11</td><td>什么时候还原 UI demo 那种首页</td><td><span class="tag t-design">设计</span></td><td>排进计划，属于视觉大改，需你确认范围</td></tr>
+    </table>
+  </section>
+
+  <!-- 真BUG -->
+  <section>
+    <h2><span class="n">A</span>真 Bug（5 条 · 我已定位根因）</h2>
+
+    <div class="issue">
+      <h3>A1 投票限流太紧 <span class="tag t-bug">必修</span></h3>
+      <div class="row">
+        <span class="k">现象</span><span>隔 1~2 秒点就弹"操作过于频繁"</span>
+        <span class="k">根因</span><span>后端把两次投票的最小间隔写死成 3 秒</span>
+      </div>
+      <div class="evi">backend/src/config/index.js → vote.minIntervalMs 默认 3000（毫秒）<br>vote.service.js → checkLightRate()：now - 上次投票 &lt; 3000 → 抛错</div>
+      <div class="fix"><b>我的处理：</b>最小间隔降到 <b>250 毫秒</b>（只拦手抖连点），每分钟上限 20 → <b>120</b>，每天 300 → <b>800</b>；前端同时加"请求中禁用"，避免重复提交。<b>真正防刷靠后面的"异常投票判定"，不靠卡间隔。</b></div>
+    </div>
+
+    <div class="issue">
+      <h3>A2 现场/演唱会专辑漏筛 <span class="tag t-bug">必修</span></h3>
+      <div class="row">
+        <span class="k">现象</span><span>陶喆「Soul Power (現場原音專輯)」进了对决池</span>
+        <span class="k">根因</span><span>剔除规则里"现场"只写了简体字，而繁体资料库返回的是「現場」</span>
+      </div>
+      <div class="evi">backend/src/modules/music/admission.js<br>live: ['live','现场','演唱會','演唱会',...] ← 缺繁体「現場」<br>专辑名 = "Soul Power (現場原音專輯)" → 没命中 → 被判合格</div>
+      <div class="fix"><b>我的处理：</b>关键词补全繁体（現場 / 演唱會 / 電影原聲 / 精選…），并在匹配前做繁简归一，杜绝同类漏网。<b>结论：现场专辑本就该排除，这条修完 Soul Power 会自动消失。</b></div>
+    </div>
+
+    <div class="issue">
+      <h3>A3 多歌手场次过长（3 歌手 30+ 场） <span class="tag t-bug">必修</span></h3>
+      <div class="row">
+        <span class="k">现象</span><span>3 个歌手要比 30 多场，进度条 11/30，太长</span>
+        <span class="k">根因</span><span>多歌手模式没让用户限定每人张数，后端把每位歌手的<b>全部合格专辑</b>都拉了进来</span>
+      </div>
+      <div class="evi">BattleCreateView.vue → payload.artists = [{artistId}]（不传 albumCount）<br>battle.service.js resolvePool('multi-artist') → take = 全部合格专辑<br>bracket.js 组容量 = min(3, 歌手数) → 3 歌手时每人 N 张 → 场次 = 3N + 2</div>
+      <div class="fix"><b>我的处理：</b>多歌手模式加"每位歌手取前 N 张"选择（默认 <b>4</b> 张，可选 3~6）。3 歌手 × 4 张 → <b>14 场</b>（原来 30+）。场次公式会写进文档并让前端实时显示"预计 N 场"。</div>
+    </div>
+
+    <div class="issue">
+      <h3>A4 轮空被显示成"战胜 — 0 : 0" <span class="tag t-bug">必修</span></h3>
+      <div class="row">
+        <span class="k">现象</span><span>夺冠之路里出现"半决赛 战胜 — 0 : 0"</span>
+        <span class="k">根因</span><span>某轮参赛数为奇数时有一张轮空，被当成一场"对手为空"的比赛渲染</span>
+      </div>
+      <div class="evi">battle.service.js getResult()：轮空场 rightAlbumId=null、winner=null → 前端取到 opponent=null<br>BattleResultView.vue:29 → 战胜 {{ opponent?.name || '—' }}，比分固定 0:0</div>
+      <div class="fix"><b>我的处理：</b>轮空场单独标记为「<b>轮空，直接晋级</b>」，不显示成对阵；夺冠之路按轮次成组展示。</div>
+    </div>
+
+    <div class="issue">
+      <h3>A5 按年代模式不可用 <span class="tag t-bug">必修</span></h3>
+      <div class="row">
+        <span class="k">现象</span><span>选"按年代"点开始 → 红字"这些专辑无法组成跨歌手对局"</span>
+        <span class="k">根因</span><span>两处叠加：①选择页<b>根本没有年代区间输入框</b>；②后端该模式返回的歌手列表为空，导致分组每组只有 1 张 → 0 场 → 报错</span>
+      </div>
+      <div class="evi">BattleCreateView.vue → era 模式无 year 输入（用默认 2000-2020）<br>battle.service.js resolvePool('era') → return { albums:list, artists: [] } ← 空<br>createBattle → groupAlbumsCrossArtist(albums, 0) → 组容量=1 → 0 场 → 抛"无法组成跨歌手对局"</div>
+      <div class="fix"><b>我的处理：</b>①加年代区间选择器；②后端从该区间专辑里提取真实歌手、按每歌手取前 N 张控制体量；③统一场次公式。修完"按年代"才真正可用。<b>（"手动挑选"目前也是未开放的占位，一并做掉。）</b></div>
+    </div>
+  </section>
+
+  <!-- 体验 -->
+  <section>
+    <h2><span class="n">B</span>体验问题（4 条 · 我直接改）</h2>
+    <div class="issue">
+      <h3>B1 轮次切换没有过渡 <span class="tag t-ux">体验</span></h3>
+      <div class="row"><span class="k">现象</span><span>小组赛打完直接跳半决赛，不看左上角文字根本不知道换轮了</span>
+      <span class="k">根因</span><span>投票页只刷新了对阵数据，没有任何"轮次变化"的提示</span></div>
+      <div class="fix"><b>我的处理：</b>加"小组赛结束 → 进入半决赛"过渡浮层（含本轮晋级名单一闪），轮次徽标加大 + 入场动效。</div>
+    </div>
+    <div class="issue">
+      <h3>B2 夺冠之路太单薄 <span class="tag t-ux">体验</span></h3>
+      <div class="fix"><b>我的处理：</b>重做成完整晋级路线：每轮「对手封面 + 比分 + 胜/轮空」逐轮串联，顶部冠军卡加大，并在下方补一段"冠军共经历 N 场、得票 M"的说明，让"为什么是冠军"一目了然。</div>
+    </div>
+    <div class="issue">
+      <h3>B3 指定对决结束太快 <span class="tag t-ux">体验</span></h3>
+      <div class="fix"><b>我的处理：</b>功能保留；结果页增强 —— 加胜负占比、双方胜场对比条、可"再来一组"按钮；创建页在只排 1 组时提示"组数偏少，结果参考性有限"。</div>
+    </div>
+    <div class="issue">
+      <h3>B4 选择歌手显示编号 <span class="tag t-ux">体验</span></h3>
+      <div class="row"><span class="k">根因</span><span>界面上直接把 iTunes 的 artistId（如 #300117743）列出来了</span></div>
+      <div class="fix"><b>我的处理：</b>去掉编号，改成「<b>头像（取该歌手首张专辑封面）+ 姓名 + 流派</b>」；同名歌手靠头像与流派区分。</div>
+    </div>
+  </section>
+
+  <!-- 设计 -->
+  <section>
+    <h2><span class="n">C</span>设计决策（2 条 · 我按规则定稿）</h2>
+    <div class="issue">
+      <h3>C1 对位赛平局无意义 + 10 张上限 <span class="tag t-design">设计</span></h3>
+      <div class="row"><span class="k">现象</span><span>陶喆 5 : 5 周杰倫，看着没意义；上限 10 张，周杰伦专辑多反而吃亏</span></div>
+      <div class="fix"><b>我的定稿：</b>①胜负规则改为「先比胜场，胜场相同比<b>总票数</b>」，都不分才算平局（对位赛每场只有 1 票，平局本就高频，用总票数兜底才合理）；②张数上限从 10 放宽到「各歌手可用专辑的最小值」，默认 5 张，前端实时显示预计场次，避免又长又懵。</div>
+    </div>
+    <div class="issue">
+      <h3>C2 还原 UI demo 首页 <span class="tag t-design">设计</span></h3>
+      <div class="row"><span class="k">现状</span><span>原型（19 页）里那套"你的最爱专辑，由你亲手决出"首页，目前线上还是简化版</span></div>
+      <div class="fix"><b>我的处理：</b>列为独立一批（视觉大改），从<b>首页 + 对决投票页</b>两个最高频页面开始还原，逐步铺到其余页面。范围与节奏见下方批次。</div>
+    </div>
+  </section>
+
+  <!-- 批次 -->
+  <section>
+    <h2><span class="n">D</span>建议执行顺序（分批交付）</h2>
+    <div class="batch">
+      <div class="bcard"><h4>批1 · bug 急救</h4><ul><li>A1 限流</li><li>A2 现场漏筛</li><li>A4 轮空显示</li></ul></div>
+      <div class="bcard"><h4>批2 · 赛制可用</h4><ul><li>A3 多歌手张数</li><li>A5 按年代修复</li><li>手动挑选补全</li></ul></div>
+      <div class="bcard"><h4>批3 · 交互体验</h4><ul><li>B1 轮次过渡</li><li>B2 夺冠之路</li><li>B3 指定对决</li><li>B4 歌手头像</li><li>C1 对位赛规则</li></ul></div>
+      <div class="bcard"><h4>批4 · UI 还原</h4><ul><li>C2 首页</li><li>投票页</li><li>其余页面</li></ul></div>
+    </div>
+    <div class="note">每批都会：先备份 → 改代码 → 跑自测（现有 verify 脚本 + 新增断言）→ 把结果贴给你 → git 提交。文档（需求/设计/接口/原型）同步更新。</div>
+  </section>
+
+  <!-- 待确认 -->
+  <section>
+    <h2><span class="n">E</span>需要你拍板的只有 2 件事</h2>
+    <p>按我们的规矩，底层逻辑（限流、场次公式、对位赛胜负规则、轮空显示）我已经定稿，不占用你决策。真正需要你点头的：</p>
+    <table>
+      <tr><th style="width:40px">①</th><td><b>是否按上面顺序开工？</b>（默认从批 1 开始，全是必修 bug）</td></tr>
+      <tr><th>②</th><td><b>要不要现在就排进"批 4 UI 还原"？</b>它是视觉大改、工作量最大；也可以等前面 bug 修完再启动。</td></tr>
+    </table>
+    <p style="color:var(--muted)">回一句"按这个来 / 只做批1-3 / 全部做"即可，我就动手。</p>
+  </section>
+
+  <footer>音格 · 反馈整改方案 · 2026-09-16 · 诊断基于当前 main 分支代码（commit 3149c12）</footer>
+</div>
+</body>
+</html>
