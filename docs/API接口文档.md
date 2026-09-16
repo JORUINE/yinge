@@ -127,7 +127,7 @@
 | M-05 | 音乐数据 | GET | /api/music/albums/:albumId/tracks | 公开 | FR-06 |
 | M-06 | 音乐数据 | GET | /api/music/albums/:albumId/preview | 公开 | FR-12 |
 | M-07 | 音乐数据 | GET | /api/music/genres | 公开 | FR-05 |
-| B-01 | 专辑对决 | POST | /api/battles | 需要 | FR-08、FR-26、FR-27 |
+| B-01 | 专辑对决 | POST | /api/battles | 需要 | FR-08、FR-26、FR-27、FR-33 |
 | B-02 | 专辑对决 | GET | /api/battles/:id | 需要 | FR-08 |
 | B-03 | 专辑对决 | GET | /api/battles/:id/next-match | 需要 | FR-09 |
 | B-04 | 专辑对决 | POST | /api/battles/:id/matches/:matchId/vote | 需要 | FR-09 |
@@ -401,7 +401,7 @@
 
 按选定范围创建一次对决。服务端先对候选专辑执行准入过滤，再按用户确认的名单生成对阵表并写入数据库。
 
-支持五种范围模式：
+支持六种范围模式：
 
 | scopeType | 含义 | 必填参数 |
 | --- | --- | --- |
@@ -410,6 +410,7 @@
 | `genre` / `era` | 按流派或年代 | `scopeKey`（`albumIds` 可选，用于收窄） |
 | `custom` | 手动挑选 | `albumIds` |
 | `aligned` | **对位赛**，2 至 4 位歌手按发行日期先后逐张对位，第 k 张对第 k 张 | `artists` + `alignCount` |
+| `duel` | **指定对决**，用户逐行指定对位组（每组 2 张，可跨歌手与年代） | `pairs` |
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
@@ -418,10 +419,11 @@
 | scopeKey | string | 否 | `artist` / `genre` / `era` 模式下的关键字 |
 | artists | object[] | 否 | `multi-artist` / `aligned` 模式下的歌手列表，最少 2 位、最多 6 位（`aligned` 最多 4 位） |
 | artists[].artistId | number | 是 | 歌手唯一标识 |
-| artists[].albumCount | number | 否 | 该歌手"最多取前 N 张"参赛（按发行时间升序），不填=取全部合格专辑；仅 `multi-artist` 生效 |
-| albumCount | number | 否 | 顶层参数，`artist` 模式下限制参赛张数（按发行时间升序取前 N 张）；其余模式忽略 |
-| albumCount | number | 否 | `artist` / `multi-artist` 模式下每位歌手"最多取前 N 张"参赛，**不填则取全部合格专辑**；`artist` 模式按发行时间升序取前 N 张 |
+| artists[].albumCount | number | 否 | `multi-artist` 模式下该歌手"最多取前 N 张"参赛（按发行时间升序），不填=取全部合格专辑 |
+| albumCount | number | 否 | 顶层参数：`artist` 模式下限制参赛张数（按发行时间升序取前 N 张）；`multi-artist` 请改用 `artists[].albumCount` |
 | albumIds | string[] | 否 | `custom` 模式下手动指定的专辑 |
+| pairs | array | 否 | `duel` 模式下的对位组：二维数组，每个元素为 `[专辑标识A, 专辑标识B]`（外部数字标识），最少 1 组、组数不设上限 |
+| alignMode | string | 否 | `aligned` 模式下的配对方式：`ordinal`（同序号，默认）/ `chrono`（年代就近） |
 
 ```json
 {
@@ -460,7 +462,7 @@
 
 实测该规则的效果：周杰伦 48 张筛出 17 张、林俊杰 80 张筛出 16 张、陈奕迅 122 张筛出 44 张、李荣浩 48 张筛出 8 张。
 
-失败情形：过滤后专辑少于 4 张返回 `1001`；范围无法解析或歌手检索无相关结果返回 `1002`；`multi-artist` 模式下歌手少于 2 位或超过 6 位返回 `1001`。
+失败情形：过滤后专辑少于 4 张返回 `1001`；范围无法解析或歌手检索无相关结果返回 `1002`；`multi-artist` 模式下歌手少于 2 位或超过 6 位返回 `1001`；`duel` 模式下 `pairs` 为空、某组不足 2 张或专辑标识无效返回 `1001`。
 
 说明：返回体中的 `hasBye` 表示是否安排了轮空（参赛数为奇数时为 `true`），该字段是"轮空处理"逻辑的直接体现；`filtered` 则体现准入过滤逻辑。
 
@@ -558,7 +560,7 @@
 
 ### 5.6 对决结果　GET /api/battles/:id/result　（需要登录）
 
-返回冠军与完整的夺冠路径，供结果页与分享图使用。
+返回冠军与完整的夺冠路径，供结果页与分享图使用。当 `scopeType` 为 `aligned` 或 `duel` 时不产生单一冠军，改为返回逐行对照表（`type` 为 `aligned`，含 `rows` 与按歌手的 `points`）。
 
 ```json
 {
@@ -936,7 +938,7 @@
 | --- | --- | --- |
 | battleId | string | 对决标识 |
 | userId | string | 发起用户 |
-| scopeType | string | 范围模式：`artist` / `multi-artist` / `genre` / `era` / `custom` / `aligned` |
+| scopeType | string | 范围模式：`artist` / `multi-artist` / `genre` / `era` / `custom` / `aligned` / `duel` |
 | scopeKey | string | 范围关键字（单范围模式使用） |
 | artists | array | 多歌手模式下参与的歌手标识与各自抽取数量 |
 | status | string | `playing` / `finished` |

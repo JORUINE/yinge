@@ -399,7 +399,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>POST</td>
 <td>/api/battles</td>
 <td>需要</td>
-<td>FR-08、FR-26、FR-27</td>
+<td>FR-08、FR-26、FR-27、FR-33</td>
 </tr>
 <tr>
 <td>B-02</td>
@@ -986,7 +986,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <h2 id="s4">五、专辑对决接口</h2>
 <h3 id="s34">5.1 创建对决　POST /api/battles　（需要登录）</h3>
 <p>按选定范围创建一次对决。服务端先对候选专辑执行准入过滤，再按用户确认的名单生成对阵表并写入数据库。</p>
-<p>支持五种范围模式：</p>
+<p>支持六种范围模式：</p>
 <table>
 <thead>
 <tr>
@@ -999,7 +999,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <tr>
 <td><code>artist</code></td>
 <td>单歌手，该歌手的专辑互相比</td>
-<td><code>scopeKey</code></td>
+<td><code>artistId</code>（必填；可选 <code>albumCount</code> 限制张数）</td>
 </tr>
 <tr>
 <td><code>multi-artist</code></td>
@@ -1020,6 +1020,11 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td><code>aligned</code></td>
 <td><strong>对位赛</strong>，2 至 4 位歌手按发行日期先后逐张对位，第 k 张对第 k 张</td>
 <td><code>artists</code> + <code>alignCount</code></td>
+</tr>
+<tr>
+<td><code>duel</code></td>
+<td><strong>指定对决</strong>，用户逐行指定对位组（每组 2 张，可跨歌手与年代）</td>
+<td><code>pairs</code></td>
 </tr>
 </tbody>
 </table>
@@ -1055,7 +1060,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>artists</td>
 <td>object[]</td>
 <td>否</td>
-<td><code>multi-artist</code> 模式下的歌手与抽取数量，最少 2 位、最多 6 位</td>
+<td><code>multi-artist</code> / <code>aligned</code> 模式下的歌手列表，最少 2 位、最多 6 位（<code>aligned</code> 最多 4 位）</td>
 </tr>
 <tr>
 <td>artists[].artistId</td>
@@ -1064,22 +1069,34 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <td>歌手唯一标识</td>
 </tr>
 <tr>
-<td>artists[].pick</td>
+<td>artists[].albumCount</td>
 <td>number</td>
 <td>否</td>
-<td>该歌手抽取的专辑数，默认 4，范围 3 至 5</td>
+<td><code>multi-artist</code> 模式下该歌手"最多取前 N 张"参赛（按发行时间升序），不填=取全部合格专辑</td>
 </tr>
 <tr>
-<td>artists[].albumIds</td>
-<td>string[]</td>
+<td>albumCount</td>
+<td>number</td>
 <td>否</td>
-<td>该歌手指定专辑，填写时忽略 <code>pick</code></td>
+<td>顶层参数：<code>artist</code> 模式下限制参赛张数（按发行时间升序取前 N 张）；<code>multi-artist</code> 请改用 <code>artists[].albumCount</code></td>
 </tr>
 <tr>
 <td>albumIds</td>
 <td>string[]</td>
 <td>否</td>
 <td><code>custom</code> 模式下手动指定的专辑</td>
+</tr>
+<tr>
+<td>pairs</td>
+<td>array</td>
+<td>否</td>
+<td><code>duel</code> 模式下的对位组：二维数组，每个元素为 <code>[专辑标识A, 专辑标识B]</code>（外部数字标识），最少 1 组、组数不设上限</td>
+</tr>
+<tr>
+<td>alignMode</td>
+<td>string</td>
+<td>否</td>
+<td><code>aligned</code> 模式下的配对方式：<code>ordinal</code>（同序号，默认）/ <code>chrono</code>（年代就近）</td>
 </tr>
 </tbody>
 </table>
@@ -1151,7 +1168,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 </tbody>
 </table>
 <p>实测该规则的效果：周杰伦 48 张筛出 17 张、林俊杰 80 张筛出 16 张、陈奕迅 122 张筛出 44 张、李荣浩 48 张筛出 8 张。</p>
-<p>失败情形：过滤后专辑少于 4 张返回 <code>1001</code>；范围无法解析或歌手检索无相关结果返回 <code>1002</code>；<code>multi-artist</code> 模式下歌手少于 2 位或超过 6 位返回 <code>1001</code>。</p>
+<p>失败情形：过滤后专辑少于 4 张返回 <code>1001</code>；范围无法解析或歌手检索无相关结果返回 <code>1002</code>；<code>multi-artist</code> 模式下歌手少于 2 位或超过 6 位返回 <code>1001</code>；<code>duel</code> 模式下 <code>pairs</code> 为空、某组不足 2 张或专辑标识无效返回 <code>1001</code>。</p>
 <p>说明：返回体中的 <code>hasBye</code> 表示是否安排了轮空（参赛数为奇数时为 <code>true</code>），该字段是"轮空处理"逻辑的直接体现；<code>filtered</code> 则体现准入过滤逻辑。</p>
 <h3 id="s35">5.2 对决详情　GET /api/battles/:id　（需要登录）</h3>
 <p>返回对决基本信息与完整对阵表。</p>
@@ -1184,16 +1201,21 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
   &quot;code&quot;: 0,
   &quot;message&quot;: &quot;ok&quot;,
   &quot;data&quot;: {
+    &quot;finished&quot;: false,
     &quot;matchId&quot;: &quot;6512f1b2c9e77b1d2a4f8e30&quot;,
-    &quot;roundIndex&quot;: 2,
+    &quot;roundName&quot;: &quot;semi&quot;,
+    &quot;roundIndex&quot;: 1,
     &quot;isRevival&quot;: false,
+    &quot;isBye&quot;: false,
     &quot;left&quot;: { &quot;albumId&quot;: 1440928842, &quot;name&quot;: &quot;范特西&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot;, &quot;previewUrl&quot;: &quot;https://...&quot; },
     &quot;right&quot;: { &quot;albumId&quot;: 1440929700, &quot;name&quot;: &quot;叶惠美&quot;, &quot;artworkUrl&quot;: &quot;https://...&quot;, &quot;previewUrl&quot;: &quot;https://...&quot; },
-    &quot;finished&quot;: false
+    &quot;progress&quot;: { &quot;decided&quot;: 12, &quot;total&quot;: 15 }
   }
 }
 </code></pre>
-<p>说明：<code>finished</code> 为 <code>true</code> 表示全部轮次结束，前端跳转结果页。</p>
+<p>说明：<code>left</code> / <code>right</code> 中的 <code>albumId</code> 是<strong>外部专辑标识</strong>（数字），投票时原样回传即可；<code>previewUrl</code> 为 30 秒试听地址，为空表示该专辑暂无试听资源。
+<code>finished</code> 为 <code>true</code> 表示全部场次已投完，前端跳转结果页，此时 <code>left</code>、<code>right</code> 为 <code>null</code>。
+<code>progress</code> 给出已投场次与总场次，其中 <code>total</code> 恒等于创建对决时返回的 <code>matchTotal</code>（由赛制推导）。</p>
 <h3 id="s37">5.4 投票　POST /api/battles/:id/matches/:matchId/vote　（需要登录）</h3>
 <table>
 <thead>
@@ -1207,19 +1229,27 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <tbody>
 <tr>
 <td>albumId</td>
-<td>string</td>
+<td>string / number</td>
 <td>是</td>
-<td>所投专辑，必须是该场次的左或右一方</td>
+<td>所投专辑的<strong>外部专辑标识</strong>（与上场次中的 <code>albumId</code> 一致），必须是该场次的左或右一方</td>
 </tr>
 </tbody>
 </table>
 <pre><code class="language-json">{
   &quot;code&quot;: 0,
   &quot;message&quot;: &quot;ok&quot;,
-  &quot;data&quot;: { &quot;matchId&quot;: &quot;6512f1b2c9e77b1d2a4f8e30&quot;, &quot;winnerAlbumId&quot;: 1440928842, &quot;nextReady&quot;: true }
+  &quot;data&quot;: {
+    &quot;invalid&quot;: false,
+    &quot;matchId&quot;: &quot;6512f1b2c9e77b1d2a4f8e30&quot;,
+    &quot;winnerAlbumId&quot;: 1440928842,
+    &quot;leftVotes&quot;: 14,
+    &quot;rightVotes&quot;: 6,
+    &quot;progress&quot;: { &quot;decided&quot;: 13, &quot;total&quot;: 15 }
+  }
 }
 </code></pre>
-<p>失败情形：同一场次重复投票返回 <code>3001</code>；<code>albumId</code> 不属于该场次返回 <code>1001</code>。</p>
+<p>说明：<code>winnerAlbumId</code> 为外部专辑标识；<code>invalid</code> 为 <code>true</code> 表示该票被判定为异常（不计入统计），此时 <code>message</code> 给出原因。</p>
+<p>失败情形：同一场次重复投票返回 <code>3001</code>；<code>albumId</code> 不属于该场次返回 <code>1001</code>；两次投票间隔过短返回 <code>1003</code>（该票不计违规）。</p>
 <h3 id="s38">5.5 确认复活赛　POST /api/battles/:id/revival　（需要登录）</h3>
 <p>小组赛结束后调用。服务端按规则选出复活专辑并生成复活赛场次。若该对决不含复活赛，返回 <code>1001</code>。</p>
 <pre><code class="language-json">{
@@ -1229,7 +1259,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 }
 </code></pre>
 <h3 id="s39">5.6 对决结果　GET /api/battles/:id/result　（需要登录）</h3>
-<p>返回冠军与完整的夺冠路径，供结果页与分享图使用。</p>
+<p>返回冠军与完整的夺冠路径，供结果页与分享图使用。当 <code>scopeType</code> 为 <code>aligned</code> 或 <code>duel</code> 时不产生单一冠军，改为返回逐行对照表（<code>type</code> 为 <code>aligned</code>，含 <code>rows</code> 与按歌手的 <code>points</code>）。</p>
 <pre><code class="language-json">{
   &quot;code&quot;: 0,
   &quot;message&quot;: &quot;ok&quot;,
@@ -1784,7 +1814,7 @@ footer{margin-top:26px;color:var(--tx3);font-size:13px;text-align:center}
 <tr>
 <td>scopeType</td>
 <td>string</td>
-<td>范围模式：<code>artist</code> / <code>multi-artist</code> / <code>genre</code> / <code>era</code> / <code>custom</code> / <code>aligned</code></td>
+<td>范围模式：<code>artist</code> / <code>multi-artist</code> / <code>genre</code> / <code>era</code> / <code>custom</code> / <code>aligned</code> / <code>duel</code></td>
 </tr>
 <tr>
 <td>scopeKey</td>

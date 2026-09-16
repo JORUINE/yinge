@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · 方案：指定对决与对位配对方式</title>
+<style>
+  :root{
+    --bg:#EDF6FC; --card:#FFFFFF; --ink:#0F2A3D; --ink2:#33566E; --muted:#5B7C93;
+    --brand:#0EA5E9; --brand-d:#0369A1; --brand-bg:#E0F2FE;
+    --accent:#F59E0B; --accent-bg:#FEF3C7;
+    --rose:#E11D48; --rose-bg:#FFE4E9;
+    --teal:#0D9488; --teal-bg:#CCFBF1;
+    --line:#D3E4F0; --line2:#E6F0F7;
+    --shadow:0 10px 30px rgba(15,42,61,.08), 0 2px 8px rgba(15,42,61,.05);
+    --r:16px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:
+      radial-gradient(1200px 600px at 12% -8%, #DBF0FB 0%, transparent 55%),
+      radial-gradient(900px 500px at 100% 0%, #EAF6FF 0%, transparent 50%),
+      var(--bg);
+    color:var(--ink);
+    font:16px/1.75 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:960px;margin:0 auto;padding:44px 24px 80px}
+  .kicker{letter-spacing:.24em;font-size:12.5px;font-weight:700;color:var(--brand);text-transform:uppercase}
+  h1{font-size:34px;line-height:1.3;margin:.28em 0 .18em;letter-spacing:-.01em}
+  h1 .hl{background:linear-gradient(180deg,transparent 62%, var(--accent-bg) 62%);padding:0 .12em;border-radius:4px}
+  .sub{color:var(--muted);font-size:16.5px;margin:0 0 20px}
+  .badges{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:34px}
+  .badge{font-size:12.5px;font-weight:700;padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink2);display:inline-flex;align-items:center;gap:7px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px var(--accent-bg)}
+  .badge.b-brand{border-color:#BAE6FD;background:var(--brand-bg);color:var(--brand-d)}
+  .badge.b-brand .dot{background:var(--brand);box-shadow:0 0 0 3px #fff}
+
+  section{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:28px 30px;margin:22px 0}
+  section.warn{border-color:#F6D9A8;background:linear-gradient(180deg,#FFFBF1 0%,#fff 40%)}
+  .num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:var(--brand);color:#fff;font-weight:800;font-size:14px;margin-right:11px;vertical-align:middle;box-shadow:0 4px 12px rgba(14,165,233,.35)}
+  section h2{font-size:21px;margin:0 0 6px;display:flex;align-items:center}
+  section h3{font-size:16.5px;margin:22px 0 8px;color:var(--brand-d)}
+  p{margin:9px 0;color:var(--ink2)}
+  .lead{font-size:16.5px;color:var(--ink)}
+  strong{color:var(--ink)}
+  .kbd{font:600 13.5px/1 ui-monospace,Consolas,monospace;background:var(--brand-bg);color:var(--brand-d);border:1px solid #BAE6FD;border-radius:6px;padding:3px 7px}
+  code{font:600 13.5px/1.4 ui-monospace,Consolas,monospace;background:#EFF6FB;color:#0B4A6F;border-radius:6px;padding:2px 6px}
+
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:14.5px}
+  th,td{border:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+  th{background:var(--brand-bg);color:var(--brand-d);font-weight:700;white-space:nowrap}
+  tr:nth-child(even) td{background:#F7FBFE}
+  .win{color:var(--rose);font-weight:700}
+  .lose{color:var(--teal);font-weight:700}
+  .muted{color:var(--muted)}
+
+  .quote{border-left:4px solid var(--accent);background:var(--accent-bg);border-radius:0 12px 12px 0;padding:13px 18px;color:#7A4A00;font-size:15.5px;margin:14px 0}
+  .quote b{color:#5A3600}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--line);border-radius:13px;padding:16px 18px;background:#FBFDFF}
+  .panel h4{margin:0 0 8px;font-size:15px;color:var(--ink)}
+  .panel.brand{border-color:#BAE6FD;background:linear-gradient(180deg,#F2FAFF,#fff)}
+  .panel.accent{border-color:#F6D9A8;background:linear-gradient(180deg,#FFFBF1,#fff)}
+  .panel .tag{font-size:11.5px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:999px;display:inline-block;margin-bottom:8px}
+  .tag.brand{background:var(--brand);color:#fff}
+  .tag.accent{background:var(--accent);color:#fff}
+  .tag.ghost{background:#E9F2F9;color:var(--ink2)}
+
+  /* steps */
+  .steps{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .step{flex:1;min-width:150px;border:1px solid var(--line);border-radius:12px;padding:13px 14px;background:#fff;position:relative}
+  .step .n{font-size:12px;font-weight:800;color:var(--brand);letter-spacing:.1em}
+  .step .t{font-weight:700;margin-top:3px;font-size:14.5px}
+  .step .d{font-size:13px;color:var(--muted);margin-top:4px}
+
+  /* wireframe */
+  .phone{border:2px solid #B9D6E8;border-radius:20px;padding:14px;background:#fff;max-width:360px;margin:16px auto;box-shadow:var(--shadow)}
+  .phone .bar{height:9px;border-radius:5px;background:#E7F1F8;margin-bottom:12px;width:42%}
+  .vsrow{display:grid;grid-template-columns:1fr 30px 1fr;align-items:center;gap:8px;margin:10px 0}
+  .alb{border:1px solid var(--line);border-radius:11px;padding:10px;background:#FBFDFF;text-align:center}
+  .alb .cov{height:52px;border-radius:8px;margin-bottom:7px;background:linear-gradient(135deg,#BAE6FD,#7DD3FC)}
+  .alb .nm{font-size:13px;font-weight:700;color:var(--ink)}
+  .alb .ar{font-size:11.5px;color:var(--muted)}
+  .vs{font-weight:900;color:var(--accent);text-align:center;font-size:15px}
+  .mockbtn{margin-top:10px;text-align:center;background:var(--brand);color:#fff;border-radius:10px;padding:9px;font-size:13.5px;font-weight:700}
+
+  ul{margin:8px 0 8px 2px;padding-left:20px;color:var(--ink2)}
+  li{margin:5px 0}
+  .callout{border-radius:12px;padding:14px 18px;margin:16px 0;border:1px dashed #9FD3EF;background:#F4FBFF;color:var(--ink2);font-size:14.5px}
+  .callout b{color:var(--brand-d)}
+  .decide{border:1px solid #BAE6FD;border-radius:14px;overflow:hidden;margin:16px 0}
+  .decide .hd{background:var(--brand);color:#fff;padding:11px 18px;font-weight:700}
+  .decide .bd{padding:16px 18px;background:#fff}
+  .opt{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px dashed var(--line)}
+  .opt:last-child{border-bottom:0}
+  .opt .k{flex:0 0 auto;width:26px;height:26px;border-radius:8px;background:#E9F2F9;color:var(--ink);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+  .opt.rec .k{background:var(--rose);color:#fff}
+  .footer{color:var(--muted);font-size:13.5px;text-align:center;margin-top:34px;line-height:1.9}
+  .hr{height:1px;background:var(--line2);margin:22px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="kicker">音格 · 玩法补充方案</div>
+  <h1>「<span class="hl">指定对决</span>」与「对位配对方式」</h1>
+  <p class="sub">解决"陶喆《黑色柳丁》 vs 周杰伦《Jay》"这类<b>跨序号</b>对战 · 支持<b>一次排多组对位</b></p>
+  <div class="badges">
+    <span class="badge b-brand"><span class="dot"></span>已纳入正式玩法</span>
+    <span class="badge"><span class="dot"></span>零改数据库结构</span>
+    <span class="badge">2026-09-16</span>
+  </div>
+
+  <!-- 1 问题 -->
+  <section>
+    <h2><span class="num">1</span>你提的真实诉求</h2>
+    <div class="quote">
+      "想拿陶喆的<b>黑色柳丁</b>比周杰伦的 <b>Jay</b>，这种情况怎么办？"
+    </div>
+    <p class="lead">现有「对位赛」的规则是：每位歌手按发行日期升序，<b>第 k 张对第 k 张</b>。这解决的是"首专对首专、二专对二专"，但配不出"跨序号"的组合：</p>
+
+    <table>
+      <thead>
+        <tr><th>序号</th><th>陶喆</th><th>比分</th><th>周杰伦</th><th>说明</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>第 1 张</td><td>David Tao（1997）</td><td class="muted">—</td><td>Jay（2000）</td><td>首专对首专 ✅</td></tr>
+        <tr><td>第 2 张</td><td>I'm OK（1999）</td><td class="muted">—</td><td>范特西（2001）</td><td>二专对二专 ✅</td></tr>
+        <tr><td>第 3 张</td><td><b>黑色柳丁（2002）</b></td><td class="muted">—</td><td>八度空间（2002）</td><td class="win">黑色柳丁配到的是八度空间，不是 Jay ✗</td></tr>
+      </tbody>
+    </table>
+
+    <p><b>原因</b>：黑色柳丁是陶喆的<b>第 3 张</b>，Jay 是周杰伦的<b>第 1 张</b>——序号不同，对位赛永远把这两张分到不同的组，<b>配不到一起</b>。</p>
+    <div class="callout">
+      <b>结论：</b>"对位赛"只能做"同序号的整齐对比"；要表达"任意两张直接对打"，需要一个<b>不按序号、由用户自己排对阵表</b>的新玩法——<b>一组可以，多组也可以</b>。这就是下面两条改动。
+    </div>
+  </section>
+
+  <!-- 2 方案A -->
+  <section>
+    <h2><span class="num">2</span>方案 A ｜ 指定对决（核心玩法 · 已纳入）</h2>
+    <p class="lead">用户像<b>自己排一张对阵表</b>：一行一行地指定"谁打谁"，可加任意多行；<b>每组两张专辑直接 1 对 1</b>，全部投完出一张<b>逐行对照表</b>。不受歌手、序号、年代任何限制——想比谁就比谁。</p>
+
+    <div class="steps">
+      <div class="step"><div class="n">STEP 1</div><div class="t">搜索并加专辑</div><div class="d">跨歌手、跨年代都行；30 秒试听</div></div>
+      <div class="step"><div class="n">STEP 2</div><div class="t">逐行排对位</div><div class="d">一行一组，点"再加一组"</div></div>
+      <div class="step"><div class="n">STEP 3</div><div class="t">逐组投票</div><div class="d">同现有投票 & 防刷票规则</div></div>
+      <div class="step"><div class="n">STEP 4</div><div class="t">对照表 + 分享图</div><div class="d">复用对位赛结果视图</div></div>
+    </div>
+
+    <h3>对阵表 → 结果（示意）</h3>
+    <div class="phone" style="max-width:440px">
+      <div class="bar"></div>
+      <div class="vsrow">
+        <div class="alb"><div class="cov"></div><div class="nm">黑色柳丁</div><div class="ar">陶喆 · 2002</div></div>
+        <div class="vs">VS</div>
+        <div class="alb"><div class="cov" style="background:linear-gradient(135deg,#FED7AA,#FDBA74)"></div><div class="nm">Jay</div><div class="ar">周杰伦 · 2000</div></div>
+      </div>
+      <div class="vsrow">
+        <div class="alb"><div class="cov" style="background:linear-gradient(135deg,#A7F3D0,#6EE7B7)"></div><div class="nm">范特西</div><div class="ar">周杰伦 · 2001</div></div>
+        <div class="vs">VS</div>
+        <div class="alb"><div class="cov" style="background:linear-gradient(135deg,#DDD6FE,#C4B5FD)"></div><div class="nm">太平盛世</div><div class="ar">陶喆 · 2005</div></div>
+      </div>
+      <div class="vsrow">
+        <div class="alb"><div class="cov" style="background:linear-gradient(135deg,#FBCFE8,#F9A8D4)"></div><div class="nm">叶惠美</div><div class="ar">周杰伦 · 2003</div></div>
+        <div class="vs">VS</div>
+        <div class="alb"><div class="cov" style="background:linear-gradient(135deg,#BAE6FD,#7DD3FC)"></div><div class="nm">I'm OK</div><div class="ar">陶喆 · 1999</div></div>
+      </div>
+      <div class="mockbtn">开打 → 逐行对照表</div>
+    </div>
+    <p class="muted" style="font-size:14px;text-align:center;margin-top:0">上图 3 行只是示意；原则上是<b>想加多少组就加多少组</b>，最少 1 组。</p>
+
+    <div class="grid2">
+      <div class="panel brand">
+        <span class="tag brand">核心能力 · 已纳入玩法</span>
+        <h4>1 组起，可加到多组</h4>
+        <p style="margin:4px 0">最少 1 组（两张单挑），也支持一次排多组。结果统一是<b>逐行对照表</b>——组数越多，这张表越像"你自制的乐评对阵"。</p>
+      </div>
+      <div class="panel accent">
+        <span class="tag accent">为什么值得做</span>
+        <h4>把"发起对决"的权力交给用户</h4>
+        <p style="margin:4px 0">每个人都能排自己的"关公战秦琼"（比如黑色柳丁 vs Jay），天然适合分享，比固定赛制更有话题性与传播力。</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      <b>与对位赛的关系：</b>两者是<b>一对兄弟</b>——「对位赛」= 系统<b>自动</b>按序号配对，「指定对决」= 用户<b>手排</b>配对；两者结果都出<b>同一张对照表</b>。放在一起讲，答辩时是个很清晰的产品结构。
+    </div>
+  </section>
+
+  <!-- 3 方案B -->
+  <section>
+    <h2><span class="num">3</span>方案 B ｜ 对位赛的「配对方式」</h2>
+    <p>你说的"<b>默认按发行顺序年代对比</b>"——先澄清一件事：<b>对位赛现在就是按发行日期升序对比的</b>（第 k 张对第 k 张），所以"按发行顺序"这点<b>已经是现状</b>。真正需要补的是另一种配对口径：</p>
+
+    <table>
+      <thead><tr><th>配对方式</th><th>规则</th><th>适合问的问题</th><th>状态</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>同序号</b><br><span class="kbd">ordinal</span></td>
+          <td>第 1 张对第 1 张、第 2 张对第 2 张（各自按发行日期排序后）</td>
+          <td>"各自的首专谁更好"</td>
+          <td><span class="tag brand" style="margin:0">默认 · 保留</span></td>
+        </tr>
+        <tr>
+          <td><b>年代就近</b><br><span class="kbd">chrono</span></td>
+          <td>把两位歌手所有专辑排到<b>同一条时间轴</b>，把<b>发行时间最接近</b>的异歌手专辑配成一组（一对一，不重复）</td>
+          <td>"1999–2002 这几年谁的作品更能打"</td>
+          <td><span class="tag ghost" style="margin:0">新增 · 可选</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>年代就近（chrono）长什么样（示例）</h3>
+    <p class="muted" style="font-size:14px">陶喆：97 / 99 / 02 / 05　｜　周杰伦：00 / 01 / 02 / 03</p>
+    <table>
+      <thead><tr><th>配对</th><th>陶喆</th><th>周杰伦</th><th>年份差</th></tr></thead>
+      <tbody>
+        <tr><td>①</td><td>I'm OK（1999）</td><td>Jay（2000）</td><td>1 年</td></tr>
+        <tr><td>②</td><td>黑色柳丁（2002）</td><td>八度空间（2002）</td><td>0 年</td></tr>
+        <tr><td>③</td><td>太平盛世（2005）</td><td>叶惠美（2003）</td><td>2 年</td></tr>
+        <tr><td>④</td><td>David Tao（1997）</td><td>范特西（2001）</td><td>4 年</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="font-size:14px">规则：每次从"未配对"里挑<b>年份差最小</b>的一对，配掉后继续；专辑数不等时多出的轮空。</p>
+
+    <div class="callout">
+      <b>已定（采用推荐 A）：</b>对位赛<b>默认保持"同序号"</b>，把"年代就近"作为<b>可选项</b>。理由：现有赛制公式、UI 原型、自动化测试都建立在"同序号"上，改默认会牵动多处；而你的核心诉求（黑色柳丁 vs Jay）用<b>方案 A 已经能完美解决</b>，不必动对位赛的地基。若你更想要"年代就近当默认"，一句话就能切换。
+    </div>
+  </section>
+
+  <!-- 4 数据接口 -->
+  <section>
+    <h2><span class="num">4</span>数据与接口：零改结构（沿用现有设计原则）</h2>
+    <p>延续项目一贯的做法——<b>玩法差异在赛制服务内部消化，数据层与接口层保持统一</b>。不新增集合、不改 ER 图。</p>
+    <table>
+      <thead><tr><th>改动点</th><th>内容</th><th>影响面</th></tr></thead>
+      <tbody>
+        <tr><td>对决类型</td><td><code>scopeType</code> 增加取值 <code>duel</code>（指定对决 / 自定义对位，<b>支持多组</b>）</td><td>枚举 +1，其余不动</td></tr>
+        <tr><td>场次记录</td><td>每个对位组一行，复用 <code>battle_matches</code>（<code>roundName='duel'</code>，<code>roundIndex</code>=第几组）</td><td>不新增集合</td></tr>
+        <tr><td>创建接口 B-01</td><td><code>scopeType:'duel'</code> + <code>pairs</code>（对位组数组，每组 2 张专辑，<b>≥1 组</b>）；<code>aligned</code> 新增可选 <code>alignMode</code></td><td>参数 +2，向后兼容</td></tr>
+        <tr><td>结果接口 B-06</td><td><code>duel</code> 复用对位赛的<b>逐行对照表</b>返回结构（多行即多组）</td><td>复用，不新增</td></tr>
+        <tr><td>前端页面</td><td>新增 1 个"指定对决"页（排对阵表 + 逐组投票）；结果与投票复用现有组件</td><td>页面 +1</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><b>一句话：</b>这不是"加一个大玩法"，而是"给现有对决引擎加一个新入口"。所以它<b>不会拖慢整体进度</b>。</div>
+  </section>
+
+  <!-- 5 分期 -->
+  <section>
+    <h2><span class="num">5</span>分期路线</h2>
+    <table>
+      <thead><tr><th>阶段</th><th>做什么</th><th>备注</th></tr></thead>
+      <tbody>
+        <tr><td><b>现在</b></td><td>需求 / 设计定稿（即本方案）；你确认后我同步进《需求分析文档》《系统设计文档》《API 接口文档》并重生成 Word</td><td>只动文档，不动代码</td></tr>
+        <tr><td><b>下一步</b></td><td>实现"指定对决"完整版：<b>1–N 组自定义对位 + 逐行对照表</b>（后端 1 个入口 + 前端 1 个页面，复用投票与结果视图）</td><td>核心玩法 · 等你说开工</td></tr>
+        <tr><td><b>以后</b></td><td>年代就近设为对位默认 / 智能推荐对手 / 对位模板可分享</td><td>锦上添花，按需再加</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 6 结论 -->
+  <section class="warn">
+    <h2><span class="num">6</span>本轮结论</h2>
+    <table>
+      <thead><tr><th>结论</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>① 指定对决</td><td><b>正式纳入核心玩法</b>：最少 1 组，可加多组；每组两张直接单挑，结果出<b>逐行对照表</b>。✅</td></tr>
+        <tr><td>② 对位配对方式</td><td>采用推荐 A：<b>同序号保持默认</b>，新增"年代就近"为可选项。✅（想改 B 随时说）</td></tr>
+        <tr><td>③ 下一步</td><td>把以上落进《需求》《设计》《API》三份正式文档 + 重生成 Word + 加入门户；<b>代码按你的节奏实现</b>。</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-bottom:0" class="muted">你只要回一句"<b>可以，往下走</b>"，我就开始落正式文档。</p>
+  </section>
+
+  <div class="footer">
+    音格 · 玩法补充方案 · 2026-09-16　｜　本方案为评审稿，确认后落进《需求分析文档》《系统设计文档》《API 接口文档》三份正式交付物
+  </div>
+
+</div>
+</body>
+</html>
