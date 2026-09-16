@@ -78,9 +78,11 @@ export const config = {
   },
 
   vote: {
-    minIntervalMs: intEnv('VOTE_MIN_INTERVAL_MS', 3000),
-    perMinuteLimit: intEnv('VOTE_PER_MINUTE_LIMIT', 20),
-    perDayLimit: intEnv('VOTE_PER_DAY_LIMIT', 300),
+    // 轻度限流：只拦"脚本式疯狂点击"，不拦正常手速（2026-09-16 修复误拦）。
+    // 300ms ≈ 上限每秒 3 票；熟练用户连续快速投票不会再被误判为"操作过于频繁"。
+    minIntervalMs: intEnv('VOTE_MIN_INTERVAL_MS', 300),
+    perMinuteLimit: intEnv('VOTE_PER_MINUTE_LIMIT', 120),
+    perDayLimit: intEnv('VOTE_PER_DAY_LIMIT', 800),
   },
 };
 

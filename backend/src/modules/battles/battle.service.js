@@ -705,6 +705,18 @@ export async function getResult(battleId, userId) {
       )
       .sort((a, b) => a.matchOrder - b.matchOrder);
     for (const m of involved) {
+      if (m.isBye) {
+        // 轮空：无对手、无比分，标记为"直接晋级"，不再渲染成"战胜 — 0 : 0"（2026-09-16 修复）
+        path.push({
+          roundName: m.roundName,
+          roundIndex: m.roundIndex,
+          opponent: null,
+          score: null,
+          won: true,
+          isBye: true,
+        });
+        continue;
+      }
       const isLeft = String(m.leftAlbumId) === String(battle.championAlbumId);
       const opponent = albumMap.get(String(isLeft ? m.rightAlbumId : m.leftAlbumId)) || null;
       path.push({
@@ -713,6 +725,7 @@ export async function getResult(battleId, userId) {
         opponent: opponent ? musicService.serializeAlbum(opponent) : null,
         score: isLeft ? `${m.leftVotes} : ${m.rightVotes}` : `${m.rightVotes} : ${m.leftVotes}`,
         won: String(m.winnerAlbumId) === String(battle.championAlbumId),
+        isBye: false,
       });
     }
   }

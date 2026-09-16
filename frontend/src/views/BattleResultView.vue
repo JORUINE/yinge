@@ -26,8 +26,15 @@
           <ol class="path">
             <li v-for="(p, i) in data.path" :key="i">
               <span class="rnd">{{ roundName(p.roundName) }}</span>
-              <span>战胜 <strong>{{ p.opponent?.name || '—' }}</strong></span>
-              <span class="num score">{{ p.score }}</span>
+              <template v-if="p.isBye">
+                <span>轮空 · <strong>直接晋级</strong></span>
+                <span class="num score muted">—</span>
+              </template>
+              <template v-else>
+                <span v-if="p.won">战胜 <strong>{{ p.opponent?.name || '—' }}</strong></span>
+                <span v-else>不敌 <strong>{{ p.opponent?.name || '—' }}</strong></span>
+                <span class="num score">{{ p.score }}</span>
+              </template>
             </li>
           </ol>
         </section>

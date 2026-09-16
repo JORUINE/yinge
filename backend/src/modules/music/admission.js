@@ -28,18 +28,43 @@ export const RULE_LABELS = {
   DEDUPE: '同名去重',
 };
 
-function hitKeyword(name, list) {
-  const lower = String(name || '').toLowerCase();
-  return list.some((kw) => lower.includes(String(kw).toLowerCase()));
+/**
+ * 繁体 → 简体 归一化映射（覆盖专辑名高频繁体字）。
+ * 关键词表只维护简体写法，也能命中繁体专辑名——例如「現場原音專輯」必须被
+ * live 关键词「现场」拦下（2026-09-16 修复 Soul Power 这类演唱会专辑漏筛）。
+ */
+const TRAD_TO_SIMP = {
+  現: '现', 場: '场', 會: '会', 選: '选', 華: '华', 輯: '辑', 裝: '装', 聲: '声',
+  樂: '乐', 團: '团', 經: '经', 專: '专', 愛: '爱', 夢: '梦', 記: '记', 憶: '忆',
+  願: '愿', 緣: '缘', 舊: '旧', 歲: '岁', 萬: '万', 長: '长', 詞: '词', 編: '编',
+  從: '从', 來: '来', 這: '这', 個: '个', 們: '们', 時: '时', 間: '间', 對: '对',
+  開: '开', 關: '关', 錄: '录', 製: '制', 電: '电', 視: '视', 劇: '剧', 語: '语',
+  國: '国', 無: '无', 為: '为', 與: '与', 體: '体', 題: '题', 舉: '举', 藝: '艺',
+  術: '术', 館: '馆', 書: '书', 頭: '头', 該: '该', 進: '进', 過: '过', 還: '还',
+  讓: '让', 點: '点', 熱: '热', 賣: '卖', 買: '买', 錯: '错', 髮: '发', 隻: '只',
+};
+const TRAD_RE = new RegExp(`[${Object.keys(TRAD_TO_SIMP).join('')}]`, 'g');
+
+/** 文本归一化：全角空格→空格、压缩空白、转小写、繁体转简体。关键词与专辑名两侧都用它比对。 */
+export function normalizeText(input) {
+  return String(input || '')
+    .replace(/\u3000/g, ' ')
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(TRAD_RE, (ch) => TRAD_TO_SIMP[ch]);
 }
 
-/** 归一化专辑名：去掉括号后缀、版本后缀与标点，用于同名判定 */
+function hitKeyword(name, list) {
+  const hay = normalizeText(name);
+  return list.some((kw) => hay.includes(normalizeText(kw)));
+}
+
+/** 归一化专辑名：繁简/大小写归一 + 去掉括号后缀、版本后缀与标点，用于同名判定 */
 export function normalizeAlbumName(name) {
-  return String(name || '')
-    .toLowerCase()
+  return normalizeText(name)
     .replace(/\(.*?\)|\[.*?\]|（.*?）|【.*?】/g, '')
     .replace(
-      /deluxe|豪华|豪華|remaster(ed)?|重制|reissue|expanded|special edition|platinum edition|anniversary|限量版?/gi,
+      /deluxe|豪华|remaster(ed)?|重制|reissue|expanded|special edition|platinum edition|anniversary|限量版?/gi,
       '',
     )
     .replace(/[\s\-_·.,'"!?&/\\|:;]/g, '')
