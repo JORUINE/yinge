@@ -3,41 +3,38 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>音格 · 对决赛制升级方案（对齐音乐世界杯）</title>
+<title>音格 · 赛制与交互升级方案 v2（对齐音乐世界杯 · 实测版）</title>
 <style>
-  :root{--brand:#0ea5e9;--accent:#f97316;--bg:#edf6fc;--ink:#0f172a;--muted:#64748b;
-    --line:#d6e6f2;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--card:#fff}
+  :root{--brand:#7c3aed;--accent:#f97316;--bg:#f5f3ff;--ink:#0f172a;--muted:#64748b;
+    --line:#e4e0f5;--ok:#16a34a;--warn:#d97706;--bad:#dc2626;--card:#fff}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
-    color:var(--ink);background:linear-gradient(180deg,#e8f4fc,#edf6fc 240px);line-height:1.7}
+    color:var(--ink);background:linear-gradient(180deg,#f0ecfe,#f5f3ff 240px);line-height:1.7}
   .wrap{max-width:980px;margin:0 auto;padding:32px 20px 72px}
   .pill{display:inline-block;background:var(--brand);color:#fff;font-size:12px;padding:3px 10px;
     border-radius:999px;margin-bottom:12px;letter-spacing:.04em}
-  h1{font-size:30px;margin:0 0 6px}
+  h1{font-size:29px;margin:0 0 6px}
   header p{color:var(--muted);margin:0}
   section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;
-    margin:16px 0;box-shadow:0 6px 22px rgba(14,165,233,.06)}
+    margin:16px 0;box-shadow:0 6px 22px rgba(124,58,237,.06)}
   h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
   h2 .n{background:var(--brand);color:#fff;min-width:26px;height:26px;border-radius:8px;
-    display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:0 6px}
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;padding:0 6px;white-space:nowrap}
   p,li{color:#1f2d3d;margin:6px 0}
-  code{background:#eef6fc;color:#0b5c8a;padding:2px 7px;border-radius:6px;font-size:13px;
+  code{background:#f1ecfe;color:#5b21b6;padding:2px 7px;border-radius:6px;font-size:13px;
     font-family:ui-monospace,Menlo,monospace}
   table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
   th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
-  th{background:#f1f8ff}
+  th{background:#f7f4ff}
   .tag{font-size:12px;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .t-new{background:#dcfce7;color:#15803d}
+  .t-bor{background:#ede9fe;color:#5b21b6}
+  .t-fix{background:#fff7ed;color:#9a3412}
   .t-ok{background:#dcfce7;color:#15803d}
-  .t-bad{background:#fee2e2;color:#b91c1c}
-  .t-warn{background:#fef3c7;color:#92400e}
   .fix{border-left:4px solid var(--ok);background:#f0fdf4;padding:10px 14px;border-radius:0 8px 8px 0;margin-top:10px}
   .note{border-left:4px solid var(--warn);background:#fff7ed;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
-  .ask{border-left:4px solid var(--brand);background:#f0f9ff;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:760px){.two{grid-template-columns:1fr}}
-  .mini{background:#fbfdff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-  .mini h4{margin:0 0 6px;font-size:15px}
-  .mini ul{margin:0;padding-left:18px;font-size:13.6px}
+  .ask{border-left:4px solid var(--brand);background:#faf8ff;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
+  .wrong{border-left:4px solid var(--bad);background:#fef2f2;padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0}
   .figbox{overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px 4px}
   footer{color:var(--muted);font-size:13px;text-align:center;margin-top:22px}
 </style>
@@ -45,170 +42,161 @@
 <body>
 <div class="wrap">
   <header>
-    <span class="pill">音格 · 玩法升级</span>
-    <h1>对决赛制升级方案：纯单败淘汰（对齐音乐世界杯）</h1>
-    <p>本文档是《10 项反馈整改方案》中「赛制玩法」部分的<b>最终细化版</b>（含 A3 / A5 / B1 / B2）；如与整改方案表述不一致，以本文档为准。</p>
+    <span class="pill">音格 · 方案 v2（替换 v1）</span>
+    <h1>赛制与交互升级方案 v2 · 对齐音乐世界杯</h1>
+    <p>本文档<b>替换</b> 2026-09-16 的 v1 方案（v1 提出的"砍成纯单败淘汰"已作废，理由见第二节）。依据：我实际抓取了 musiccup.app 的官方玩法说明 + 你提供的 7 张操作截图。</p>
   </header>
-
-  <!-- 速览 -->
-  <section>
-    <h2><span class="n">结论</span>一句话说清</h2>
-    <p style="font-size:16px">把现在的「小组循环 + 淘汰赛」改成<b>纯单败淘汰赛</b>（就是音乐世界杯那套），并给每位歌手<b>限制参赛张数</b>：</p>
-    <table>
-      <tr><th style="width:150px">问题</th><th>现状</th><th>升级后</th></tr>
-      <tr><td><b>参赛张数</b></td><td>多歌手模式把每人<b>全部</b>专辑都拉进来</td><td>每位歌手最多 <b>4 张</b>，全场总量封顶 <b>16 张</b></td></tr>
-      <tr><td><b>总场次</b></td><td>3 位歌手 ≈ <b>30 场</b>（截图 11/30）</td><td>3 位歌手 = 12 张 → <b>11 场</b>；最多 15 场</td></tr>
-      <tr><td><b>冠军之路</b></td><td>冠军只打 4 场，「战胜 — 0:0」看不懂</td><td>冠军<b>场场都打</b>，完整对阵树一眼看清</td></tr>
-      <tr><td><b>每一步反馈</b></td><td>投完只跳下一场，没有"我走到哪了"</td><td>每票推进对阵树 + 每轮结束有"战报"过渡</td></tr>
-    </table>
-  </section>
 
   <!-- 一 -->
   <section>
-    <h2><span class="n">一</span>现在的赛制哪里别扭</h2>
-    <ul>
-      <li><b>场次被"每人全部专辑"撑爆。</b>后端 <code>albumCount</code> 其实是支持的（自测脚本里就用 4 张/人 测过），<b>只是前端没给输入框</b>，于是默认把每位歌手的合格专辑全拉进来 → 3 位歌手直接 30 场。</li>
-      <li><b>小组循环里"有白打的场次"。</b>一个 3 人小组要打 3 场，等前面分出胜负后，后面那场对晋级已无影响 —— 用户会觉得"这也要投？"。</li>
-      <li><b>冠军的份量看不出来。</b>小组赛打半天，冠军其实只在小组里打 2 场 + 半决赛 + 决赛 = 4 场，用户觉得"冠军只打败这么一点"。</li>
-      <li><b>轮空被当成比赛显示。</b>某轮奇数时有一张直接晋级，结果页渲染成"战胜 — 0 : 0"。（这条在批 1 已修）</li>
-    </ul>
+    <h2><span class="n">一</span>先承认：v1 方向错了</h2>
+    <div class="wrong">
+      <b>v1 的判断：</b>"取消小组赛、改纯单败淘汰、每位歌手只取 4 张" —— 目标是让场次变少。<br>
+      <b>错在哪：</b>音乐世界杯<b>比我们还长</b>（最多 48 首、含小组赛 + 复活赛 + 淘汰赛，淘汰赛 32 强要打 31 场），它却一点也不"累"。所以问题从来不是"场次多"，而是<b>没有阶段感、没有回馈、没有"我在哪"</b>。把它砍短，等于把优点也砍掉了。
+    </div>
   </section>
 
   <!-- 二 -->
   <section>
-    <h2><span class="n">二</span>音乐世界杯的机制：借什么、创什么</h2>
-    <div class="two">
-      <div class="mini">
-        <h4>借它的（它做得确实好）</h4>
-        <ul>
-          <li><b>单败淘汰</b>：每场都是生死战，没有"可投可不投"的场次。</li>
-          <li><b>完整对阵树</b>：从第一轮到决赛的全部对局都画出来，冠军怎么来的<b>直白客观</b>。</li>
-          <li><b>每一步都有反馈</b>：每选定一次，对阵树就往下一格推进一格，用户始终知道"我走到哪了"。</li>
-          <li><b>终局卡片可存可分享</b>：一张图带走全套赛程 + 冠军。</li>
-        </ul>
-      </div>
-      <div class="mini">
-        <h4>创我们的（差异化，答辩加分）</h4>
-        <ul>
-          <li>比的是<b>专辑</b>不是单曲 —— 有封面、年份、曲目数，信息量更大、更有"作品"感。</li>
-          <li><b>专辑准入过滤</b>：先剔掉现场 / 精选 / 原声等，保证"公平比录音室作品"（音乐世界杯不做这个）。</li>
-          <li><b>跨歌手混战</b>：多位歌手的专辑同池竞技，这是它没有的玩法。</li>
-          <li>接上我们的<b>用户系统 + 全球榜 + 人格测试</b>：一套底层跑两个玩法。</li>
-        </ul>
-      </div>
-    </div>
+    <h2><span class="n">二</span>音乐世界杯的真实机制（实测）</h2>
+    <table>
+      <tr><th style="width:120px">环节</th><th>它的做法</th><th>我们现在</th></tr>
+      <tr><td>① 选歌手</td><td>搜一位歌手，自动抓曲库</td><td>✅ 一样</td></tr>
+      <tr><td>② 选规模</td><td><b>热门 / 随机 / 自选</b> 三种曲库，参赛规模<b>按曲库自动匹配，最多 48 首</b></td><td>❌ 没有规模概念，直接全拉 → 30+ 场</td></tr>
+      <tr><td>③ 小组赛</td><td><b>每组 4 首，一次选 2 首晋级</b>（不是两两对决！）</td><td>⚠️ 有小组赛，但是"组内 3 张两两对决"（3 场）</td></tr>
+      <tr><td>④ 遗珠复活赛</td><td>落选的里再捞回 8 个名额</td><td>⚠️ 有复活赛，但规则不同</td></tr>
+      <tr><td>⑤ 淘汰赛</td><td>1v1，逐轮减半到冠军</td><td>⚠️ 有半决赛/决赛，但 4 强封顶</td></tr>
+      <tr><td>⑥ 冠军页</td><td>动效 → 冠军大图 → 亚军/四强 → 分享对阵图 / 再来一场 / 和好友一起玩 / Apple Music</td><td>❌ 只有一行"冠军专辑 + 战胜 X 0:0"</td></tr>
+      <tr><td>⑦ 进度保存</td><td>进度自动存在浏览器，关掉回来接着打</td><td>❌ 没有</td></tr>
+      <tr><td>⑧ 排行榜</td><td>赛果匿名汇入全球榜，看"哪首歌夺冠最多"</td><td>⚠️ 有榜，但没"夺冠次数"口径</td></tr>
+    </table>
+    <div class="note"><b>最关键的一条：</b>它的<b>小组赛是"一次从 4 首里选 2 首"</b>，不是两两对决。这一个设计就把小组赛的操作量压到 <b>1/3</b>（我们的 3 张组要投 3 次，它只要 1 次）。这才是它"长而不累"的真正秘密。</div>
   </section>
 
   <!-- 三 -->
   <section>
-    <h2><span class="n">三</span>新赛制长什么样</h2>
+    <h2><span class="n">三</span>新流程长什么样</h2>
     <div class="figbox">
-      <svg viewBox="0 0 680 300" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
-        <title>现制与拟改纯单败淘汰赛的对比</title>
-        <desc>上排是现在的小组循环加淘汰赛：12 张专辑打 15 场，歌手多时超过 30 场，冠军只打 4 场。下排是拟改的纯单败淘汰赛：16 张专辑逐轮减半，冠军打满 4 轮共 15 场；8 张 7 场，12 张 11 场。</desc>
+      <svg viewBox="0 0 680 250" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>升级后的对决流程</title>
+        <desc>参赛池按用户选的规模生成；先打小组赛（每组四张一次选两张晋级）；落选专辑进入遗珠复活赛捞回若干名额；之后 1v1 淘汰赛逐轮减半决出冠军；冠军页生成晋级之路分享图，并把赛果汇入全球榜。</desc>
         <defs>
-          <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-            <path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </marker>
         </defs>
+        <rect x="40" y="40" width="112" height="52" rx="8" fill="#ede9fe" stroke="#a78bfa" stroke-width="0.5"/>
+        <text x="96" y="59" font-size="13.5" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#3c3489">参赛池</text>
+        <text x="96" y="77" font-size="11.5" text-anchor="middle" dominant-baseline="central" fill="#5b21b6">你选规模</text>
+        <line x1="154" y1="66" x2="168" y2="66" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a2)"/>
+        <rect x="170" y="40" width="112" height="52" rx="8" fill="#ede9fe" stroke="#a78bfa" stroke-width="0.5"/>
+        <text x="226" y="59" font-size="13.5" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#3c3489">小组赛</text>
+        <text x="226" y="77" font-size="11.5" text-anchor="middle" dominant-baseline="central" fill="#5b21b6">每组 4 张选 2</text>
+        <line x1="284" y1="66" x2="298" y2="66" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a2)"/>
+        <rect x="300" y="40" width="112" height="52" rx="8" fill="#ede9fe" stroke="#a78bfa" stroke-width="0.5"/>
+        <text x="356" y="59" font-size="13.5" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#3c3489">遗珠复活</text>
+        <text x="356" y="77" font-size="11.5" text-anchor="middle" dominant-baseline="central" fill="#5b21b6">捞回落选的</text>
+        <line x1="414" y1="66" x2="428" y2="66" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a2)"/>
+        <rect x="430" y="40" width="112" height="52" rx="8" fill="#ede9fe" stroke="#a78bfa" stroke-width="0.5"/>
+        <text x="486" y="59" font-size="13.5" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#3c3489">淘汰赛 1v1</text>
+        <text x="486" y="77" font-size="11.5" text-anchor="middle" dominant-baseline="central" fill="#5b21b6">逐轮减半</text>
+        <line x1="544" y1="66" x2="558" y2="66" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a2)"/>
+        <rect x="560" y="40" width="80" height="52" rx="8" fill="#c4b5fd" stroke="#7c3aed" stroke-width="0.5"/>
+        <text x="600" y="59" font-size="13.5" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#26215c">冠军</text>
+        <text x="600" y="77" font-size="11.5" text-anchor="middle" dominant-baseline="central" fill="#3c3489">登顶</text>
 
-        <text x="40" y="34" font-size="13" font-weight="600" fill="#64748b">现在：小组循环 + 淘汰赛</text>
-        <rect x="40" y="46" width="176" height="44" rx="8" fill="#fee2e2" stroke="#f09595" stroke-width="0.5"/>
-        <text x="128" y="68" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#501313">小组赛 · 循环</text>
-        <line x1="218" y1="68" x2="250" y2="68" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
-        <rect x="254" y="46" width="150" height="44" rx="8" fill="#fee2e2" stroke="#f09595" stroke-width="0.5"/>
-        <text x="329" y="68" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#501313">半决赛 2 场</text>
-        <line x1="406" y1="68" x2="438" y2="68" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
-        <rect x="442" y="46" width="150" height="44" rx="8" fill="#fee2e2" stroke="#f09595" stroke-width="0.5"/>
-        <text x="517" y="68" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#501313">决赛 1 场</text>
-        <text x="40" y="114" font-size="12" fill="#b91c1c">12 张 = 15 场；3 位歌手就 30+ 场 · 冠军只打 4 场 · 容易懵</text>
+        <line x1="600" y1="94" x2="600" y2="118" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a2)"/>
+        <rect x="440" y="120" width="200" height="46" rx="8" fill="#f5f3ff" stroke="#ddd6fe" stroke-width="0.5"/>
+        <text x="540" y="134" font-size="13" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#3c3489">晋级之路分享图</text>
+        <text x="540" y="152" font-size="11.5" text-anchor="middle" dominant-baseline="central" fill="#5b21b6">保存 / 发好友 / 汇入全球榜</text>
 
-        <line x1="40" y1="134" x2="640" y2="134" stroke="#e2e8f0" stroke-width="0.5"/>
+        <rect x="40" y="120" width="380" height="46" rx="8" fill="#fff" stroke="#e4e0f5" stroke-width="0.5"/>
+        <text x="56" y="134" font-size="12.5" font-weight="600" fill="#3c3489">每一步都有回馈</text>
+        <text x="56" y="152" font-size="11.5" fill="#5b21b6">阶段动效 → 进度 X/Y → 可返回重选 → 落败置灰 → 对阵树实时推进</text>
 
-        <text x="40" y="162" font-size="13" font-weight="600" fill="#64748b">拟改：纯单败淘汰（借音乐世界杯）</text>
-        <rect x="40" y="174" width="120" height="48" rx="8" fill="#dcfce7" stroke="#97c459" stroke-width="0.5"/>
-        <text x="100" y="191" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#173404">16 张</text>
-        <text x="100" y="209" font-size="12" text-anchor="middle" dominant-baseline="central" fill="#3b6d11">首轮 · 8 场</text>
-        <line x1="162" y1="198" x2="174" y2="198" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
-        <rect x="176" y="174" width="100" height="48" rx="8" fill="#dcfce7" stroke="#97c459" stroke-width="0.5"/>
-        <text x="226" y="191" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#173404">8 强</text>
-        <text x="226" y="209" font-size="12" text-anchor="middle" dominant-baseline="central" fill="#3b6d11">4 场</text>
-        <line x1="278" y1="198" x2="290" y2="198" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
-        <rect x="292" y="174" width="100" height="48" rx="8" fill="#dcfce7" stroke="#97c459" stroke-width="0.5"/>
-        <text x="342" y="191" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#173404">4 强</text>
-        <text x="342" y="209" font-size="12" text-anchor="middle" dominant-baseline="central" fill="#3b6d11">2 场</text>
-        <line x1="394" y1="198" x2="406" y2="198" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
-        <rect x="408" y="174" width="100" height="48" rx="8" fill="#dcfce7" stroke="#97c459" stroke-width="0.5"/>
-        <text x="458" y="191" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#173404">决赛</text>
-        <text x="458" y="209" font-size="12" text-anchor="middle" dominant-baseline="central" fill="#3b6d11">1 场</text>
-        <line x1="510" y1="198" x2="522" y2="198" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#ar)"/>
-        <rect x="524" y="174" width="116" height="48" rx="8" fill="#c0dd97" stroke="#639922" stroke-width="0.5"/>
-        <text x="582" y="191" font-size="14" font-weight="600" text-anchor="middle" dominant-baseline="central" fill="#173404">冠军</text>
-        <text x="582" y="209" font-size="12" text-anchor="middle" dominant-baseline="central" fill="#27500a">全胜登顶</text>
-        <text x="40" y="246" font-size="12" fill="#166534">8 张 = 7 场 ／ 12 张 = 11 场 ／ 16 张 = 15 场 · 冠军场场都打，没有「白打」的场次</text>
-        <text x="40" y="268" font-size="12" fill="#64748b">非 2 的幂时（如 12 张）自动给最热的几张"轮空"，直接进下一轮，不占投票场次。</text>
+        <rect x="40" y="182" width="600" height="46" rx="8" fill="#fff" stroke="#e4e0f5" stroke-width="0.5"/>
+        <text x="56" y="196" font-size="12.5" font-weight="600" fill="#3c3489">可选：和好友一起玩</text>
+        <text x="56" y="214" font-size="11.5" fill="#5b21b6">把这份签表发给好友 → 同一批专辑 → 对比"你的冠军 vs 好友的冠军"（音乐世界杯有，我们可作亮点）</text>
       </svg>
     </div>
-    <div class="fix"><b>赛制规则（我定稿，会写进系统设计文档）：</b>全部参赛专辑进入单败淘汰赛；每轮两两 PK，票多者晋级；张数不足 2 的幂时，按热度给靠前的几张轮空；冠军 = 唯一全胜者；赛道去取消「小组循环」与「复活赛」。</div>
   </section>
 
   <!-- 四 -->
   <section>
-    <h2><span class="n">四</span>「最多几张」—— 张数 × 场次对照表</h2>
+    <h2><span class="n">四</span>参赛规模：你来选，系统实时算步数</h2>
+    <p>按你的要求：<b>不写死张数，改成你自选范围。</b>选择器会实时显示"预计参赛 X 张 · 约 N 步完成"。</p>
     <table>
-      <tr><th>模式</th><th>每位歌手取</th><th>总专辑</th><th>轮次</th><th>总场次</th><th>冠军要打</th></tr>
-      <tr><td>2 位歌手</td><td>4 张</td><td>8</td><td>1/4 → 半决 → 决</td><td><b>7</b></td><td>3 场</td></tr>
-      <tr><td>3 位歌手</td><td>4 张</td><td>12</td><td>12→8→4→2→1（4 张轮空）</td><td><b>11</b></td><td>4 场</td></tr>
-      <tr><td>4 位歌手</td><td>4 张</td><td>16</td><td>1/8 → 1/4 → 半决 → 决</td><td><b>15</b></td><td>4 场</td></tr>
-      <tr><td>单歌手</td><td>8 张</td><td>8</td><td>1/4 → 半决 → 决</td><td><b>7</b></td><td>3 场</td></tr>
-      <tr><td>单歌手</td><td>16 张</td><td>16</td><td>1/8 → 1/4 → 半决 → 决</td><td><b>15</b></td><td>4 场</td></tr>
+      <tr><th>档位</th><th>参赛张数</th><th>小组赛</th><th>遗珠复活</th><th>淘汰赛</th><th>总步数</th></tr>
+      <tr><td>轻量</td><td>8 张</td><td>2 组 ·（4 选 2）→ 4 强</td><td>—</td><td>3 场</td><td><b>5 步</b></td></tr>
+      <tr><td>小杯</td><td>12 张</td><td>3 组 → 6 强</td><td>捞回 2 张 → 8 强</td><td>7 场</td><td><b>11 步</b></td></tr>
+      <tr><td>标准</td><td>16 张</td><td>4 组 → 8 强</td><td>—</td><td>7 场</td><td><b>11 步</b></td></tr>
+      <tr><td>完整</td><td>24 张</td><td>6 组 → 12 强</td><td>捞回 4 张 → 16 强</td><td>15 场</td><td><b>22 步</b></td></tr>
+      <tr><td>大杯</td><td>32 张</td><td>8 组 → 16 强</td><td>—</td><td>15 场</td><td><b>23 步</b></td></tr>
     </table>
-    <div class="fix"><b>我的建议：</b>多歌手模式<b>每位歌手默认 4 张</b>（可选 3 / 4 / 6）；单歌手模式默认 8 张、最多 16 张；<b>全场总量封顶 16 张</b>。理由：<b>7–15 场</b>是"既不空、又不烦"的区间 —— 比现在的 30 场瘦一半以上，又比只比 3、5 场有分量。<br>场次公式：<code>总场次 = 参赛专辑数 − 1</code>；<code>轮数 = ⌈log₂(专辑数)⌉</code>。前端会实时显示"预计 N 场"。</div>
-    <div class="note">张数没定死成 8 的唯一原因：<b>歌手合格专辑不足时不能硬凑</b>。比如某歌手只有 6 张合格专辑，就按 6 张参赛，系统按实际张数算场次，不会补空。</div>
+    <div class="fix">
+      <b>默认值建议：</b>单歌手 → <b>标准 16 张</b>（11 步，比现在瘦一半还多、但还是"一场正经比赛"）；多歌手 → <b>每位 4 张</b>（3 位 = 12 张 → 11 步），你也可以手动调到每位 2 / 6 / 8 张。<br>
+      <b>为什么"步数"比"场次"更值得看：</b>旧的 3 张组两两对决要投 3 次，新规则 4 张组只投 1 次 —— 总步数直接省掉一大半。
+    </div>
+    <div class="note"><b>关于"最多几张"：</b>音乐世界杯上限 48 首。我们做专辑，<b>建议上限 32 张</b>（专辑信息量比单曲大、翻目录更慢），但档位留到 48 也行 —— 听你的。</div>
   </section>
 
   <!-- 五 -->
   <section>
-    <h2><span class="n">五</span>「每一步都有反馈」具体怎么做</h2>
-    <ul>
-      <li><b>投票页常驻迷你对阵树</b>：右侧一条窄树，每投一票，胜者就"滑"进下一格并高亮 —— 用户全程看得见自己走到哪了。</li>
-      <li><b>每轮结束来一次"战报过渡"</b>：一轮打完，弹出本轮全部比分 + 晋级名单，一个"进入 1/4 决赛"的动效，点确认才继续。彻底解决"不看左上角都不知道进半决赛了"。</li>
-      <li><b>结果页 = 完整对阵树（夺冠之路重做）</b>：从首轮到决赛全部分支，冠军节点高亮，每个节点带封面 + 名称 + 比分；底部一个"生成图片"按钮（html2canvas），直接存成一张带二维码的分享卡 —— 就是音乐世界杯那张图的做法。</li>
-    </ul>
+    <h2><span class="n">五</span>交互升级清单（逐条对着音乐世界杯做）</h2>
+    <table>
+      <tr><th style="width:36px">#</th><th style="width:210px">音乐世界杯怎么做</th><th>我们怎么做</th><th style="width:64px">性质</th></tr>
+      <tr><td>1</td><td>进入新阶段弹全屏动效："8 强 · 8 首歌 · 4 场对决 · 点选更喜欢的一首"</td><td>全屏<b>阶段过渡页</b>：大字"8 强" + 动效 + 一句规则提示，确认后才继续</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>2</td><td>每场顶部显示 "1 / 16" 进度</td><td>顶部进度条 + "第 X / Y 步"（我们现在只有笼统"共 N 场"）</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>3</td><td><b>"选错了？点这里返回重选"</b></td><td><b>撤销上一票</b>：回退到上一个节点重选（后端加一条"撤销"接口 + 前端按钮）</td><td><span class="tag t-new">新增</span></td></tr>
+      <tr><td>4</td><td>落败的那首会<b>置灰</b></td><td>对阵树 / 历史列表里落败专辑置灰 + 打叉</td><td><span class="tag t-new">新增</span></td></tr>
+      <tr><td>5</td><td>冠军页：动效 → 冠军大图 → 亚军 / 四强</td><td>同款冠军页：动效 + 冠军专辑大图 + 亚军 + 四强，并把"战胜 X 0:0"这类模糊信息彻底重写</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>6</td><td>"仅 2% 的人与你审美同频"</td><td>用我们的<b>真实投票数据</b>算："全球 X% 的人和你选出同一个冠军"</td><td><span class="tag t-new">创新</span></td></tr>
+      <tr><td>7</td><td>冠军页按钮：<b>分享我的对阵图 / 再来一场 / 和好友一起玩</b></td><td>三件套照做；分享图 = html2canvas 生成"晋级之路"</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>8</td><td><b>LISTEN ON Apple Music</b> → 前往艺人 / 新建播放列表 / 添加到资料库</td><td>每张参赛专辑 + 冠军页加 <b>"在 Apple Music 查看"</b> 外链（iTunes 数据源本来就带官方链接，加个字段即可）</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>9</td><td>进度自动存在浏览器，<b>关掉回来接着打</b></td><td>前端 localStorage 续玩 + 后端已有 <code>status / currentRound</code>，做到"离开不丢"</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>10</td><td>公开排行榜：哪首歌夺冠最多 + 歌迷分布</td><td>全球榜升级为<b>"夺冠次数排行"</b>（我们现在只统计票数，缺"夺冠"口径）</td><td><span class="tag t-bor">借鉴</span></td></tr>
+      <tr><td>11</td><td>小组赛 <b>4 选 2</b>（一次多选，不是两两对决）</td><td>改成"每组 4 张，一次勾选 2 张晋级" —— <b>省步骤的关键</b></td><td><span class="tag t-fix">改造</span></td></tr>
+      <tr><td>12</td><td>遗珠复活赛捞回可惜出局的</td><td>我们已有复活赛，改成"从落选里一次捞回 N 张"</td><td><span class="tag t-fix">改造</span></td></tr>
+      <tr><td>13</td><td>和好友一起玩（同一批歌看好友怎么选）</td><td>生成"同款签表"链接 → 好友玩同一批专辑 → 对比两人的冠军与分歧点。<b>这是毕设亮点，但工作量 +1</b></td><td><span class="tag t-new">创新</span></td></tr>
+    </table>
   </section>
 
   <!-- 六 -->
   <section>
-    <h2><span class="n">六</span>要动哪些地方（影响面）</h2>
+    <h2><span class="n">六</span>影响面</h2>
     <table>
-      <tr><th style="width:120px">类型</th><th>要改的东西</th></tr>
-      <tr><td>后端</td><td><code>bracket.js</code> 新增单败淘汰对阵生成；<code>battle.service.js</code> 的 <code>resolvePool</code> 加"每位歌手取前 N 张 + 总量封顶"、<code>createBattle</code> 换赛制；移除小组循环 / 复活赛分支</td></tr>
-      <tr><td>前端</td><td>选择页加「每位歌手取几张」选择器 + 年代输入框（A5）+ 歌手头像（B4）；投票页加迷你对阵树 + 轮次过渡；结果页改成完整对阵树 + 分享图</td></tr>
-      <tr><td>文档</td><td>需求分析（场次相关 FR）、系统设计（§4.4–§4.6 赛制）、API 接口文档、UI 设计稿、玩法与积分说明 —— <b>五处口径必须一起改到一致</b>（我的自检纪律第 4 条）</td></tr>
+      <tr><th style="width:110px">位置</th><th>要动的东西</th></tr>
+      <tr><td>后端 · 赛制</td><td><code>bracket.js</code> 加"分组 4 张 → 选出 2 张"的判定；<code>battle.service.js</code> 复活赛改为"捞回 N 张"；淘汰赛从 4 强扩到 16 / 32 强</td></tr>
+      <tr><td>后端 · 数据</td><td>新增"撤销上一票"接口（B-09）；<code>Album</code> 加 <code>viewUrl</code>（Apple Music 链接）+ 一次性回填脚本</td></tr>
+      <tr><td>前端 · 创建页</td><td>加"参赛规模"选择器（实时显示步数）、年代输入框（A5）、歌手头像（B4）</td></tr>
+      <tr><td>前端 · 投票页</td><td>阶段过渡动效页、进度 X/Y、返回重选、落败置灰、迷你对阵树</td></tr>
+      <tr><td>前端 · 结果页</td><td>整页重做：冠军动效 + 亚军/四强 + 晋级之路对阵树 + 分享图 + 再来一场 + Apple Music</td></tr>
+      <tr><td>文档</td><td>需求分析 / 系统设计（§4.4–4.6 赛制）/ API 接口 / UI 设计稿 / 玩法与积分说明 —— <b>五处口径一起改</b></td></tr>
     </table>
   </section>
 
   <!-- 七 -->
   <section>
-    <h2><span class="n">七</span>需要你拍板的 2 件事</h2>
-    <div class="ask"><b>① 张数：</b>多歌手「每位 4 张」、单歌手「默认 8 / 最多 16」、全场封顶 16 —— <b>同意吗？</b>（想更短可以选每位 3 张；想更足可以每位 6 张，场次我会实时算给你看）</div>
-    <div class="ask"><b>② 赛制：</b>取消「小组循环」改成纯单败淘汰（连复活赛一起去掉）—— <b>同意吗？</b>（这是能一下砍到 7–15 场、并让"冠军之路"变直白的关键）</div>
-    <p style="color:#64748b;font-size:13.6px">回一句「按这个来 / 张数改成 X / 保留小组赛」即可，我就接着做批 2（A3+A5+手动挑选）和批 3（过渡 + 对阵树 + 头像 + 对位赛平局）。</p>
+    <h2><span class="n">七</span>需要你拍板 3 件事</h2>
+    <div class="ask"><b>① 小组赛改成"每组 4 张、一次选 2 张晋级"</b>（取代现在的组内两两对决）—— 同意吗？这是省步骤、对上音乐世界杯的关键一步。</div>
+    <div class="ask"><b>② 规模档位</b>：单歌手 8 / 12 / 16 / 24 / 32（默认 <b>16</b>）、多歌手每位 2 / 4 / 6 / 8（默认 <b>4</b>）、上限 <b>32 张</b> —— 档位和默认值合理吗？</div>
+    <div class="ask"><b>③ "和好友一起玩"</b>要不要现在就排进范围？它是很好的答辩亮点，但会多出可观的活（分享码 + 双人对比页）。</div>
+    <p style="color:#64748b;font-size:13.6px">回一句「都行 / 某个不同意 / 好友功能先不做」我就开工：先做第 ② 条（规模可选）+ A5 年代模式 + B4 歌手头像，再做第 ① 条与交互全套。</p>
   </section>
 
   <!-- 附 -->
   <section>
-    <h2><span class="n">附</span>批 1 已完成（本次已提交）</h2>
+    <h2><span class="n">附</span>已完成的批 1（不受本次调整影响）</h2>
     <table>
       <tr><th style="width:70px">编号</th><th>问题</th><th>修复</th><th style="width:70px">状态</th></tr>
       <tr><td>A1</td><td>点太快报"操作过于频繁"</td><td>最小间隔 3000ms→300ms，每分钟 20→120，每天 300→800</td><td><span class="tag t-ok">已修</span></td></tr>
-      <tr><td>A2</td><td>繁体「現場」演唱会专辑漏筛</td><td>新增繁简归一（<code>TRAD_TO_SIMP</code>）；并对已缓存数据做了一次性重算，实测剔除 <b>6 张</b>（1 张现场 + 5 张影视原声）</td><td><span class="tag t-ok">已修</span></td></tr>
+      <tr><td>A2</td><td>繁体「現場」演唱会专辑漏筛</td><td>繁简归一 + 缓存重算，实测剔除 6 张（1 现场 + 5 影视原声）</td><td><span class="tag t-ok">已修</span></td></tr>
       <tr><td>A4</td><td>夺冠之路"战胜 — 0 : 0"</td><td>轮空改显示"轮空 · 直接晋级"；未胜显示"不敌"</td><td><span class="tag t-ok">已修</span></td></tr>
     </table>
-    <p style="color:#64748b;font-size:13.6px">证据：新增 <code>scripts/verify-batch1.mjs</code>（12/12）；回归 verify-modes 22/22、verify-crossartist 20/20、verify-duel 13/13；前端构建通过。</p>
+    <p style="color:#64748b;font-size:13.6px">证据：<code>verify-batch1.mjs</code> 12/12、<code>reevaluate-admission.mjs</code> 幂等；回归 verify-modes 22/22、verify-crossartist 20/20、verify-duel 13/13；前端构建通过。</p>
   </section>
 
-  <footer>音格 · 对决赛制升级方案　｜　2026-09-16　｜　本文档为"赛制玩法"部分的最终细化版</footer>
+  <footer>音格 · 赛制与交互升级方案 v2　｜　2026-09-17　｜　本文档替换 2026-09-16 的 v1</footer>
 </div>
 </body>
 </html>
