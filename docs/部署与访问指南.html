@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>音格 · 部署与访问指南</title>
+<style>
+  :root{
+    --brand:#0ea5e9; --accent:#f97316; --bg:#edf6fc; --ink:#0f172a; --muted:#64748b;
+    --line:#d6e6f2; --ok:#16a34a; --warn:#d97706; --card:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    color:var(--ink);background:linear-gradient(180deg,#e8f4fc,#edf6fc 240px);line-height:1.7}
+  .wrap{max-width:920px;margin:0 auto;padding:32px 20px 64px}
+  header h1{font-size:30px;margin:0 0 6px}
+  header p{color:var(--muted);margin:0}
+  .pill{display:inline-block;background:var(--brand);color:#fff;font-size:12px;
+    padding:3px 10px;border-radius:999px;margin-bottom:14px;letter-spacing:.04em}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:22px 24px;margin:18px 0;box-shadow:0 6px 22px rgba(14,165,233,.06)}
+  h2{font-size:20px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  h2 .n{background:var(--brand);color:#fff;width:26px;height:26px;border-radius:8px;
+    display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto}
+  p,li{color:#1f2d3d}
+  code{background:#eef6fc;color:#0b5c8a;padding:2px 7px;border-radius:6px;font-size:13px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  pre{background:#0f2438;color:#d6f0ff;padding:14px 16px;border-radius:10px;overflow:auto;
+    font-size:13px;line-height:1.6;margin:10px 0}
+  .note{border-left:4px solid var(--warn);background:#fff7ed;padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+  .ok{border-left:4px solid var(--ok);background:#f0fdf4;padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.grid2{grid-template-columns:1fr}}
+  .mini{background:#f7fbff;border:1px solid var(--line);border-radius:12px;padding:14px}
+  .mini h3{margin:0 0 6px;font-size:15px;color:var(--brand)}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left}
+  th{background:#f1f8ff}
+  .tag{font-size:12px;padding:2px 8px;border-radius:6px;background:#e0f2fe;color:#0369a1}
+  .tag.no{background:#fee2e2;color:#b91c1c}
+  .tag.yes{background:#dcfce7;color:#15803d}
+  footer{color:var(--muted);font-size:13px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="pill">音格 · 运营手册</span>
+    <h1>部署与访问指南</h1>
+    <p>写给不写代码的你：怎么在自己电脑看、怎么放到网上给别人看、几个待办到底是啥。</p>
+  </header>
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="n">1</span>一句话总览</h2>
+    <p><b>现在：</b>音格只运行在你自己的电脑上（<code>localhost</code>），只有你这台电脑能打开，别人打不开。</p>
+    <p><b>部署后：</b>把网站放到云服务器上，任何人拿到链接都能打开 —— 这正是毕业规范要求的"线上演示地址"。</p>
+    <div class="ok">你之前说"我跑了下页面大体没问题"，说明你其实已经会在本机启动了。下面把命令和端口说准，免得下次忘了。</div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="n">2</span>现在怎么在本地访问（本机自己看）</h2>
+    <p>需要三样东西同时开着：<b>数据库</b> → <b>后台(后端)</b> → <b>前台(网页)</b>。</p>
+    <table>
+      <tr><th>角色</th><th>是什么</th><th>启动命令</th><th>端口</th></tr>
+      <tr><td>数据库 MongoDB</td><td>存所有数据的地方</td><td><code>mongod</code></td><td>27017</td></tr>
+      <tr><td>后台 / 后端</td><td>处理登录、投票、排行榜等接口的 Node 程序</td><td><code>cd backend &amp;&amp; npm start</code></td><td>3000</td></tr>
+      <tr><td>前台 / 网页</td><td>你看到的 Vue 网站</td><td><code>cd frontend &amp;&amp; npm run dev</code></td><td>5173</td></tr>
+    </table>
+    <p><b>完整步骤（按顺序开三个窗口）：</b></p>
+    <pre># 窗口1：开数据库
+mongod
+
+# 窗口2：开后盾（接口服务）
+cd E:\桌面\毕业设计\yinge\backend
+npm start
+
+# 窗口3：开前台（网页）
+cd E:\桌面\毕业设计\yinge\frontend
+npm run dev</pre>
+    <p>三步都开着后，浏览器打开 👉 <code>http://localhost:5173</code> 就是音格网站。</p>
+    <div class="note"><b>两个坑（之前记错，现已更正）：</b><br>
+      ① 前端命令是 <code>npm run dev</code>，<u>不是</u> <code>npm run serve</code>；端口是 <code>5173</code>，<u>不是</u> 8080。<br>
+      ② 如果你的电脑默认 Node 是 18，启动会报 <code>error:0308010C</code> 的错。解决：用 <b>Node 20 以上</b>（你机器上托管了 Node 22）。用 20+ 就不用管那个报错。</div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="n">3</span>"后台""前台"到底啥意思</h2>
+    <p>打个比方 —— 音格像一家餐厅：</p>
+    <div class="grid2">
+      <div class="mini"><h3>前台（网页 / frontend）</h3><p>顾客坐的用餐区 + 菜单。就是你在浏览器里看到的页面、点的按钮。它自己不会算账，只负责"展示"和"收集你的操作"。</p></div>
+      <div class="mini"><h3>后台（后端 / backend）</h3><p>后厨 + 服务员。网页把"我要投票""查排行榜"这种请求发给后台，后台去数据库查数据、算结果，再把数据回传给网页显示。端口 3000 就是后厨的门。</p></div>
+    </div>
+    <p style="margin-top:12px">所以"后台运行"= 那个 3000 端口的 Node 程序正在跑。它一关，网页上的投票、排行榜就全失效了。两者必须同时开着。</p>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="n">4</span>怎么部署（拿到公开网址，给别人看）</h2>
+    <p><b>为什么必须部署：</b><code>localhost</code> 只有你电脑认，发链接给别人是打不开的。毕业要交"线上演示地址"，就得部署。</p>
+    <p><b>三块分别放哪（都用免费档就够）：</b></p>
+    <table>
+      <tr><th>部分</th><th>放哪个云平台</th><th>作用</th></tr>
+      <tr><td>网页(前台)</td><td><b>Vercel</b>（免费）</td><td>托管 Vue 网站，给一个 https 网址</td></tr>
+      <tr><td>接口(后台)</td><td><b>Render</b>（免费档）</td><td>跑 Node 后端，给后端一个网址</td></tr>
+      <tr><td>数据库</td><td><b>MongoDB Atlas</b>（免费 M0）</td><td>云端数据库，代替你本机的 mongod</td></tr>
+    </table>
+    <p><b>大致步骤（需要你动手的地方我标了 ⚡）：</b></p>
+    <pre># 1. ⚡你注册三个账号：Vercel / Render / MongoDB Atlas（都用邮箱，免费）
+# 2. 把 GitHub 仓库连到 Vercel 和 Render（授权一次即可）
+# 3. ⚡在 Render 里填几个环境变量（我给你列好清单）
+# 4. 在 Atlas 建一个库，拿到连接串，填进 Render
+# 5. 点 Deploy —— 几分钟后拿到两个网址
+# 6. 把后端网址填进前端的环境变量，重新部署前端</pre>
+    <div class="note">现在状态：<b>还没部署</b>。这一步需要你注册账号 + 点几下（我没法替你注册/付费）。<b>配置清单和步骤文档我可以直接帮你准备好</b>，你照着点就行。</div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="n">5</span>"本机补 doc" 是过时信息（已核实，不用你做）</h2>
+    <div class="ok">我上一条说"系统设计文档.docx 要你本机补生成"是<b>错的</b>。刚才查了仓库：<br>
+      <code>docs/胡祖锐-系统设计文档.docx</code> 今天（9/16）已更新，里面<b>已经包含</b>跨歌手改动的文字（"跨歌手""matchTotal"都在）。<br>
+      .md / .html / .docx 三种形态现在<b>一致</b>，<b>你什么都不用补</b>。抱歉之前误导了。</div>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="n">6</span>六个人格怎么补（图鉴页"常听专辑"现在是空的）</h2>
+    <p>音格有 6 种音乐人格，已经建好在数据库里：</p>
+    <table>
+      <tr><th>类型码</th><th>名称</th><th>特点</th></tr>
+      <tr><td>EN</td><td>电音狂热者</td><td>高能量、爱社交</td></tr>
+      <tr><td>NT</td><td>深夜循环者</td><td>怀旧、夜里听</td></tr>
+      <tr><td>EX</td><td>探索猎手</td><td>好奇心强、爱挖新歌</td></tr>
+      <tr><td>SO</td><td>聚会歌者</td><td>外向、热闹</td></tr>
+      <tr><td>CL</td><td>经典收藏家</td><td>怀旧、收经典</td></tr>
+      <tr><td>BL</td><td>均衡听众</td><td>啥都听</td></tr>
+    </table>
+    <p><b>现在缺什么：</b>这 6 种类型没有绑定"推荐专辑"，所以前台"人格图鉴 / 类型详情"里的"常听专辑"是空的。</p>
+    <p><b>好消息：</b>后端的字段、接口、取数逻辑<b>全都已经写好</b>（字段叫 <code>recommendAlbumIds</code>，后台接口也支持传它）。唯一缺口是：<u>后台管理页面目前没有"推荐专辑"这个输入框</u>。</p>
+    <p><b>两种补法（你选一种，我来动手）：</b></p>
+    <div class="grid2">
+      <div class="mini"><h3>A. 我给后台加输入框</h3><p>在"人格类型管理"页加一个"推荐专辑ID"输入框，你以后自己在后台填专辑ID就行。简单、你能掌控。</p></div>
+      <div class="mini"><h3>B. 我写脚本自动绑</h3><p>我直接写个脚本，给每种类型自动绑 3 张专辑。<b>前提：专辑得先在数据库里</b>——先用后台"曲库"刷一批歌手（比如周杰伦、陶喆等）把专辑灌进库。</p></div>
+    </div>
+    <div class="note">推荐先做 <b>B</b> 的前置：用后台"曲库"刷 10~20 个歌手，库里有专辑了，A 和 B 才填得进去。</div>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="n">7</span>下一步我可以帮你做啥（你挑）</h2>
+    <ul>
+      <li><span class="tag">A</span> 写一份《部署步骤清单》+ 准备好 Vercel/Render 的配置文件，你照着注册点几下即可上线。</li>
+      <li><span class="tag">B</span> 给后台"人格类型管理"页加上"推荐专辑"输入框。</li>
+      <li><span class="tag">C</span> 写脚本，给 6 种人格自动各绑 3 张专辑（需你先用后台刷歌手）。</li>
+      <li><span class="tag">D</span> 把这份指南也加进交付门户 <code>docs/index.html</code>，方便你随时查。</li>
+    </ul>
+    <p style="color:var(--muted)">告诉我先做哪个，或直接说"全做"。</p>
+  </section>
+
+  <footer>音格 · 部署与访问指南 · 2026-09-16（纠正：docx 已同步 / 前端命令 dev·端口 5173）</footer>
+</div>
+</body>
+</html>
