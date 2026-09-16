@@ -45,6 +45,61 @@ export function groupAlbums(albums) {
   return { groups, groupCount };
 }
 
+/**
+ * 跨歌手分组：保证「同一歌手的专辑不落在同一组」（《系统设计文档》4.4 规则 2）。
+ * 组容量 = min(GROUP_SIZE, 歌手数)，因此每组至多含每位歌手一张，组内单循环产生的
+ * 对局必然全部是跨歌手对局。
+ * 落组策略：每轮从「剩余专辑最多」的若干位歌手各取一张组成一组，使各组歌手互不相同
+ * 且专辑分布均衡；结果只由入参决定，可复现（4.4 规则 4）。
+ * 若只剩一位歌手仍有剩余（专辑数多于其他歌手可配对的数量），这些专辑没有跨歌手对手，
+ * 归入 unpaired 不参与对阵——这是"同一歌手不互相对决"规则的必然结果。
+ * @param {Array} albums 参赛专辑（含 artistExternalId）
+ * @param {number} artistCount 歌手数
+ */
+export function groupAlbumsCrossArtist(albums, artistCount) {
+  const size = Math.max(1, Math.min(GROUP_SIZE, Math.max(1, artistCount)));
+  const buckets = new Map();
+  for (const album of albums) {
+    const key = String(album.artistExternalId ?? 'unknown');
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(album);
+  }
+
+  const groups = [];
+  const unpaired = [];
+  for (;;) {
+    const avail = [...buckets.entries()]
+      .filter(([, list]) => list.length)
+      .sort((a, b) => b[1].length - a[1].length || (a[0] < b[0] ? -1 : 1));
+    if (avail.length < 2) {
+      if (avail.length === 1) unpaired.push(...avail[0][1]);
+      break;
+    }
+    groups.push(avail.slice(0, size).map(([, list]) => list.shift()));
+  }
+  return { groups, groupCount: groups.length, groupSize: size, unpaired };
+}
+
+/**
+ * 跨歌手淘汰赛取人：按综合排序（ranked 需已排序）选出至多 needed 张，
+ * 且每位歌手至多 1 张，从而保证淘汰赛阶段半决赛、决赛同样是跨歌手对阵。
+ * @param {Array} ranked 已排序的专辑项（元素可为 ObjectId 或 { _id }）
+ * @param {(item:any)=>any} artistOf 取该项歌手标识的函数
+ * @param {number} needed 名额上限
+ */
+export function pickOnePerArtist(ranked, artistOf, needed) {
+  const picked = [];
+  const used = new Set();
+  for (const item of ranked) {
+    if (picked.length >= needed) break;
+    const key = String(artistOf(item) ?? 'unknown');
+    if (used.has(key)) continue;
+    used.add(key);
+    picked.push(item);
+  }
+  return picked;
+}
+
 /** 组内单循环：返回所有两两组合 */
 export function roundRobinPairs(list) {
   const pairs = [];
@@ -284,6 +339,8 @@ export default {
   GROUP_SIZE,
   KNOCKOUT_SIZE,
   groupAlbums,
+  groupAlbumsCrossArtist,
+  pickOnePerArtist,
   roundRobinPairs,
   buildGroupMatches,
   buildAlignedMatches,

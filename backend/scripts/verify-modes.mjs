@@ -111,7 +111,8 @@ async function runMultiMode() {
   const ljj = await searchArtist('林俊杰');
   const cyx = await searchArtist('陈奕迅');
   if (!jay || !ljj || !cyx) return;
-  // 3 歌手 × 4 张 = 12 张 → 4 组 → 小组赛 12 场 → 总 15（正好是「标准 12 场」示例）
+  // 3 歌手 × 4 张 = 12 张 → 4 组（每组 3 张）→ 小组赛 12 场；
+  // 淘汰赛名额 = 歌手数（跨歌手模式下封顶 4，3 歌手则取 3，避免同歌手对决）→ 2 场 → 总 14
   const c = await api('POST', '/api/battles', {
     scopeType: 'multi-artist',
     artists: [
@@ -123,7 +124,7 @@ async function runMultiMode() {
   if (c.code !== 0) { check('创建多歌手对决', false, JSON.stringify(c).slice(0, 160)); return; }
   const b = c.data;
   check('创建成功', true, `id=${b.battleId} scope=${b.scopeType} 歌手数=3 总场=${b.matchTotal}`);
-  check('3歌手×4张=12张 → 4组、总15（标准示例）', b.groupCount === 4 && b.matchTotal === 15, `组=${b.groupCount} 总=${b.matchTotal}`);
+  check('3歌手×4张=12张 → 4组、总14（跨歌手封顶3强）', b.groupCount === 4 && b.matchTotal === 14, `组=${b.groupCount} 总=${b.matchTotal}`);
   const voted = await voteThrough(b.battleId, '多歌手');
   const res = await api('GET', `/api/battles/${b.battleId}/result`, null, TOKEN);
   check('多歌手模式跑到出冠军', res.code === 0 && res.data?.type === 'standard' && res.data?.champion, `冠军=${res.data?.champion?.name} 投了${voted}场`);

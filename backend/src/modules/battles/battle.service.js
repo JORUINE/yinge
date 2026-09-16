@@ -16,6 +16,15 @@ const byReleaseThenId = (a, b) => {
   return ta - tb || a.albumId - b.albumId;
 };
 
+/**
+ * 需要「跨歌手对局」的范围模式（《系统设计文档》4.4 规则 2）。
+ * 这些模式下**同一歌手的专辑不互相对决**：小组赛分组保证同组歌手互不相同，
+ * 淘汰赛每位歌手至多 1 张。只有单歌手模式允许"自己打自己"
+ * （因为池子里本来就只有一位歌手），手动挑选模式尊重用户自己的选择。
+ */
+const CROSS_ARTIST_SCOPES = new Set(['multi-artist', 'genre', 'era']);
+export const isCrossArtistScope = (scopeType) => CROSS_ARTIST_SCOPES.has(scopeType);
+
 /** 取某歌手的合格专辑（已缓存优先，必要时同步） */
 async function eligibleAlbumsOf(artistExternalId) {
   const { albums } = await musicService.getArtistAlbums(artistExternalId);
@@ -41,15 +50,27 @@ export async function resolvePool(payload) {
   }
 
   if (scopeType === 'multi-artist') {
-    const picked = [];
-    const artists = [];
+    // 跨歌手对决：各歌手取相同张数（取所选张数的最小值）。若张数不等，
+    // 专辑多的那位歌手会有专辑找不到"不同歌手的对手"，只能缺席，因此统一取最小值。
+    const lists = [];
+    const metas = [];
     for (const item of payload.artists) {
       const list = await eligibleAlbumsOf(item.artistId);
       const take = item.albumCount ? list.slice(0, item.albumCount) : list;
-      picked.push(...take);
       const meta = await artistMeta(item.artistId);
-      artists.push({ ...meta, albumCount: take.length });
+      if (!take.length) throw new BadRequestError(`歌手「${meta.name}」没有可参赛的合格专辑`);
+      lists.push(take);
+      metas.push(meta);
     }
+    if (lists.length < 2) throw new BadRequestError('多歌手混战至少需要 2 位歌手');
+    const count = Math.min(...lists.map((l) => l.length));
+    const picked = [];
+    const artists = [];
+    lists.forEach((list, i) => {
+      const take = list.slice(0, count);
+      picked.push(...take);
+      artists.push({ artistId: metas[i].artistId, name: metas[i].name, albumCount: take.length });
+    });
     return { albums: picked, artists };
   }
 
@@ -176,6 +197,34 @@ export async function createBattle(userId, payload) {
 
   // 标准赛制：创建时至少 4 张
   if (albums.length < 4) throw new BadRequestError('参赛专辑不得少于 4 张');
+
+  if (isCrossArtistScope(payload.scopeType)) {
+    // 跨歌手赛制：小组赛与淘汰赛都保证对阵双方来自不同歌手。
+    const { groups, groupCount } = bracket.groupAlbumsCrossArtist(albums, artists.length);
+    const groupMatches = bracket.buildGroupMatches(groups);
+    if (!groupMatches.length) {
+      throw new BadRequestError('这些专辑无法组成跨歌手对局，请多选几位歌手，或减少单人所取张数');
+    }
+    // 淘汰赛席位 = min(四强席位, 歌手数)，每位歌手至多 1 张 → 半决赛/决赛也是跨歌手
+    const fieldSize = Math.max(2, Math.min(bracket.KNOCKOUT_SIZE, artists.length));
+    const battle = await Battle.create({
+      userId,
+      scopeType: payload.scopeType,
+      scopeKey: payload.scopeKey ?? payload.genre ?? null,
+      artists,
+      alignCount: null,
+      withRevival: false,
+      status: 'playing',
+      groupCount,
+      roundCount: fieldSize <= 2 ? 2 : 3,
+      currentRound: 1,
+      matchTotal: groupMatches.length + (fieldSize - 1),
+      hasBye: fieldSize % 2 === 1,
+      albumIds: albums.map((a) => a._id),
+    });
+    await BattleMatch.insertMany(groupMatches.map((m) => ({ ...m, battleId: battle._id })));
+    return battle;
+  }
 
   const { groups, groupCount } = bracket.groupAlbums(albums);
   const groupMatches = bracket.buildGroupMatches(groups);
@@ -357,6 +406,9 @@ async function generateRevivalRound1(battle) {
 /** B-05 复活赛：按需（或自动）生成复活赛首轮 2 场 */
 export async function createRevival(battleId, userId) {
   const battle = await loadOwnedBattle(battleId, userId);
+  if (isCrossArtistScope(battle.scopeType)) {
+    throw new BadRequestError('多歌手／流派／年代模式下不提供复活赛：复活赛会让同一歌手的专辑互相对决');
+  }
   const groupMatches = await BattleMatch.find({ battleId, roundName: 'group' });
   if (!groupMatches.length || !groupMatches.every((m) => m.isBye || m.winnerAlbumId)) {
     throw new BadRequestError('小组赛尚未结束，暂不能开启复活赛');
@@ -411,7 +463,7 @@ export { decideWinner };
  * 先取各组第一名并按综合排序；若不足 needed（小组数不足 4 时），
  * 再按综合排序在全部参赛专辑中补足。
  */
-async function rankedTop(battleId, needed) {
+async function rankedTop(battleId, needed, { onePerArtist = false } = {}) {
   const groupMatches = await BattleMatch.find({ battleId, roundName: 'group' });
   const groupNos = [...new Set(groupMatches.map((m) => m.groupNo))].sort((a, b) => a - b);
   const all = [];
@@ -427,6 +479,17 @@ async function rankedTop(battleId, needed) {
   }
   const byStrength = (a, b) =>
     b.wins - a.wins || b.votes - a.votes || a.rankInGroup - b.rankInGroup || a.groupNo - b.groupNo;
+
+  if (onePerArtist) {
+    // 跨歌手淘汰赛：每位歌手至多 1 张（取该歌手成绩最好的专辑），
+    // 这样无论投票结果如何，后续每场都是跨歌手对阵。
+    const ordered = [...all].sort(byStrength);
+    const albums = await Album.find({ _id: { $in: ordered.map((r) => r.albumId) } }).select('artistExternalId');
+    const artistByAlbum = new Map(albums.map((a) => [String(a._id), String(a.artistExternalId)]));
+    return bracket
+      .pickOnePerArtist(ordered, (r) => artistByAlbum.get(String(r.albumId)), needed)
+      .map((r) => ({ _id: r.albumId }));
+  }
 
   firsts.sort(byStrength);
   if (firsts.length >= needed) return firsts.slice(0, needed).map((r) => ({ _id: r.albumId }));
@@ -459,6 +522,50 @@ export async function progressBattle(battle) {
 
   if (battle.scopeType === 'aligned' || battle.scopeType === 'duel') {
     if (matches.every(decided)) {
+      await finishBattle(battle, matches);
+      return { advanced: true, finished: true };
+    }
+    return { advanced: false };
+  }
+
+  if (isCrossArtistScope(battle.scopeType)) {
+    // 跨歌手赛制：小组赛 → （半决赛）→ 决赛；每一场都是不同歌手之间。
+    const groupMatches = matches.filter((m) => m.roundName === 'group');
+    const semiMatches = matches.filter((m) => m.roundName === 'semi');
+    const finalMatches = matches.filter((m) => m.roundName === 'final');
+    const advanceOf = (m) => m.winnerAlbumId || (m.isBye ? m.leftAlbumId : null);
+
+    // 小组赛结束 → 取出每位歌手成绩最好的专辑（至多四强席位）
+    if (groupMatches.length && groupMatches.every(decided) && !semiMatches.length && !finalMatches.length) {
+      const field = await rankedTop(battle._id, bracket.KNOCKOUT_SIZE, { onePerArtist: true });
+      if (field.length < 2) {
+        await finishBattle(battle, matches);
+        return { advanced: true, finished: true };
+      }
+      if (field.length === 2) {
+        // 只有 2 位歌手：跨歌手对局只能是一场，直接决赛
+        await createRound(battle, field, 'final');
+        battle.currentRound = 2;
+        await battle.save();
+        return { advanced: true, round: 'final' };
+      }
+      await createRound(battle, field, 'semi');
+      battle.currentRound = 2;
+      await battle.save();
+      return { advanced: true, round: 'semi' };
+    }
+
+    // 半决赛结束 → 决赛（轮空者直接进入决赛）
+    if (semiMatches.length && semiMatches.every(decided) && !finalMatches.length) {
+      const winners = semiMatches.map((m) => ({ _id: advanceOf(m) })).filter((w) => w._id);
+      await createRound(battle, winners, 'final');
+      battle.currentRound = 3;
+      await battle.save();
+      return { advanced: true, round: 'final' };
+    }
+
+    // 决赛结束 → 写冠军
+    if (finalMatches.length && finalMatches.every(decided)) {
       await finishBattle(battle, matches);
       return { advanced: true, finished: true };
     }
