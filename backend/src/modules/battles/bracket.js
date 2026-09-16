@@ -17,6 +17,84 @@
 export const GROUP_SIZE = 3;
 export const KNOCKOUT_SIZE = 4;
 
+// ============================================================
+// 新赛制（2026-09-17）：小组赛「4 选 2」+ 遗珠复活 + 1v1 淘汰
+// ------------------------------------------------------------
+// 与旧赛制（GROUP_SIZE=3 组内两两对决）并存：旧赛制服务于已创建的历史对决，
+// 新赛制由 planTournament 规划，两者互不影响，便于灰度切换。
+// ============================================================
+
+/** 小组赛每组张数 */
+export const GROUP_PICK_SIZE = 4;
+/** 每组晋级张数（4 张组选 2；3 张组选 2；2 张组选 1；1 张组直接晋级） */
+export const GROUP_ADVANCE = 2;
+/** 单场对决参赛专辑上限 */
+export const MAX_POOL = 32;
+/** 单歌手模式可选档位（张） */
+export const SINGER_SCALES = [8, 12, 16, 24, 32];
+/** 多歌手模式"每位歌手"可选档位（张） */
+export const PER_ARTIST_SCALES = [4, 6, 8, 10];
+export const DEFAULT_SINGER_SCALE = 16;
+export const DEFAULT_PER_ARTIST = 8;
+export const DEFAULT_ARTIST_COUNT = 3;
+
+/** 某组的晋级张数：≥3 张选 2，2 张选 1，1 张直接晋级 */
+function advanceOfGroup(size) {
+  return size >= 3 ? GROUP_ADVANCE : 1;
+}
+
+/**
+ * 解析"目标总张数"：多歌手 = 每位张数 × 歌手数；单歌手 = 所选档位；一律封顶 MAX_POOL。
+ * @param {{singerScale?: number, perArtist?: number, artistCount?: number}} opts
+ */
+export function resolvePoolSize({ singerScale, perArtist, artistCount } = {}) {
+  const target =
+    perArtist && artistCount ? perArtist * artistCount : Number(singerScale) || DEFAULT_SINGER_SCALE;
+  return Math.max(2, Math.min(target, MAX_POOL));
+}
+
+/**
+ * 赛制规划（纯函数，不碰数据库）：由参赛专辑数算出完整赛程安排。
+ *   ① 小组赛：每 4 张一组（末组可为 1~4 张），每组选出 2 张晋级
+ *   ② 遗珠复活：把晋级数补齐到"不小于它的最小 2 的幂"，差额靠复活轮一次捞回
+ *   ③ 淘汰赛：2 的幂张数 1v1 逐轮减半，共 (knockoutSize − 1) 场
+ *   ④ 总步数 = 小组赛组数 +（有复活 ? 1 : 0）+ 淘汰赛场次
+ * @param {number} total 参赛专辑数
+ */
+export function planTournament(total) {
+  const t = Math.floor(Number(total) || 0);
+  if (t < 2) return null;
+
+  const groupSizes = [];
+  for (let i = 0; i < t; i += GROUP_PICK_SIZE) {
+    groupSizes.push(Math.min(GROUP_PICK_SIZE, t - i));
+  }
+  const advancePerGroup = groupSizes.map(advanceOfGroup);
+  const qualified = advancePerGroup.reduce((a, b) => a + b, 0);
+
+  let knockoutSize = 1;
+  while (knockoutSize < qualified) knockoutSize *= 2;
+  const revivalNeed = knockoutSize - qualified;
+
+  const groupSteps = groupSizes.length;
+  const revivalSteps = revivalNeed > 0 ? 1 : 0;
+  const knockoutMatches = knockoutSize - 1;
+
+  return {
+    total: t,
+    groupSizes,
+    groupCount: groupSizes.length,
+    advancePerGroup,
+    qualified,
+    revivalNeed,
+    knockoutSize,
+    groupSteps,
+    revivalSteps,
+    knockoutMatches,
+    totalSteps: groupSteps + revivalSteps + knockoutMatches,
+  };
+}
+
 /**
  * 分组：每 3 张一组，同一歌手的多张专辑尽量分散到不同组。
  * 做法：先按歌手专辑数降序，再按轮转法依次落组。
@@ -338,6 +416,16 @@ export function buildDuelMatches(duelPairs) {
 export default {
   GROUP_SIZE,
   KNOCKOUT_SIZE,
+  GROUP_PICK_SIZE,
+  GROUP_ADVANCE,
+  MAX_POOL,
+  SINGER_SCALES,
+  PER_ARTIST_SCALES,
+  DEFAULT_SINGER_SCALE,
+  DEFAULT_PER_ARTIST,
+  DEFAULT_ARTIST_COUNT,
+  resolvePoolSize,
+  planTournament,
   groupAlbums,
   groupAlbumsCrossArtist,
   pickOnePerArtist,
