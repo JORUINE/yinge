@@ -395,6 +395,9 @@ export async function castGroupVote(battleId, groupId, pickedExternalIds, userId
   if (!Array.isArray(pickedExternalIds) || pickedExternalIds.length !== group.advanceCount) {
     throw new BadRequestError(`本分组需选择 ${group.advanceCount} 张专辑晋级`);
   }
+  if (new Set(pickedExternalIds.map(String)).size !== pickedExternalIds.length) {
+    throw new BadRequestError('所选专辑不能重复');
+  }
   const pickedLocal = [];
   for (const ext of pickedExternalIds) {
     const doc = await Album.findOne({ albumId: Number(ext) });
