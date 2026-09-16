@@ -33,6 +33,13 @@ const battleSchema = new mongoose.Schema(
     currentRound: { type: Number, required: true, default: 1 },
     matchTotal: { type: Number, required: true },
     hasBye: { type: Boolean, required: true, default: false },
+    // ---- 新赛制字段（2026-09-17）----
+    // tournamentVersion: 1 = 旧赛制（组内两两对决 + 半决赛/决赛）；2 = 新赛制（4 选 2 + 遗珠复活 + 1v1 淘汰）
+    tournamentVersion: { type: Number, enum: [1, 2], required: true, default: 1 },
+    poolTarget: { type: Number, default: null }, // 目标参赛张数
+    knockoutSize: { type: Number, default: null }, // 淘汰赛规模（2 的幂）
+    revivalNeed: { type: Number, default: null }, // 遗珠复活需捞回的张数（0 = 无复活轮）
+    stepTotal: { type: Number, default: null }, // 新赛制总步数 = 组数 + 复活轮 + 淘汰赛场次
     albumIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Album' }],
     championAlbumId: { type: mongoose.Schema.Types.ObjectId, ref: 'Album', default: null },
   },

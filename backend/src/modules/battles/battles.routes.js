@@ -3,8 +3,10 @@
  *   POST   /api/battles                        创建对决            B-01
  *   GET    /api/battles/:id                    对决详情            B-02
  *   GET    /api/battles/:id/next-match         下一场              B-03
- *   POST   /api/battles/:id/matches/:matchId/vote  投票            B-04
- *   POST   /api/battles/:id/revival            开启复活赛          B-05
+ *   POST   /api/battles/:id/matches/:matchId/vote  投票            B-04（淘汰赛）
+ *   GET    /api/battles/:id/next-step         下一步（小组/复活/淘汰赛/结束）
+ *   POST   /api/battles/:id/groups/:groupId/vote  小组/复活多选投票  B-04（新赛制）
+ *   POST   /api/battles/:id/revival            开启复活赛          B-05（旧赛制）
  *   GET    /api/battles/:id/result             结果与夺冠路径      B-06
  *   GET    /api/battles                        我的对决列表        B-07
  *   DELETE /api/battles/:id                    删除对决            B-08
@@ -40,6 +42,8 @@ const createSchema = z
     endYear: z.coerce.number().int().min(1900).max(2100).optional(),
     albumIds: z.array(z.coerce.number().int().positive()).optional(),
     withRevival: z.boolean().optional(),
+    // 新赛制开关：2 = 规模自选 + 小组赛 4 选 2 + 遗珠复活 + 1v1 淘汰；默认 1（旧赛制）
+    tournamentVersion: z.coerce.number().int().min(1).max(2).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.scopeType === 'artist' && !data.artistId) {
@@ -70,9 +74,20 @@ const voteParam = z.object({
   id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的对决标识'),
   matchId: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的场次标识'),
 });
+const groupVoteParam = z.object({
+  id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的对决标识'),
+  groupId: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的分组标识'),
+});
 const voteBody = z.object({
   // 按接口文档 5.4：传「外部专辑标识」，数字或数字字符串均可
   albumId: z.union([z.number().int().positive(), z.string().regex(/^\d+$/, '专辑标识必须为数字')]),
+});
+const groupVoteBody = z.object({
+  // 多选晋级：传「外部专辑标识」数组，长度需等于该分组 advanceCount
+  pickedAlbumIds: z
+    .array(z.union([z.number().int().positive(), z.string().regex(/^\d+$/, '专辑标识必须为数字')]))
+    .min(1)
+    .max(4),
 });
 const listQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
@@ -92,6 +107,15 @@ router.post(
   validate(voteParam, 'params'),
   validate(voteBody, 'body'),
   asyncHandler(controller.vote),
+);
+// 新赛制（tournamentVersion=2）：统一"下一步"入口，返回小组 / 复活 / 淘汰赛 / 已结束
+router.get('/:id/next-step', validate(idParam, 'params'), asyncHandler(controller.nextStep));
+// 新赛制：小组赛 / 遗珠复活的一次多选投票
+router.post(
+  '/:id/groups/:groupId/vote',
+  validate(groupVoteParam, 'params'),
+  validate(groupVoteBody, 'body'),
+  asyncHandler(controller.groupVote),
 );
 router.post('/:id/revival', validate(idParam, 'params'), asyncHandler(controller.revival));
 router.get('/:id/result', validate(idParam, 'params'), asyncHandler(controller.result));

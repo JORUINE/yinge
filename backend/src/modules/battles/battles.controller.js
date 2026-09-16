@@ -23,6 +23,12 @@ function serializeBattle(battle) {
     matchTotal: battle.matchTotal,
     hasBye: battle.hasBye,
     championAlbumId: battle.championAlbumId ? String(battle.championAlbumId) : null,
+    // 新赛制字段（2026-09-17）
+    tournamentVersion: battle.tournamentVersion || 1,
+    poolTarget: battle.poolTarget || null,
+    knockoutSize: battle.knockoutSize || null,
+    revivalNeed: battle.revivalNeed || 0,
+    stepTotal: battle.stepTotal || null,
     createdAt: battle.createdAt,
   };
 }
@@ -42,6 +48,19 @@ export async function nextMatch(req, res) {
   const { id } = req.validated.params;
   const result = await battleService.getNextMatch(id, req.user._id);
   return ok(res, result);
+}
+
+export async function nextStep(req, res) {
+  const { id } = req.validated.params;
+  const result = await battleService.getNextStep(id, req.user._id);
+  return ok(res, result);
+}
+
+export async function groupVote(req, res) {
+  const { id, groupId } = req.validated.params;
+  const { pickedAlbumIds } = req.validated.body;
+  const result = await battleService.castGroupVote(id, groupId, pickedAlbumIds, req.user._id);
+  return ok(res, result, result.invalid ? result.message : '投票成功');
 }
 
 export async function vote(req, res) {

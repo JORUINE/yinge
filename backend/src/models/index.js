@@ -10,6 +10,7 @@ export { Album } from './Album.js';
 export { Track } from './Track.js';
 export { Battle, SCOPE_TYPES } from './Battle.js';
 export { BattleMatch, ROUND_NAMES } from './BattleMatch.js';
+export { BattleGroup, GROUP_ROUNDS } from './BattleGroup.js';
 export { Vote } from './Vote.js';
 export { PersonalityQuestion } from './PersonalityQuestion.js';
 export { PersonalityType } from './PersonalityType.js';

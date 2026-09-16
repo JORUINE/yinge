@@ -4,8 +4,15 @@
  * 对应接口：B-01 创建 / B-02 详情 / B-03 下一场 / B-05 复活赛 / B-06 结果 / B-07 我的对决 / B-08 删除
  * 赛制规则见《系统设计文档》第四章；本文件只做编排，赛制数学在 bracket.js。
  */
-import { Battle, BattleMatch, Album, Artist, Track } from '../../models/index.js';
-import { BadRequestError, NotFoundError, ForbiddenError } from '../../shared/errors.js';
+import { Battle, BattleMatch, Album, Artist, Track, Vote, BattleGroup } from '../../models/index.js';
+import config from '../../config/index.js';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+  TooFrequentError,
+  DuplicateError,
+} from '../../shared/errors.js';
 import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
 import * as bracket from './bracket.js';
@@ -27,6 +34,16 @@ export const isCrossArtistScope = (scopeType) => CROSS_ARTIST_SCOPES.has(scopeTy
 
 /** 年代模式参赛池上限：一个年代区间可能命中上百张，封顶 32 张以保证一场对决打得完 */
 export const ERA_MAX_POOL = 32;
+
+/** 新赛制（tournamentVersion=2）淘汰赛轮次名顺序（与 BattleMatch.ROUND_NAMES 对齐） */
+export const KO_NAMES = ['r32', 'r16', 'qf', 'semi', 'final'];
+
+/** 淘汰赛下一轮名：final 之后返回 null */
+export function nextRoundName(name) {
+  const i = KO_NAMES.indexOf(name);
+  if (i < 0 || i === KO_NAMES.length - 1) return null;
+  return KO_NAMES[i + 1];
+}
 
 /** 取某歌手的合格专辑（已缓存优先，必要时同步） */
 async function eligibleAlbumsOf(artistExternalId) {
@@ -196,6 +213,12 @@ export async function resolvePool(payload) {
 export async function createBattle(userId, payload) {
   const { albums, artists, alignedLists, duelPairs } = await resolvePool(payload);
 
+  // 新赛制（2026-09-17）：规模自选 + 小组赛 4 选 2 + 遗珠复活 + 1v1 淘汰。
+  // tournamentVersion=2 时走全新链路；其余保持旧赛制不变（灰度共存）。
+  if (payload.tournamentVersion === 2) {
+    return createBattleV2(userId, payload, { albums, artists });
+  }
+
   if (payload.scopeType === 'duel') {
     const matches = bracket.buildDuelMatches(duelPairs);
     const battle = await Battle.create({
@@ -296,6 +319,292 @@ export async function createBattle(userId, payload) {
 
   await BattleMatch.insertMany(groupMatches.map((m) => ({ ...m, battleId: battle._id })));
   return battle;
+}
+
+// ============================================================
+// 新赛制（tournamentVersion = 2）Creation / Group-Vote / Progression
+// ------------------------------------------------------------
+// 与旧赛制（version = 1）完全隔离：本段只服务 tournamentVersion=2 的对决。
+// 赛程分三阶段：① 小组赛（每 4 张一组，一次勾选 2 张）—— 落在 battle_groups
+//             ② 遗珠复活（若有）—— 也是一次多选，落在 battle_groups(roundName='revival')
+//             ③ 1v1 淘汰（r32/r16/qf/semi/final）—— 落在 battle_matches
+// ②③ 都依赖前序投票结果，故"淘汰赛场次"不在创建时生成，而在小组/复活完成后按需生成。
+// ============================================================
+
+/**
+ * 创建新赛制对决：规划赛程 + 落 BattleGroup（小组）+ Battle。
+ * 不在此生成淘汰赛场次（依赖小组/复活结果）。
+ */
+async function createBattleV2(userId, payload, resolved) {
+  const { albums, artists } = resolved;
+  if (albums.length < 2) throw new BadRequestError('参赛专辑不得少于 2 张');
+
+  const plan = bracket.planTournament(albums.length);
+  if (!plan) throw new BadRequestError('参赛专辑不足以组成对决');
+
+  const crossArtist = isCrossArtistScope(payload.scopeType);
+  const groupDefs = crossArtist
+    ? bracket.buildGroupDefsCrossArtist(albums)
+    : bracket.buildGroupDefs(albums);
+
+  const battle = await Battle.create({
+    userId,
+    scopeType: payload.scopeType,
+    scopeKey: payload.scopeKey ?? payload.genre ?? null,
+    artists,
+    alignCount: null,
+    withRevival: plan.revivalNeed > 0,
+    status: 'playing',
+    groupCount: plan.groupCount,
+    roundCount: plan.totalSteps,
+    currentRound: 1,
+    matchTotal: plan.totalSteps,
+    hasBye: false,
+    tournamentVersion: 2,
+    poolTarget: plan.total,
+    knockoutSize: plan.knockoutSize,
+    revivalNeed: plan.revivalNeed,
+    stepTotal: plan.totalSteps,
+    albumIds: albums.map((a) => a._id),
+  });
+
+  await BattleGroup.insertMany(
+    groupDefs.map((g) => ({
+      battleId: battle._id,
+      roundName: 'group',
+      groupNo: g.groupNo,
+      albumIds: g.albumIds,
+      advanceCount: g.advanceCount,
+    })),
+  );
+
+  return battle;
+}
+
+/** 小组 / 复活多选投票：一次性勾选 advanceCount 张晋级 */
+export async function castGroupVote(battleId, groupId, pickedExternalIds, userId) {
+  const battle = await loadOwnedBattle(battleId, userId);
+  if (battle.status !== 'playing') throw new BadRequestError('该对决已结束');
+  if (battle.tournamentVersion !== 2) throw new BadRequestError('该对决不是新赛制');
+
+  const group = await BattleGroup.findOne({ _id: groupId, battleId });
+  if (!group) throw new NotFoundError('分组');
+  if (group.isPicked()) throw new DuplicateError('该分组已投票');
+
+  // 入参是外部专辑标识数组 → 解析为本地 _id，并校验都在本组内
+  if (!Array.isArray(pickedExternalIds) || pickedExternalIds.length !== group.advanceCount) {
+    throw new BadRequestError(`本分组需选择 ${group.advanceCount} 张专辑晋级`);
+  }
+  const pickedLocal = [];
+  for (const ext of pickedExternalIds) {
+    const doc = await Album.findOne({ albumId: Number(ext) });
+    if (!doc) throw new BadRequestError('存在无效的专辑标识');
+    if (!group.albumIds.map(String).includes(String(doc._id))) {
+      throw new BadRequestError('所投专辑不在本分组内');
+    }
+    pickedLocal.push(doc._id);
+  }
+
+  // 轻度限流（不计违规）：同一用户连续多选投票过快时拦截，阈值与淘汰赛投票一致（config.vote.minIntervalMs）
+  const last = await Vote.findOne({ userId, groupId: { $ne: null } }).sort({ createdAt: -1 }).select('createdAt');
+  if (last && Date.now() - new Date(last.createdAt).getTime() < config.vote.minIntervalMs) {
+    throw new TooFrequentError('操作过于频繁，请稍后再试');
+  }
+
+  // 每张选票落库（partial 唯一索引 (groupId,userId,albumId) 防同一张重复投）
+  await Vote.insertMany(
+    pickedLocal.map((albumObjectId) => ({
+      groupId: group._id,
+      battleId: battle._id,
+      albumId: albumObjectId,
+      userId,
+      isInvalid: false,
+    })),
+  );
+
+  group.pickedAlbumIds = pickedLocal;
+  group.pickedAt = new Date();
+  await group.save();
+
+  const progress = await progressBattle(battle);
+  return { invalid: false, groupId: String(group._id), progress };
+}
+
+/** 取下一个待投票步骤（统一覆盖 小组 / 复活 / 淘汰赛 / 已结束），前端据此渲染 */
+export async function getNextStep(battleId, userId) {
+  const battle = await loadOwnedBattle(battleId, userId);
+  if (battle.status === 'finished') {
+    return { finished: true, phase: 'finished', progress: { decided: battle.stepTotal || 0, total: battle.stepTotal || 0 } };
+  }
+  if (battle.tournamentVersion !== 2) {
+    // 旧赛制：交由既有 next-match 接口处理
+    return { legacy: true };
+  }
+
+  const groups = await BattleGroup.find({ battleId: battle._id }).sort({ groupNo: 1, roundName: 1 });
+  const groupPickedCount = groups.filter((g) => g.isPicked()).length;
+  const undecided = groups.find((g) => !g.isPicked());
+
+  if (undecided) {
+    const albumDocs = await Album.find({ _id: { $in: undecided.albumIds } });
+    const albumMap = new Map(albumDocs.map((a) => [String(a._id), a]));
+    const shape = (id) => {
+      const a = albumMap.get(String(id));
+      return a ? musicService.serializeAlbum(a) : null;
+    };
+    return {
+      finished: false,
+      phase: undecided.roundName, // 'group' | 'revival'
+      group: {
+        groupId: String(undecided._id),
+        roundName: undecided.roundName,
+        groupNo: undecided.groupNo,
+        advanceCount: undecided.advanceCount,
+        albums: undecided.albumIds.map(shape),
+      },
+      progress: { decided: groupPickedCount, total: battle.stepTotal },
+    };
+  }
+
+  // 小组 + 复活全部完成 → 进入淘汰赛阶段
+  const koMatches = await BattleMatch.find({ battleId: battle._id, roundName: { $in: KO_NAMES } }).sort({
+    matchOrder: 1,
+  });
+  const koDecided = koMatches.filter((m) => m.isBye || m.winnerAlbumId).length;
+  if (koMatches.length) {
+    const match = koMatches.find((m) => !m.isBye && !m.winnerAlbumId);
+    if (!match) {
+      return { finished: false, phase: 'await', progress: { decided: groupPickedCount + koDecided, total: battle.stepTotal } };
+    }
+    const albumDocs = await Album.find({ _id: { $in: [match.leftAlbumId, match.rightAlbumId].filter(Boolean) } });
+    const albumMap = new Map(albumDocs.map((a) => [String(a._id), a]));
+    const previews = await Track.find({
+      albumExternalId: { $in: albumDocs.map((a) => a.albumId) },
+      previewUrl: { $ne: null },
+    }).select('albumExternalId previewUrl trackNumber');
+    const previewMap = new Map();
+    for (const t of previews) {
+      const cur = previewMap.get(t.albumExternalId);
+      if (!cur || (t.trackNumber === 1 && cur.trackNumber !== 1)) previewMap.set(t.albumExternalId, t);
+    }
+    const shapeAlbum = (album) =>
+      album
+        ? { ...musicService.serializeAlbum(album), previewUrl: previewMap.get(album.albumId)?.previewUrl || null }
+        : null;
+    return {
+      finished: false,
+      phase: 'knockout',
+      match: {
+        matchId: String(match._id),
+        roundName: match.roundName,
+        matchOrder: match.matchOrder,
+        leftAlbum: shapeAlbum(albumMap.get(String(match.leftAlbumId))),
+        rightAlbum: match.rightAlbumId ? shapeAlbum(albumMap.get(String(match.rightAlbumId))) : null,
+        leftVotes: match.leftVotes,
+        rightVotes: match.rightVotes,
+        isBye: match.isBye,
+      },
+      progress: { decided: groupPickedCount + koDecided, total: battle.stepTotal },
+    };
+  }
+
+  // 兜底：分组都投完但还没生成淘汰赛（progressBattleV2 会同步生成，正常不会停在这里）
+  return { finished: false, phase: 'await', progress: { decided: groupPickedCount, total: battle.stepTotal } };
+}
+
+/** 新赛制推进：小组 / 复活阶段（淘汰赛已生成则转交 progressKnockoutV2） */
+async function progressGroupRevivalV2(battle) {
+  const groups = await BattleGroup.find({ battleId: battle._id }).sort({ groupNo: 1, roundName: 1 });
+  const groupRounds = groups.filter((g) => g.roundName === 'group');
+  if (!groupRounds.length) return { advanced: false };
+  if (!groupRounds.every((g) => g.isPicked())) return { advanced: false };
+
+  const advancedIds = groupRounds.flatMap((g) => g.pickedAlbumIds.map((id) => String(id)));
+
+  if (battle.revivalNeed > 0) {
+    let revival = groups.find((g) => g.roundName === 'revival');
+    if (!revival) {
+      const advancedSet = new Set(advancedIds);
+      const remaining = battle.albumIds.filter((id) => !advancedSet.has(String(id)));
+      const advanceCount = Math.min(battle.revivalNeed, remaining.length);
+      if (advanceCount <= 0) {
+        // 没有遗珠可捞（极端情况），直接进入淘汰赛
+        return startKnockoutV2(battle, advancedIds.map((id) => ({ _id: id })));
+      }
+      revival = await BattleGroup.create({
+        battleId: battle._id,
+        roundName: 'revival',
+        groupNo: groupRounds.length + 1,
+        albumIds: remaining,
+        advanceCount,
+      });
+      battle.currentRound = battle.groupCount + 1;
+      await battle.save();
+      return { advanced: true, round: 'revival' };
+    }
+    if (!revival.isPicked()) return { advanced: false };
+    const revived = revival.pickedAlbumIds.map((id) => ({ _id: id }));
+    const seeds = [...advancedIds.map((id) => ({ _id: id })), ...revived];
+    return startKnockoutV2(battle, seeds);
+  }
+
+  return startKnockoutV2(battle, advancedIds.map((id) => ({ _id: id })));
+}
+
+/** 生成第一轮淘汰赛（seeds 数 = 晋级数 + 复活数 = knockoutSize） */
+async function startKnockoutV2(battle, seeds) {
+  if (seeds.length < 2) {
+    // 仅剩 1 张 → 直接夺冠
+    battle.status = 'finished';
+    battle.championAlbumId = seeds[0]?._id || null;
+    await battle.save();
+    return { advanced: true, finished: true };
+  }
+  const roundName = bracket.roundNameFor(seeds.length);
+  const order = await nextMatchOrder(battle._id);
+  const matches = bracket.buildKnockoutMatches(seeds, roundName, { roundIndex: 1, startOrder: order });
+  await BattleMatch.insertMany(matches.map((m) => ({ ...m, battleId: battle._id })));
+  battle.currentRound = battle.groupCount + (battle.revivalNeed > 0 ? 1 : 0) + 1;
+  await battle.save();
+  return { advanced: true, round: roundName };
+}
+
+/** 新赛制推进：淘汰赛阶段（逐轮减半到冠军） */
+async function progressKnockoutV2(battle) {
+  const matches = await BattleMatch.find({ battleId: battle._id, roundName: { $in: KO_NAMES } }).sort({
+    matchOrder: 1,
+  });
+  if (!matches.length) return { advanced: false };
+
+  const byRound = new Map();
+  for (const m of matches) {
+    if (!byRound.has(m.roundName)) byRound.set(m.roundName, []);
+    byRound.get(m.roundName).push(m);
+  }
+  let lastRoundName = null;
+  for (const name of KO_NAMES) if (byRound.has(name)) lastRoundName = name;
+  const lastRound = byRound.get(lastRoundName);
+  const decided = (m) => m.isBye || Boolean(m.winnerAlbumId);
+  if (!lastRound.every(decided)) return { advanced: false };
+
+  if (lastRoundName === 'final') {
+    const finalMatch = lastRound.find((m) => !m.isBye) || lastRound[0];
+    battle.status = 'finished';
+    battle.championAlbumId = finalMatch?.winnerAlbumId || (lastRound[0]?.isBye ? lastRound[0].leftAlbumId : null);
+    await battle.save();
+    return { advanced: true, finished: true };
+  }
+
+  const winners = lastRound
+    .map((m) => ({ _id: m.winnerAlbumId || (m.isBye ? m.leftAlbumId : null) }))
+    .filter((w) => w._id);
+  const nextName = nextRoundName(lastRoundName);
+  const order = await nextMatchOrder(battle._id);
+  const newMatches = bracket.buildKnockoutMatches(winners, nextName, { roundIndex: 1, startOrder: order });
+  await BattleMatch.insertMany(newMatches.map((m) => ({ ...m, battleId: battle._id })));
+  battle.currentRound += 1;
+  await battle.save();
+  return { advanced: true, round: nextName };
 }
 
 async function loadOwnedBattle(battleId, userId) {
@@ -565,6 +874,13 @@ async function createRound(battle, ranked, roundName) {
  *                            四强 = 小组第一综合排序前 3 + 复活冠军 → 半决赛 → 决赛
  */
 export async function progressBattle(battle) {
+  // 新赛制（version=2）：先判断淘汰赛是否已生成，再决定走淘汰赛推进还是小组/复活推进
+  if (battle.tournamentVersion === 2) {
+    const koExists = await BattleMatch.exists({ battleId: battle._id, roundName: { $in: KO_NAMES } });
+    if (koExists) return progressKnockoutV2(battle);
+    return progressGroupRevivalV2(battle);
+  }
+
   const matches = await BattleMatch.find({ battleId: battle._id }).sort({ matchOrder: 1 });
   const decided = (m) => m.isBye || Boolean(m.winnerAlbumId);
 
@@ -778,11 +1094,32 @@ export async function getResult(battleId, userId) {
     }
   }
 
+  // 新赛制：补充小组赛 / 遗珠复活的分组与晋级信息，供结果页展示"小组赛第 X 组晋级"
+  let groupsSummary = null;
+  if (battle.tournamentVersion === 2) {
+    const bgroups = await BattleGroup.find({ battleId }).sort({ groupNo: 1, roundName: 1 });
+    const allIds = bgroups.flatMap((g) => [...g.albumIds, ...g.pickedAlbumIds]);
+    const balbumDocs = await Album.find({ _id: { $in: allIds } });
+    const bamap = new Map(balbumDocs.map((a) => [String(a._id), a]));
+    const ser = (id) => {
+      const a = bamap.get(String(id));
+      return a ? musicService.serializeAlbum(a) : null;
+    };
+    groupsSummary = bgroups.map((g) => ({
+      groupNo: g.groupNo,
+      roundName: g.roundName,
+      advanceCount: g.advanceCount,
+      albums: g.albumIds.map(ser),
+      advanced: g.pickedAlbumIds.map(ser),
+    }));
+  }
+
   return {
     battle,
     type: 'standard',
     champion: champion ? musicService.serializeAlbum(champion) : null,
     path,
+    groupsSummary,
   };
 }
 
@@ -797,6 +1134,8 @@ export default {
   createBattle,
   getBattleDetail,
   getNextMatch,
+  getNextStep,
+  castGroupVote,
   listMyBattles,
   deleteBattle,
   createRevival,

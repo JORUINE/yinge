@@ -7,7 +7,7 @@
  */
 import mongoose from 'mongoose';
 
-export const ROUND_NAMES = ['group', 'revival', 'semi', 'final', 'duel'];
+export const ROUND_NAMES = ['group', 'revival', 'r32', 'r16', 'qf', 'semi', 'final', 'duel'];
 
 const battleMatchSchema = new mongoose.Schema(
   {

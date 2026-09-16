@@ -95,6 +95,85 @@ export function planTournament(total) {
   };
 }
 
+/** 淘汰赛轮次名：由该轮参赛张数推出（32/16/8/4/2 → r32/r16/qf/semi/final） */
+export function roundNameFor(participants) {
+  if (participants >= 32) return 'r32';
+  if (participants >= 16) return 'r16';
+  if (participants >= 8) return 'qf';
+  if (participants >= 4) return 'semi';
+  return 'final';
+}
+
+/**
+ * 按 planTournament 的规划切分小组：已排序的专辑按每 4 张一段切开。
+ * @param {Array} albums 参赛专辑（已按强度排序）
+ * @returns {Array<{groupNo:number, albumIds:Array, advanceCount:number}>}
+ */
+export function buildGroupDefs(albums) {
+  const defs = [];
+  let no = 1;
+  for (let i = 0; i < albums.length; i += GROUP_PICK_SIZE) {
+    const slice = albums.slice(i, i + GROUP_PICK_SIZE);
+    defs.push({
+      groupNo: no,
+      albumIds: slice.map((a) => (a && a._id ? a._id : a)),
+      advanceCount: advanceOfGroup(slice.length),
+    });
+    no += 1;
+  }
+  return defs;
+}
+
+/**
+ * 跨歌手分组（新赛制）：**跨歌手优先** —— 尽量让同一组里的专辑来自不同歌手。
+ * 做法：每轮从"剩余专辑最多"的歌手各取一张，凑满 4 张成一组；
+ * 只有剩下不足 2 位歌手时，才把余下专辑补进组里（此时才出现同歌手同组）。
+ * 对应《赛制升级方案》第六节"跨歌手优先配对"的第 ① 条。
+ */
+export function buildGroupDefsCrossArtist(albums) {
+  const buckets = new Map();
+  for (const al of albums) {
+    const key = String(al.artistExternalId ?? 'unknown');
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(al);
+  }
+  const availSorted = () =>
+    [...buckets.entries()].filter(([, list]) => list.length).sort((a, b) => b[1].length - a[1].length);
+
+  const defs = [];
+  let no = 1;
+  for (;;) {
+    const avail = availSorted();
+    if (!avail.length) break;
+    const group = [];
+    // 第一轮：每位还有专辑的歌手各取一张（跨歌手优先）
+    for (const [, list] of avail) {
+      if (group.length >= GROUP_PICK_SIZE) break;
+      group.push(list.shift());
+    }
+    // 第二轮：歌手数不足 4 位时，从剩余最多的歌手继续补足
+    for (;;) {
+      if (group.length >= GROUP_PICK_SIZE) break;
+      const more = availSorted();
+      if (!more.length) break;
+      group.push(more[0][1].shift());
+    }
+    defs.push({
+      groupNo: no,
+      albumIds: group.map((a) => (a && a._id ? a._id : a)),
+      advanceCount: advanceOfGroup(group.length),
+    });
+    no += 1;
+  }
+  return defs;
+}
+
+/** 淘汰赛某轮对阵：标准种子配对（第 1 对第 n、第 2 对第 n−1…），轮次名由本轮人数推出 */
+export function buildKnockoutRound(seeds, { startOrder = 1 } = {}) {
+  const participants = seeds.length;
+  return buildKnockoutMatches(seeds, roundNameFor(participants), { roundIndex: 1, startOrder });
+}
+
 /**
  * 分组：每 3 张一组，同一歌手的多张专辑尽量分散到不同组。
  * 做法：先按歌手专辑数降序，再按轮转法依次落组。
@@ -426,6 +505,10 @@ export default {
   DEFAULT_ARTIST_COUNT,
   resolvePoolSize,
   planTournament,
+  roundNameFor,
+  buildGroupDefs,
+  buildGroupDefsCrossArtist,
+  buildKnockoutRound,
   groupAlbums,
   groupAlbumsCrossArtist,
   pickOnePerArtist,
