@@ -61,7 +61,10 @@ const voteParam = z.object({
   id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的对决标识'),
   matchId: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的场次标识'),
 });
-const voteBody = z.object({ albumId: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的专辑标识') });
+const voteBody = z.object({
+  // 按接口文档 5.4：传「外部专辑标识」，数字或数字字符串均可
+  albumId: z.union([z.number().int().positive(), z.string().regex(/^\d+$/, '专辑标识必须为数字')]),
+});
 const listQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),

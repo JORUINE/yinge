@@ -1,95 +1,110 @@
 <template>
   <div class="container">
-    <div v-if="loading" class="state muted">正在加载下一场…</div>
+    <div v-if="loading && !finished" class="state muted">正在加载下一场…</div>
 
-    <template v-else-if="match">
+    <template v-else-if="finished">
+      <div class="state card">
+        <h2>全部场次已投完</h2>
+        <p class="muted">赛程已推进完毕，冠军已经产生。</p>
+        <RouterLink :to="{ name: 'battle-result', params: { id } }">
+          <el-button type="primary">去看结果与夺冠之路</el-button>
+        </RouterLink>
+      </div>
+    </template>
+
+    <template v-else-if="left">
       <div class="page-head">
-        <p class="eyebrow">对决进行中</p>
+        <p class="eyebrow">{{ roundLabel }}</p>
         <h1>二选一，投出你的那一票</h1>
         <p class="muted progress">
-          进度 <strong class="num">{{ progress.decided }} / {{ progress.total }}</strong> 场 ·
-          共 {{ battle?.matchTotal }} 场（由赛制推导，不含复活赛）
+          进度 <strong class="num">{{ progress.decided }} / {{ progress.total }}</strong> 场
         </p>
       </div>
 
-      <el-progress
-        :percentage="percentage"
-        :stroke-width="8"
-        :show-text="false"
-        class="bar"
-      />
+      <el-progress :percentage="percentage" :stroke-width="8" :show-text="false" class="bar" />
 
       <div class="arena">
-        <button class="side card" type="button" :disabled="voting" @click="vote(match.leftAlbum)">
-          <img :src="match.leftAlbum.artworkUrl" :alt="match.leftAlbum.name" />
-          <h3>{{ match.leftAlbum.name }}</h3>
-          <p class="muted num">{{ match.leftAlbum.releaseDate?.slice(0, 4) }} · {{ match.leftAlbum.trackCount }} 首</p>
+        <button class="side card" type="button" :disabled="voting" @click="vote(left)">
+          <img :src="left.artworkUrl" :alt="left.name" />
+          <h3>{{ left.name }}</h3>
+          <p class="muted num">{{ year(left.releaseDate) }} · {{ left.trackCount }} 首</p>
           <span class="pick">投给它</span>
         </button>
 
         <div class="vs num">VS</div>
 
-        <button class="side card" type="button" :disabled="voting || !match.rightAlbum" @click="vote(match.rightAlbum)">
-          <img :src="match.rightAlbum?.artworkUrl" :alt="match.rightAlbum?.name" />
-          <h3>{{ match.rightAlbum?.name }}</h3>
-          <p class="muted num">
-            {{ match.rightAlbum?.releaseDate?.slice(0, 4) }} · {{ match.rightAlbum?.trackCount }} 首
-          </p>
+        <button class="side card" type="button" :disabled="voting || !right" @click="vote(right)">
+          <img :src="right?.artworkUrl" :alt="right?.name" />
+          <h3>{{ right?.name }}</h3>
+          <p class="muted num">{{ year(right?.releaseDate) }} · {{ right?.trackCount }} 首</p>
           <span class="pick">投给它</span>
         </button>
       </div>
 
       <div class="listen">
-        <el-button text type="primary" @click="togglePreview">试听 30 秒</el-button>
-        <audio v-if="previewUrl" ref="audioEl" :src="previewUrl" controls class="audio" />
-        <span v-else class="muted small">该专辑暂无可试听片段</span>
+        <el-button text type="primary" :disabled="!left?.previewUrl" @click="play(left)">
+          试听左侧 30 秒
+        </el-button>
+        <el-button text type="primary" :disabled="!right?.previewUrl" @click="play(right)">
+          试听右侧 30 秒
+        </el-button>
+        <audio v-if="previewUrl" ref="audioEl" :src="previewUrl" controls autoplay class="audio" />
+        <span v-if="!left?.previewUrl && !right?.previewUrl" class="muted small">
+          本场两首均暂无可试听片段
+        </span>
       </div>
     </template>
-
-    <div v-else class="state card">
-      <h2>本轮已全部投完</h2>
-      <p class="muted">赛程已自动推进到下一轮，或对决已结束。</p>
-      <RouterLink :to="{ name: 'battle-result', params: { id } }">
-        <el-button type="primary">去看结果</el-button>
-      </RouterLink>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { battleApi, musicApi } from '@/api';
+import { battleApi } from '@/api';
 
 const route = useRoute();
-const router = useRouter();
 const id = route.params.id;
+
+const ROUND_LABEL = {
+  group: (m) => (m.isRevival ? '复活赛' : '小组赛'),
+  revival: (m) => `复活赛 · 第 ${m.roundIndex} 轮`,
+  semi: () => '淘汰赛 · 半决赛',
+  final: () => '淘汰赛 · 决赛',
+};
 
 const loading = ref(true);
 const voting = ref(false);
-const battle = ref(null);
-const match = ref(null);
+const finished = ref(false);
+const matchId = ref('');
+const left = ref(null);
+const right = ref(null);
+const roundInfo = ref({ roundName: 'group', roundIndex: 1, isRevival: false });
 const progress = ref({ decided: 0, total: 0 });
 const previewUrl = ref('');
-const audioEl = ref(null);
 
-const percentage = computed(() => {
-  if (!progress.value.total) return 0;
-  return Math.round((progress.value.decided / progress.value.total) * 100);
+const percentage = computed(() =>
+  progress.value.total ? Math.round((progress.value.decided / progress.value.total) * 100) : 0,
+);
+const roundLabel = computed(() => {
+  const fn = ROUND_LABEL[roundInfo.value.roundName] || ROUND_LABEL.group;
+  return fn(roundInfo.value);
 });
+
+const year = (d) => (d ? String(d).slice(0, 4) : '');
 
 async function loadNext() {
   loading.value = true;
   previewUrl.value = '';
   try {
-    const [detail, next] = await Promise.all([battleApi.detail(id), battleApi.nextMatch(id)]);
-    battle.value = detail;
-    if (!next?.match) {
-      match.value = null;
-    } else {
-      match.value = next.match;
-      progress.value = next.progress || progress.value;
+    const data = await battleApi.nextMatch(id);
+    finished.value = Boolean(data?.finished);
+    if (data?.progress) progress.value = data.progress;
+    if (!finished.value) {
+      matchId.value = data.matchId;
+      left.value = data.left;
+      right.value = data.right;
+      roundInfo.value = { roundName: data.roundName, roundIndex: data.roundIndex, isRevival: data.isRevival };
     }
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
@@ -102,9 +117,8 @@ async function vote(album) {
   if (!album) return;
   voting.value = true;
   try {
-    const result = await battleApi.vote(id, match.value.matchId, album.albumId);
+    const result = await battleApi.vote(id, matchId.value, album.albumId);
     if (result.invalid) ElMessage.warning(result.message);
-    else ElMessage.success('已记录');
     await loadNext();
   } catch (err) {
     ElMessage.error(err?.message || '投票失败');
@@ -113,22 +127,9 @@ async function vote(album) {
   }
 }
 
-async function togglePreview() {
-  if (previewUrl.value) {
-    previewUrl.value = '';
-    return;
-  }
-  try {
-    const albumId = match.value.leftAlbum.albumId;
-    const data = await musicApi.getAlbumPreview(albumId);
-    if (!data.previewUrl) {
-      ElMessage.info('该专辑暂无可试听片段');
-      return;
-    }
-    previewUrl.value = data.previewUrl;
-  } catch (err) {
-    ElMessage.error(err?.message || '试听加载失败');
-  }
+function play(album) {
+  if (!album?.previewUrl) return;
+  previewUrl.value = album.previewUrl;
 }
 
 onMounted(loadNext);
@@ -199,7 +200,7 @@ onMounted(loadNext);
 .listen {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   padding-bottom: var(--sp-8);
   flex-wrap: wrap;
 }

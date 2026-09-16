@@ -75,13 +75,19 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
   if (String(battle.userId) !== String(user._id)) throw new ForbiddenError('无权在该对决中投票');
   if (battle.status !== 'playing') throw new BadRequestError('该对决已结束');
 
+  // 入参 albumId 是「外部专辑标识」（数字或数字字符串，见接口文档 5.4），先解析为本地专辑
+  const albumDoc = await Album.findOne({ albumId: Number(albumId) });
+  if (!albumDoc) throw new BadRequestError('专辑不存在');
+  const albumObjectId = albumDoc._id;
+
   // 校验 1：场次属于该对决
   const match = await BattleMatch.findOne({ _id: matchId, battleId });
   if (!match) throw new NotFoundError('该场次');
 
-  // 校验 2：专辑确实在本场对阵中
+  // 校验 2：专辑确实在本场对阵中（按本地标识比对）
   const inMatch =
-    String(match.leftAlbumId) === String(albumId) || String(match.rightAlbumId) === String(albumId);
+    String(match.leftAlbumId) === String(albumObjectId) ||
+    String(match.rightAlbumId) === String(albumObjectId);
   if (!inMatch) throw new BadRequestError('该专辑不在本场对阵中');
 
   // 校验 3：本场未结束
@@ -100,7 +106,7 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
     await Vote.create({
       matchId,
       battleId,
-      albumId,
+      albumId: albumObjectId,
       userId: user._id,
       ip: meta.ip || null,
       deviceHash: meta.deviceHash || null,
@@ -120,14 +126,14 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
   const vote = await Vote.create({
     matchId,
     battleId,
-    albumId,
+    albumId: albumObjectId,
     userId: user._id,
     ip: meta.ip || null,
     deviceHash: meta.deviceHash || null,
     isInvalid: false,
   });
 
-  const isLeft = String(match.leftAlbumId) === String(albumId);
+  const isLeft = String(match.leftAlbumId) === String(albumObjectId);
   if (isLeft) match.leftVotes += 1;
   else match.rightVotes += 1;
 
@@ -138,15 +144,15 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
   // 推进赛程
   const progress = await progressBattle(battle);
 
+  // 返回外部专辑标识（与接口文档 5.4 一致）
+  const winnerDoc = match.winnerAlbumId ? await Album.findById(match.winnerAlbumId).select('albumId') : null;
+
   return {
     invalid: false,
-    voteId: String(vote._id),
-    match: {
-      matchId: String(match._id),
-      leftVotes: match.leftVotes,
-      rightVotes: match.rightVotes,
-      winnerAlbumId: match.winnerAlbumId ? String(match.winnerAlbumId) : null,
-    },
+    matchId: String(match._id),
+    winnerAlbumId: winnerDoc?.albumId ?? null,
+    leftVotes: match.leftVotes,
+    rightVotes: match.rightVotes,
     progress,
   };
 }

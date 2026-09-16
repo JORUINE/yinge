@@ -501,33 +501,47 @@
   "code": 0,
   "message": "ok",
   "data": {
+    "finished": false,
     "matchId": "6512f1b2c9e77b1d2a4f8e30",
-    "roundIndex": 2,
+    "roundName": "semi",
+    "roundIndex": 1,
     "isRevival": false,
+    "isBye": false,
     "left": { "albumId": 1440928842, "name": "范特西", "artworkUrl": "https://...", "previewUrl": "https://..." },
     "right": { "albumId": 1440929700, "name": "叶惠美", "artworkUrl": "https://...", "previewUrl": "https://..." },
-    "finished": false
+    "progress": { "decided": 12, "total": 15 }
   }
 }
 ```
 
-说明：`finished` 为 `true` 表示全部轮次结束，前端跳转结果页。
+说明：`left` / `right` 中的 `albumId` 是**外部专辑标识**（数字），投票时原样回传即可；`previewUrl` 为 30 秒试听地址，为空表示该专辑暂无试听资源。
+`finished` 为 `true` 表示全部场次已投完，前端跳转结果页，此时 `left`、`right` 为 `null`。
+`progress` 给出已投场次与总场次，其中 `total` 恒等于创建对决时返回的 `matchTotal`（由赛制推导）。
 
 ### 5.4 投票　POST /api/battles/:id/matches/:matchId/vote　（需要登录）
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| albumId | string | 是 | 所投专辑，必须是该场次的左或右一方 |
+| albumId | string / number | 是 | 所投专辑的**外部专辑标识**（与上场次中的 `albumId` 一致），必须是该场次的左或右一方 |
 
 ```json
 {
   "code": 0,
   "message": "ok",
-  "data": { "matchId": "6512f1b2c9e77b1d2a4f8e30", "winnerAlbumId": 1440928842, "nextReady": true }
+  "data": {
+    "invalid": false,
+    "matchId": "6512f1b2c9e77b1d2a4f8e30",
+    "winnerAlbumId": 1440928842,
+    "leftVotes": 14,
+    "rightVotes": 6,
+    "progress": { "decided": 13, "total": 15 }
+  }
 }
 ```
 
-失败情形：同一场次重复投票返回 `3001`；`albumId` 不属于该场次返回 `1001`。
+说明：`winnerAlbumId` 为外部专辑标识；`invalid` 为 `true` 表示该票被判定为异常（不计入统计），此时 `message` 给出原因。
+
+失败情形：同一场次重复投票返回 `3001`；`albumId` 不属于该场次返回 `1001`；两次投票间隔过短返回 `1003`（该票不计违规）。
 
 ### 5.5 确认复活赛　POST /api/battles/:id/revival　（需要登录）
 

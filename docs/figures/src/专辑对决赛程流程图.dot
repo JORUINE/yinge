@@ -10,7 +10,7 @@ digraph BRACKET {
   fetch [label="拉取专辑清单\n（iTunes Search API + 本地缓存）", fillcolor="#EFF6FF", color="#2563EB"];
   gen   [label="生成对阵表\n（非 2 的幂次时安排轮空）", fillcolor="#FFFBEB", color="#D97706"];
   grp   [label="小组赛\n两两 PK · 每场可试听 30 秒", fillcolor="#FFFBEB", color="#D97706"];
-  rev   [label="复活赛\n小组第三名争夺剩余名额", fillcolor="#FEF3C7", color="#D97706"];
+  rev   [label="复活赛（可选）\n各组第二名 → 复活冠军 1 席", fillcolor="#FEF3C7", color="#D97706"];
   ko    [label="淘汰赛\n逐轮晋级", fillcolor="#FFFBEB", color="#D97706"];
   fin   [label="冠军产生", fillcolor="#FEF2F2", color="#DC2626"];
   share [label="「夺冠之路」分享图\n（html2canvas 导出）", fillcolor="#FDF2F8", color="#7C3AED"];

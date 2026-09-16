@@ -108,7 +108,9 @@ export function computeStandings(groupMatches) {
   const stat = new Map();
   const ensure = (id) => {
     const key = String(id);
-    if (!stat.has(key)) stat.set(key, { albumId: key, wins: 0, losses: 0, votes: 0, matches: 0 });
+    if (!stat.has(key)) {
+      stat.set(key, { albumId: key, wins: 0, losses: 0, votes: 0, matches: 0, seq: stat.size });
+    }
     return stat.get(key);
   };
 
@@ -135,37 +137,48 @@ export function computeStandings(groupMatches) {
     }
   }
 
-  return [...stat.values()].sort((a, b) => b.wins - a.wins || b.votes - a.votes);
+  // 综合排序：胜场数 → 总得票数 → 组内序号（seq 即专辑在小组内的固定次序）
+  return [...stat.values()].sort((a, b) => b.wins - a.wins || b.votes - a.votes || a.seq - b.seq);
 }
 
-/** 半决赛配对：按小组序号相邻配对 G1×G2、G3×G4；奇数参赛数时末位轮空 */
-export function buildKnockoutMatches(winners, roundName) {
+/**
+ * 淘汰赛对阵生成（标准种子配对）。
+ * 传入的 ranked 必须已按综合排序排好；本函数按「第 1 对第 n、第 2 对第 n-1……」配对，
+ * 使成绩最好者对上成绩最差者；轮空给排序最前的一张。
+ * @param {Array} ranked 已排序的参赛对象（元素可为 ObjectId 或 { _id }）
+ * @param {string} roundName 'revival' | 'semi' | 'final'
+ * @param {{roundIndex?: number, startOrder?: number, isRevival?: boolean}} options
+ */
+export function buildKnockoutMatches(ranked, roundName, options = {}) {
+  const { roundIndex = 1, startOrder = 1, isRevival = roundName === 'revival' } = options;
+  const list = [...ranked];
+  const toId = (x) => (x && x._id ? x._id : x);
   const matches = [];
-  const list = [...winners];
-  let order = 1;
+  let order = startOrder;
 
-  // 轮空：奇数时最后一张直接晋级
-  let byeAlbumId = null;
-  if (list.length % 2 === 1) byeAlbumId = list.pop();
+  // 轮空：奇数时取排序最前的一张直接进入下一轮
+  let bye = null;
+  if (list.length % 2 === 1) bye = list.shift();
 
-  for (let i = 0; i < list.length; i += 2) {
+  const n = list.length;
+  for (let i = 0; i < Math.floor(n / 2); i += 1) {
     matches.push({
       roundName,
-      roundIndex: order,
+      roundIndex,
       matchOrder: order++,
-      leftAlbumId: list[i]._id ?? list[i],
-      rightAlbumId: list[i + 1] ? list[i + 1]._id ?? list[i + 1] : null,
+      leftAlbumId: toId(list[i]),
+      rightAlbumId: toId(list[n - 1 - i]),
       isBye: false,
-      isRevival: false,
+      isRevival,
     });
   }
 
-  if (byeAlbumId) {
+  if (bye) {
     matches.push({
       roundName,
-      roundIndex: order,
-      matchOrder: order,
-      leftAlbumId: byeAlbumId._id ?? byeAlbumId,
+      roundIndex,
+      matchOrder: order++,
+      leftAlbumId: toId(bye),
       rightAlbumId: null,
       isBye: true,
       isRevival: false,
@@ -174,10 +187,12 @@ export function buildKnockoutMatches(winners, roundName) {
   return matches;
 }
 
-/** 标准赛制总场次（由赛制唯一确定，不允许手工填写） */
+/**
+ * 标准赛制总场次（由赛制唯一确定，不允许手工填写）
+ * = 小组赛场次 + 半决赛 2 + 决赛 1 +（启用复活赛 ? 复活赛 3 : 0）
+ */
 export function computeStandardTotal(groupMatchCount, withRevival = false) {
-  // 小组赛 + 半决赛 2 + 决赛 1
-  return groupMatchCount + 2 + 1 + (withRevival ? 2 : 0);
+  return groupMatchCount + 3 + (withRevival ? 3 : 0);
 }
 
 /** 对位赛总场次 = C(A,2) × N */
@@ -187,6 +202,7 @@ export function computeAlignedTotal(artistCount, alignCount) {
 
 export default {
   GROUP_SIZE,
+  KNOCKOUT_SIZE,
   groupAlbums,
   roundRobinPairs,
   buildGroupMatches,
