@@ -202,7 +202,7 @@
     <table>
       <tr><th style="width:70px">编号</th><th>问题</th><th>修复</th><th style="width:70px">状态</th></tr>
       <tr><td>A1</td><td>点太快报"操作过于频繁"</td><td>最小间隔 3000ms→300ms，每分钟 20→120，每天 300→800</td><td><span class="tag t-ok">已修</span></td></tr>
-      <tr><td>A2</td><td>繁体「現場」演唱会专辑漏筛</td><td>新增繁简归一（<code>TRAD_TO_SIMP</code>），Soul Power 类自动被剔除</td><td><span class="tag t-ok">已修</span></td></tr>
+      <tr><td>A2</td><td>繁体「現場」演唱会专辑漏筛</td><td>新增繁简归一（<code>TRAD_TO_SIMP</code>）；并对已缓存数据做了一次性重算，实测剔除 <b>6 张</b>（1 张现场 + 5 张影视原声）</td><td><span class="tag t-ok">已修</span></td></tr>
       <tr><td>A4</td><td>夺冠之路"战胜 — 0 : 0"</td><td>轮空改显示"轮空 · 直接晋级"；未胜显示"不敌"</td><td><span class="tag t-ok">已修</span></td></tr>
     </table>
     <p style="color:#64748b;font-size:13.6px">证据：新增 <code>scripts/verify-batch1.mjs</code>（12/12）；回归 verify-modes 22/22、verify-crossartist 20/20、verify-duel 13/13；前端构建通过。</p>
