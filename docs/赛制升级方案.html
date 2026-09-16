@@ -163,7 +163,73 @@
 
   <!-- 六 -->
   <section>
-    <h2><span class="n">六</span>影响面</h2>
+    <h2><span class="n">六</span>各模式怎么落地（模式 × 赛制 矩阵）</h2>
+    <p>先澄清一个字段：创建页里"每位 <b>4</b> 张"那个数字，指的是<b>每位歌手参赛的专辑张数</b>（不是人数、不是场次）。它决定"参赛池多大"，进而决定总步数。</p>
+    <p>我们的模式要分成<b>三条线</b>，只有 A 线跟着新赛制动，B / C 线赛制不变：</p>
+    <table>
+      <tr><th style="width:104px">线</th><th style="width:230px">包含模式</th><th>赛制</th><th style="width:150px">本次改动</th></tr>
+      <tr>
+        <td><b>A · 杯赛制</b><br><span style="color:#64748b;font-size:12.5px">产生冠军</span></td>
+        <td>单歌手专辑比拼 <code>artist</code><br>多歌手专辑混战 <code>multi-artist</code><br>按流派 <code>genre</code><br>按年代 <code>era</code><br>手动挑选 <code>custom</code></td>
+        <td>规模自选 → 小组赛 4 选 2 → 遗珠复活 → 1v1 淘汰 → 冠军 + 晋级之路</td>
+        <td><b>全套升级</b><br>（5 个模式共用同一套，只实现一次）</td>
+      </tr>
+      <tr>
+        <td><b>B · 对位赛</b><br><span style="color:#64748b;font-size:12.5px">比积分，不淘汰</span></td>
+        <td>对位赛 <code>aligned</code><br>（配对方式自选：<b>同序号</b> / <b>年代就近</b>）</td>
+        <td>第 k 张 对 第 k 张，按歌手累计胜场积分</td>
+        <td><b>赛制不变</b><br>只做：张数上限 10 → 20、平局按总票数裁决、结果页增强</td>
+      </tr>
+      <tr>
+        <td><b>C · 指定对决</b><br><span style="color:#64748b;font-size:12.5px">用户自排</span></td>
+        <td>指定对决 <code>duel</code></td>
+        <td>用户逐组指定谁打谁，每组两张直接单挑</td>
+        <td><b>赛制不变</b><br>只做：可继续加组、结果页增强</td>
+      </tr>
+    </table>
+    <div class="fix">
+      <b>为什么不给 B / C 也套新赛制：</b>它们<b>本来就不产生单一冠军</b>（结果页是"逐行对照表"）。硬套小组赛 / 淘汰赛会让"第 k 张对第 k 张"这个玩法失去意义。这是有意的分工 ——
+      <b>A 线回答"他哪张专辑最强"，B / C 线回答"两位歌手逐张对位谁赢面更大"。</b>
+    </div>
+    <div class="note">
+      <b>⚠️ 一个必须提前知道的后果：跨歌手"不对决"规则，在扩大规模后撑不住。</b><br>
+      现状：多歌手 / 流派 / 年代模式强制"同一歌手的专辑不互相对决"（小组每组每人 1 张、淘汰赛每人至多 1 张）。<br>
+      但现在要打到 8 强 / 16 强，而歌手只有 3 位左右 —— 8 强里<b>必然</b>出现同歌手对决，这条规则在数学上无法维持。<br>
+      <b>我的决定：小组赛仍尽量把不同歌手分到一组</b>（保留"跨歌手比较"的初衷）；<b>淘汰赛放开，允许同歌手相遇</b>。理由：音乐世界杯本身就是同一位歌手的歌互打，同歌手对决不是缺陷；越往后强者相遇本就是淘汰赛的看点。创建页会写明这条，避免困惑。
+    </div>
+  </section>
+
+  <!-- 七 -->
+  <section>
+    <h2><span class="n">七</span>「和好友一起玩」（已确定纳入范围）</h2>
+    <p>移植音乐世界杯的做法，做成我们的一个亮点模块：</p>
+    <table>
+      <tr><th style="width:96px">步骤</th><th>做什么</th></tr>
+      <tr><td>① 生成</td><td>打完一场后点「和好友一起玩」→ 生成一条<b>同款签表链接</b>（把这场对决的参数打包：模式、歌手、参赛专辑 id 列表、规模档位）</td></tr>
+      <tr><td>② 好友开打</td><td>好友点开链接 → <b>直接进入同一批专辑的对决</b>（不用重新搜歌手）</td></tr>
+      <tr><td>③ 对比</td><td>双方都打完后进<b>对比页</b>：冠军是否一致 / 从第几轮开始分歧 / 逐轮选择并排对照</td></tr>
+      <tr><td>④ 传播</td><td>分享图上直接标"我的冠军 vs TA 的冠军"</td></tr>
+    </table>
+    <div class="fix"><b>技术要点：</b>新增一张"签表快照"数据（或给 Battle 加 <code>shareCode</code> + <code>originBattleId</code>），链接形如 <code>/battle/join/&lt;shareCode&gt;</code>。属于<b>新增模块</b>，<b>不动现有赛制</b>，所以可以放在赛制跑通之后再接。</div>
+  </section>
+
+  <!-- 八 -->
+  <section>
+    <h2><span class="n">八</span>实施顺序（我按这个做）</h2>
+    <table>
+      <tr><th style="width:44px">步</th><th style="width:300px">内容</th><th>交付物</th></tr>
+      <tr><td>1</td><td><b>赛制核心</b>：规模自选（含上限 32）+ 小组赛 4 选 2 + 遗珠复活 + 1v1 淘汰<br><span style="color:#64748b;font-size:12.5px">A 线 5 个模式共用</span></td><td><code>bracket.js</code> / <code>battle.service.js</code> / 数据模型 + 验证脚本</td></tr>
+      <tr><td>2</td><td><b>创建页</b>：规模选择器（实时显示预计张数 / 步数）+ 年代输入框（A5）+ 歌手头像（B4）</td><td><code>BattleCreateView.vue</code></td></tr>
+      <tr><td>3</td><td><b>投票页交互</b>：阶段全屏动效 / 进度 X·Y / 返回重选 / 落败置灰 / 迷你对阵树</td><td><code>BattlePlayView.vue</code> + 新增"撤销上一票"接口</td></tr>
+      <tr><td>4</td><td><b>冠军页重做</b>：亚军 / 四强 + 晋级之路分享图 + 再来一场 + Apple Music 外链 + 进度本地续玩</td><td><code>BattleResultView.vue</code> + <code>viewUrl</code> 回填</td></tr>
+      <tr><td>5</td><td><b>好友一起玩</b>：同款签表 + 双人对比页</td><td>新增模块</td></tr>
+      <tr><td>6</td><td><b>榜单与文档</b>：排行榜升级为"夺冠次数"；需求 / 设计 / 接口 / UI / 玩法说明<b>五处口径对齐</b></td><td>榜单 + 5 份文档</td></tr>
+    </table>
+  </section>
+
+  <!-- 九 -->
+  <section>
+    <h2><span class="n">九</span>影响面</h2>
     <table>
       <tr><th style="width:110px">位置</th><th>要动的东西</th></tr>
       <tr><td>后端 · 赛制</td><td><code>bracket.js</code> 加"分组 4 张 → 选出 2 张"的判定；<code>battle.service.js</code> 复活赛改为"捞回 N 张"；淘汰赛从 4 强扩到 16 / 32 强</td></tr>
@@ -175,25 +241,28 @@
     </table>
   </section>
 
-  <!-- 七 -->
+  <!-- 十 -->
   <section>
-    <h2><span class="n">七</span>需要你拍板 3 件事</h2>
-    <div class="ask"><b>① 小组赛改成"每组 4 张、一次选 2 张晋级"</b>（取代现在的组内两两对决）—— 同意吗？这是省步骤、对上音乐世界杯的关键一步。</div>
-    <div class="ask"><b>② 规模档位</b>：单歌手 8 / 12 / 16 / 24 / 32（默认 <b>16</b>）、多歌手每位 2 / 4 / 6 / 8（默认 <b>4</b>）、上限 <b>32 张</b> —— 档位和默认值合理吗？</div>
-    <div class="ask"><b>③ "和好友一起玩"</b>要不要现在就排进范围？它是很好的答辩亮点，但会多出可观的活（分享码 + 双人对比页）。</div>
-    <p style="color:#64748b;font-size:13.6px">回一句「都行 / 某个不同意 / 好友功能先不做」我就开工：先做第 ② 条（规模可选）+ A5 年代模式 + B4 歌手头像，再做第 ① 条与交互全套。</p>
+    <h2><span class="n">十</span>已定口径（供你复核）</h2>
+    <div class="fix"><b>① 小组赛 4 选 2</b> —— 采用，取代现在的"组内两两对决"。<span style="color:#64748b">（你已确认"新赛制思路是对的"）</span></div>
+    <div class="fix"><b>② 规模档位</b> —— 采用：单歌手 8 / 12 / 16 / 24 / 32（默认 <b>16</b>）；多歌手<b>每位 2 / 4 / 6 / 8 张专辑</b>（默认 <b>4</b>）；上限 <b>32 张</b>。创建页实时显示"预计 X 张 · 约 N 步"。</div>
+    <div class="fix"><b>③ 和好友一起玩</b> —— <b>已纳入范围</b>（你明确要求"必须加入"），排在实施顺序第 5 步。</div>
+    <div class="fix"><b>④ B / C 线赛制不动</b> —— 对位赛（含"同序号 / 年代就近"两种配对）与指定对决<b>不套新赛制</b>，只做：张数上限 10→20、平局按总票数裁决、结果页增强。</div>
+    <div class="note"><b>唯一需你知晓、不用回答的一条：</b>多歌手 / 流派 / 年代模式下"同一歌手的专辑不互相对决"的规则，<b>在淘汰赛阶段会放开</b>（小组赛仍尽量把不同歌手分到一组）。原因是歌手只有 2–4 位、而 8 强 / 16 强有 8–16 个席位，数学上无法维持；音乐世界杯本身就是同歌手互打，属正常。</div>
+    <p style="color:#64748b;font-size:13.6px">以上四条如有想改的随时说；否则我按第八节顺序，从第 1 步（赛制核心）开工。</p>
   </section>
 
   <!-- 附 -->
   <section>
-    <h2><span class="n">附</span>已完成的批 1（不受本次调整影响）</h2>
+    <h2><span class="n">附</span>已完成：批 1 三个 bug + A5</h2>
     <table>
       <tr><th style="width:70px">编号</th><th>问题</th><th>修复</th><th style="width:70px">状态</th></tr>
       <tr><td>A1</td><td>点太快报"操作过于频繁"</td><td>最小间隔 3000ms→300ms，每分钟 20→120，每天 300→800</td><td><span class="tag t-ok">已修</span></td></tr>
       <tr><td>A2</td><td>繁体「現場」演唱会专辑漏筛</td><td>繁简归一 + 缓存重算，实测剔除 6 张（1 现场 + 5 影视原声）</td><td><span class="tag t-ok">已修</span></td></tr>
       <tr><td>A4</td><td>夺冠之路"战胜 — 0 : 0"</td><td>轮空改显示"轮空 · 直接晋级"；未胜显示"不敌"</td><td><span class="tag t-ok">已修</span></td></tr>
+      <tr><td>A5</td><td>"按年代"模式直接报错（像没做）</td><td>后端由命中专辑<b>反推歌手</b> + 参赛池封顶 32 张；前端补年份区间输入框。实测：宽区间解析出 32 张 / 6 位歌手，端到端建出 4 组 15 场</td><td><span class="tag t-ok">已修</span></td></tr>
     </table>
-    <p style="color:#64748b;font-size:13.6px">证据：<code>verify-batch1.mjs</code> 12/12、<code>reevaluate-admission.mjs</code> 幂等；回归 verify-modes 22/22、verify-crossartist 20/20、verify-duel 13/13；前端构建通过。</p>
+    <p style="color:#64748b;font-size:13.6px">证据：<code>verify-batch1.mjs</code> 12/12、<code>verify-era.mjs</code> 10/10、<code>reevaluate-admission.mjs</code> 幂等；回归 verify-modes 22/22、verify-crossartist 20/20、verify-duel 13/13；前端构建通过。</p>
   </section>
 
   <footer>音格 · 赛制与交互升级方案 v2　｜　2026-09-17　｜　本文档替换 2026-09-16 的 v1</footer>

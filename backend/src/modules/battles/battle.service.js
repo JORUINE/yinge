@@ -25,6 +25,9 @@ const byReleaseThenId = (a, b) => {
 const CROSS_ARTIST_SCOPES = new Set(['multi-artist', 'genre', 'era']);
 export const isCrossArtistScope = (scopeType) => CROSS_ARTIST_SCOPES.has(scopeType);
 
+/** 年代模式参赛池上限：一个年代区间可能命中上百张，封顶 32 张以保证一场对决打得完 */
+export const ERA_MAX_POOL = 32;
+
 /** 取某歌手的合格专辑（已缓存优先，必要时同步） */
 async function eligibleAlbumsOf(artistExternalId) {
   const { albums } = await musicService.getArtistAlbums(artistExternalId);
@@ -99,7 +102,52 @@ export async function resolvePool(payload) {
       if (payload.endYear) filter.releaseDate.$lte = new Date(`${payload.endYear}-12-31`);
     }
     const list = await Album.find(filter).sort({ releaseDate: 1 });
-    return { albums: list, artists: [] };
+    if (!list.length) throw new BadRequestError('该年代区间内没有合格的专辑，请放宽年份范围');
+
+    // 年代模式的歌手必须由「命中的专辑」反推（2026-09-17 修复 A5）：
+    // 之前这里返回 artists: []，于是跨歌手分组拿到"歌手数 = 0"→ 组容量退化成 1
+    // → 一场对阵都排不出 → 必然抛"这些专辑无法组成跨歌手对局"，等于该模式不可用。
+    const byArtist = new Map();
+    for (const al of list) {
+      const key = Number(al.artistExternalId);
+      if (!byArtist.has(key)) byArtist.set(key, []);
+      byArtist.get(key).push(al);
+    }
+
+    // 参赛池封顶 + 歌手均衡：按"各歌手轮转取一张"挑选，专辑多的歌手不会挤掉专辑少的，
+    // 既把规模压在 ERA_MAX_POOL 以内，又保证池子里歌手足够多（跨歌手对阵才有得打）。
+    const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
+    const buckets = [...byArtist.values()].map((bucket) => [...bucket]);
+    const picked = [];
+    let progressed = true;
+    while (picked.length < cap && progressed) {
+      progressed = false;
+      for (const bucket of buckets) {
+        if (picked.length >= cap) break;
+        const next = bucket.shift();
+        if (next) {
+          picked.push(next);
+          progressed = true;
+        }
+      }
+    }
+    picked.sort(byReleaseThenId);
+
+    const ids = [...byArtist.keys()];
+    const docs = await Artist.find({ artistId: { $in: ids } }).select('artistId name');
+    const nameById = new Map(docs.map((d) => [d.artistId, d.name]));
+    const countById = new Map();
+    for (const al of picked) {
+      const key = Number(al.artistExternalId);
+      countById.set(key, (countById.get(key) || 0) + 1);
+    }
+    const artists = [...countById.keys()].map((id) => ({
+      artistId: id,
+      name: nameById.get(id) || `歌手 ${id}`,
+      albumCount: countById.get(id),
+    }));
+
+    return { albums: picked, artists };
   }
 
   if (scopeType === 'aligned') {

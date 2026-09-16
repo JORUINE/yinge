@@ -120,6 +120,20 @@
       </p>
     </section>
 
+    <section v-if="mode === 'era'" class="card block">
+      <h3>3. 年代区间</h3>
+      <div class="alignrow">
+        <el-input-number v-model="yearStart" :min="1900" :max="2026" :step="1" />
+        <span class="muted">—</span>
+        <el-input-number v-model="yearEnd" :min="1900" :max="2026" :step="1" />
+        <span class="muted small">年（含首尾）</span>
+      </div>
+      <p class="muted hint">
+        区间内命中的合格专辑会按<b>各歌手轮转取一张</b>的方式挑选，最多
+        <strong class="num">32</strong> 张参赛 —— 既保证有一定规模，又不会一场打不完。
+      </p>
+    </section>
+
     <section v-if="pool" class="card block">
       <h3>参赛池预览</h3>
       <p class="muted">
@@ -163,7 +177,7 @@ const MODES = [
   { value: 'artist', label: '单歌手', hint: '选 1 位歌手，看"他哪张最好"。' },
   { value: 'multi-artist', label: '多歌手混战', hint: '2-6 位歌手进入同一池，跨歌手比较谁更强。' },
   { value: 'genre', label: '按流派', hint: '按流派汇集已缓存歌手的专辑。' },
-  { value: 'era', label: '按年代', hint: '按发行年代区间汇集专辑。' },
+  { value: 'era', label: '按年代', hint: '自选年份区间，汇集区间内各歌手的专辑。' },
   { value: 'custom', label: '手动挑选', hint: '逐张选专辑，完全自定义名单。' },
   { value: 'aligned', label: '对位赛', hint: '第 1 张打第 1 张、第 2 张打第 2 张，胜场积分制。' },
   { value: 'duel', label: '指定对决', hint: '自己排对阵表：逐行指定谁打谁，每组两张直接单挑，可跨歌手与年代。' },
@@ -180,7 +194,8 @@ const alignCount = ref(3);
 const alignMode = ref('ordinal');
 const pool = ref(null);
 const genre = ref('Pop');
-const yearRange = ref([2000, 2020]);
+const yearStart = ref(2000);
+const yearEnd = ref(2020);
 
 // —— 指定对决状态 ——
 const duelTerm = ref('');
@@ -308,8 +323,11 @@ async function onCreate() {
   } else if (mode.value === 'genre') {
     payload.genre = genre.value;
   } else if (mode.value === 'era') {
-    payload.startYear = yearRange.value[0];
-    payload.endYear = yearRange.value[1];
+    if (yearStart.value > yearEnd.value) {
+      return ElMessage.warning('起始年份不能大于结束年份');
+    }
+    payload.startYear = yearStart.value;
+    payload.endYear = yearEnd.value;
   } else if (mode.value === 'custom') {
     return ElMessage.info('手动挑选模式待前端页面完善后开放');
   }
