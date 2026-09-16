@@ -1,0 +1,68 @@
+/**
+ * 设计令牌（Design Tokens）
+ * ------------------------------------------------------------
+ * 视觉方向：音乐海洋 —— 浅色基底 + 单一主色（天空蓝）+ 一个锐利强调色（暖橙）。
+ * 全站颜色、字号、间距、圆角、阴影、动效一律走变量，禁止散写十六进制色值。
+ * 说明：页面级视觉细化（字体配对、入场编排、氛围质感）在页面实现阶段按前端设计规范落地。
+ */
+:root {
+  /* 颜色 */
+  --bg: #edf6fc;
+  --surface: #ffffff;
+  --surface-2: #f5fafd;
+  --brand: #0ea5e9;
+  --brand-deep: #075985;
+  --brand-soft: #e0f2fe;
+  --accent: #f97316;
+  --text-1: #0f2a3f;
+  --text-2: #47657a;
+  --text-3: #7c97a8;
+  --border: #d8e8f2;
+  --success: #0d9488;
+  --danger: #dc2626;
+
+  /* 字体：展示字与正文字分工，避免全站默认字体 */
+  --font-display: 'Space Grotesk', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-body: 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* 字阶 */
+  --fs-display: 44px;
+  --fs-h1: 30px;
+  --fs-h2: 22px;
+  --fs-h3: 17px;
+  --fs-body: 14px;
+  --fs-sm: 13px;
+  --fs-xs: 12px;
+
+  /* 间距（8 的倍数体系） */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --sp-8: 64px;
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* 阴影（三级） */
+  --shadow-1: 0 2px 8px rgba(15, 42, 63, 0.06);
+  --shadow-2: 0 8px 24px rgba(15, 42, 63, 0.08);
+  --shadow-3: 0 24px 48px rgba(15, 42, 63, 0.12);
+
+  /* 动效 */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 160ms;
+  --dur: 320ms;
+  --dur-slow: 640ms;
+
+  /* 布局 */
+  --header-h: 64px;
+  --content-max: 1180px;
+}

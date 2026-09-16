@@ -1,0 +1,28 @@
+{
+  "name": "yinge-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "音格 · 专辑对决与音乐人格测评平台 —— 后端 API 服务（Express + MongoDB）",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed": "node scripts/seed.js",
+    "check": "node --check src/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.6.3",
+    "zod": "^3.23.8"
+  }
+}

@@ -1,0 +1,85 @@
+/**
+ * 音乐数据控制器
+ * 对应接口：M-01 ~ M-07
+ */
+import * as musicService from './music.service.js';
+import { ok } from '../../shared/response.js';
+
+export async function searchArtists(req, res) {
+  const { term, limit } = req.validated.query;
+  const result = await musicService.searchArtists(term, limit ?? 10);
+  return ok(res, result);
+}
+
+export async function getArtist(req, res) {
+  const { artistId } = req.validated.params;
+  const { artist } = await musicService.getArtistAlbums(artistId);
+  return ok(res, {
+    artistId: artist.artistId,
+    name: artist.name,
+    genre: artist.genre,
+    region: artist.region,
+    albumCount: artist.albumCount,
+  });
+}
+
+export async function listArtistAlbums(req, res) {
+  const { artistId } = req.validated.params;
+  const force = req.query.refresh === '1' || req.query.refresh === 'true';
+  const { artist, albums, stats } = await musicService.getArtistAlbums(artistId, { force });
+
+  // 参赛池预览需展示"共检索到 X 张，剔除 Y 张，实际参赛 Z 张"与逐张剔除原因
+  const list = albums.map(musicService.serializeAlbum);
+  const eligible = list.filter((a) => a.isEligible);
+  const excludedList = list
+    .filter((a) => !a.isEligible)
+    .map((a) => ({ albumId: a.albumId, name: a.name, artworkUrl: a.artworkUrl, reason: a.excludeReason }));
+
+  return ok(res, {
+    artist: { artistId: artist.artistId, name: artist.name, region: artist.region },
+    list,
+    eligible,
+    excluded: excludedList,
+    stats: {
+      total: list.length,
+      excluded: excludedList.length,
+      valid: eligible.length,
+      byRule: stats?.byRule || null,
+      region: stats?.region || artist.region,
+      cachedAt: artist.cachedAt,
+    },
+  });
+}
+
+export async function getAlbum(req, res) {
+  const { albumId } = req.validated.params;
+  const album = await musicService.getAlbumByExternalId(albumId);
+  return ok(res, musicService.serializeAlbum(album));
+}
+
+export async function listAlbumTracks(req, res) {
+  const { albumId } = req.validated.params;
+  const force = req.query.refresh === '1' || req.query.refresh === 'true';
+  const { album, tracks } = await musicService.getAlbumTracks(albumId, { force });
+  return ok(res, {
+    album: musicService.serializeAlbum(album),
+    list: tracks.map((t) => ({
+      trackId: t.trackId,
+      name: t.name,
+      previewUrl: t.previewUrl,
+      duration: t.duration,
+      discNumber: t.discNumber,
+      trackNumber: t.trackNumber,
+    })),
+  });
+}
+
+export async function getAlbumPreview(req, res) {
+  const { albumId } = req.validated.params;
+  const result = await musicService.getAlbumPreview(albumId);
+  return ok(res, result);
+}
+
+export async function listGenres(req, res) {
+  return ok(res, { list: musicService.GENRES });
+}
