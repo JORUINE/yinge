@@ -35,8 +35,9 @@ export async function resolvePool(payload) {
 
   if (scopeType === 'artist') {
     const list = await eligibleAlbumsOf(payload.artistId);
+    const take = payload.albumCount ? list.slice(0, payload.albumCount) : list;
     const meta = await artistMeta(payload.artistId);
-    return { albums: list, artists: [{ ...meta, albumCount: list.length }] };
+    return { albums: take, artists: [{ ...meta, albumCount: take.length }] };
   }
 
   if (scopeType === 'multi-artist') {

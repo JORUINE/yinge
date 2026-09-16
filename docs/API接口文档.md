@@ -405,7 +405,7 @@
 
 | scopeType | 含义 | 必填参数 |
 | --- | --- | --- |
-| `artist` | 单歌手，该歌手的专辑互相比 | `scopeKey` |
+| `artist` | 单歌手，该歌手的专辑互相比 | `artistId`（必填；可选 `albumCount` 限制张数） |
 | `multi-artist` | **多歌手混战**，各位歌手的专辑进入同一池 | `artists` |
 | `genre` / `era` | 按流派或年代 | `scopeKey`（`albumIds` 可选，用于收窄） |
 | `custom` | 手动挑选 | `albumIds` |
@@ -416,10 +416,11 @@
 | scopeType | string | 是 | 取值见上表 |
 | alignCount | number | 否 | `aligned` 模式下的对位张数，默认 5，上限取各歌手专辑数的较小值 |
 | scopeKey | string | 否 | `artist` / `genre` / `era` 模式下的关键字 |
-| artists | object[] | 否 | `multi-artist` 模式下的歌手与抽取数量，最少 2 位、最多 6 位 |
+| artists | object[] | 否 | `multi-artist` / `aligned` 模式下的歌手列表，最少 2 位、最多 6 位（`aligned` 最多 4 位） |
 | artists[].artistId | number | 是 | 歌手唯一标识 |
-| artists[].pick | number | 否 | 该歌手抽取的专辑数，默认 4，范围 3 至 5 |
-| artists[].albumIds | string[] | 否 | 该歌手指定专辑，填写时忽略 `pick` |
+| artists[].albumCount | number | 否 | 该歌手"最多取前 N 张"参赛（按发行时间升序），不填=取全部合格专辑；仅 `multi-artist` 生效 |
+| albumCount | number | 否 | 顶层参数，`artist` 模式下限制参赛张数（按发行时间升序取前 N 张）；其余模式忽略 |
+| albumCount | number | 否 | `artist` / `multi-artist` 模式下每位歌手"最多取前 N 张"参赛，**不填则取全部合格专辑**；`artist` 模式按发行时间升序取前 N 张 |
 | albumIds | string[] | 否 | `custom` 模式下手动指定的专辑 |
 
 ```json

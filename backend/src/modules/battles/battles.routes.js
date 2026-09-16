@@ -26,7 +26,9 @@ const createSchema = z
   .object({
     scopeType: z.enum(SCOPE_TYPES),
     scopeKey: z.string().trim().max(120).optional(),
+    // 单歌手模式：artistId 必填，albumCount 可选（限制参赛张数，与服务 resolvePool 共用）
     artistId: z.coerce.number().int().positive().optional(),
+    albumCount: z.coerce.number().int().min(1).max(50).optional(),
     artists: z.array(artistEntry).min(2).max(6).optional(),
     alignCount: z.coerce.number().int().min(1).max(20).optional(),
     genre: z.string().trim().max(40).optional(),
