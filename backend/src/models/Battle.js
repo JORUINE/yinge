@@ -7,8 +7,8 @@
  */
 import mongoose from 'mongoose';
 
-/** 五种范围模式（设计文档 4 章） */
-export const SCOPE_TYPES = ['artist', 'multi-artist', 'genre', 'era', 'custom', 'aligned'];
+/** 六种范围模式（设计文档 4 章） */
+export const SCOPE_TYPES = ['artist', 'multi-artist', 'genre', 'era', 'custom', 'aligned', 'duel'];
 
 const battleArtistSchema = new mongoose.Schema(
   {

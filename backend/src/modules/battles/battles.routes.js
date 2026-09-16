@@ -31,6 +31,10 @@ const createSchema = z
     albumCount: z.coerce.number().int().min(1).max(50).optional(),
     artists: z.array(artistEntry).min(2).max(6).optional(),
     alignCount: z.coerce.number().int().min(1).max(20).optional(),
+    // 对位配对方式：同序号（默认）/ 年代就近
+    alignMode: z.enum(['ordinal', 'chrono']).optional(),
+    // 指定对决：逐行指定的对位组，每组 2 张专辑的外部数字标识，最少 1 组
+    pairs: z.array(z.array(z.coerce.number().int().positive()).length(2)).min(1).max(50).optional(),
     genre: z.string().trim().max(40).optional(),
     startYear: z.coerce.number().int().min(1900).max(2100).optional(),
     endYear: z.coerce.number().int().min(1900).max(2100).optional(),
@@ -49,6 +53,9 @@ const createSchema = z
       if (data.artists && data.artists.length > 4) {
         ctx.addIssue({ code: 'custom', path: ['artists'], message: '对位赛歌手数限定 2 至 4 位' });
       }
+    }
+    if (data.scopeType === 'duel' && (!data.pairs || data.pairs.length < 1)) {
+      ctx.addIssue({ code: 'custom', path: ['pairs'], message: '指定对决至少需要 1 组对位（每组 2 张专辑）' });
     }
     if (data.scopeType === 'custom' && (!data.albumIds || data.albumIds.length < 4)) {
       ctx.addIssue({ code: 'custom', path: ['albumIds'], message: '手动挑选模式至少 4 张专辑' });

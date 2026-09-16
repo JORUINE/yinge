@@ -3,11 +3,11 @@
  * 数据字典：系统设计文档 5.5.2
  * 索引：(battleId, matchOrder) 复合 —— 按对决取下一场；winnerAlbumId（普通）
  * 说明：roundIndex 含义随赛制变化：
- *         小组赛 = 组内场序；淘汰赛 = 轮次编号；对位赛 = 对位序号（第 k 张专辑）。
+ *         小组赛 = 组内场序；淘汰赛 = 轮次编号；对位赛 = 对位序号（第 k 张专辑）；指定对决 = 对位组序号。
  */
 import mongoose from 'mongoose';
 
-export const ROUND_NAMES = ['group', 'revival', 'semi', 'final'];
+export const ROUND_NAMES = ['group', 'revival', 'semi', 'final', 'duel'];
 
 const battleMatchSchema = new mongoose.Schema(
   {

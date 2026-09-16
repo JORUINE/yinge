@@ -5,9 +5,9 @@
     <template v-else-if="finished">
       <div class="state card">
         <h2>全部场次已投完</h2>
-        <p class="muted">赛程已推进完毕，冠军已经产生。</p>
+        <p class="muted">赛程已推进完毕，结果已经生成。</p>
         <RouterLink :to="{ name: 'battle-result', params: { id } }">
-          <el-button type="primary">去看结果与夺冠之路</el-button>
+          <el-button type="primary">去看逐行对照表 / 夺冠之路</el-button>
         </RouterLink>
       </div>
     </template>
@@ -71,6 +71,7 @@ const ROUND_LABEL = {
   revival: (m) => `复活赛 · 第 ${m.roundIndex} 轮`,
   semi: () => '淘汰赛 · 半决赛',
   final: () => '淘汰赛 · 决赛',
+  duel: (m) => `指定对决 · 第 ${m.roundIndex} 组`,
 };
 
 const loading = ref(true);

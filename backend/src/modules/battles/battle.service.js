@@ -94,16 +94,67 @@ export async function resolvePool(payload) {
     return { albums: perArtist.flat(), artists, alignedLists: perArtist };
   }
 
+  if (scopeType === 'duel') {
+    // 指定对决：用户逐行指定对位组，每组两张专辑直接单挑，可跨歌手与年代
+    const flat = payload.pairs.flat().map(Number);
+    const docs = await Album.find({ albumId: { $in: flat } });
+    const byExt = new Map(docs.map((d) => [d.albumId, d]));
+    const duelPairs = [];
+    for (const [a, b] of payload.pairs) {
+      const left = byExt.get(Number(a));
+      const right = byExt.get(Number(b));
+      if (!left || !right) throw new BadRequestError('存在无效的专辑标识，请先搜索并确认专辑');
+      if (String(left._id) === String(right._id)) throw new BadRequestError('同一组对位不能是同一张专辑');
+      duelPairs.push([left, right]);
+    }
+    const albums = duelPairs.flat();
+    // 收集涉及到的歌手（去重），供前端展示
+    const seen = new Set();
+    const artists = [];
+    for (const al of albums) {
+      const key = Number(al.artistExternalId);
+      if (Number.isFinite(key) && !seen.has(key)) {
+        seen.add(key);
+        artists.push(await artistMeta(key));
+      }
+    }
+    return { albums, artists, duelPairs };
+  }
+
   throw new BadRequestError(`不支持的范围模式：${scopeType}`);
 }
 
 export async function createBattle(userId, payload) {
-  const { albums, artists, alignedLists } = await resolvePool(payload);
+  const { albums, artists, alignedLists, duelPairs } = await resolvePool(payload);
+
+  if (payload.scopeType === 'duel') {
+    const matches = bracket.buildDuelMatches(duelPairs);
+    const battle = await Battle.create({
+      userId,
+      scopeType: 'duel',
+      scopeKey: null,
+      artists,
+      alignCount: null,
+      withRevival: false,
+      status: 'playing',
+      groupCount: duelPairs.length,
+      roundCount: 1,
+      currentRound: 1,
+      matchTotal: matches.length,
+      hasBye: false,
+      albumIds: albums.map((a) => a._id),
+    });
+    await BattleMatch.insertMany(matches.map((m) => ({ ...m, battleId: battle._id })));
+    return battle;
+  }
 
   if (payload.scopeType === 'aligned') {
     const n = Math.min(...alignedLists.map((l) => l.length));
     if (n < 1) throw new BadRequestError('所选歌手的正式专辑不足以对位');
-    const matches = bracket.buildAlignedMatches(alignedLists);
+    const matches =
+      payload.alignMode === 'chrono'
+        ? bracket.buildAlignedChronoMatches(alignedLists)
+        : bracket.buildAlignedMatches(alignedLists);
     const battle = await Battle.create({
       userId,
       scopeType: 'aligned',
@@ -115,7 +166,7 @@ export async function createBattle(userId, payload) {
       groupCount: n,
       roundCount: 1,
       currentRound: 1,
-      matchTotal: bracket.computeAlignedTotal(alignedLists.length, n),
+      matchTotal: matches.length,
       hasBye: false,
       albumIds: albums.map((a) => a._id),
     });
@@ -406,7 +457,7 @@ export async function progressBattle(battle) {
   const matches = await BattleMatch.find({ battleId: battle._id }).sort({ matchOrder: 1 });
   const decided = (m) => m.isBye || Boolean(m.winnerAlbumId);
 
-  if (battle.scopeType === 'aligned') {
+  if (battle.scopeType === 'aligned' || battle.scopeType === 'duel') {
     if (matches.every(decided)) {
       await finishBattle(battle, matches);
       return { advanced: true, finished: true };
@@ -485,8 +536,8 @@ export async function progressBattle(battle) {
 
 async function finishBattle(battle, matches) {
   let championAlbumId = null;
-  if (battle.scopeType === 'aligned') {
-    // 对位赛不产生单一冠军，结果以逐行对照表呈现
+  if (battle.scopeType === 'aligned' || battle.scopeType === 'duel') {
+    // 对位赛 / 指定对决不产生单一冠军，结果以逐行对照表呈现
     championAlbumId = null;
   } else {
     const finalMatch = matches.find((m) => m.roundName === 'final');
@@ -504,16 +555,20 @@ export async function getResult(battleId, userId) {
   const albumDocs = await Album.find({ _id: { $in: battle.albumIds } });
   const albumMap = new Map(albumDocs.map((a) => [String(a._id), a]));
 
-  if (battle.scopeType === 'aligned') {
-    // 逐行对照表：每行一组对位 + 比分 + 胜者
-    const rows = matches.map((m) => ({
-      alignIndex: m.roundIndex,
-      left: musicService.serializeAlbum(albumMap.get(String(m.leftAlbumId))),
-      right: m.rightAlbumId ? musicService.serializeAlbum(albumMap.get(String(m.rightAlbumId))) : null,
-      leftVotes: m.leftVotes,
-      rightVotes: m.rightVotes,
-      winnerAlbumId: m.winnerAlbumId ? String(m.winnerAlbumId) : null,
-    }));
+  if (battle.scopeType === 'aligned' || battle.scopeType === 'duel') {
+    // 逐行对照表：每行一组对位 + 比分 + 胜者（对位赛与指定对决共用）
+    const rows = matches.map((m) => {
+      const winner = m.winnerAlbumId ? albumMap.get(String(m.winnerAlbumId)) : null;
+      return {
+        alignIndex: m.roundIndex,
+        left: musicService.serializeAlbum(albumMap.get(String(m.leftAlbumId))),
+        right: m.rightAlbumId ? musicService.serializeAlbum(albumMap.get(String(m.rightAlbumId))) : null,
+        leftVotes: m.leftVotes,
+        rightVotes: m.rightVotes,
+        // 胜者使用「外部专辑标识」，与 left / right 的 albumId 同口径，便于前端比对
+        winnerAlbumId: winner ? winner.albumId : null,
+      };
+    });
 
     // 胜场积分：按歌手累计
     const scoreByArtist = new Map();

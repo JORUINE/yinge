@@ -200,6 +200,86 @@ export function computeAlignedTotal(artistCount, alignCount) {
   return ((artistCount * (artistCount - 1)) / 2) * alignCount;
 }
 
+/**
+ * 对位赛「年代就近」配对：把各歌手专辑排到同一条发行时间轴，
+ * 每轮取时间最接近、且来自不同歌手的两张配成一组（一对一、不重复）。
+ * 各歌手专辑数相等时，总场次与「同序号」一致，仍为 C(A,2) × N。
+ */
+export function buildAlignedChronoMatches(alignedLists) {
+  const dateOf = (a) => (a?.releaseDate ? new Date(a.releaseDate).getTime() : Number.MAX_SAFE_INTEGER);
+  const pools = alignedLists.map((list) => [...list]);
+  const matches = [];
+  let matchOrder = 1;
+  let groupNo = 0;
+
+  const nonEmpty = () => pools.filter((p) => p.length).length;
+
+  while (nonEmpty() >= 2) {
+    groupNo += 1;
+    // 取当前最早发行的一张作为锚点
+    let anchorPool = -1;
+    let best = Infinity;
+    pools.forEach((p, pi) => {
+      if (p.length && dateOf(p[0]) < best) {
+        best = dateOf(p[0]);
+        anchorPool = pi;
+      }
+    });
+    const anchor = pools[anchorPool].shift();
+    const anchorTime = dateOf(anchor);
+    const group = [{ pool: anchorPool, album: anchor }];
+
+    // 其他歌手各取与锚点发行时间最接近的一张
+    for (let pi = 0; pi < pools.length; pi += 1) {
+      if (pi === anchorPool || !pools[pi].length) continue;
+      let bi = 0;
+      let bd = Infinity;
+      pools[pi].forEach((al, ai) => {
+        const d = Math.abs(dateOf(al) - anchorTime);
+        if (d < bd) {
+          bd = d;
+          bi = ai;
+        }
+      });
+      group.push({ pool: pi, album: pools[pi].splice(bi, 1)[0] });
+    }
+
+    group.sort((x, y) => x.pool - y.pool);
+    for (let i = 0; i < group.length; i += 1) {
+      for (let j = i + 1; j < group.length; j += 1) {
+        matches.push({
+          roundName: 'group',
+          roundIndex: groupNo,
+          groupNo,
+          matchOrder: matchOrder++,
+          leftAlbumId: group[i].album._id,
+          rightAlbumId: group[j].album._id,
+          isBye: false,
+          isRevival: false,
+        });
+      }
+    }
+  }
+  return matches;
+}
+
+/**
+ * 指定对决对阵：由用户逐行指定对位组，每组两张专辑直接单挑。
+ * roundIndex / groupNo = 对位组序号；组数即用户指定的组数。
+ */
+export function buildDuelMatches(duelPairs) {
+  return duelPairs.map((pair, idx) => ({
+    roundName: 'duel',
+    roundIndex: idx + 1,
+    groupNo: idx + 1,
+    matchOrder: idx + 1,
+    leftAlbumId: pair[0]._id,
+    rightAlbumId: pair[1]._id,
+    isBye: false,
+    isRevival: false,
+  }));
+}
+
 export default {
   GROUP_SIZE,
   KNOCKOUT_SIZE,
@@ -207,6 +287,8 @@ export default {
   roundRobinPairs,
   buildGroupMatches,
   buildAlignedMatches,
+  buildAlignedChronoMatches,
+  buildDuelMatches,
   computeStandings,
   buildKnockoutMatches,
   computeStandardTotal,
