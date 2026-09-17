@@ -318,6 +318,12 @@
             <b>{{ al.name }}</b>
             <span>{{ al._artistName || artistName }} · {{ year(al.releaseDate) }}</span>
           </div>
+          <!-- 还有更多：用一个虚位卡明示"这不是全部"，保留盲盒悬念 -->
+          <div v-if="hiddenCount" class="pk more" aria-hidden="true">
+            <div class="art"><span class="dots3">···</span></div>
+            <b>还有 {{ hiddenCount }} 张</b>
+            <span>进对决时揭晓</span>
+          </div>
         </div>
       </div>
     </template>
@@ -816,6 +822,30 @@ async function onCreate() {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+/* 「还有 N 张」虚位卡：模糊占位 + 省略号 + 计数，提示用户这不是全部 */
+.pk.more {
+  cursor: default;
+}
+.pk.more .art {
+  display: grid;
+  place-items: center;
+  background: var(--glass2);
+  border: 1px dashed var(--gbd);
+  box-shadow: none;
+  filter: blur(0.4px);
+  opacity: 0.75;
+}
+.pk.more .dots3 {
+  font-size: 30px;
+  line-height: 1;
+  letter-spacing: 3px;
+  color: var(--text3);
+}
+.pk.more b,
+.pk.more span {
+  color: var(--text3);
 }
 .pairrow {
   display: grid;

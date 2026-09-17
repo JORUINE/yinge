@@ -184,7 +184,7 @@
       <thead><tr><th>#</th><th>页面</th><th>问题</th><th>处理</th><th>级别</th></tr></thead>
       <tbody>
         <tr><td>1</td><td>创建页 · 参赛池</td><td>封面大小不一、排布散乱，不是 demo 的 7 等分正方形网格</td><td><b>已修</b>：根因是裸 <code>1fr</code> 被 nowrap 长专辑名撑宽 → 全部改 <code>minmax(0,1fr)</code>。浏览器实测：7 列均为 145.4px ✓</td><td><span class="pill ok">已修</span></td></tr>
-        <tr><td>2</td><td>创建页 · 参赛池</td><td>逐张列出全部出战专辑 → 剧透，破坏盲盒感</td><td><b>已做</b>：每位只露 2 张，其余进对决逐张揭晓（预览从 ~80 张降到 4 张）</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>2</td><td>创建页 · 参赛池</td><td>逐张列出全部出战专辑 → 剧透，破坏盲盒感</td><td><b>已做</b>：每位只露 2 张，其余进对决逐张揭晓；并加「还有 N 张」<b>虚位卡（模糊占位 + 省略号）</b>，明确告诉用户"这不是全部"（预览从 ~80 张降到 4 张）</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>3</td><td>投票页</td><td>说明与专辑元信息字号偏小</td><td>按第 1 节提升字号</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>4</td><td>投票页</td><td>4 选 2 / 多选卡片的排布可更密实、卡片可更大</td><td>列数自适应 + 卡片比例优化</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>5</td><td>投票页</td><td>缺「返回上一组」；缺阶段切换动效；缺落败置灰</td><td>按第 4 节补</td><td><span class="pill p1">P1</span></td></tr>
@@ -192,6 +192,7 @@
         <tr><td>7</td><td>排行榜</td><td>「地区 / 年代 / 周期」三重筛选无接口</td><td>后端补接口后再上 UI（未编假 UI）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>8</td><td>对决</td><td>抽卡式进入动画</td><td>收尾阶段做（见第 3 节③）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>9</td><td>全站</td><td>深色模式未逐页验收；响应式 375/768/1024/1440 未逐页过</td><td>收尾统一验收</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>10</td><td>全站 · 专辑主色</td><td>歌手名/色条/光晕的颜色**现在是按 <code>albumId</code> 稳定映射一个色相**，<b>不是从封面像素取色</b>（设计稿原意是"背景跟着专辑变"）。观感上每张专辑颜色都不同且稳定，但不是真取色。</td><td>收尾可选升级：canvas 读封面主色（需处理跨域，iTunes 图源通常允许 <code>crossorigin</code>）</td><td><span class="pill p2">P2</span></td></tr>
       </tbody>
     </table>
   </div>
