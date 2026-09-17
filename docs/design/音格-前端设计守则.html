@@ -205,7 +205,7 @@
         <tr><td>13</td><td>投票页 · 横向留白</td><td>左右留白太多</td><td>主体加宽 / 收紧容器边距</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>14</td><td>投票页 · 提示行</td><td>"没听过？先试听 30 秒再投"这类提示占了一整行</td><td>上移/并入阶段标签行，别单独占一行</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>15</td><td>投票页 · 投票方式</td><td>要求：<b>点封面图也能投票</b>；下方「投给《X》」按钮可以优化掉</td><td>整张专辑卡可点投票；保留一个弱化的操作提示即可</td><td><span class="pill p1">P1</span></td></tr>
-        <tr><td>16</td><td>投票页 · 播放条</td><td>demo 的播放条有<b>歌名 + 曲目切换（⏮ ▶ ⏭ + 1/10）</b>，我们只有一个泛泛提示 —— <b>正式功能必须做</b></td><td>接入曲目列表（iTunes 专辑曲目已有 <code>previewUrl</code>）：显示当前歌名 + 上一首/下一首 + 序号</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>16</td><td>投票页 · 播放条</td><td>demo 的播放条有<b>歌名 + 曲目切换（⏮ ▶ ⏭ + 1/10）</b>，我们只有一个泛泛提示 —— <b>正式功能必须做</b></td><td><b>已做</b>：点「试听 30 秒」按需拉曲目（后端会自动同步 iTunes 片段）；播放条显示真实歌名 + 《专辑》第 N 首 + 00:05/00:30 + 上一首/播放/下一首 + 序号 1/10；播完自动下一首</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>17</td><td>投票页 · 淘汰赛 UI</td><td>淘汰赛界面不如 demo 清晰（demo：阶段标签 + 「半决赛 · 第 1 场」+ 进度）</td><td>按 demo 重做淘汰赛头部与舞台</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>18</td><td>分享页 · 布局</td><td>100% 缩放下图片大小全乱，缩到 50% 才看得清</td><td>分享卡与设置区布局重排（限制卡片宽度、自适应）</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>19</td><td>冠军页 · 名次</td><td>只有冠军，没有<b>亚军 / 季军</b></td><td>冠军下方补亚军、季军（后端 <code>path</code>/对阵数据已够推导）</td><td><span class="pill p1">P1</span></td></tr>
