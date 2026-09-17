@@ -749,7 +749,13 @@ export async function listMyBattles(userId, query) {
 
 export async function deleteBattle(battleId, userId) {
   await loadOwnedBattle(battleId, userId);
-  await BattleMatch.deleteMany({ battleId });
+  // 级联清理：只删 Battle 会留下孤儿票与孤儿分组，
+  // 而榜单是按 Vote 统计的 → 删掉的对决仍会算进榜单（2026-09-17 修复）
+  await Promise.all([
+    BattleMatch.deleteMany({ battleId }),
+    BattleGroup.deleteMany({ battleId }),
+    Vote.deleteMany({ battleId }),
+  ]);
   await Battle.deleteOne({ _id: battleId });
   return true;
 }

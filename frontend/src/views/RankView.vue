@@ -1,64 +1,111 @@
 <template>
-  <div class="container">
-    <section class="head">
-      <div>
-        <p class="eyebrow">全球最受欢迎专辑榜</p>
-        <h1>全站用脚投票出来的名次</h1>
-        <p class="muted">按有效票数排序，异常票不计入统计，榜单口径对所有人一致。</p>
-      </div>
-      <el-select v-model="limit" size="default" style="width: 130px" @change="reload">
-        <el-option label="Top 20" :value="20" />
-        <el-option label="Top 50" :value="50" />
-        <el-option label="Top 100" :value="100" />
-      </el-select>
-    </section>
+  <div class="rank">
+    <div class="hd" style="margin-top: 22px">
+      <b class="big">最受欢迎专辑</b>
+      <span>按有效票数排序 · 共 {{ total }} 张</span>
+    </div>
+
+    <div class="filter">
+      <span class="lb">显示</span>
+      <span
+        v-for="n in [20, 50, 100]"
+        :key="n"
+        class="pill"
+        :class="{ on: limit === n }"
+        @click="setLimit(n)"
+      >
+        Top {{ n }}
+      </span>
+    </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
-    <div v-else-if="!list.length" class="state card empty">
-      <p class="big">还没有投票数据</p>
-      <p class="muted">去发起一场对决，每一票都会汇进这里。</p>
-      <RouterLink to="/battle/create"><el-button type="primary">去创建</el-button></RouterLink>
-    </div>
+    <template v-else-if="list.length">
+      <!-- 前三名：领奖台 -->
+      <div class="vstage recstage" :style="podiumStyle">
+        <div class="vglow">
+          <i class="g1"></i><i class="g2"></i><i class="g3"></i>
+        </div>
+        <div class="sunlit" style="position: absolute; inset: 0; z-index: 3; pointer-events: none"></div>
+        <div class="gbeam"></div>
+        <div class="recs">
+          <div v-for="a in podium" :key="a.albumId" class="alb" :style="accentStyle(a)">
+            <div style="margin-bottom: 11px">
+              <span class="nobadge" :class="{ gold: a.rank === 1 }">NO.{{ a.rank }}</span>
+            </div>
+            <div class="art albc"><img :src="a.artworkUrl" :alt="a.name" loading="lazy" /></div>
+            <b>{{ a.name }}</b>
+            <div class="accent"></div>
+            <div class="ar"><i></i>{{ a.artistName || '—' }}</div>
+            <div class="mt num">{{ year(a.releaseDate) }} · {{ a.votes }} 票</div>
+          </div>
+        </div>
+      </div>
 
-    <ul v-else class="board">
-      <li v-for="row in list" :key="row.albumId" class="card row">
-        <span class="rank" :class="rankClass(row.rank)">{{ row.rank }}</span>
-        <img class="cover" :src="row.artworkUrl" :alt="row.name" />
-        <div class="meta">
-          <p class="name">{{ row.name }}</p>
-          <p class="artist muted">{{ row.artistName || '未知歌手' }}</p>
+      <!-- 第 4 名以后 -->
+      <div class="list" v-if="rest.length">
+        <div v-for="a in rest" :key="a.albumId" class="r">
+          <div class="nw">{{ a.rank }}</div>
+          <div class="th"><img :src="a.artworkUrl" :alt="a.name" loading="lazy" /></div>
+          <div class="m">
+            <b>{{ a.name }}</b>
+            <span>{{ a.artistName || '—' }} · {{ year(a.releaseDate) }}</span>
+          </div>
+          <div class="v"><b class="num">{{ a.votes }}</b> 票</div>
         </div>
-        <div class="votes">
-          <strong class="num">{{ row.votes }}</strong>
-          <span class="muted small">票</span>
-        </div>
-      </li>
-    </ul>
+      </div>
+
+      <p class="note">
+        <b>说明：</b>前三名单独做成领奖台（唯一用金色的地方，作为冷色调里的视觉锚点）。
+        榜单口径对所有人一致：<b>被判定为异常的投票不计入统计</b>。
+        「地区 / 年代 / 周期」三重筛选需要后端补接口，暂未开放。
+      </p>
+    </template>
+
+    <div v-else class="state g-card">
+      <h2>还没有投票数据</h2>
+      <p class="muted">去发起一场对决，每一票都会汇进这里。</p>
+      <RouterLink to="/battle/create" class="btn pri">去创建</RouterLink>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { rankApi } from '@/api';
 
 const loading = ref(true);
 const limit = ref(20);
 const list = ref([]);
+const total = ref(0);
 
-function rankClass(r) {
-  if (r === 1) return 'gold';
-  if (r === 2) return 'silver';
-  if (r === 3) return 'bronze';
-  return '';
+const podium = computed(() => list.value.slice(0, 3));
+const rest = computed(() => list.value.slice(3));
+const year = (d) => (d ? String(d).slice(0, 4) : '');
+
+function accentStyle(album) {
+  const key = String(album?.albumId ?? '');
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
+  return { '--ac': `hsl(${h} 70% 52%)`, '--acs': `hsla(${h}, 70%, 45%, 0.34)` };
+}
+const podiumStyle = computed(() => {
+  const c = (i) => accentStyle(podium.value[i])['--ac'] || 'var(--brand)';
+  return { '--g1': c(0), '--g2': c(1), '--g3': c(2) };
+});
+
+async function setLimit(n) {
+  limit.value = n;
+  await reload();
 }
 
 async function reload() {
   loading.value = true;
   try {
     const data = await rankApi.albums({ limit: limit.value });
-    list.value = data.list || [];
+    list.value = (data.list || []).map((r, i) => ({ ...r, rank: r.rank ?? i + 1 }));
+    total.value = data.total ?? list.value.length;
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {
@@ -70,107 +117,37 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: var(--sp-7) 0 var(--sp-5);
+.rank {
+  padding-bottom: var(--sp-7);
 }
-.head h1 {
-  font-size: var(--fs-h1);
-  margin-top: var(--sp-2);
-}
-.head .muted {
-  margin-top: var(--sp-2);
-}
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
+.big {
+  font-size: 20px;
+  letter-spacing: -0.3px;
 }
 .state {
+  margin: var(--sp-7) auto;
   padding: var(--sp-6);
+  max-width: 520px;
   text-align: center;
 }
-.empty {
-  max-width: 460px;
-  margin: var(--sp-5) auto;
+.nobadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  color: var(--text2);
 }
-.empty .big {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-2);
+.nobadge.gold {
+  background: var(--gold);
+  color: #04263c;
+  border-color: var(--gold);
 }
-.empty .el-button {
-  margin-top: var(--sp-4);
-}
-.board {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 var(--sp-8);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-.row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
-  transition: transform var(--dur) var(--ease-out);
-}
-.row:hover {
-  transform: translateX(4px);
-}
-.rank {
-  width: 38px;
-  text-align: center;
-  font-family: var(--font-display);
-  font-size: var(--fs-h2);
-  color: var(--text-3);
-  flex-shrink: 0;
-}
-.rank.gold {
-  color: #d4a017;
-}
-.rank.silver {
-  color: #9aa7b2;
-}
-.rank.bronze {
-  color: #c08552;
-}
-.cover {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  flex-shrink: 0;
-}
-.meta {
-  flex: 1;
-  min-width: 0;
-}
-.name {
-  font-size: var(--fs-h3);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.artist {
-  font-size: var(--fs-sm);
-  margin-top: 2px;
-}
-.votes {
-  flex-shrink: 0;
-  text-align: right;
-}
-.votes strong {
-  font-size: var(--fs-h2);
-  color: var(--accent);
-}
-.small {
-  font-size: var(--fs-sm);
+@media (max-width: 860px) {
+  .recs {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

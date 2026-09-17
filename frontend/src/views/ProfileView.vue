@@ -1,92 +1,198 @@
 <template>
-  <div class="container narrow">
-    <section class="card hero">
+  <div class="profile">
+    <div class="uh">
+      <div class="av">{{ initial }}</div>
       <div class="who">
-        <div class="avatar">{{ initial }}</div>
-        <div>
-          <h1>{{ user?.nickname || '未登录' }}</h1>
-          <p class="muted num">账号 {{ user?.account }} · 注册于 {{ fmtDate(user?.createdAt) }}</p>
-          <el-tag v-if="user?.role === 'admin'" type="danger" size="small" effect="plain">管理员</el-tag>
+        <b>{{ user?.nickname || '未登录' }}</b>
+        <span>
+          账号 {{ user?.account }} · 加入于 {{ joinMonth }}
+          <template v-if="stats.battleTotal || stats.resultTotal">
+            · 已进行 {{ stats.battleTotal || 0 }} 次对决、{{ stats.resultTotal || 0 }} 次测评
+          </template>
+        </span>
+      </div>
+      <span class="btn ghost sm right" @click="editing = !editing">编辑资料</span>
+    </div>
+
+    <div v-if="editing" class="g-card editor">
+      <div class="fld">
+        <label>昵称</label>
+        <input v-model="nickname" type="text" maxlength="20" placeholder="给自己起个响亮的名字" />
+        <div class="hint">2 至 16 个字，需全站唯一</div>
+      </div>
+      <div class="btns">
+        <button class="btn pri sm" type="button" :disabled="saving" @click="save">{{ saving ? '保存中…' : '保存' }}</button>
+        <button class="btn ghost sm" type="button" @click="editing = false">取消</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><b class="num">{{ stats.battleTotal ?? 0 }}</b><span>发起对决</span></div>
+      <div class="stat"><b class="num">{{ stats.voteTotal ?? 0 }}</b><span>累计投票</span></div>
+      <div class="stat"><b class="num">{{ stats.resultTotal ?? 0 }}</b><span>完成测评</span></div>
+      <div class="stat"><b class="num">{{ stats.favoriteTotal ?? 0 }}</b><span>收藏专辑</span></div>
+    </div>
+
+    <div class="tabline">
+      <div :class="{ on: tab === 'battles' }" @click="setTab('battles')">我的对决</div>
+      <div :class="{ on: tab === 'personality' }" @click="setTab('personality')">我的测评</div>
+      <div :class="{ on: tab === 'favorites' }" @click="setTab('favorites')">我的收藏</div>
+    </div>
+
+    <div v-if="loading" class="state muted">加载中…</div>
+
+    <template v-else>
+      <!-- 我的对决 -->
+      <div v-if="tab === 'battles'" class="list">
+        <div v-for="b in battles" :key="b.battleId" class="r">
+          <div class="th"><img :src="coverOf(b)" alt="" /></div>
+          <div class="m">
+            <b>{{ titleOf(b) }}</b>
+            <span>
+              {{ b.poolTarget || '—' }} 张专辑 ·
+              {{ b.status === 'finished' ? '已完赛' : '进行中' }} ·
+              共 {{ b.stepTotal || 0 }} 步 · {{ fmtDate(b.createdAt) }}
+            </span>
+          </div>
+          <div class="v">
+            <RouterLink
+              :to="{ name: b.status === 'finished' ? 'battle-result' : 'battle-play', params: { id: b.battleId } }"
+              class="btn ghost sm"
+            >
+              {{ b.status === 'finished' ? '回看' : '继续' }}
+            </RouterLink>
+          </div>
         </div>
+        <p v-if="!battles.length" class="note">还没有对决 —— <RouterLink to="/battle/create">去创建一场</RouterLink>。</p>
       </div>
-    </section>
 
-    <section class="stats">
-      <div v-for="s in statsItems" :key="s.label" class="card stat">
-        <strong class="num">{{ display(s.value) }}</strong>
-        <span class="muted">{{ s.label }}</span>
+      <!-- 我的测评 -->
+      <div v-else-if="tab === 'personality'" class="list">
+        <div v-for="p in results" :key="p.resultId" class="r">
+          <div class="th" :style="{ background: typeColor(p.typeCode) }"></div>
+          <div class="m">
+            <b>{{ p.typeName || p.typeCode }}</b>
+            <span>{{ p.typeCode }} · {{ fmtDate(p.createdAt) }}</span>
+          </div>
+          <div class="v">
+            <RouterLink :to="{ name: 'personality-result', params: { id: p.resultId } }" class="btn ghost sm">回看</RouterLink>
+          </div>
+        </div>
+        <p v-if="!results.length" class="note">还没测过 —— <RouterLink to="/personality/test">去测一测</RouterLink>。</p>
       </div>
-    </section>
 
-    <section class="card editor">
-      <p class="eyebrow">修改资料</p>
-      <h2>昵称</h2>
-      <el-form :model="form" :rules="rules" ref="formRef" inline @submit.prevent>
-        <el-form-item prop="nickname">
-          <el-input v-model="form.nickname" placeholder="给自己起个响亮的名字" maxlength="20" style="width: 260px" />
-        </el-form-item>
-        <el-button type="primary" :loading="saving" @click="save">保存</el-button>
-      </el-form>
-    </section>
-
-    <section class="links">
-      <RouterLink to="/battle/mine"><el-button>我的对决</el-button></RouterLink>
-      <RouterLink to="/favorites"><el-button>我的收藏</el-button></RouterLink>
-      <RouterLink to="/personality/types"><el-button>人格图鉴</el-button></RouterLink>
-    </section>
+      <!-- 我的收藏 -->
+      <div v-else class="list">
+        <div v-for="f in favorites" :key="f.targetId || f.albumId" class="r">
+          <div class="th"><img :src="f.artworkUrl" alt="" /></div>
+          <div class="m">
+            <b>{{ f.name || f.title }}</b>
+            <span>{{ f.artistName || '—' }} · {{ year(f.releaseDate) }}</span>
+          </div>
+          <div class="v">
+            <button class="btn ghost sm" type="button" @click="unfavorite(f)">取消收藏</button>
+          </div>
+        </div>
+        <p v-if="!favorites.length" class="note">还没有收藏的专辑。</p>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { authApi } from '@/api';
+import { authApi, battleApi, personalityApi, favoriteApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { fmtDate } from '@/utils/labels';
+import { typeColor } from '@/utils/personality.js';
 
 const auth = useAuthStore();
 const user = computed(() => auth.user);
-const initial = computed(() => (user.value?.nickname || '?').slice(0, 1).toUpperCase());
+const initial = computed(() => (user.value?.nickname || '?').slice(0, 1));
 
-const stats = ref({ battleTotal: 0, battleFinished: 0, resultTotal: 0, favoriteTotal: 0, voteTotal: 0 });
-const statsItems = computed(() => [
-  { label: '发起对决', value: stats.value.battleTotal },
-  { label: '已完成', value: stats.value.battleFinished },
-  { label: '测评次数', value: stats.value.resultTotal },
-  { label: '收藏', value: stats.value.favoriteTotal },
-  { label: '投票数', value: stats.value.voteTotal },
-]);
-function display(v) {
-  return Number.isFinite(v) ? v : '—';
-}
+const stats = ref({});
+const tab = ref('battles');
+const loading = ref(false);
+const battles = ref([]);
+const results = ref([]);
+const favorites = ref([]);
+const loaded = ref({ battles: false, personality: false, favorites: false });
 
-const form = reactive({ nickname: '' });
-const formRef = ref(null);
+const editing = ref(false);
 const saving = ref(false);
-const rules = {
-  nickname: [{ required: true, message: '昵称不能为空', trigger: 'blur' }],
-};
+const nickname = ref('');
 
-onMounted(async () => {
-  form.nickname = user.value?.nickname || '';
-  try {
-    stats.value = await authApi.myStats();
-  } catch (err) {
-    ElMessage.error(err?.message || '加载统计失败');
-  }
+const year = (d) => (d ? String(d).slice(0, 4) : '');
+const joinMonth = computed(() => {
+  const d = user.value?.createdAt;
+  if (!d) return '—';
+  const dt = new Date(d);
+  return `${dt.getFullYear()} 年 ${dt.getMonth() + 1} 月`;
 });
 
-async function save() {
-  if (!formRef.value) return;
+const SCOPE_CN = {
+  artist: '单歌手对决',
+  'multi-artist': '跨歌手混战',
+  genre: '按流派对决',
+  era: '按年代对决',
+  custom: '手动挑选对决',
+  aligned: '对位赛',
+  duel: '指定对决',
+};
+function titleOf(b) {
+  const names = (b.artists || []).map((a) => a.name).filter(Boolean);
+  if (b.scopeType === 'multi-artist' && names.length) return `${names.join(' × ')} · 混战`;
+  if (b.scopeType === 'artist' && names.length) return `${names[0]} 专辑对决`;
+  return SCOPE_CN[b.scopeType] || '专辑对决';
+}
+function coverOf(b) {
+  return b.coverUrl || '';
+}
+
+async function setTab(t) {
+  tab.value = t;
+  if (loaded.value[t]) return;
+  loading.value = true;
   try {
-    await formRef.value.validate();
-  } catch {
+    if (t === 'battles') {
+      const d = await battleApi.listMine({ page: 1, pageSize: 20 });
+      battles.value = d.list || [];
+    } else if (t === 'personality') {
+      const d = await personalityApi.listMine({ page: 1, pageSize: 20 });
+      results.value = d.list || [];
+    } else {
+      const d = await favoriteApi.list({ page: 1, pageSize: 20 });
+      favorites.value = d.list || [];
+    }
+    loaded.value[t] = true;
+  } catch (err) {
+    ElMessage.error(err?.message || '加载失败');
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function unfavorite(f) {
+  try {
+    await favoriteApi.remove(f.targetId || f.albumId);
+    favorites.value = favorites.value.filter((x) => (x.targetId || x.albumId) !== (f.targetId || f.albumId));
+    ElMessage.success('已取消收藏');
+  } catch (err) {
+    ElMessage.error(err?.message || '操作失败');
+  }
+}
+
+async function save() {
+  if (!nickname.value.trim()) {
+    ElMessage.info('昵称不能为空');
     return;
   }
   saving.value = true;
   try {
-    const data = await authApi.updateProfile({ nickname: form.nickname.trim() });
+    const data = await authApi.updateProfile({ nickname: nickname.value.trim() });
     auth.user = data;
+    editing.value = false;
     ElMessage.success('昵称已更新');
   } catch (err) {
     ElMessage.error(err?.message || '保存失败');
@@ -94,79 +200,45 @@ async function save() {
     saving.value = false;
   }
 }
+
+onMounted(async () => {
+  nickname.value = user.value?.nickname || '';
+  try {
+    stats.value = await authApi.myStats();
+  } catch (err) {
+    ElMessage.error(err?.message || '统计加载失败');
+  }
+  setTab('battles');
+});
 </script>
 
 <style scoped>
-.narrow {
-  max-width: 860px;
-  padding-top: var(--sp-7);
-  padding-bottom: var(--sp-8);
+.profile {
+  padding: var(--sp-5) 0 var(--sp-7);
 }
-.hero {
-  padding: var(--sp-6);
-  margin-bottom: var(--sp-5);
-}
-.who {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-5);
-}
-.avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-full);
-  background: linear-gradient(135deg, var(--brand), var(--brand-deep));
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 30px;
-  flex-shrink: 0;
-}
-.who h1 {
-  font-size: var(--fs-h1);
-}
-.who .muted {
-  margin: var(--sp-1) 0 var(--sp-2);
-  font-size: var(--fs-sm);
-}
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: var(--sp-4);
-  margin-bottom: var(--sp-5);
-}
-.stat {
-  padding: var(--sp-5);
-  text-align: center;
-}
-.stat strong {
-  display: block;
-  font-size: var(--fs-display);
-  color: var(--brand-deep);
-  line-height: 1.1;
-}
-.stat span {
-  font-size: var(--fs-sm);
+.right {
+  margin-left: auto;
 }
 .editor {
-  padding: var(--sp-6);
-  margin-bottom: var(--sp-5);
+  margin-top: 16px;
+  padding: 20px 22px;
 }
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
-}
-.editor h2 {
-  font-size: var(--fs-h2);
-  margin: var(--sp-2) 0 var(--sp-4);
-}
-.links {
+.btns {
   display: flex;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
+  gap: 10px;
+}
+.state {
+  padding: var(--sp-6);
+  text-align: center;
+}
+.th {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+@media (max-width: 720px) {
+  .stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>

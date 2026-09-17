@@ -2160,3 +2160,325 @@ html[data-theme='dark'] .v b {
   font-weight: 700;
   color: var(--ac);
 }
+
+/* ============ 首页：hero / 双卡 / 货架 ============ */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 318px;
+  gap: 30px;
+  align-items: center;
+  margin: 26px 0 10px;
+}
+.hero .art {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--r-s);
+  overflow: hidden;
+  box-shadow: 0 28px 64px rgba(8, 58, 92, 0.34);
+}
+.hero .art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.hero .tag {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 1.3px;
+  color: var(--brand-deep);
+  font-weight: 700;
+  background: rgba(14, 165, 233, 0.14);
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+.hero h1 {
+  margin: 0 0 12px;
+  font-size: 37px;
+  line-height: 1.15;
+  letter-spacing: -1.3px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--brand-deep);
+}
+.hero p {
+  margin: 0 0 20px;
+  color: var(--text2);
+  font-size: 14.5px;
+}
+.duo {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 16px;
+  margin-top: 22px;
+}
+.tile {
+  padding: 20px;
+  border-radius: var(--r);
+  position: relative;
+  overflow: hidden;
+}
+.tile.sea {
+  background: linear-gradient(150deg, #7dd3fc, #0ea5e9 58%, #0369a1);
+  color: #04263c;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.tile.sea h3 {
+  color: #04263c;
+}
+.tile.sea p {
+  color: #0b3a5c;
+}
+.tile.ghost {
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.tile h3 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  letter-spacing: -0.3px;
+}
+.tile p {
+  margin: 0 0 15px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.tile .ring {
+  position: absolute;
+  right: -46px;
+  bottom: -52px;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.2;
+}
+.tile .ring::after {
+  content: '';
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  opacity: 0.6;
+}
+.tile.sea .btn {
+  background: #04263c;
+  color: #e6f2fa;
+  border: 0;
+}
+.shelf {
+  margin-top: 24px;
+}
+
+/* ============ 登录 / 注册 ============ */
+.authwrap {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 40px;
+  align-items: center;
+  padding: 34px 8px;
+}
+.authwrap .side-txt h2 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  letter-spacing: -1px;
+  line-height: 1.2;
+}
+.authwrap .side-txt h2 em {
+  font-style: normal;
+  color: var(--brand-deep);
+}
+.authwrap .side-txt p {
+  margin: 0 0 18px;
+  color: var(--text2);
+}
+.feat {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.feat span {
+  font-size: 12.5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  color: var(--text2);
+}
+.authfoot {
+  font-size: 12.5px;
+  color: var(--text2);
+  text-align: center;
+  margin-top: 16px;
+}
+.authfoot a {
+  color: var(--brand-deep);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ============ 个人中心 ============ */
+.uh {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  border-radius: var(--r);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  box-shadow: 0 14px 38px var(--gsh);
+}
+.uh .av {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  flex: 0 0 auto;
+}
+.uh .who b {
+  display: block;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+.uh .who span {
+  font-size: 12.5px;
+  color: var(--text2);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.stat {
+  padding: 16px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  text-align: center;
+}
+.stat b {
+  display: block;
+  font-size: 24px;
+  letter-spacing: -0.5px;
+  color: var(--brand-deep);
+}
+.stat span {
+  font-size: 12px;
+  color: var(--text2);
+}
+.tabline {
+  display: flex;
+  gap: 22px;
+  margin: 24px 0 4px;
+  border-bottom: 1px solid var(--line);
+}
+.tabline div {
+  font-size: 14px;
+  padding: 8px 2px;
+  color: var(--text2);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tabline div.on {
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--brand);
+}
+
+/* ============ 排行榜筛选 ============ */
+.filter {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 22px 0 6px;
+}
+.filter .pill {
+  font-size: 12.5px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter .pill:hover {
+  border-color: var(--brand);
+  color: var(--brand-deep);
+}
+.filter .pill.on {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: var(--brand);
+  font-weight: 600;
+}
+.filter .lb {
+  font-size: 12px;
+  color: var(--text3);
+  margin-right: 2px;
+}
+/* 中国股市约定：涨红跌绿（本处用于榜单升降幅） */
+.up {
+  color: #dc2626;
+  font-size: 11px;
+}
+.down {
+  color: #0d9488;
+  font-size: 11px;
+}
+
+/* ============ 面板 / 图标行（首页投票规范等） ============ */
+.panel {
+  padding: 20px 22px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  margin-top: 16px;
+}
+.panel h4 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.panel .ps {
+  font-size: 12.5px;
+  color: var(--text2);
+  margin: 0 0 14px;
+}
+.obrow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.obrow .ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(14, 165, 233, 0.13);
+}
+.obrow .ic svg {
+  width: 20px;
+  height: 20px;
+  fill: var(--brand-deep);
+}
+.obrow .tx b {
+  display: block;
+  font-size: 14px;
+}
+.obrow .tx span {
+  font-size: 12px;
+  color: var(--text2);
+}

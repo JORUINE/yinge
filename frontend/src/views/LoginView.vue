@@ -1,38 +1,56 @@
 <template>
-  <div class="container narrow">
-    <div class="card panel">
-      <h1>{{ isRegister ? '注册音格' : '登录音格' }}</h1>
-      <p class="muted sub">
-        {{ isRegister ? '注册后即可开对决、存记录。' : '登录后你的对决与测评都会被保存。' }}
-      </p>
+  <div class="auth">
+    <div class="authwrap">
+      <div class="side-txt">
+        <h2>登录后<br /><em>你的选择才留得下</em></h2>
+        <p>对决记录、测评结果、收藏的专辑，都会存进你的账号。下次打开就能接着投票。</p>
+        <div class="feat">
+          <span>保存对决记录</span><span>回看人格卡</span><span>收藏专辑</span><span>参与排行榜</span>
+        </div>
+      </div>
 
-      <el-form :model="form" label-position="top" @submit.prevent="onSubmit">
-        <el-form-item label="账号">
-          <el-input v-model="form.account" placeholder="4-20 位字母、数字或下划线" autocomplete="username" />
-        </el-form-item>
+      <div class="g-card">
+        <div class="seg">
+          <button type="button" :class="{ on: !isRegister }" @click="isRegister = false">登录</button>
+          <button type="button" :class="{ on: isRegister }" @click="isRegister = true">注册</button>
+        </div>
 
-        <el-form-item v-if="isRegister" label="昵称">
-          <el-input v-model="form.nickname" placeholder="2-16 个字，需唯一" />
-        </el-form-item>
+        <div class="fld">
+          <label>账号</label>
+          <input
+            v-model="form.account"
+            type="text"
+            placeholder="4 至 20 位字母、数字或下划线"
+            autocomplete="username"
+            @keyup.enter="onSubmit"
+          />
+        </div>
 
-        <el-form-item label="密码">
-          <el-input
+        <div v-if="isRegister" class="fld">
+          <label>昵称</label>
+          <input v-model="form.nickname" type="text" placeholder="2 至 16 个字，需唯一" />
+        </div>
+
+        <div class="fld">
+          <label>密码</label>
+          <input
             v-model="form.password"
             type="password"
-            show-password
-            placeholder="至少 6 位"
+            placeholder="6 至 32 位"
             autocomplete="current-password"
+            @keyup.enter="onSubmit"
           />
-        </el-form-item>
+          <div class="hint">密码经单向加密存储，数据库不保留明文</div>
+        </div>
 
-        <el-button type="primary" class="submit" :loading="loading" @click="onSubmit">
-          {{ isRegister ? '注册并进入' : '登录' }}
-        </el-button>
-      </el-form>
+        <button class="btn pri wide" type="button" :disabled="loading" @click="onSubmit">
+          {{ loading ? '请稍候…' : isRegister ? '注册并进入' : '登录' }}
+        </button>
 
-      <div class="switch">
-        <span class="muted">{{ isRegister ? '已经有账号了？' : '还没有账号？' }}</span>
-        <el-button text type="primary" @click="toggle">{{ isRegister ? '去登录' : '去注册' }}</el-button>
+        <div class="authfoot">
+          {{ isRegister ? '已经有账号了？' : '还没有账号？' }}
+          <a @click="isRegister = !isRegister">{{ isRegister ? '去登录' : '立即注册' }}</a>
+        </div>
       </div>
     </div>
   </div>
@@ -52,15 +70,15 @@ const isRegister = ref(false);
 const loading = ref(false);
 const form = reactive({ account: '', password: '', nickname: '' });
 
-function toggle() {
-  isRegister.value = !isRegister.value;
-}
-
 async function onSubmit() {
+  if (!form.account.trim() || !form.password) {
+    ElMessage.info('请填写账号与密码');
+    return;
+  }
   loading.value = true;
   try {
-    if (isRegister.value) await auth.register({ ...form });
-    else await auth.login({ account: form.account, password: form.password });
+    if (isRegister.value) await auth.register({ ...form, account: form.account.trim() });
+    else await auth.login({ account: form.account.trim(), password: form.password });
     ElMessage.success(isRegister.value ? '注册成功' : '登录成功');
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
     router.replace(redirect);
@@ -73,35 +91,19 @@ async function onSubmit() {
 </script>
 
 <style scoped>
-.narrow {
-  max-width: 460px;
-  padding-top: var(--sp-7);
-  padding-bottom: var(--sp-8);
+.auth {
+  padding-bottom: var(--sp-7);
 }
-
-.panel {
-  padding: var(--sp-6);
+.g-card {
+  padding: 26px 28px;
 }
-
-h1 {
-  margin-bottom: var(--sp-2);
+.authfoot a {
+  cursor: pointer;
 }
-
-.sub {
-  margin-bottom: var(--sp-5);
-  font-size: var(--fs-sm);
-}
-
-.submit {
-  width: 100%;
-  margin-top: var(--sp-2);
-}
-
-.switch {
-  margin-top: var(--sp-4);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  font-size: var(--fs-sm);
+@media (max-width: 860px) {
+  .authwrap {
+    grid-template-columns: 1fr;
+    padding: 20px 0;
+  }
 }
 </style>
