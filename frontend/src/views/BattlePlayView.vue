@@ -179,20 +179,32 @@
       </div>
 
       <div class="nowbar">
-        <div class="a"><img :src="nowPlaying?.artworkUrl || match.leftAlbum?.artworkUrl" alt="" /></div>
+        <div class="a"><img :src="playerAlbumArt" alt="" /></div>
         <div class="t">
-          <b>{{ nowPlaying ? '正在试听' : '点上面的「试听 30 秒」听片段' }}</b>
-          <span>{{ nowPlaying?.name || '对决对象是专辑，片段只帮你听个大概，不参与计票' }}</span>
+          <b>{{ curTrack ? curTrack.name : '点上面的「试听 30 秒」听片段' }}</b>
+          <span v-if="curTrack">
+            《{{ playerAlbumName }}》第 {{ curTrack.trackNumber }} 首 ·
+            {{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}
+            <template v-if="tracks.length > 1"> · 想换一首点右边的箭头</template>
+          </span>
+          <span v-else>对决对象是专辑，片段只帮你听个大概，不参与计票</span>
         </div>
         <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+        <button class="trk" type="button" title="上一首" :disabled="trackIdx <= 0" @click="prevTrack">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+        </button>
         <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
           <svg viewBox="0 0 24 24">
             <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
             <path v-else d="M8 5v14l11-7z" />
           </svg>
         </button>
+        <button class="trk" type="button" title="下一首" :disabled="trackIdx >= tracks.length - 1" @click="nextTrack">
+          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
+        </button>
+        <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
       </div>
-      <audio v-if="previewUrl" ref="audioEl" :src="previewUrl" @ended="playing = false" />
+      <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
     </template>
 
     <!-- ============ 等待生成下一轮 ============ -->
@@ -214,7 +226,7 @@
 import { computed, onMounted, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { battleApi } from '@/api';
+import { battleApi, musicApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
 
 const route = useRoute();
@@ -230,12 +242,27 @@ const match = ref(null);
 const progress = ref({ decided: 0, total: 0 });
 const picked = ref([]);
 
-// 1v1 试听
+// 1v1 试听（真实曲目 + 切歌）
 const lit = ref('c');
+const tracks = ref([]); // 当前试听专辑的曲目（只保留有 previewUrl 的）
+const trackIdx = ref(0);
 const previewUrl = ref('');
-const nowPlaying = ref(null);
 const playing = ref(false);
+const audioTime = ref(0);
+const audioDur = ref(0);
 const audioEl = ref(null);
+const playerAlbum = ref(null); // { albumId, name, artworkUrl }
+
+const curTrack = computed(() => tracks.value[trackIdx.value] || null);
+const playerAlbumName = computed(() => playerAlbum.value?.name || '');
+const playerAlbumArt = computed(
+  () => playerAlbum.value?.artworkUrl || match.value?.leftAlbum?.artworkUrl || '',
+);
+
+const fmtTime = (ms) => {
+  const s = Math.max(0, Math.round((Number(ms) || 0) / 1000));
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+};
 
 const pct = computed(() =>
   progress.value.total ? Math.round((progress.value.decided / progress.value.total) * 100) : 0,
@@ -304,7 +331,11 @@ async function load() {
   loading.value = true;
   previewUrl.value = '';
   playing.value = false;
-  nowPlaying.value = null;
+  tracks.value = [];
+  trackIdx.value = 0;
+  playerAlbum.value = null;
+  audioTime.value = 0;
+  audioDur.value = 0;
   try {
     const data = await battleApi.nextStep(id);
     if (data?.legacy) {
@@ -354,14 +385,72 @@ async function vote(album) {
   }
 }
 
-function play(album) {
-  if (!album?.previewUrl) return;
-  nowPlaying.value = album;
-  previewUrl.value = album.previewUrl;
-  playing.value = true;
+/** 试听：第一次点某张专辑时按需拉曲目（后端会自动同步 iTunes 的 30 秒片段） */
+async function play(album) {
+  if (!album) return;
+  if (playerAlbum.value?.albumId !== album.albumId) {
+    try {
+      const data = await musicApi.listAlbumTracks(album.albumId);
+      const list = (data.list || []).filter((t) => t.previewUrl);
+      if (!list.length) {
+        ElMessage.info('这张专辑暂无可试听的片段');
+        return;
+      }
+      tracks.value = list;
+      trackIdx.value = 0;
+      playerAlbum.value = { albumId: album.albumId, name: album.name, artworkUrl: album.artworkUrl };
+    } catch (err) {
+      ElMessage.error(err?.message || '试听加载失败');
+      return;
+    }
+  }
+  loadCurrent();
+}
+
+function loadCurrent() {
+  const t = curTrack.value;
+  if (!t) return;
+  previewUrl.value = t.previewUrl;
+  audioTime.value = 0;
+  audioDur.value = 0;
   nextTick(() => {
-    audioEl.value?.play?.().catch(() => {});
+    const el = audioEl.value;
+    if (!el) return;
+    try {
+      el.currentTime = 0;
+    } catch {
+      /* 忽略 */
+    }
+    el.play?.()
+      .then(() => {
+        playing.value = true;
+      })
+      .catch(() => {});
   });
+}
+
+function nextTrack() {
+  if (trackIdx.value < tracks.value.length - 1) {
+    trackIdx.value += 1;
+    loadCurrent();
+  }
+}
+function prevTrack() {
+  if (trackIdx.value > 0) {
+    trackIdx.value -= 1;
+    loadCurrent();
+  }
+}
+function onEnded() {
+  if (trackIdx.value < tracks.value.length - 1) nextTrack();
+  else playing.value = false;
+}
+function onTime() {
+  const el = audioEl.value;
+  if (!el) return;
+  audioTime.value = (el.currentTime || 0) * 1000;
+  // 取播放器真实时长（试听片段约 30 秒），而不是整首歌的时长
+  if (Number.isFinite(el.duration) && el.duration > 0) audioDur.value = el.duration * 1000;
 }
 function togglePlay() {
   const el = audioEl.value;
@@ -410,6 +499,11 @@ onMounted(load);
 }
 .crumb a {
   color: var(--brand-deep);
+}
+
+.trk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .state {
