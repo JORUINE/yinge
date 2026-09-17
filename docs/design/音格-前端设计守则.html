@@ -196,7 +196,7 @@
         <tr><td>7</td><td>排行榜</td><td>「地区 / 年代 / 周期」三重筛选无接口</td><td>后端补接口后再上 UI（未编假 UI）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>8</td><td>对决</td><td>抽卡式进入动画</td><td>收尾阶段做（见第 3 节③）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>9</td><td>全站</td><td>深色模式未逐页验收；响应式 375/768/1024/1440 未逐页过</td><td>收尾统一验收</td><td><span class="pill p2">P2</span></td></tr>
-        <tr><td>10</td><td>全站 · 专辑主色</td><td><b>颜色采样是错的</b>：现在是按 <code>albumId</code> 哈希出一个色相，<b>根本没读封面</b> —— 所以黑白封面的 reputation 会显示成紫色。</td><td><b>必须修</b>：改为 canvas 读封面主色（需处理跨域，iTunes 图源通常允许 <code>crossorigin</code>），失败再退回哈希</td><td><span class="pill p0">P0</span></td></tr>
+        <tr><td>10</td><td>全站 · 专辑主色</td><td><b>颜色采样是错的</b>：现在是按 <code>albumId</code> 哈希出一个色相，<b>根本没读封面</b> —— 所以黑白封面的 reputation 会显示成紫色。</td><td><b>已修</b>：新增 <code>utils/coverColor.js</code>（canvas 读封面主色，过滤过暗/过亮/低饱和；取不到色退回哈希），投票页舞台光晕/歌手名/色条全部跟随封面真色。实测：蓝灰封面→蓝灰光晕、暖棕封面→暖棕光晕 ✓</td><td><span class="pill ok">已修</span></td></tr>
 
         <tr><td colspan="5" class="grp">— 2026-09-17 晚 用户新反馈（逐条待落实）—</td></tr>
 
@@ -223,7 +223,7 @@
         <tr><td>28</td><td>投票页 · 播放条位置</td><td>播放条放太下面，"我还以为没有做" —— 对用户理解有门槛</td><td><b>已做</b>：封面限宽 330px 压缩纵向，一屏放得下（播放条自然上移）</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>29</td><td>投票页 · 自动切歌</td><td><b>不需要</b>播完一首试听自动下一首，用户点切换才播</td><td><b>已改</b>：播完只停止，不自动切</td><td><span class="pill ok">已改</span></td></tr>
         <tr><td>30</td><td>结果页 · 得票率</td><td>1 票对 0 票显示 <b>100% / 0%</b>，"太奇怪了 也不好看 这个胜率莫名其妙的"</td><td><b>已改</b>：改显示<b>票数</b>（如 1 票 / 0 票），不再显示百分比</td><td><span class="pill ok">已改</span></td></tr>
-        <tr><td>31</td><td>投票页 · 其他歌手</td><td>"是不是只接了周杰伦的播放，其他人的都没法听；其他歌手专辑封面依然点不了"</td><td><b>待查</b>：按需同步逻辑对所有专辑一致，需复测定位（可能与该歌手曲目同步失败/超时有关）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>31</td><td>投票页 · 其他歌手</td><td>"是不是只接了周杰伦的播放，其他人的都没法听；其他歌手专辑封面依然点不了"</td><td><b>已修</b>：根因是试听按钮 <code>:disabled</code> 绑在 <code>album.previewUrl</code> 上，而小组/复活阶段返回的专辑不带它、曲目也没同步过 → 按钮被禁用。现在点试听一律按需拉曲目（后端自动同步），任何歌手都能听</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>32</td><td>结果页 · 对位赛</td><td>对位赛/指定对决<b>没有冠军</b>，结果页却显示"对决还没结束"→点继续又回投票页，死循环</td><td><b>已修</b>：结果页按 <code>type</code> 分支，对位赛直接给逐行对照表 + 歌手积分</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>33</td><td>赛制 · 单张组</td><td>17 张参赛会出现「从这 1 张里，选出 1 张晋级」的无效步骤</td><td><b>已修</b>：单张组直接自动晋级，不产生投票步骤（前后端公式同步）</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>34</td><td>赛制 · 单歌手选张策略</td><td>周杰伦 10 张以上时，<b>只取最早的 N 张，后面的专辑连参赛资格都没有</b> —— "我们玩法是不是问题太多了"</td><td><b>已修</b>：新增「这几张怎么选」= <b>随机抽 N（默认）/ 最新 N / 自己挑</b>（自己挑可勾可取消，至少 4 张）；后端 <code>pickAlbums()</code> 统一实现</td><td><span class="pill ok">已修</span></td></tr>
