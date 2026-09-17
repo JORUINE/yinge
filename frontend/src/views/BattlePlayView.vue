@@ -258,8 +258,9 @@ const koLabel = computed(() => {
 const koHint = computed(() => '没听过？先试听 30 秒再投，片段不参与计票');
 const gridStyle = computed(() => {
   const n = group.value?.albums?.length || 4;
-  const cols = n <= 4 ? n : 4;
-  return { gridTemplateColumns: `repeat(${cols}, 1fr)` };
+  // 宽屏最多 5 列；minmax(0,1fr) 防止长专辑名把列撑宽（否则封面会大小不一）
+  const cols = n <= 4 ? n : n <= 10 ? 5 : 6;
+  return { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` };
 });
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');

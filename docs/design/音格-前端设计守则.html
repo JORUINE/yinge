@@ -92,7 +92,8 @@
     <p class="muted">来源：参赛池截图反馈 —— "这里明显前端界面都出问题了…我们设计demo里是这样的吗"。</p>
     <div class="rule"><b>不是 demo 的样子。</b>demo 里参赛池是 <b>7 等分正方形网格</b>（封面等高、圆角一致、间距一致、名称单行省略），现在渲染出来封面大小不一、排布散乱 —— 属<b>实现没还原到位</b>，收尾阶段必须修成 demo 那样。</div>
     <ul>
-      <li>网格类布局一律用 <code>grid + repeat(n, 1fr)</code>，<b>禁止出现高低不齐的封面</b>；封面统一 <code>aspect-ratio:1</code> + <code>object-fit:cover</code>。</li>
+      <li>网格类布局一律用 <code>grid + repeat(n, minmax(0, 1fr))</code>；封面统一 <code>aspect-ratio:1</code> + <code>object-fit:cover</code>。</li>
+      <li><b>⚠️ 绝对不要写裸 <code>1fr</code></b>：<code>1fr</code> 等价于 <code>minmax(auto,1fr)</code>，一旦单元格里是 <code>white-space:nowrap</code> 的长文本（如真数据里的长专辑名），该列会被内容**撑宽**，整片网格就变成大小不一。这就是 2026-09-17 参赛池"封面大小不一"的根因。<b>所有网格列一律写 <code>minmax(0, 1fr)</code>。</b></li>
       <li>排布要<b>密实</b>，不要大片留白；宽屏下按容器宽度自适应列数（如 7 / 5 / 3 挡）。</li>
       <li>长名称统一单行省略（<code>text-overflow:ellipsis</code>），不允许换行把网格撑歪。</li>
       <li>同类卡片在同一页内<b>尺寸必须一致</b>（不做大小混排，除非 demo 明确要求）。</li>
@@ -122,7 +123,57 @@
   </div>
 
   <div class="card">
-    <h2><span class="n">5</span>待修清单（收尾阶段照此逐条过）</h2>
+    <h2><span class="n">5</span>已确认的改进清单（收尾阶段必须逐条落实）</h2>
+    <p class="muted">以下都是<b>我们商讨后认可过</b>的事：含借鉴竞品对齐的交互、你提的原创想法、以及 v2 新赛制带来的前端注意点。做前端时<b>逐条确认已落实到界面</b>，不要漏，也不要重复讨论。</p>
+
+    <h3>A · 借鉴竞品后对齐的交互（已认可）</h3>
+    <table>
+      <thead><tr><th>项</th><th>前端要做成什么样</th><th>现状</th></tr></thead>
+      <tbody>
+        <tr><td>阶段切换动效</td><td>进入每轮给一次明确提示，如「8 强 · 8 张专辑 · 4 场对决 · 点选更喜欢的那张」</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>进度常驻</td><td>每场都显示「已投 X / Y 步」</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>返回重选</td><td>选错能退回上一步 / 上一组（不只是清空本组）</td><td><span class="pill p1">部分</span></td></tr>
+        <tr><td>落败置灰</td><td>淘汰赛落败的专辑置灰，把"战况"留在页面上</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>迷你对阵树</td><td>投票页给一个随时可见的小对阵图</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>本地续玩</td><td>关掉浏览器回来能接着打（localStorage）</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>冠军页完整结构</td><td>动效 → 冠军大图 → 亚军 / 四强 → [分享我的对阵图][再来一场][和好友一起玩] + Apple Music 外链 + 「仅 X% 的人与你审美同频」</td><td><span class="pill p1">部分</span>（冠军大图 / 夺冠之路 / 分享图 / 再来一场 已做；亚军四强、好友同玩、同频文案 待做）</td></tr>
+        <tr><td>Apple Music 外链</td><td>冠军页 / 专辑处给「前往艺人 / 新建播放列表 / 添加到资料库」</td><td><span class="pill p1">待做</span>（后端 <code>viewUrl</code> 需回填）</td></tr>
+        <tr><td>公开排行榜</td><td>赛果匿名汇入；榜单能看到「哪张专辑夺冠最多」</td><td><span class="pill p1">部分</span>（票数榜已做；夺冠次数榜 待做）</td></tr>
+        <tr><td>和好友一起玩</td><td>同款签表链接 → 好友进同一批专辑 → 双人对比页（冠军是否一致 / 从第几轮分歧）</td><td><span class="pill p1">待做</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>B · v2 新赛制带来的前端注意点</h3>
+    <table>
+      <thead><tr><th>点</th><th>要求</th><th>现状</th></tr></thead>
+      <tbody>
+        <tr><td>规模自选</td><td>创建页可选「单歌手 8/12/16/24/32」或「多歌手每位 4/6/8/10」，并<b>实时显示「预计 N 步」</b></td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>小组赛 4 选 2</td><td>一次多选、<b>选满才能提交</b>、显示「已选 X / K」</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>遗珠复活</td><td>从落选专辑里一次捞回 K 张（K 可能 &gt; 2，例如 24 张时要捞 4 张）→ 界面要支持「从 N 张里选 K 张」</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td><b>不剧透</b></td><td>创建页参赛池只露 1–2 张（盲盒原则）</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>跨歌手标注</td><td>配对跨歌手优先；万一同歌手对上，界面上标「<b>同室操戈</b>」</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>歌手战绩</td><td>结果页补「哪位歌手的专辑走得最远」，保证"比歌手"的价值可见</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>数字口径</td><td>每 4 张一组、每组选 2 晋级；总步数由公式唯一推出，<b>前端不许另算一套</b></td><td><span class="pill ok">已做</span></td></tr>
+      </tbody>
+    </table>
+
+    <h3>C · 你提的原创想法</h3>
+    <ul>
+      <li><b>盲盒原则</b>：参赛池不剧透全部出战专辑。</li>
+      <li><b>抽卡式入场动画</b>：洗牌 → 翻出本轮对阵，把"随机"做成体验。</li>
+      <li>对决要有<b>阶段感 / 回馈 / 「我在哪」</b>（痛点不是场次多，而是不知道进行到哪一步）。</li>
+    </ul>
+
+    <h3>D · 明确不做（免得以后重复讨论）</h3>
+    <ul>
+      <li><b>不做「选代表曲」环节</b>：对决对象是<b>专辑不是单曲</b>，"代表曲"只帮你听个大概、<b>不参与计票</b>。</li>
+      <li>不做音频可视化 / 3D 类视觉（超出本作品范围）。</li>
+      <li>借竞品只借<b>交互与动效</b>，<b>规则论据必须用音格自身产品逻辑</b>（我们不是音乐世界杯，是专辑比拼）。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">6</span>待修清单（收尾阶段照此逐条过）</h2>
     <div class="legend">
       <span><span class="pill p0">P0 明显缺陷</span></span>
       <span><span class="pill p1">P1 体验问题</span></span>
@@ -132,8 +183,8 @@
     <table>
       <thead><tr><th>#</th><th>页面</th><th>问题</th><th>处理</th><th>级别</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td>创建页 · 参赛池</td><td>封面大小不一、排布散乱，不是 demo 的 7 等分正方形网格</td><td>按 demo 修正网格（见第 2 节）</td><td><span class="pill p0">P0</span></td></tr>
-        <tr><td>2</td><td>创建页 · 参赛池</td><td>逐张列出全部出战专辑 → 剧透，破坏盲盒感</td><td>每位只露 1–2 张 + 只给总数（见第 3 节）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>1</td><td>创建页 · 参赛池</td><td>封面大小不一、排布散乱，不是 demo 的 7 等分正方形网格</td><td><b>已修</b>：根因是裸 <code>1fr</code> 被 nowrap 长专辑名撑宽 → 全部改 <code>minmax(0,1fr)</code>。浏览器实测：7 列均为 145.4px ✓</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>2</td><td>创建页 · 参赛池</td><td>逐张列出全部出战专辑 → 剧透，破坏盲盒感</td><td><b>已做</b>：每位只露 2 张，其余进对决逐张揭晓（预览从 ~80 张降到 4 张）</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>3</td><td>投票页</td><td>说明与专辑元信息字号偏小</td><td>按第 1 节提升字号</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>4</td><td>投票页</td><td>4 选 2 / 多选卡片的排布可更密实、卡片可更大</td><td>列数自适应 + 卡片比例优化</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>5</td><td>投票页</td><td>缺「返回上一组」；缺阶段切换动效；缺落败置灰</td><td>按第 4 节补</td><td><span class="pill p1">P1</span></td></tr>
@@ -146,7 +197,7 @@
   </div>
 
   <div class="card">
-    <h2><span class="n">6</span>落地方式</h2>
+    <h2><span class="n">7</span>落地方式</h2>
     <ul>
       <li>守则<b>长期有效</b>：每次做前端都先读它；提新意见时<b>追加进本文件</b>，不散落在聊天里。</li>
       <li>收尾阶段按第 5 节清单逐条打勾，并<b>把修改前后截图附在《自检清单》里</b>，不靠"我觉得改好了"。</li>

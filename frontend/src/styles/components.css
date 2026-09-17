@@ -246,7 +246,7 @@
 }
 .covers {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 13px;
 }
 .cv {
@@ -367,7 +367,7 @@ html[data-theme='dark'] .v b {
 }
 .podium {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 18px;
 }
@@ -454,7 +454,7 @@ html[data-theme='dark'] .v b {
 /* ============ 创建页：模式 / 对位说明 / 歌手 / 预设 / 提示条 ============ */
 .modes {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 22px 0 6px;
 }
@@ -579,7 +579,7 @@ html[data-theme='dark'] .v b {
 }
 .pool {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 12px;
   margin-top: 14px;
 }
@@ -746,7 +746,7 @@ html[data-theme='dark'] .v b {
 }
 .alignbox .arow {
   display: grid;
-  grid-template-columns: 64px 1fr 76px 1fr 62px;
+  grid-template-columns: 64px minmax(0, 1fr) 76px minmax(0, 1fr) 62px;
   align-items: center;
   gap: 10px;
   padding: 8px 0;
@@ -1189,7 +1189,7 @@ html[data-theme='dark'] .v b {
 /* ============ 小组 / 对阵树 / 战绩条 ============ */
 .groups {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 20px;
 }
@@ -1260,7 +1260,7 @@ html[data-theme='dark'] .v b {
 }
 .rounds {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 22px;
   align-items: center;
 }
@@ -1367,7 +1367,7 @@ html[data-theme='dark'] .v b {
 }
 .kpis {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
 }
@@ -2034,7 +2034,7 @@ html[data-theme='dark'] .v b {
 /* 人格图鉴 */
 .atlas {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 22px;
 }
@@ -2119,7 +2119,7 @@ html[data-theme='dark'] .v b {
 /* 推荐专辑（人格卡下方三张，复用对决页呈现 + 三团光晕） */
 .recs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
   margin-top: 16px;
 }
@@ -2354,7 +2354,7 @@ html[data-theme='dark'] .v b {
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 16px;
 }

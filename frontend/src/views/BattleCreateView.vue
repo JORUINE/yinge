@@ -284,8 +284,10 @@
       <!-- 参赛池预览（规模模式：勾选态由档位决定） -->
       <div v-if="poolPreview.length" class="block">
         <h4>
-          参赛池预览
-          <em v-if="poolStats">共检索 {{ poolStats.total }} 张 · 剔除 {{ poolStats.excluded }} 张 · 实际参赛 {{ poolStats.valid }} 张</em>
+          参赛池 · 先亮出几张
+          <em v-if="poolStats">
+            共检索 {{ poolStats.total }} 张 · 剔除 {{ poolStats.excluded }} 张 · 本轮出战 {{ totalSelected }} 张
+          </em>
         </h4>
 
         <div class="tipbar">
@@ -294,8 +296,8 @@
           </svg>
           <span>
             已按准入规则自动过滤：<b>单曲 / 现场与演唱会 / 影视原声 / 精选与复刻</b> 不计入正式专辑。
-            勾选态由上方「参赛规模」档位决定。
-          </span>
+            <b>本轮共 {{ totalSelected }} 张出战，这里只先亮出 {{ poolPreview.length }} 张</b><template v-if="hiddenCount">，其余 {{ hiddenCount }} 张留到对决时逐张揭晓</template>
+            —— 留着开盲盒的悬念。</span>
         </div>
 
         <div v-if="excludedList.length" class="excluded">
@@ -413,31 +415,41 @@ const alignedTotal = computed(() => {
 
 const artistName = computed(() => picked.value[0]?.name || '');
 
-/** 参赛池预览项（带 _in / _artistName），仅规模类模式有 */
+/**
+ * 参赛池预览 · 盲盒原则
+ * ------------------------------------------------------------
+ * 不再把"本轮出战的所有专辑"摊开——那样随机比拼的刺激感就没了。
+ * 每位歌手只露前 EXPOSE_PER_ARTIST 张，其余进对决时逐张揭晓。
+ */
+const EXPOSE_PER_ARTIST = 2;
+
 const poolPreview = computed(() => {
   const out = [];
+  const expose = (artist, take) => {
+    for (const al of take) out.push({ ...al, _artistName: artist.name, _in: true });
+  };
   if (mode.value === 'artist') {
     const one = picked.value[0];
-    if (!one) return [];
-    const pool = artistPool.value[one.artistId];
+    const pool = one && artistPool.value[one.artistId];
     if (!pool) return [];
-    pool.eligible.forEach((al, i) => {
-      out.push({ ...al, _artistName: one.name, _in: i < singerScale.value });
-    });
+    const take = pool.eligible.slice(0, Math.min(singerScale.value, pool.eligible.length));
+    expose(one, take.slice(0, EXPOSE_PER_ARTIST));
     return out;
   }
   if (mode.value === 'multi-artist') {
     for (const a of picked.value) {
       const pool = artistPool.value[a.artistId];
       if (!pool) continue;
-      pool.eligible.forEach((al, i) => {
-        out.push({ ...al, _artistName: a.name, _in: i < perArtistScale.value });
-      });
+      const take = pool.eligible.slice(0, Math.min(perArtistScale.value, pool.eligible.length));
+      expose(a, take.slice(0, EXPOSE_PER_ARTIST));
     }
     return out;
   }
   return [];
 });
+
+/** 预览里没露出来的张数（其余进对决时揭晓） */
+const hiddenCount = computed(() => Math.max(0, totalSelected.value - poolPreview.value.length));
 
 /** 剔除列表（用于说明"系统替你剔了哪些"） */
 const excludedList = computed(() => {
