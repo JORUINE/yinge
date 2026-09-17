@@ -9,7 +9,7 @@
   </div>
 
   <div class="shell">
-    <header class="topbar">
+    <header v-if="!isAdmin" class="topbar">
       <div class="container bar">
         <nav class="nav-inline">
           <RouterLink to="/" class="logo">音<i>格</i></RouterLink>
@@ -40,7 +40,7 @@
       </div>
     </main>
 
-    <footer class="foot">
+    <footer v-if="!isAdmin" class="foot">
       <div class="container">
         音格 · 专辑对决与音乐人格测评　|　试听与封面数据来自 iTunes Search API（免登录，30 秒片段）
       </div>
@@ -63,12 +63,16 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { registerAuthHandlers } from '@/api/client';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+/** 后台自带 chrome：/admin 下不渲染站点顶栏与页脚 */
+const isAdmin = computed(() => route.path.startsWith('/admin'));
 
 const bannedVisible = ref(false);
 const bannedReason = ref(null);

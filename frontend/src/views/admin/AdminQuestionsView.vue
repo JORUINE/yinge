@@ -1,51 +1,50 @@
 <template>
-  <div class="container admin">
-    <section class="head">
+  <AdminShell>
+    <div class="admhd">
       <div>
-        <p class="eyebrow">后台管理</p>
-        <h1>题目管理</h1>
-        <p class="muted">人格测评的题库。每道题的每个选项按维度给分，维度名用逗号分隔。</p>
+        <h3>题目管理</h3>
+        <p>人格测评题库。每个选项按维度给分（维度为 melody / rhythm / arrangement / calm）。</p>
       </div>
-      <el-button type="primary" @click="openCreate">新建题目</el-button>
-    </section>
+      <button class="mini" type="button" @click="openCreate">+ 新建题目</button>
+    </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
-    <div v-else-if="!list.length" class="state card empty">
-      <p class="big">题库为空</p>
+    <div v-else-if="!list.length" class="state g-card">
+      <h4>题库为空</h4>
       <p class="muted">先建几道题，前台测评才能开始。</p>
-      <el-button type="primary" @click="openCreate">新建题目</el-button>
+      <button class="btn pri sm" type="button" @click="openCreate">新建题目</button>
     </div>
 
-    <div v-else class="table-wrap card">
-      <table class="tbl">
-        <thead>
-          <tr>
-            <th>题号</th>
-            <th>类型</th>
-            <th>题干</th>
-            <th>维度</th>
-            <th>选项数</th>
-            <th class="op">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="q in list" :key="q.questionId">
-            <td class="num">{{ q.order }}</td>
-            <td><el-tag size="small" :type="q.type === 'audio' ? 'warning' : 'info'" effect="plain">{{ q.type === 'audio' ? '听感' : '选择' }}</el-tag></td>
-            <td>{{ q.title }}</td>
-            <td class="muted small">{{ (q.dims || []).join(' / ') }}</td>
-            <td class="num">{{ (q.options || []).length }}</td>
-            <td class="op">
-              <el-button text type="primary" @click="openEdit(q)">编辑</el-button>
-              <el-button text type="danger" @click="remove(q)">删除</el-button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <table v-else class="tbl">
+      <thead>
+        <tr>
+          <th style="width: 56px">题号</th>
+          <th style="width: 74px">类型</th>
+          <th>题干</th>
+          <th style="width: 200px">维度</th>
+          <th style="width: 64px">选项</th>
+          <th class="act" style="width: 130px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="q in list" :key="q.questionId">
+          <td class="num">{{ q.order }}</td>
+          <td>
+            <span class="tagx" :class="q.type === 'audio' ? 'wn' : 'tp'">{{ q.type === 'audio' ? '听感' : '选择' }}</span>
+          </td>
+          <td class="ell">{{ q.title }}</td>
+          <td class="dim">{{ (q.dims || []).join(' / ') }}</td>
+          <td class="num">{{ (q.options || []).length }}</td>
+          <td class="act">
+            <button class="mini" type="button" @click="openEdit(q)">编辑</button>
+            <button class="mini" type="button" @click="remove(q)">删除</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-    <el-dialog v-model="dialog" :title="editing ? '编辑题目' : '新建题目'" width="760px" align-center @closed="resetForm">
+    <el-dialog v-model="dialog" :title="editing ? '编辑题目' : '新建题目'" width="780px" align-center @closed="resetForm">
       <el-form :model="form" label-position="top">
         <div class="row2">
           <el-form-item label="题号" required>
@@ -65,7 +64,7 @@
           <el-input v-model="form.audioRef" placeholder="音频标识或链接" />
         </el-form-item>
         <el-form-item label="维度（逗号分隔）" required>
-          <el-input v-model="form.dimsText" placeholder="例如：energy,mood,openness" @input="syncScores" />
+          <el-input v-model="form.dimsText" placeholder="例如：melody,rhythm" @input="syncScores" />
         </el-form-item>
 
         <el-form-item label="选项与打分" required>
@@ -73,16 +72,16 @@
             <div class="opt-head">
               <span class="c-key">KEY</span>
               <span class="c-label">选项文案</span>
-              <span v-for="d in dims" :key="d" class="c-score">{{ d }}</span>
+              <span v-for="dd in dims" :key="dd" class="c-score">{{ dd }}</span>
               <span></span>
             </div>
             <div v-for="(o, i) in form.options" :key="i" class="opt-row">
               <el-input v-model="o.key" placeholder="A" class="c-key" />
               <el-input v-model="o.label" placeholder="选项内容" class="c-label" />
               <el-input-number
-                v-for="d in dims"
-                :key="d"
-                v-model="o.score[d]"
+                v-for="dd in dims"
+                :key="dd"
+                v-model="o.score[dd]"
                 :min="-5"
                 :max="5"
                 controls-position="right"
@@ -99,13 +98,14 @@
         <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
-  </div>
+  </AdminShell>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { adminApi } from '@/api';
+import AdminShell from '@/layouts/AdminShell.vue';
 
 const loading = ref(true);
 const list = ref([]);
@@ -113,14 +113,7 @@ const dialog = ref(false);
 const editing = ref(null);
 const saving = ref(false);
 
-const form = reactive({
-  order: 1,
-  type: 'choice',
-  title: '',
-  audioRef: '',
-  dimsText: '',
-  options: [],
-});
+const form = reactive({ order: 1, type: 'choice', title: '', audioRef: '', dimsText: '', options: [] });
 
 const dims = computed(() =>
   form.dimsText
@@ -132,14 +125,14 @@ const dims = computed(() =>
 function syncScores() {
   for (const o of form.options) {
     const next = {};
-    for (const d of dims.value) next[d] = Number(o.score?.[d] || 0);
+    for (const dd of dims.value) next[dd] = Number(o.score?.[dd] || 0);
     o.score = next;
   }
 }
 
 function addOption() {
   const score = {};
-  for (const d of dims.value) score[d] = 0;
+  for (const dd of dims.value) score[dd] = 0;
   form.options.push({ key: '', label: '', score });
 }
 function removeOption(i) {
@@ -168,11 +161,7 @@ function openEdit(q) {
   form.title = q.title;
   form.audioRef = q.audioRef || '';
   form.dimsText = (q.dims || []).join(', ');
-  form.options = (q.options || []).map((o) => ({
-    key: o.key,
-    label: o.label,
-    score: { ...(o.score || {}) },
-  }));
+  form.options = (q.options || []).map((o) => ({ key: o.key, label: o.label, score: { ...(o.score || {}) } }));
   dialog.value = true;
 }
 
@@ -183,11 +172,7 @@ function buildPayload() {
     title: form.title.trim(),
     audioRef: form.audioRef || null,
     dims: dims.value,
-    options: form.options.map((o) => ({
-      key: o.key.trim(),
-      label: o.label.trim(),
-      score: { ...o.score },
-    })),
+    options: form.options.map((o) => ({ key: o.key.trim(), label: o.label.trim(), score: { ...o.score } })),
   };
 }
 
@@ -248,87 +233,37 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.admin {
-  padding-top: var(--sp-6);
-  padding-bottom: var(--sp-8);
-}
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
-}
-.head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--sp-4);
-}
-.head h1 {
-  font-size: var(--fs-h1);
-  margin-top: var(--sp-2);
-}
-.head .muted {
-  margin-top: var(--sp-2);
-  max-width: 560px;
-}
 .state {
-  padding: var(--sp-6);
+  padding: 24px;
   text-align: center;
 }
-.empty {
-  max-width: 460px;
-  margin: var(--sp-5) auto;
+.state h4 {
+  margin: 0 0 6px;
 }
-.empty .big {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-2);
-}
-.table-wrap {
-  padding: var(--sp-2) 0;
-  overflow-x: auto;
-}
-.tbl {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--fs-sm);
-}
-.tbl th,
-.tbl td {
-  padding: var(--sp-3) var(--sp-4);
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-}
-.tbl th {
-  color: var(--text-3);
-  font-weight: 500;
-}
-.tbl .op {
-  text-align: right;
-}
-.small {
-  font-size: var(--fs-sm);
+.dim {
+  font-size: 12px;
+  color: var(--text3);
 }
 .row2 {
   display: flex;
-  gap: var(--sp-4);
+  gap: 16px;
 }
 .options {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--sp-3);
+  border: 1px solid var(--gbd);
+  border-radius: var(--r-s);
+  padding: 10px;
+  width: 100%;
 }
 .opt-head,
 .opt-row {
   display: flex;
   align-items: center;
-  gap: var(--sp-2);
-  margin-bottom: var(--sp-2);
+  gap: 8px;
+  margin-bottom: 8px;
 }
 .opt-head {
-  color: var(--text-3);
-  font-size: var(--fs-xs);
+  color: var(--text3);
+  font-size: 11px;
 }
 .c-key {
   width: 64px;

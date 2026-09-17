@@ -1,21 +1,32 @@
 <template>
-  <div class="container narrow">
-    <div class="card panel">
+  <div class="adminlogin">
+    <div class="g-card">
       <p class="eyebrow">后台管理</p>
       <h1>管理员登录</h1>
-      <p class="muted">仅限管理员账号。普通用户账号无法进入。</p>
+      <p class="sub">仅限管理员账号。普通用户账号无法进入。</p>
 
-      <el-form :model="form" :rules="rules" ref="formRef" label-position="top" @submit.prevent>
-        <el-form-item label="账号" prop="account">
-          <el-input v-model="form.account" placeholder="管理员账号" />
-        </el-form-item>
-        <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="密码" show-password @keyup.enter="onLogin" />
-        </el-form-item>
-        <el-button type="primary" size="large" :loading="loading" @click="onLogin" style="width: 100%">
-          登录
-        </el-button>
-      </el-form>
+      <div class="fld">
+        <label>账号</label>
+        <input v-model="form.account" type="text" placeholder="管理员账号" autocomplete="username" />
+      </div>
+      <div class="fld">
+        <label>密码</label>
+        <input
+          v-model="form.password"
+          type="password"
+          placeholder="密码"
+          autocomplete="current-password"
+          @keyup.enter="onLogin"
+        />
+      </div>
+
+      <button class="btn pri wide" type="button" :disabled="loading" @click="onLogin">
+        {{ loading ? '登录中…' : '登录' }}
+      </button>
+
+      <div class="authfoot">
+        <RouterLink to="/">← 回前台</RouterLink>
+      </div>
     </div>
   </div>
 </template>
@@ -29,19 +40,12 @@ import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
 const auth = useAuthStore();
-const formRef = ref(null);
 const loading = ref(false);
 const form = reactive({ account: '', password: '' });
-const rules = {
-  account: [{ required: true, message: '请输入账号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-};
 
 async function onLogin() {
-  if (!formRef.value) return;
-  try {
-    await formRef.value.validate();
-  } catch {
+  if (!form.account.trim() || !form.password) {
+    ElMessage.info('请填写账号与密码');
     return;
   }
   loading.value = true;
@@ -59,26 +63,33 @@ async function onLogin() {
 </script>
 
 <style scoped>
-.narrow {
+.adminlogin {
   max-width: 420px;
-  padding-top: var(--sp-8);
-  padding-bottom: var(--sp-8);
+  margin: 0 auto;
+  padding: 60px 0 80px;
 }
-.panel {
-  padding: var(--sp-6);
+.g-card {
+  padding: 28px 30px;
 }
 .eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
+  font-size: 12px;
+  letter-spacing: 1.4px;
+  font-weight: 800;
+  color: var(--brand-deep);
   text-transform: uppercase;
-  color: var(--brand);
+  margin: 0;
 }
 h1 {
-  font-size: var(--fs-h1);
-  margin: var(--sp-2) 0 var(--sp-2);
+  font-size: 26px;
+  margin: 6px 0 4px;
+  letter-spacing: -0.6px;
 }
-.muted {
-  margin-bottom: var(--sp-5);
+.sub {
+  font-size: 13px;
+  color: var(--text2);
+  margin: 0 0 20px;
+}
+.authfoot {
+  margin-top: 14px;
 }
 </style>

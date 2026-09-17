@@ -2482,3 +2482,307 @@ html[data-theme='dark'] .v b {
   font-size: 12px;
   color: var(--text2);
 }
+
+/* ==================== 后台管理端 ==================== */
+.admbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.admbar .lg {
+  font-weight: 700;
+  font-size: 15px;
+}
+.admbar .lg i {
+  color: var(--brand);
+  font-style: normal;
+}
+.admbar .sp {
+  margin-left: auto;
+  font-size: 12.5px;
+  color: var(--text2);
+}
+.adm {
+  display: grid;
+  grid-template-columns: 186px minmax(0, 1fr);
+  min-height: 580px;
+  border-radius: var(--r);
+  border: 1px solid var(--gbd);
+  overflow: hidden;
+  background: var(--glass2);
+  margin-top: 18px;
+}
+.admnav {
+  padding: 18px 14px;
+  border-right: 1px solid var(--line);
+  background: var(--glass);
+}
+.admnav .tt {
+  font-size: 10.5px;
+  letter-spacing: 1.5px;
+  color: var(--text3);
+  font-weight: 700;
+  padding: 0 8px 12px;
+}
+.admnav a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  color: var(--text2);
+  cursor: pointer;
+  margin-bottom: 3px;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.admnav a:hover {
+  background: var(--glass2);
+  color: var(--brand-deep);
+}
+.admnav a.on {
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+.admnav .sep {
+  height: 1px;
+  background: var(--line);
+  margin: 12px 4px;
+}
+.admmain {
+  padding: 22px 24px 26px;
+  min-width: 0;
+}
+.admhd {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.admhd h3 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: -0.35px;
+}
+.admhd p {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--text2);
+}
+.kpi4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.k4 {
+  padding: 16px 18px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.k4 b {
+  display: block;
+  font-size: 27px;
+  letter-spacing: -0.9px;
+  color: var(--brand-deep);
+  line-height: 1.1;
+}
+.k4 span {
+  font-size: 11.5px;
+  color: var(--text2);
+  display: block;
+  margin-top: 3px;
+}
+.k4 .dl {
+  font-size: 11px;
+  margin-top: 6px;
+}
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  height: 140px;
+}
+.bars .bc {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  justify-content: flex-end;
+  min-width: 0;
+}
+.bars .bv {
+  width: 100%;
+  border-radius: 9px 9px 0 0;
+  background: linear-gradient(180deg, var(--brand), rgba(14, 165, 233, 0.22));
+}
+.bars .bl {
+  font-size: 10.5px;
+  color: var(--text3);
+}
+.trend {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 100px;
+}
+.trend i {
+  flex: 1;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #7dd3fc, rgba(125, 211, 252, 0.2));
+}
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tbl th,
+.tbl td {
+  padding: 11px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+.tbl th {
+  font-size: 11px;
+  color: var(--text3);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.tbl tr:last-child td {
+  border-bottom: 0;
+}
+.tbl td.act {
+  text-align: right;
+  white-space: nowrap;
+}
+.tbl .ell {
+  max-width: 270px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mini {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  cursor: pointer;
+  color: var(--text2);
+  transition: all 0.2s;
+  margin-left: 6px;
+}
+.mini:hover {
+  border-color: var(--brand);
+  color: var(--brand-deep);
+}
+.tagx {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.tagx.ok {
+  background: rgba(13, 148, 136, 0.14);
+  color: var(--ok);
+}
+.tagx.off {
+  background: rgba(220, 38, 38, 0.13);
+  color: #dc2626;
+}
+.tagx.tp {
+  background: rgba(14, 165, 233, 0.13);
+  color: var(--brand-deep);
+}
+.tagx.wn {
+  background: rgba(224, 135, 0, 0.15);
+  color: var(--gold);
+}
+.tgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.tcard {
+  padding: 16px 18px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  border-left: 3px solid var(--tc, var(--brand));
+}
+.tcard .tch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+.tcard .tch b {
+  font-size: 15px;
+  color: var(--tc, var(--brand));
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tcard .tch span {
+  font-size: 10.5px;
+  color: var(--text3);
+  letter-spacing: 1px;
+  flex: 0 0 auto;
+}
+.tcard .ds {
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.65;
+  margin-bottom: 12px;
+}
+.tcard .ft {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.sbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  border-radius: 999px;
+  padding: 7px 15px;
+}
+.sbox svg {
+  width: 14px;
+  height: 14px;
+  fill: var(--text3);
+  flex: 0 0 auto;
+}
+.sbox input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  width: 176px;
+}
+
+/* 缩略图统一色晕投影 */
+.list {
+  --acs: rgba(14, 165, 233, 0.16);
+}
+.th {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24), 0 3px 10px var(--acs, rgba(14, 165, 233, 0.18));
+}

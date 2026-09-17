@@ -1,54 +1,84 @@
 <template>
-  <div class="container">
-    <section class="head">
-      <div>
-        <p class="eyebrow">我的收藏</p>
-        <h1>你 mark 下来的好东西</h1>
-        <p class="muted">收藏专辑或人格类型，随时回看。</p>
-      </div>
-      <el-radio-group v-model="type" @change="reload">
-        <el-radio-button label="all">全部</el-radio-button>
-        <el-radio-button label="album">专辑</el-radio-button>
-        <el-radio-button label="personality_type">人格类型</el-radio-button>
-      </el-radio-group>
-    </section>
+  <div class="fav">
+    <div class="hd" style="margin-top: 22px">
+      <b class="big">我的收藏</b>
+      <span>共 {{ list.length }} 条 · 专辑与人格类型</span>
+    </div>
+
+    <div class="filter">
+      <span class="lb">类型</span>
+      <span
+        v-for="f in FILTERS"
+        :key="f.value"
+        class="pill"
+        :class="{ on: type === f.value }"
+        @click="setType(f.value)"
+      >
+        {{ f.label }}
+      </span>
+    </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
-    <div v-else-if="!list.length" class="state card empty">
-      <p class="big">还没有收藏</p>
-      <p class="muted">在专辑榜或对决结果里，点收藏就能出现在这里。</p>
+    <div v-else-if="!list.length" class="state g-card">
+      <h2>还没有收藏</h2>
+      <p class="muted">在排行榜或对决结果里点收藏，就会出现在这里。</p>
+      <div class="btns">
+        <RouterLink to="/rank" class="btn pri">去看榜单</RouterLink>
+        <RouterLink to="/personality/types" class="btn ghost">看人格图鉴</RouterLink>
+      </div>
     </div>
 
-    <div v-else class="grid">
-      <article v-for="f in list" :key="f.favoriteId" class="card item">
-        <img v-if="f.targetType === 'album'" class="cover" :src="f.target?.artworkUrl" :alt="f.target?.name" />
-        <div v-else class="type-cover">{{ (f.target?.name || '?').slice(0, 1) }}</div>
-        <div class="meta">
-          <span class="kind">{{ f.targetType === 'album' ? '专辑' : '人格类型' }}</span>
-          <p class="name">{{ f.target?.name || '已失效' }}</p>
-          <p v-if="f.targetType === 'album'" class="muted small num">
-            {{ year(f.target?.releaseDate) }} · {{ f.target?.trackCount }} 首
-          </p>
-          <p v-else class="muted small">代码 {{ f.target?.code }}</p>
+    <div v-else class="list">
+      <div v-for="f in list" :key="f.favoriteId || f.targetId" class="r">
+        <div
+          v-if="f.targetType === 'album'"
+          class="th"
+        >
+          <img :src="f.target?.artworkUrl" :alt="f.target?.name" loading="lazy" />
         </div>
-        <el-button text type="danger" @click="remove(f)">取消收藏</el-button>
-      </article>
+        <div v-else class="th typecover" :style="{ background: typeColor(f.target?.code) }">
+          {{ (f.target?.name || '?').slice(0, 1) }}
+        </div>
+
+        <div class="m">
+          <b>{{ f.target?.name || '已失效' }}</b>
+          <span v-if="f.targetType === 'album'">
+            {{ f.target?.artistName || '—' }} · {{ year(f.target?.releaseDate) }}
+            <template v-if="f.target?.trackCount"> · {{ f.target.trackCount }} 首</template>
+          </span>
+          <span v-else>人格类型 · {{ f.target?.code }}</span>
+        </div>
+
+        <div class="v">
+          <button class="btn ghost sm" type="button" @click="remove(f)">取消收藏</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import { favoriteApi } from '@/api';
+import { typeColor } from '@/utils/personality.js';
+
+const FILTERS = [
+  { value: 'all', label: '全部' },
+  { value: 'album', label: '专辑' },
+  { value: 'personality_type', label: '人格类型' },
+];
 
 const loading = ref(true);
 const type = ref('all');
 const list = ref([]);
 
-function year(d) {
-  return d ? String(d).slice(0, 4) : '';
+const year = (d) => (d ? String(d).slice(0, 4) : '');
+
+async function setType(v) {
+  type.value = v;
+  await reload();
 }
 
 async function reload() {
@@ -67,14 +97,9 @@ async function reload() {
 
 async function remove(f) {
   try {
-    await ElMessageBox.confirm('取消这条收藏？', '取消收藏', { type: 'warning', confirmButtonText: '取消收藏', cancelButtonText: '保留' });
-  } catch {
-    return;
-  }
-  try {
     await favoriteApi.remove(f.targetId);
+    list.value = list.value.filter((x) => x.targetId !== f.targetId);
     ElMessage.success('已取消收藏');
-    await reload();
   } catch (err) {
     ElMessage.error(err?.message || '操作失败');
   }
@@ -84,87 +109,31 @@ onMounted(reload);
 </script>
 
 <style scoped>
-.head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: var(--sp-7) 0 var(--sp-5);
+.fav {
+  padding-bottom: var(--sp-7);
 }
-.head h1 {
-  font-size: var(--fs-h1);
-  margin-top: var(--sp-2);
-}
-.head .muted {
-  margin-top: var(--sp-2);
-}
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
+.big {
+  font-size: 20px;
+  letter-spacing: -0.3px;
 }
 .state {
+  margin: var(--sp-7) auto;
   padding: var(--sp-6);
+  max-width: 520px;
   text-align: center;
 }
-.empty {
-  max-width: 460px;
-  margin: var(--sp-5) auto var(--sp-8);
+.btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
-.empty .big {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-2);
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--sp-4);
-  padding-bottom: var(--sp-8);
-}
-.item {
+.typecover {
   display: flex;
   align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-4);
-}
-.cover {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  flex-shrink: 0;
-}
-.type-cover {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--accent), #fb923c);
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
   color: #fff;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-display);
-  font-size: 24px;
-  flex-shrink: 0;
-}
-.meta {
-  flex: 1;
-  min-width: 0;
-}
-.kind {
-  font-size: var(--fs-xs);
-  color: var(--brand);
-  letter-spacing: 0.08em;
-}
-.name {
-  font-size: var(--fs-body);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin: 2px 0;
-}
-.small {
-  font-size: var(--fs-sm);
 }
 </style>

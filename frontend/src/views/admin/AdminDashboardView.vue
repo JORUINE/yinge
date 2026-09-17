@@ -1,177 +1,86 @@
 <template>
-  <div class="container admin">
-    <section class="head">
+  <AdminShell>
+    <div class="admhd">
       <div>
-        <p class="eyebrow">后台总览</p>
-        <h1>音格管理台</h1>
+        <h3>数据看板</h3>
+        <p>全站关键指标的实时快照</p>
       </div>
-    </section>
-
-    <nav class="subnav">
-      <RouterLink to="/admin/questions">题目管理</RouterLink>
-      <RouterLink to="/admin/types">人格类型</RouterLink>
-      <RouterLink to="/admin/music">音乐数据</RouterLink>
-      <RouterLink to="/admin/users">用户管理</RouterLink>
-    </nav>
+      <button class="mini" type="button" @click="reload">刷新</button>
+    </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
     <template v-else>
-      <section class="stats">
-        <div v-for="s in statsItems" :key="s.label" class="card stat">
-          <strong class="num">{{ s.value }}</strong>
-          <span class="muted">{{ s.label }}</span>
-        </div>
-      </section>
+      <div class="kpi4">
+        <div class="k4"><b class="num">{{ d.users?.total ?? '—' }}</b><span>注册用户</span><div class="dl">禁用 {{ d.users?.banned ?? 0 }}</div></div>
+        <div class="k4"><b class="num">{{ d.battles?.total ?? '—' }}</b><span>对决总数</span></div>
+        <div class="k4"><b class="num">{{ d.music?.albums ?? '—' }}</b><span>专辑缓存</span><div class="dl">歌手 {{ d.music?.artists ?? 0 }}</div></div>
+        <div class="k4"><b class="num">{{ d.votes?.valid ?? '—' }}</b><span>有效票数</span></div>
+      </div>
 
-      <section class="card dist">
-        <h2>测评结果分布</h2>
+      <div class="panel">
+        <h4>测评结果分布</h4>
+        <p class="ps">共 {{ d.results?.total ?? 0 }} 份结果 · 柱高按各类人数</p>
         <div v-if="typeStats.length" class="bars">
-          <div v-for="t in typeStats" :key="t.typeCode" class="bar-row">
-            <span class="code">{{ t.typeCode }}</span>
-            <div class="bar"><span class="fill" :style="{ width: barWidth(t.count) }" /></div>
-            <span class="num val">{{ t.count }}</span>
+          <div v-for="t in typeStats" :key="t.typeCode" class="bc">
+            <div class="bv" :style="{ height: barH(t.count) }"></div>
+            <span class="bl">{{ t.typeCode }}</span>
           </div>
         </div>
         <p v-else class="muted">还没有测评数据。</p>
-      </section>
+      </div>
+
+      <div class="panel">
+        <h4>内容概览</h4>
+        <p class="ps">缓存规模与投票情况</p>
+        <table class="tbl">
+          <tbody>
+            <tr><td>专辑缓存</td><td class="num">{{ d.music?.albums ?? '—' }}</td></tr>
+            <tr><td>歌手缓存</td><td class="num">{{ d.music?.artists ?? '—' }}</td></tr>
+            <tr><td>测评结果</td><td class="num">{{ d.results?.total ?? '—' }}</td></tr>
+            <tr><td>有效票数</td><td class="num">{{ d.votes?.valid ?? '—' }}</td></tr>
+          </tbody>
+        </table>
+      </div>
     </template>
-  </div>
+  </AdminShell>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { adminApi } from '@/api';
+import AdminShell from '@/layouts/AdminShell.vue';
 
 const loading = ref(true);
-const data = ref(null);
+const d = ref({});
 
-const statsItems = computed(() => {
-  const d = data.value || {};
-  return [
-    { label: '注册用户', value: d.users?.total ?? '—' },
-    { label: '被禁用', value: d.users?.banned ?? '—' },
-    { label: '对决总数', value: d.battles?.total ?? '—' },
-    { label: '专辑缓存', value: d.music?.albums ?? '—' },
-    { label: '歌手缓存', value: d.music?.artists ?? '—' },
-    { label: '测评结果', value: d.results?.total ?? '—' },
-    { label: '有效票数', value: d.votes?.valid ?? '—' },
-  ];
-});
-
-const typeStats = computed(() => data.value?.typeStats || []);
-function barWidth(count) {
+const typeStats = computed(() => d.value.typeStats || []);
+function barH(count) {
   const max = Math.max(1, ...typeStats.value.map((t) => t.count));
-  return `${Math.round((count / max) * 100)}%`;
+  return `${Math.max(4, Math.round((count / max) * 100))}%`;
 }
 
-onMounted(async () => {
+async function reload() {
+  loading.value = true;
   try {
-    data.value = await adminApi.dashboard();
+    d.value = (await adminApi.dashboard()) || {};
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(reload);
 </script>
 
 <style scoped>
-.admin {
-  padding-top: var(--sp-6);
-  padding-bottom: var(--sp-8);
-}
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
-}
-.head h1 {
-  font-size: var(--fs-h1);
-  margin-top: var(--sp-2);
-}
-.subnav {
-  display: flex;
-  gap: var(--sp-2);
-  flex-wrap: wrap;
-  margin: var(--sp-4) 0 var(--sp-5);
-}
-.subnav a {
-  padding: var(--sp-2) var(--sp-4);
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-}
-.subnav a:hover {
-  background: var(--brand-soft);
-  color: var(--brand-deep);
-}
-.stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: var(--sp-4);
-  margin-bottom: var(--sp-5);
-}
-.stat {
-  padding: var(--sp-5);
+.state {
+  padding: 24px;
   text-align: center;
 }
-.stat strong {
-  display: block;
-  font-size: var(--fs-display);
-  color: var(--brand-deep);
-  line-height: 1.1;
-}
-.stat span {
-  font-size: var(--fs-sm);
-}
-.dist {
-  padding: var(--sp-5) var(--sp-6);
-}
-.dist h2 {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-4);
-}
 .bars {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-3);
-}
-.bar-row {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-}
-.code {
-  width: 56px;
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-  flex-shrink: 0;
-}
-.bar {
-  flex: 1;
-  height: 10px;
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.fill {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--brand), var(--accent));
-}
-.val {
-  width: 40px;
-  text-align: right;
-  font-size: var(--fs-sm);
-  color: var(--brand-deep);
-}
-.state {
-  padding: var(--sp-6);
+  height: 150px;
 }
 </style>
