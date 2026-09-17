@@ -5,6 +5,7 @@
 import { Favorite, ShareCard, Album, PersonalityType } from '../../models/index.js';
 import { NotFoundError, BadRequestError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/http.js';
+import { serializeAlbum } from '../music/music.service.js';
 
 export async function addFavorite(userId, { targetType, targetId }) {
   // 目标存在性校验
@@ -50,7 +51,8 @@ export async function listFavorites(userId, query) {
         targetType: f.targetType,
         targetId: String(f.targetId),
         createdAt: f.createdAt,
-        target: target || null,
+        // 专辑统一走 serializeAlbum（与全站同形状，并带上本地 id）
+        target: target ? (f.targetType === 'album' ? serializeAlbum(target) : target) : null,
       };
     }),
     page,

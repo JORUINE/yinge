@@ -46,6 +46,7 @@
                 生成夺冠之路
               </RouterLink>
               <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
+              <FavoriteButton :album="champion" />
             </div>
           </div>
         </div>
@@ -59,6 +60,7 @@
               <b>{{ podium.runnerUp.name }}</b>
               <span>{{ podium.runnerUp.artistName }} · {{ year(podium.runnerUp.releaseDate) }}</span>
             </div>
+            <FavoriteButton :album="podium.runnerUp" icon-only small />
           </div>
           <div v-if="podium.third" class="pd">
             <div class="art"><img :src="podium.third.artworkUrl" :alt="podium.third.name" /></div>
@@ -67,6 +69,7 @@
               <b>{{ podium.third.name }}</b>
               <span>{{ podium.third.artistName }} · {{ year(podium.third.releaseDate) }}</span>
             </div>
+            <FavoriteButton :album="podium.third" icon-only small />
           </div>
           <p v-if="podium.note" class="note">{{ podium.note }}</p>
         </div>
@@ -200,6 +203,7 @@ import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
+import FavoriteButton from '@/components/FavoriteButton.vue';
 
 const route = useRoute();
 const id = route.params.id;
@@ -465,6 +469,7 @@ onMounted(load);
 }
 .podium .pd .tx {
   min-width: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;

@@ -25,6 +25,12 @@ export function freshness(cachedAt) {
 /** 专辑序列化：对齐接口文档 10.1（artistId 为外部数字标识） */
 export function serializeAlbum(album) {
   return {
+    /**
+     * 本地 ObjectId 字符串。
+     * 收藏接口（POST /favorites）要的是这个本地 id，而前端只能拿到外部 albumId，
+     * 所以必须一并吐出去，否则「收藏」根本没法接（2026-09-18 补）。
+     */
+    id: String(album._id),
     albumId: album.albumId,
     name: album.name,
     artistId: album.artistExternalId,

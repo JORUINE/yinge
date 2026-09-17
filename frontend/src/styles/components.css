@@ -2797,3 +2797,50 @@ html[data-theme='dark'] .v b {
 .th {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24), 0 3px 10px var(--acs, rgba(14, 165, 233, 0.18));
 }
+
+/* ============ 浏览器兼容降级（Edge 最小化闪烁 / lite 模式）============
+ * 由 main.js 在挂载前给 <html> 挂类名：
+ *   ua-edge → Edge 自动降级   |   ua-lite → 网址 ?lite=1 的最强兜底
+ * 只改观感，不动功能。
+ */
+
+/* 极光背景是「铺满视口的固定层 + 大范围 blur」，给它独立合成层，避免合成器反复重建 */
+.aurora {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Edge：关掉毛玻璃、降低大 blur、玻璃调不透一点（观感接近，规避合成器闪烁） */
+html.ua-edge {
+  --glass: rgba(255, 255, 255, 0.9);
+  --glass2: rgba(255, 255, 255, 0.72);
+}
+html.ua-edge[data-theme='dark'] {
+  --glass: rgba(20, 40, 60, 0.85);
+  --glass2: rgba(20, 40, 60, 0.7);
+}
+html.ua-edge * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.ua-edge .aurora .blob {
+  filter: blur(52px);
+}
+html.ua-edge .aurora .ray {
+  filter: blur(14px);
+}
+html.ua-edge .vglow .g1,
+html.ua-edge .vglow .g2,
+html.ua-edge .vglow .g3 {
+  will-change: auto;
+}
+
+/* lite：连极光与大 blur 一并关掉（最后的兜底开关） */
+html.ua-lite .aurora {
+  display: none;
+}
+html.ua-lite * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+}

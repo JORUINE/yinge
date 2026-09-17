@@ -71,9 +71,11 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { useFavoritesStore } from '@/stores/favorites';
 import { registerAuthHandlers } from '@/api/client';
 
 const auth = useAuthStore();
+const fav = useFavoritesStore();
 const router = useRouter();
 const route = useRoute();
 
@@ -125,6 +127,7 @@ onMounted(() => {
   registerAuthHandlers({
     onUnauthorized: () => {
       auth.clear();
+      fav.reset();
       router.push({ name: 'login', query: { redirect: router.currentRoute.value.fullPath } });
     },
     onBanned: (detail) => {
@@ -139,6 +142,7 @@ onMounted(() => {
 
 async function onLogout() {
   await auth.logout();
+  fav.reset();
   router.push({ name: 'home' });
 }
 </script>

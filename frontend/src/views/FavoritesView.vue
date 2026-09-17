@@ -63,6 +63,7 @@ import { onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { favoriteApi } from '@/api';
 import { typeColor } from '@/utils/personality.js';
+import { useFavoritesStore } from '@/stores/favorites';
 
 const FILTERS = [
   { value: 'all', label: '全部' },
@@ -99,6 +100,8 @@ async function remove(f) {
   try {
     await favoriteApi.remove(f.targetId);
     list.value = list.value.filter((x) => x.targetId !== f.targetId);
+    // 同步给全局收藏状态：排行榜 / 结果页的收藏按钮要立刻回到「未收藏」
+    useFavoritesStore().forget(f.targetId);
     ElMessage.success('已取消收藏');
   } catch (err) {
     ElMessage.error(err?.message || '操作失败');

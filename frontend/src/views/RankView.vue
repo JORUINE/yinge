@@ -30,8 +30,9 @@
         <div class="gbeam"></div>
         <div class="recs">
           <div v-for="a in podium" :key="a.albumId" class="alb" :style="accentStyle(a)">
-            <div style="margin-bottom: 11px">
+            <div class="rec-top">
               <span class="nobadge" :class="{ gold: a.rank === 1 }">NO.{{ a.rank }}</span>
+              <FavoriteButton :album="a" icon-only small />
             </div>
             <div class="art albc"><img :src="a.artworkUrl" :alt="a.name" loading="lazy" /></div>
             <b>{{ a.name }}</b>
@@ -51,6 +52,7 @@
             <b>{{ a.name }}</b>
             <span>{{ a.artistName || '—' }} · {{ year(a.releaseDate) }}</span>
           </div>
+          <FavoriteButton :album="a" small />
           <div class="v"><b class="num">{{ a.votes }}</b> 票</div>
         </div>
       </div>
@@ -75,6 +77,7 @@ import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { rankApi } from '@/api';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
+import FavoriteButton from '@/components/FavoriteButton.vue';
 
 const loading = ref(true);
 const limit = ref(20);
@@ -138,6 +141,13 @@ onMounted(reload);
   padding: var(--sp-6);
   max-width: 520px;
   text-align: center;
+}
+.rec-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 11px;
 }
 .nobadge {
   display: inline-block;
