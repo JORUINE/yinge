@@ -27,6 +27,10 @@ export const battleApi = {
   create: (data) => http.post('/battles', data),
   detail: (id) => http.get(`/battles/${id}`),
   nextMatch: (id) => http.get(`/battles/${id}/next-match`),
+  // 新赛制（tournamentVersion=2）：统一下一步；小组/复活为一次多选 K 张晋级
+  nextStep: (id) => http.get(`/battles/${id}/next-step`),
+  groupVote: (id, groupId, pickedAlbumIds) =>
+    http.post(`/battles/${id}/groups/${groupId}/vote`, { pickedAlbumIds }),
   vote: (id, matchId, albumId) => http.post(`/battles/${id}/matches/${matchId}/vote`, { albumId }),
   revival: (id) => http.post(`/battles/${id}/revival`),
   result: (id) => http.get(`/battles/${id}/result`),
