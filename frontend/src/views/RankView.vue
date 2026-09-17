@@ -74,6 +74,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { rankApi } from '@/api';
+import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const loading = ref(true);
 const limit = ref(20);
@@ -84,16 +85,23 @@ const podium = computed(() => list.value.slice(0, 3));
 const rest = computed(() => list.value.slice(3));
 const year = (d) => (d ? String(d).slice(0, 4) : '');
 
+/**
+ * ⚠️ 专辑主色一律走 coverColor（读封面真色）
+ * 这里以前自己写了一套 albumId 哈希色 `hsl(h 70% 52%)` —— 那是满饱和随机色，
+ * 与封面毫无关系（红封面可能配出品红），正是守则第 0 节规则 ⑤ 明确禁止的做法。
+ */
 function accentStyle(album) {
-  const key = String(album?.albumId ?? '');
-  let h = 0;
-  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
-  return { '--ac': `hsl(${h} 70% 52%)`, '--acs': `hsla(${h}, 70%, 45%, 0.34)` };
+  return accentStyleOf(album);
 }
 const podiumStyle = computed(() => {
-  const c = (i) => accentStyle(podium.value[i])['--ac'] || 'var(--brand)';
+  const c = (i) => accentStyleOf(podium.value[i])['--ac'] || 'var(--brand)';
   return { '--g1': c(0), '--g2': c(1), '--g3': c(2) };
 });
+
+/** 取封面真主色（异步写入 accentStore，模板会随之刷新颜色） */
+function primeAccents() {
+  for (const a of list.value.slice(0, 8)) ensureAlbumAccent(a).catch(() => {});
+}
 
 async function setLimit(n) {
   limit.value = n;
@@ -106,6 +114,7 @@ async function reload() {
     const data = await rankApi.albums({ limit: limit.value });
     list.value = (data.list || []).map((r, i) => ({ ...r, rank: r.rank ?? i + 1 }));
     total.value = data.total ?? list.value.length;
+    primeAccents();
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {

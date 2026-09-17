@@ -245,10 +245,26 @@ function albumTotalVotes(albumId) {
   return n;
 }
 
+/**
+ * 胜方的「外部 albumId」
+ * ------------------------------------------------------------
+ * 优先用后端字段 winnerAlbumExternalId；
+ * 若后端还是旧版本（没这个字段），按票数兜底推断 —— 否则已投票的场次会被误显示成「待投」，
+ * 季军 / 亚军也推不出来。票数相同且无字段时返回 null（确实分不出，才显示「待投」）。
+ */
+function winnerExternalIdOf(m) {
+  if (m?.winnerAlbumExternalId != null) return String(m.winnerAlbumExternalId);
+  const l = Number(m?.leftVotes || 0);
+  const r = Number(m?.rightVotes || 0);
+  if (l === r) return null;
+  const side = l > r ? m.leftAlbum : m.rightAlbum;
+  return side ? String(side.albumId) : null;
+}
+
 /** 一场里输的那一边（以及它在这一场拿到的票数） */
 function loserOf(m) {
-  if (m.winnerAlbumExternalId == null) return null;
-  const w = String(m.winnerAlbumExternalId);
+  const w = winnerExternalIdOf(m);
+  if (w == null) return null;
   const leftIsWinner = m.leftAlbum && String(m.leftAlbum.albumId) === w;
   const album = leftIsWinner ? m.rightAlbum : m.leftAlbum;
   if (!album) return null;
@@ -285,7 +301,7 @@ const podium = computed(() => {
   if (!rounds.length || !champion.value) return { runnerUp: null, third: null, note: '' };
 
   const finalRound = rounds[rounds.length - 1];
-  const finalMatch = finalRound.matches.find((m) => m.winnerAlbumExternalId != null);
+  const finalMatch = finalRound.matches.find((m) => winnerExternalIdOf(m) != null);
   const runnerUp = finalMatch ? loserOf(finalMatch)?.album || null : null;
 
   let third = null;
@@ -354,13 +370,15 @@ function involvesChampion(m) {
 
 /** ⚠️ 一律用外部 albumId 比对（winnerAlbumId 是本地 ObjectId，跟专辑对不上） */
 function sideClassOf(m, album) {
-  if (!album || m.winnerAlbumExternalId == null) return {};
-  return String(m.winnerAlbumExternalId) === String(album.albumId) ? { win: true } : { lose: true };
+  const w = winnerExternalIdOf(m);
+  if (!album || w == null) return {};
+  return String(album.albumId) === w ? { win: true } : { lose: true };
 }
 function bdgOf(m, album) {
   if (!album) return '';
-  if (m.winnerAlbumExternalId == null) return '待投';
-  return String(m.winnerAlbumExternalId) === String(album.albumId) ? '胜' : '淘汰';
+  const w = winnerExternalIdOf(m);
+  if (w == null) return '待投';
+  return String(album.albumId) === w ? '胜' : '淘汰';
 }
 
 function sumVotes(idx) {

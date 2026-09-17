@@ -866,6 +866,16 @@ html[data-theme='dark'] .v b {
   box-shadow: 0 24px 48px rgba(0, 0, 0, 0.34), 0 10px 32px var(--acs);
   transition: box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+/* 设计语言一致性（守则 27）：凡是摆专辑卡片的容器，hover 一律上浮 + 色晕加深 */
+.alb {
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.alb:hover {
+  transform: translateY(-6px);
+}
+.alb:hover .art {
+  box-shadow: 0 30px 58px rgba(0, 0, 0, 0.42), 0 14px 40px var(--acs);
+}
 .alb b {
   display: block;
   font-size: 23px;

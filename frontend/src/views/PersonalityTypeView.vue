@@ -59,6 +59,7 @@ import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
 import { typeColor, normalizeScores } from '@/utils/personality.js';
+import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
 const code = route.params.code;
@@ -79,11 +80,12 @@ const pc2 = computed(() => {
 const dims = computed(() => normalizeScores(type.value?.dims));
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
+/** 专辑主色走 coverColor（读封面真色），不再用 albumId 满饱和哈希色（守则规则 ⑤） */
 function accentStyle(album) {
-  const key = String(album?.albumId ?? '');
-  let h = 0;
-  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
-  return { '--ac': `hsl(${h} 70% 52%)`, '--acs': `hsla(${h}, 70%, 45%, 0.34)` };
+  return accentStyleOf(album);
+}
+function primeAccents() {
+  for (const a of albums.value.slice(0, 6)) ensureAlbumAccent(a).catch(() => {});
 }
 
 onMounted(async () => {
@@ -91,6 +93,7 @@ onMounted(async () => {
     const data = await personalityApi.typeDetail(code);
     type.value = data;
     albums.value = data.recommendAlbums || [];
+    primeAccents();
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {

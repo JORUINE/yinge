@@ -195,12 +195,22 @@ const champion = computed(() => {
   return null;
 });
 
+/** 胜方外部 albumId（优先后端字段；旧后端按票数兜底，避免高亮全失效） */
+function winnerExternalIdOf(m) {
+  if (m?.winnerAlbumExternalId != null) return String(m.winnerAlbumExternalId);
+  const l = Number(m?.leftVotes || 0);
+  const r = Number(m?.rightVotes || 0);
+  if (l === r) return null;
+  const side = l > r ? m.leftAlbum : m.rightAlbum;
+  return side ? String(side.albumId) : null;
+}
+
 function sideClass(m, album) {
   // ⚠️ 必须用「外部 albumId」比对：winnerAlbumId 是本地 ObjectId，跟专辑的外部 id 永远对不上
   //    （曾导致淘汰赛对阵条的胜方高亮全部失效）
-  if (!m.winnerAlbumExternalId || !album) return {};
-  const win = String(m.winnerAlbumExternalId) === String(album.albumId);
-  return win ? { win: true } : { lose: true };
+  const w = winnerExternalIdOf(m);
+  if (w == null || !album) return {};
+  return String(album.albumId) === w ? { win: true } : { lose: true };
 }
 function tieMid(m) {
   if (m.isBye) return '轮空';
