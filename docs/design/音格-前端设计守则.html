@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · 前端设计工作守则</title>
+<style>
+  :root{
+    --bg:#EDF6FC; --text:#0B2A42; --text2:#46647E; --text3:#6D8AA3;
+    --brand:#0EA5E9; --brand-deep:#0369A1; --brand-ink:#04263C; --gold:#E08700; --ok:#0F766E;
+    --danger:#DC2626; --line:rgba(11,42,66,.11); --r:18px; --r-s:13px;
+    --glass:rgba(255,255,255,.82); --gbd:rgba(255,255,255,.95); --gsh:rgba(255,255,255,.95),rgba(8,58,92,.14);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);line-height:1.65;font-size:14px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro SC","Segoe UI","Microsoft YaHei",sans-serif}
+  .hero{position:relative;overflow:hidden;padding:44px 30px 28px;
+    background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C}
+  .hero .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5}
+  .hero .b1{width:420px;height:420px;background:#fff;left:-120px;top:-160px}
+  .hero .b2{width:340px;height:340px;background:#38BDF8;right:-120px;bottom:-160px}
+  .hero-inner{position:relative;max-width:1040px;margin:0 auto}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.4px;font-weight:800;
+    background:rgba(255,255,255,.35);padding:5px 14px;border-radius:999px;margin-bottom:14px}
+  .hero h1{margin:0 0 10px;font-size:32px;letter-spacing:-1px;line-height:1.15}
+  .hero p{margin:0;max-width:820px;font-size:15px;opacity:.93}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 30px 70px}
+  .card{background:var(--glass);border:1px solid var(--gbd);border-radius:var(--r);
+    box-shadow:0 18px 46px var(--gsh);padding:22px 26px;margin-bottom:20px}
+  h2{font-size:20px;margin:0 0 8px;letter-spacing:-.4px;display:flex;align-items:center;gap:10px}
+  h2 .n{width:26px;height:26px;border-radius:8px;background:var(--brand);color:#04263C;
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
+  h3{font-size:15px;margin:16px 0 6px;color:var(--brand-deep)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.5px;color:var(--text2);font-weight:700;background:rgba(14,165,233,.06)}
+  tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .p0{background:rgba(220,38,38,.13);color:var(--danger)}
+  .p1{background:rgba(224,135,0,.15);color:var(--gold)}
+  .p2{background:rgba(14,165,233,.14);color:var(--brand-deep)}
+  .ok{background:rgba(15,118,110,.14);color:var(--ok)}
+  blockquote{margin:10px 0;padding:10px 16px;border-left:3px solid var(--brand);
+    background:rgba(14,165,233,.07);border-radius:0 var(--r-s) var(--r-s) 0;color:var(--text2);font-size:13px}
+  blockquote b{color:var(--text)}
+  .muted{color:var(--text2)}
+  ul{margin:6px 0 8px;padding-left:20px}
+  li{margin:5px 0}
+  .rule{background:var(--glass);border:1px solid var(--gbd);border-left:3px solid var(--brand);
+    border-radius:0 var(--r-s) var(--r-s) 0;padding:12px 16px;margin:10px 0}
+  .rule b{color:var(--brand-deep)}
+  .foot{text-align:center;font-size:12px;color:var(--text3);padding:18px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="hero-inner">
+    <span class="tag">工作守则 · 前端定稿前逐条落实</span>
+    <h1>音格 · 前端设计工作守则</h1>
+    <p>本守则汇总祖锐在历次沟通里提出的前端设计意见。<b>当前阶段：功能优先</b> —— 先把功能与数据全部落实，前端视觉与动效统一放到收尾阶段，届时按本守则<b>逐条对照落实</b>，不再事后返工。</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2><span class="n">0</span>总原则（先定调，再动手）</h2>
+    <div class="rule"><b>① 功能优先，前端与动画后置。</b>功能未落实完之前，不做纯视觉打磨与动效；但<b>功能性 bug（数据错、算错、点不动）立刻修</b>。</div>
+    <div class="rule"><b>② 唯一视觉基准是设计稿。</b><code>docs/design/音格-UI设计稿.html</code>。做页面时逐屏对照；<b>实现出来和 demo 不一样 = 没还原到位</b>，不是"可以接受"。</div>
+    <div class="rule"><b>③ 可读性是不可谈判项。</b>排版一乱、字一小说"后面再优化"，到收尾就是灾难 —— 所以收尾阶段要专门过一遍本守则第 1、2 节。</div>
+    <div class="rule"><b>④ 借鉴可、照搬论据不可。</b>竞品的交互/动效可以学，但<b>规则必须用音格自身产品逻辑说通</b>（原话："我们不是音乐世界杯，是专辑比拼，是音格"）。</div>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span>可读性（字与密度）</h2>
+    <p class="muted">来源：投票页截图反馈 —— "说明的字体也很小"。</p>
+    <table>
+      <thead><tr><th>项</th><th>要求</th><th>当前问题</th></tr></thead>
+      <tbody>
+        <tr><td>正文/说明字号</td><td>≥ <b>14px</b>；页面说明、提示、次级文字 ≥ <b>13px</b>；不得用 10–11px 承载需要阅读的信息</td><td><span class="pill p1">待修</span> 投票页/创建页的说明与专辑元信息偏小（实测观感约 11–12px）</td></tr>
+        <tr><td>专辑卡内文字</td><td>专辑名 ≥ 15px、歌手名 ≥ 13px；<b>不要把封面当唯一主角而把文字压到看不清</b></td><td><span class="pill p1">待修</span> 投票卡专辑名/年份偏小</td></tr>
+        <tr><td>对比度</td><td>正文对比 ≥ 4.5:1；浅色底上不用 #7c97a8 这类淡色承载正文</td><td><span class="pill p2">复核</span></td></tr>
+        <tr><td>信息层级</td><td>一屏内主信息 1 个、次信息 2–3 个，其余收进详情</td><td><span class="pill p2">复核</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>布局（必须对齐 demo）</h2>
+    <p class="muted">来源：参赛池截图反馈 —— "这里明显前端界面都出问题了…我们设计demo里是这样的吗"。</p>
+    <div class="rule"><b>不是 demo 的样子。</b>demo 里参赛池是 <b>7 等分正方形网格</b>（封面等高、圆角一致、间距一致、名称单行省略），现在渲染出来封面大小不一、排布散乱 —— 属<b>实现没还原到位</b>，收尾阶段必须修成 demo 那样。</div>
+    <ul>
+      <li>网格类布局一律用 <code>grid + repeat(n, 1fr)</code>，<b>禁止出现高低不齐的封面</b>；封面统一 <code>aspect-ratio:1</code> + <code>object-fit:cover</code>。</li>
+      <li>排布要<b>密实</b>，不要大片留白；宽屏下按容器宽度自适应列数（如 7 / 5 / 3 挡）。</li>
+      <li>长名称统一单行省略（<code>text-overflow:ellipsis</code>），不允许换行把网格撑歪。</li>
+      <li>同类卡片在同一页内<b>尺寸必须一致</b>（不做大小混排，除非 demo 明确要求）。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span>玩法呈现：盲盒原则（重要）</h2>
+    <p class="muted">来源：参赛池截图反馈 —— "灰掉的专辑是这轮对决没随机到的吗…参赛池预览没必要展示选出的每位歌手这轮出战的所有专辑，有个一两张就行，不然这个随机比拼的刺激性就没了，应该像盲盒一样。后续甚至可以加入动画，像抽卡一样进入对决。"</p>
+    <div class="rule"><b>① 不要剧透。</b>创建页的「参赛池预览」<b>不展示每位歌手本轮全部出战专辑</b>，每位 <b>露出 1–2 张</b>即可，其余留白/示意。<b>保留"不知道会抽到谁"的刺激感</b>。</div>
+    <div class="rule"><b>② 进度条也要配合。</b>创建页只给"共 N 张 / 共 M 步"这类<b>总数</b>，不逐张列出全部名单。</div>
+    <div class="rule"><b>③ 出场要有仪式感（后续）。</b>进入对决时做 <b>抽卡式动画</b>（洗牌 → 翻出本轮对阵），把"随机"这件事变成体验的一部分。</div>
+    <blockquote>实现备注：后端已按规模分好组，前端只需<b>控制展示粒度</b>（曝光上限 + 动画），无需改赛制。</blockquote>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span>交互与反馈：让人知道"我在哪"</h2>
+    <p class="muted">来源：对比 musiccup 后的总结 —— 痛点不是"场次多"，而是"没有阶段感 / 没有回馈 / 不知道我在哪"。</p>
+    <ul>
+      <li><b>阶段动效</b>：进入小组赛 / 复活赛 / 淘汰赛各给一次明确的阶段切换提示。</li>
+      <li><b>进度常驻</b>：<code>已投 X / Y 步</code> 一直可见（现在已有）。</li>
+      <li><b>返回重选</b>：选错了要能退回上一步（现在小组投票只支持"清空重选"，需补"返回上一组"）。</li>
+      <li><b>落败置灰</b>：淘汰赛落败的专辑置灰，让"战况"留在页面上。</li>
+      <li><b>迷你对阵树</b>：投票页给一个随时可见的小对阵图。</li>
+      <li><b>动画克制</b>：入场淡入、hover 位移 150–300ms；尊重 <code>prefers-reduced-motion</code>。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">5</span>待修清单（收尾阶段照此逐条过）</h2>
+    <div class="legend">
+      <span><span class="pill p0">P0 明显缺陷</span></span>
+      <span><span class="pill p1">P1 体验问题</span></span>
+      <span><span class="pill p2">P2 打磨</span></span>
+      <span><span class="pill ok">已完成</span></span>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>页面</th><th>问题</th><th>处理</th><th>级别</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>创建页 · 参赛池</td><td>封面大小不一、排布散乱，不是 demo 的 7 等分正方形网格</td><td>按 demo 修正网格（见第 2 节）</td><td><span class="pill p0">P0</span></td></tr>
+        <tr><td>2</td><td>创建页 · 参赛池</td><td>逐张列出全部出战专辑 → 剧透，破坏盲盒感</td><td>每位只露 1–2 张 + 只给总数（见第 3 节）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>3</td><td>投票页</td><td>说明与专辑元信息字号偏小</td><td>按第 1 节提升字号</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>4</td><td>投票页</td><td>4 选 2 / 多选卡片的排布可更密实、卡片可更大</td><td>列数自适应 + 卡片比例优化</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>5</td><td>投票页</td><td>缺「返回上一组」；缺阶段切换动效；缺落败置灰</td><td>按第 4 节补</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>6</td><td>首页</td><td>「首次进入三张新手引导卡」未做</td><td>按 demo p1 的 obcard 三屏实现</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>7</td><td>排行榜</td><td>「地区 / 年代 / 周期」三重筛选无接口</td><td>后端补接口后再上 UI（未编假 UI）</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>8</td><td>对决</td><td>抽卡式进入动画</td><td>收尾阶段做（见第 3 节③）</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>9</td><td>全站</td><td>深色模式未逐页验收；响应式 375/768/1024/1440 未逐页过</td><td>收尾统一验收</td><td><span class="pill p2">P2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">6</span>落地方式</h2>
+    <ul>
+      <li>守则<b>长期有效</b>：每次做前端都先读它；提新意见时<b>追加进本文件</b>，不散落在聊天里。</li>
+      <li>收尾阶段按第 5 节清单逐条打勾，并<b>把修改前后截图附在《自检清单》里</b>，不靠"我觉得改好了"。</li>
+      <li>与《自检清单》分工：自检清单管<b>对错</b>（数字/状态/口径），本守则管<b>好看好读好用</b>。</li>
+    </ul>
+  </div>
+
+  <div class="foot">音格 · 前端设计工作守则 v1 · 2026-09-17 · 来源：祖锐历次反馈（本文件为唯一入口，意见只往这里加）</div>
+</div>
+</body>
+</html>
