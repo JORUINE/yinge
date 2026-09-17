@@ -11,6 +11,10 @@
   <div class="shell">
     <header v-if="!isAdmin" class="topbar">
       <div class="container bar">
+        <button v-if="showBack" class="back" type="button" @click="goBack" title="返回">
+          <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+          <span>返回</span>
+        </button>
         <nav class="nav-inline">
           <RouterLink to="/" class="logo">音<i>格</i></RouterLink>
           <RouterLink to="/battle/create" active-class="on">专辑对决</RouterLink>
@@ -82,6 +86,29 @@ const bannedNote = ref(null);
 
 const avatarChar = computed(() => (auth.nickname || '音').slice(0, 1));
 
+/**
+ * 全站返回按钮（守则 21：各个层级界面都没有返回按钮）
+ * ------------------------------------------------------------
+ * 二级 / 三级页才显示。有上一页历史 → 真回退一步；
+ * 没有历史（比如直接粘贴链接进来）→ 退回逻辑父路由，避免"点了没反应"。
+ */
+const BACK_FALLBACK = {
+  'battle-play': { name: 'battle-mine' },
+  'battle-bracket': { name: 'battle-mine' },
+  'battle-result': { name: 'battle-mine' },
+  'battle-share': { name: 'battle-mine' },
+  'personality-test': { name: 'personality-intro' },
+  'personality-result': { name: 'personality-intro' },
+  'personality-type': { name: 'personality-types' },
+  'admin-login': { name: 'home' },
+};
+const showBack = computed(() => Boolean(BACK_FALLBACK[route.name]));
+
+function goBack() {
+  if (window.history.state?.back) router.back();
+  else router.push(BACK_FALLBACK[route.name] || { name: 'home' });
+}
+
 const REASON_TEXT = {
   vote_fraud: '刷票行为',
   spam_content: '昵称或账号名含违规内容',
@@ -140,6 +167,35 @@ async function onLogout() {
   display: flex;
   align-items: center;
   gap: var(--sp-5);
+}
+
+/* 全站返回按钮（守则 21）：只在二级 / 三级页出现 */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 5px 11px 5px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text2);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.back:hover {
+  color: var(--brand-deep);
+  border-color: var(--brand);
+}
+.back svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* 与设计稿 .nav 一致：左 logo + 链接，右头像 */

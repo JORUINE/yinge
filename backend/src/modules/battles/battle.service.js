@@ -732,6 +732,7 @@ export async function getBattleDetail(battleId, userId) {
 function serializeMatch(match, albumMap) {
   const left = albumMap.get(String(match.leftAlbumId));
   const right = match.rightAlbumId ? albumMap.get(String(match.rightAlbumId)) : null;
+  const winner = match.winnerAlbumId ? albumMap.get(String(match.winnerAlbumId)) : null;
   return {
     matchId: String(match._id),
     roundName: match.roundName,
@@ -742,7 +743,14 @@ function serializeMatch(match, albumMap) {
     rightAlbum: right ? musicService.serializeAlbum(right) : null,
     leftVotes: match.leftVotes,
     rightVotes: match.rightVotes,
+    /** ⚠️ 本地 ObjectId：仅供后端内部与旧逻辑使用，前端判定胜方一律用 winnerAlbumExternalId */
     winnerAlbumId: match.winnerAlbumId ? String(match.winnerAlbumId) : null,
+    /**
+     * 胜方的「外部专辑标识」（iTunes collectionId）。
+     * ⚠️ 前端拿到的专辑只有外部 albumId；若拿 winnerAlbumId（本地 ObjectId）去比，永远对不上
+     * —— 对阵表页「胜方高亮」曾因此全部失效（与 2026-09-17 修的 advancedAlbumIds 是同一个坑）。
+     */
+    winnerAlbumExternalId: winner ? Number(winner.albumId) : null,
     isBye: match.isBye,
     isRevival: match.isRevival,
   };

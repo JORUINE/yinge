@@ -1,6 +1,10 @@
 <template>
   <div class="adminwrap">
     <div class="admbar">
+      <button v-if="showBack" class="back" type="button" @click="goBack" title="返回看板">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></svg>
+        <span>返回看板</span>
+      </button>
       <span class="lg">音<i>格</i> · 管理后台</span>
       <span class="sp">
         {{ auth.nickname || '管理员' }}
@@ -30,11 +34,21 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router';
+import { computed } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+/** 后台二级页（看板以外的四页）也补返回 —— 守则 21 要求"含后台" */
+const showBack = computed(() => route.name !== 'admin-dashboard');
+
+function goBack() {
+  if (window.history.state?.back) router.back();
+  else router.push({ name: 'admin-dashboard' });
+}
 
 async function logout() {
   await auth.logout();
@@ -58,5 +72,31 @@ async function logout() {
 }
 .mini {
   margin-left: 8px;
+}
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 5px 11px 5px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text2);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.back:hover {
+  color: var(--brand-deep);
+  border-color: var(--brand);
+}
+.back svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 </style>

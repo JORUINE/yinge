@@ -196,8 +196,10 @@ const champion = computed(() => {
 });
 
 function sideClass(m, album) {
-  if (!m.winnerAlbumId || !album) return {};
-  const win = String(m.winnerAlbumId) === String(album.albumId);
+  // ⚠️ 必须用「外部 albumId」比对：winnerAlbumId 是本地 ObjectId，跟专辑的外部 id 永远对不上
+  //    （曾导致淘汰赛对阵条的胜方高亮全部失效）
+  if (!m.winnerAlbumExternalId || !album) return {};
+  const win = String(m.winnerAlbumExternalId) === String(album.albumId);
   return win ? { win: true } : { lose: true };
 }
 function tieMid(m) {

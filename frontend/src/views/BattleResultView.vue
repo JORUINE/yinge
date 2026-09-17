@@ -50,16 +50,56 @@
           </div>
         </div>
 
+        <!-- 亚军 / 季军（守则 19）：亚军=决赛负方；季军=四强落败者中累计得票更高者 -->
+        <div v-if="podium.runnerUp || podium.third" class="podium">
+          <div v-if="podium.runnerUp" class="pd">
+            <div class="art"><img :src="podium.runnerUp.artworkUrl" :alt="podium.runnerUp.name" /></div>
+            <div class="tx">
+              <span class="rk rk2">亚军</span>
+              <b>{{ podium.runnerUp.name }}</b>
+              <span>{{ podium.runnerUp.artistName }} · {{ year(podium.runnerUp.releaseDate) }}</span>
+            </div>
+          </div>
+          <div v-if="podium.third" class="pd">
+            <div class="art"><img :src="podium.third.artworkUrl" :alt="podium.third.name" /></div>
+            <div class="tx">
+              <span class="rk rk3">季军</span>
+              <b>{{ podium.third.name }}</b>
+              <span>{{ podium.third.artistName }} · {{ year(podium.third.releaseDate) }}</span>
+            </div>
+          </div>
+          <p v-if="podium.note" class="note">{{ podium.note }}</p>
+        </div>
+
         <div class="kpis">
           <div class="kpi"><b>{{ kpiRounds }}</b><span>夺冠轮次</span></div>
           <div class="kpi"><b>{{ kpiMine }}</b><span>累计得票</span></div>
           <div class="kpi"><b>{{ kpiTheirs }}</b><span>对手总票数</span></div>
         </div>
 
-        <!-- 小组赛 / 遗珠复活（v2 才有） -->
-        <template v-if="groupLine">
+        <!-- 小组赛 / 遗珠复活：每张专辑从哪里出线（守则 20/39 晋级叙事的第一段） -->
+        <template v-if="groupStages.length">
           <div class="hd" style="margin-top: 26px">
-            <b>小组赛</b><span>{{ groupLine }}</span>
+            <b>小组赛与复活</b><span>每张专辑从哪里出线 · 冠军走过的路会高亮</span>
+          </div>
+          <div class="gstage">
+            <div v-for="g in groupStages" :key="g.key" class="gsrow">
+              <div class="gshd">
+                <b>{{ g.label }}</b><span>选 {{ g.advanceCount }} 张晋级</span>
+              </div>
+              <div class="gslist">
+                <div
+                  v-for="al in g.albums"
+                  :key="al.albumId"
+                  class="gsi"
+                  :class="{ adv: g.advancedIds.includes(String(al.albumId)), champ: isChampion(al) }"
+                >
+                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+                  <span>{{ al.name }}</span>
+                  <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
+                </div>
+              </div>
+            </div>
           </div>
         </template>
 
@@ -99,6 +139,39 @@
             </div>
           </div>
         </div>
+
+        <!-- 完整晋级图（守则 39）：每一轮谁打了谁、谁被淘汰 —— 含冠军没参与的对局 -->
+        <template v-if="koRounds.length">
+          <div class="hd" style="margin-top: 26px">
+            <b>完整晋级图</b><span>按轮次展开全部对局 · 冠军的对局会描边高亮</span>
+          </div>
+          <div class="ko">
+            <div v-for="r in koRounds" :key="r.roundName" class="koround">
+              <div class="kohd"><b>{{ r.label }}</b><span>{{ r.matches.length }} 场</span></div>
+              <div v-for="m in r.matches" :key="m.matchId" class="kom" :class="{ mine: involvesChampion(m) }">
+                <div class="kside" :class="sideClassOf(m, m.leftAlbum)">
+                  <div class="art"><img :src="m.leftAlbum?.artworkUrl" :alt="m.leftAlbum?.name" loading="lazy" /></div>
+                  <div class="tx">
+                    <b>{{ m.leftAlbum?.name || '—' }}</b>
+                    <span>{{ m.leftAlbum?.artistName || '' }}</span>
+                  </div>
+                  <div class="vt num">{{ m.leftVotes ?? 0 }}</div>
+                  <span class="bdg">{{ bdgOf(m, m.leftAlbum) }}</span>
+                </div>
+                <div class="kvs">VS</div>
+                <div class="kside" :class="sideClassOf(m, m.rightAlbum)">
+                  <div class="art"><img :src="m.rightAlbum?.artworkUrl" :alt="m.rightAlbum?.name" loading="lazy" /></div>
+                  <div class="tx">
+                    <b>{{ m.rightAlbum?.name || '—' }}</b>
+                    <span>{{ m.rightAlbum?.artistName || '' }}</span>
+                  </div>
+                  <div class="vt num">{{ m.rightVotes ?? 0 }}</div>
+                  <span class="bdg">{{ bdgOf(m, m.rightAlbum) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
       </template>
 
       <!-- 杯赛但还没打完 -->
@@ -133,6 +206,8 @@ const id = route.params.id;
 
 const loading = ref(true);
 const data = ref(null);
+/** 对决明细（含全部场次）——用来推导亚军/季军与完整晋级图，取不到也不影响结果页 */
+const detail = ref(null);
 
 const champion = computed(() => data.value?.champion || null);
 const year = (d) => (d ? String(d).slice(0, 4) : '');
@@ -142,6 +217,8 @@ const artistNameOf = (id) => {
   const hit = (data.value?.battle?.artists || []).find((a) => String(a.artistId) === String(id));
   return hit?.name || `歌手 ${id}`;
 };
+
+const isChampion = (al) => !!champion.value && String(al?.albumId) === String(champion.value.albumId);
 
 const championMeta = computed(() => {
   if (!champion.value) return '';
@@ -155,16 +232,95 @@ const championMeta = computed(() => {
   return parts.join(' · ');
 });
 
-/** 小组阶段一句话（v2） */
-const groupLine = computed(() => {
+/** 全部场次（排除轮空，轮空没有对手也没有比分） */
+const allMatches = computed(() => (detail.value?.matches || []).filter((m) => !m.isBye));
+
+/** 某张专辑在所有场次里拿到的累计票数 */
+function albumTotalVotes(albumId) {
+  let n = 0;
+  for (const m of allMatches.value) {
+    if (m.leftAlbum && String(m.leftAlbum.albumId) === String(albumId)) n += Number(m.leftVotes || 0);
+    else if (m.rightAlbum && String(m.rightAlbum.albumId) === String(albumId)) n += Number(m.rightVotes || 0);
+  }
+  return n;
+}
+
+/** 一场里输的那一边（以及它在这一场拿到的票数） */
+function loserOf(m) {
+  if (m.winnerAlbumExternalId == null) return null;
+  const w = String(m.winnerAlbumExternalId);
+  const leftIsWinner = m.leftAlbum && String(m.leftAlbum.albumId) === w;
+  const album = leftIsWinner ? m.rightAlbum : m.leftAlbum;
+  if (!album) return null;
+  return { album, votes: leftIsWinner ? Number(m.rightVotes || 0) : Number(m.leftVotes || 0) };
+}
+
+/** 淘汰赛各轮（按轮次顺序，组内按 matchOrder） */
+const koRounds = computed(() => {
+  const byRound = new Map();
+  for (const m of allMatches.value) {
+    const key = m.roundName || 'other';
+    if (!byRound.has(key)) byRound.set(key, []);
+    byRound.get(key).push(m);
+  }
+  const rounds = [...byRound.entries()].map(([roundName, list]) => ({
+    roundName,
+    label: ROUND_CN[roundName] || roundName,
+    roundIndex: Number(list[0]?.roundIndex ?? 0),
+    matches: list.slice().sort((a, b) => Number(a.matchOrder ?? 0) - Number(b.matchOrder ?? 0)),
+  }));
+  return rounds.sort((a, b) => a.roundIndex - b.roundIndex);
+});
+
+/**
+ * 领奖台（守则 19）
+ * ------------------------------------------------------------
+ * 亚军 = 决赛负方（唯一、无歧义）。
+ * 季军 = 决赛前一轮（半决赛）两位负方中**累计得票更高**者；
+ *        累计相同则比该场得票，再相同按专辑名排序（保证结果稳定可复现）。
+ * ⚠️ 本赛制是单败淘汰、不设三四名决赛，所以季军是「推定」，界面必须标注清楚，不能假装打过一场。
+ */
+const podium = computed(() => {
+  const rounds = koRounds.value;
+  if (!rounds.length || !champion.value) return { runnerUp: null, third: null, note: '' };
+
+  const finalRound = rounds[rounds.length - 1];
+  const finalMatch = finalRound.matches.find((m) => m.winnerAlbumExternalId != null);
+  const runnerUp = finalMatch ? loserOf(finalMatch)?.album || null : null;
+
+  let third = null;
+  let note = '';
+  if (rounds.length >= 2) {
+    const semi = rounds[rounds.length - 2];
+    const losers = semi.matches.map(loserOf).filter(Boolean);
+    if (losers.length) {
+      const best = losers.slice().sort((a, b) => {
+        const ta = albumTotalVotes(a.album.albumId);
+        const tb = albumTotalVotes(b.album.albumId);
+        if (tb !== ta) return tb - ta;
+        if (b.votes !== a.votes) return b.votes - a.votes;
+        return String(a.album.name).localeCompare(String(b.album.name));
+      })[0];
+      third = best.album;
+      note =
+        losers.length > 1
+          ? '本赛制为单败淘汰、不设三四名决赛，季军按「四强落败者中累计得票更高者」推定'
+          : '';
+    }
+  }
+  return { runnerUp, third, note };
+});
+
+/** 小组赛 / 遗珠复活：每张专辑从哪里出线 */
+const groupStages = computed(() => {
   const gs = data.value?.groupsSummary || [];
-  if (!gs.length || !champion.value) return '';
-  const cid = champion.value.albumId;
-  const hit = gs.find((g) => (g.advanced || []).some((a) => a?.albumId === cid));
-  if (!hit) return '';
-  return hit.roundName === 'revival'
-    ? `从遗珠复活中被捞回，进入淘汰赛`
-    : `第 ${hit.groupNo} 组出线（每组选 ${hit.advanceCount} 张）`;
+  return gs.map((g, i) => ({
+    key: `${g.roundName}-${g.groupNo}-${i}`,
+    label: g.roundName === 'revival' ? '遗珠复活' : `第 ${g.groupNo} 组`,
+    advanceCount: g.advanceCount,
+    albums: g.albums || [],
+    advancedIds: (g.advanced || []).map((a) => String(a?.albumId)),
+  }));
 });
 
 /** 夺冠之路行：解析后端给的比分字符串 "我方 : 对方" */
@@ -189,6 +345,24 @@ const pathRows = computed(() => {
   });
 });
 
+/** 这一场里冠军有没有参与（用于在完整晋级图里描边高亮） */
+function involvesChampion(m) {
+  if (!champion.value) return false;
+  const cid = String(champion.value.albumId);
+  return String(m.leftAlbum?.albumId) === cid || String(m.rightAlbum?.albumId) === cid;
+}
+
+/** ⚠️ 一律用外部 albumId 比对（winnerAlbumId 是本地 ObjectId，跟专辑对不上） */
+function sideClassOf(m, album) {
+  if (!album || m.winnerAlbumExternalId == null) return {};
+  return String(m.winnerAlbumExternalId) === String(album.albumId) ? { win: true } : { lose: true };
+}
+function bdgOf(m, album) {
+  if (!album) return '';
+  if (m.winnerAlbumExternalId == null) return '待投';
+  return String(m.winnerAlbumExternalId) === String(album.albumId) ? '胜' : '淘汰';
+}
+
 function sumVotes(idx) {
   let n = 0;
   for (const p of data.value?.path || []) {
@@ -205,7 +379,13 @@ const kpiTheirs = computed(() => sumVotes(1));
 async function load() {
   loading.value = true;
   try {
-    data.value = await battleApi.result(id);
+    // 明细只用于亚军/季军与完整晋级图，失败也不该让结果页白屏
+    const [res, det] = await Promise.all([
+      battleApi.result(id),
+      battleApi.detail(id).catch(() => null),
+    ]);
+    data.value = res;
+    detail.value = det;
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
     data.value = null;
@@ -231,5 +411,278 @@ onMounted(load);
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* 亚军 / 季军 */
+.podium {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.podium .pd {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  flex: 1 1 260px;
+  padding: 12px 14px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.podium .pd .art {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--glass2);
+}
+.podium .pd .art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.podium .pd .tx {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.podium .pd .tx b {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.podium .pd .tx span:last-child {
+  font-size: 12px;
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rk {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.rk2 {
+  color: #7c8b9a;
+  background: rgba(124, 139, 154, 0.16);
+  border: 1px solid rgba(124, 139, 154, 0.34);
+}
+.rk3 {
+  color: #b4792f;
+  background: rgba(180, 121, 47, 0.14);
+  border: 1px solid rgba(180, 121, 47, 0.32);
+}
+.note {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text3);
+}
+
+/* 小组赛 / 复活 */
+.gstage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 12px;
+}
+.gsrow {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.gshd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.gshd b {
+  font-size: 13.5px;
+}
+.gshd span {
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.gslist {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.gsi {
+  min-width: 0;
+  text-align: center;
+  position: relative;
+}
+.gsi img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+.gsi span {
+  display: block;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gsi i {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--brand-ink);
+  background: var(--brand);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+.gsi.adv img {
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.85);
+}
+.gsi.champ img {
+  box-shadow: 0 0 0 2px var(--gold, #e08700);
+}
+
+/* 完整晋级图 */
+.ko {
+  display: grid;
+  gap: 12px;
+}
+.koround {
+  padding: 12px 14px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.kohd {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.kohd b {
+  font-size: 13.5px;
+}
+.kohd span {
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.kom {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+.kom.mine {
+  background: rgba(14, 165, 233, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.28);
+}
+.kvs {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text3);
+}
+.kside {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.kside .art {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--glass2);
+}
+.kside .art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.kside .tx {
+  min-width: 0;
+}
+.kside .tx b {
+  display: block;
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kside .tx span {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kside .vt {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.kside .bdg {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  color: var(--text3);
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  white-space: nowrap;
+}
+.kside.win .bdg {
+  color: var(--brand-ink);
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.kside.lose .bdg {
+  color: var(--danger);
+  background: rgba(220, 38, 38, 0.12);
+  border-color: rgba(220, 38, 38, 0.3);
+}
+.kside.lose {
+  opacity: 0.72;
+}
+
+@media (max-width: 760px) {
+  .gslist {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .kom {
+    grid-template-columns: 1fr;
+  }
+  .kvs {
+    display: none;
+  }
 }
 </style>
