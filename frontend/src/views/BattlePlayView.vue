@@ -89,6 +89,7 @@
         </div>
         <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
       </div>
+      <div v-if="sameArtist" class="sib-tip">同室操戈 · 这场左右两张来自同一位歌手，内战也要分高下</div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
 
       <div class="vstage" :data-lit="lit" :style="stageStyle">
@@ -147,24 +148,27 @@
         </div>
 
         <div class="voterow">
-          <button
-            class="btn vote-btn"
-            type="button"
-            :style="voteStyle(match.leftAlbum)"
-            :disabled="submitting"
-            @click="vote(match.leftAlbum)"
-          >
-            投给《{{ match.leftAlbum?.name }}》
-          </button>
-          <button
-            class="btn vote-btn"
-            type="button"
-            :style="voteStyle(match.rightAlbum)"
-            :disabled="submitting"
-            @click="vote(match.rightAlbum)"
-          >
-            投给《{{ match.rightAlbum?.name }}》
-          </button>
+          <p class="votehint">点击任意专辑封面即可投票 · 也可用下方按钮</p>
+          <div class="vbtns">
+            <button
+              class="btn vote-btn"
+              type="button"
+              :style="voteStyle(match.leftAlbum)"
+              :disabled="submitting"
+              @click="vote(match.leftAlbum)"
+            >
+              投给《{{ match.leftAlbum?.name }}》
+            </button>
+            <button
+              class="btn vote-btn"
+              type="button"
+              :style="voteStyle(match.rightAlbum)"
+              :disabled="submitting"
+              @click="vote(match.rightAlbum)"
+            >
+              投给《{{ match.rightAlbum?.name }}》
+            </button>
+          </div>
         </div>
       </div>
 
@@ -305,6 +309,13 @@ const koLabel = computed(() => {
   return `淘汰赛 · ${ROUND_CN[match.value.roundName] || match.value.roundName}`;
 });
 const koHint = computed(() => '没听过？先试听 30 秒再投，片段不参与计票');
+
+/** 淘汰赛左右两张是否来自同一位歌手（"同室操戈"） */
+const sameArtist = computed(
+  () =>
+    !!match.value?.leftAlbum?.artistName &&
+    match.value.leftAlbum.artistName === match.value.rightAlbum?.artistName,
+);
 const gridStyle = computed(() => {
   const n = group.value?.albums?.length || 4;
   // 宽屏最多 5 列；minmax(0,1fr) 防止长专辑名把列撑宽（否则封面会大小不一）
@@ -416,6 +427,12 @@ async function vote(album) {
   } finally {
     submitting.value = false;
   }
+}
+
+/** 点封面即投票：封面上浮提示"点击投票"，点整张卡片直接投给该专辑 */
+function onCoverVote(album) {
+  if (submitting.value) return;
+  vote(album);
 }
 
 /** 试听：第一次点某张专辑时按需拉曲目（后端会自动同步 iTunes 的 30 秒片段） */
@@ -744,19 +761,82 @@ onMounted(load);
   width: 100%;
   max-width: 330px;
   margin: 0 auto;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.2s var(--ease-out);
+}
+.duelgrid .alb:hover {
+  transform: translateY(-5px);
+}
+.duelgrid .alb .art.albc {
+  position: relative;
+}
+.duelgrid .alb .picktag {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: rgba(8, 22, 38, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 4px 13px;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.duelgrid .alb:hover .picktag {
+  opacity: 1;
 }
 .voterow {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.votehint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text3);
+  text-align: center;
+}
+.sib-tip {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--brand-deep);
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  border-radius: 999px;
+  padding: 6px 14px;
+  margin: 0 auto 14px;
+  width: fit-content;
+}
+.vbtns {
+  display: flex;
   gap: 12px;
   justify-content: center;
-  margin-top: 20px;
   flex-wrap: wrap;
 }
 .vote-btn {
-  padding: 12px 26px;
+  padding: 10px 22px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  color: var(--ac, var(--brand-deep));
+}
+.vote-btn:hover:not(:disabled) {
+  border-color: var(--ac, var(--brand));
+  background: var(--acs, rgba(14, 165, 233, 0.12));
+  color: var(--ac, var(--brand-deep));
 }
 .vote-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
+  cursor: default;
 }
 
 @media (max-width: 860px) {

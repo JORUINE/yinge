@@ -75,6 +75,7 @@
     <div class="rule"><b>② 唯一视觉基准是设计稿。</b><code>docs/design/音格-UI设计稿.html</code>。做页面时逐屏对照；<b>实现出来和 demo 不一样 = 没还原到位</b>，不是"可以接受"。</div>
     <div class="rule"><b>③ 可读性是不可谈判项。</b>排版一乱、字一小说"后面再优化"，到收尾就是灾难 —— 所以收尾阶段要专门过一遍本守则第 1、2 节。</div>
     <div class="rule"><b>④ 借鉴可、照搬论据不可。</b>竞品的交互/动效可以学，但<b>规则必须用音格自身产品逻辑说通</b>（原话："我们不是音乐世界杯，是专辑比拼，是音格"）。</div>
+    <div class="rule"><b>⑤ 专辑主色规则（灰封面与刺眼色处理）。</b>封面取色（<code>utils/coverColor.js</code>）必须遵守：① <b>灰白 / 黑白封面返回中性灰</b>（带极弱冷暖倾向、饱和度压到约 6%），<b>绝不退回随机高饱和色</b>（否则 reputation 这类灰封面会显示成刺眼品红 / 紫）；② <b>取到的彩色压进友好区间</b>——饱和度 8–46%、亮度 46–60%，避免荧光刺眼；③ 取色失败（跨域 / 超时）退回 <code>albumId</code> 哈希色，但哈希色也已降饱和（36% / 50%），不再用 70% 满饱和。</div>
   </div>
 
   <div class="card">
@@ -155,7 +156,7 @@
         <tr><td>小组赛 4 选 2</td><td>一次多选、<b>选满才能提交</b>、显示「已选 X / K」</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>遗珠复活</td><td>从落选专辑里一次捞回 K 张（K 可能 &gt; 2，例如 24 张时要捞 4 张）→ 界面要支持「从 N 张里选 K 张」</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td><b>不剧透</b></td><td>创建页参赛池只露 1–2 张（盲盒原则）</td><td><span class="pill p1">待做</span></td></tr>
-        <tr><td>跨歌手标注</td><td>配对跨歌手优先；万一同歌手对上，界面上标「<b>同室操戈</b>」</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>跨歌手标注</td><td>配对跨歌手优先；万一同歌手对上，界面上标「<b>同室操戈</b>」</td><td><span class="pill ok">已做</span>（淘汰赛 1v1 自动检测左右同歌手 → 顶部显示"同室操戈"徽标）</td></tr>
         <tr><td>歌手战绩</td><td>结果页补「哪位歌手的专辑走得最远」，保证"比歌手"的价值可见</td><td><span class="pill p1">待做</span></td></tr>
         <tr><td>数字口径</td><td>每 4 张一组、每组选 2 晋级；总步数由公式唯一推出，<b>前端不许另算一套</b></td><td><span class="pill ok">已做</span></td></tr>
       </tbody>

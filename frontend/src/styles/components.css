@@ -1213,11 +1213,12 @@ html[data-theme='dark'] .v b {
   color: var(--text2);
 }
 .glist {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 9px;
 }
 .grow {
-  flex: 1;
+  min-width: 0;
   text-align: center;
   cursor: pointer;
 }

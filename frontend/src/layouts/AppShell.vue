@@ -18,6 +18,8 @@
           <RouterLink to="/rank" active-class="on">排行榜</RouterLink>
           <RouterLink to="/personality/types" active-class="on">人格图鉴</RouterLink>
           <RouterLink v-if="auth.isLoggedIn" to="/battle/mine" active-class="on">我的对决</RouterLink>
+          <RouterLink v-if="auth.isLoggedIn" to="/favorites" active-class="on">我的收藏</RouterLink>
+          <RouterLink v-if="auth.isAdmin" to="/admin" active-class="on">管理后台</RouterLink>
         </nav>
 
         <div class="right">

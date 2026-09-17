@@ -370,11 +370,15 @@
             <b>{{ al.name }}</b>
             <span>{{ al._artistName || artistName }} · {{ year(al.releaseDate) }}</span>
           </div>
-          <!-- 还有更多：用一个虚位卡明示"这不是全部"，保留盲盒悬念 -->
+          <!-- 盲盒虚位卡：模糊堆叠 + 省略号 + 计数，明示"这不是全部"，保留开盲盒的悬念 -->
           <div v-if="hiddenCount" class="pk more" aria-hidden="true">
-            <div class="art"><span class="dots3">···</span></div>
+            <div class="art">
+              <span class="stack s1"></span>
+              <span class="stack s2"></span>
+              <span class="dots3">···</span>
+            </div>
             <b>还有 {{ hiddenCount }} 张</b>
-            <span>进对决时揭晓</span>
+            <span>盲盒 · 进对决才揭晓</span>
           </div>
         </div>
       </div>
