@@ -83,6 +83,21 @@ npm run dev</pre>
     <div class="note"><b>两个坑（之前记错，现已更正）：</b><br>
       ① 前端命令是 <code>npm run dev</code>，<u>不是</u> <code>npm run serve</code>；端口是 <code>5173</code>，<u>不是</u> 8080。<br>
       ② 如果你的电脑默认 Node 是 18，启动会报 <code>error:0308010C</code> 的错。解决：用 <b>Node 20 以上</b>（你机器上托管了 Node 22）。用 20+ 就不用管那个报错。</div>
+
+    <h3 style="margin-top:24px">更省事：一键启动</h3>
+    <p>不想每次开三个窗口？双击 <code>E:\桌面\毕业设计\yinge\start-dev.bat</code>（或 <code>桌面\毕业设计\start-dev.bat</code>）——
+    它会自动依次：起 <b>MongoDB</b> → 清历史索引 → 起 <b>后端</b> → 起 <b>前端</b> → 打开浏览器。停服务就双击同目录的 <code>stop-dev.bat</code>（再关掉那两个黑窗口）。</p>
+
+    <h3 style="margin-top:24px">怎么进「管理后台」（管理员登录）</h3>
+    <table>
+      <tr><th>要进的地方</th><th>网址</th><th>账号 / 密码</th></tr>
+      <tr><td>前台（网站）</td><td><code>http://localhost:5173</code></td><td>自己注册一个普通账号即可</td></tr>
+      <tr><td><b>管理后台</b></td><td><code>http://localhost:5173/admin/login</code></td><td><b>账号 <code>admin</code>　密码 <code>admin123456</code></b></td></tr>
+    </table>
+    <div class="note"><b>三点说明：</b>
+      ① 后台<b>只能用管理员账号</b>登录，普通用户账号进不去（会被弹回前台）。
+      ② <code>admin / admin123456</code> 是<b>本地开发默认值</b>（定义在 <code>backend/scripts/seed.js</code>）；<b>正式上线前必须改掉</b>，或用环境变量 <code>ADMIN_PASSWORD</code> 指定。
+      ③ 进后台后能看到五个页：<b>数据看板</b>（注册用户/对决/缓存/票数）、<b>题目管理</b>、<b>人格类型</b>、<b>音乐数据</b>、<b>用户管理</b>。</div>
   </section>
 
   <!-- 3 -->

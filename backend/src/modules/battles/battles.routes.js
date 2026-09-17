@@ -84,10 +84,13 @@ const voteBody = z.object({
 });
 const groupVoteBody = z.object({
   // 多选晋级：传「外部专辑标识」数组，长度需等于该分组 advanceCount
+  // ⚠️ 上限不能写死成 4：小组赛每组固定选 2 张，但**遗珠复活**要一次捞回
+  //    knockoutSize − qualified 张，最多可到 7 张（如 17/18 张参赛时）。
+  //    真正的"必须正好选 advanceCount 张"由 service 里校验，这里只给一个宽松上界。
   pickedAlbumIds: z
     .array(z.union([z.number().int().positive(), z.string().regex(/^\d+$/, '专辑标识必须为数字')]))
     .min(1)
-    .max(4),
+    .max(16),
 });
 const listQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
