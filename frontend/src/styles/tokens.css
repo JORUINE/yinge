@@ -1,32 +1,70 @@
 /**
- * 设计令牌（Design Tokens）
+ * 设计令牌（Design Tokens）· 音乐海洋 + 玻璃拟态
  * ------------------------------------------------------------
- * 视觉方向：音乐海洋 —— 浅色基底 + 单一主色（天空蓝）+ 一个锐利强调色（暖橙）。
- * 全站颜色、字号、间距、圆角、阴影、动效一律走变量，禁止散写十六进制色值。
- * 说明：页面级视觉细化（字体配对、入场编排、氛围质感）在页面实现阶段按前端设计规范落地。
+ * 唯一基准：docs/design/音格-UI设计稿.html 的 :root（浅色）与 body[data-theme="dark"]（深色）。
+ * 本文件是那套令牌在前端的落点：颜色、字体、圆角、玻璃、Aurora、人格色一律走变量。
+ * 规则：页面里禁止散写十六进制色值（专辑逐张主色 --ac/--acs 由脚本注入，属例外）。
+ *
+ * 说明：文件同时保留旧版命名（--surface / --text-1 / --sp-* 等），
+ * 因为尚未重做完成的页面仍引用它们；新页面统一用新命名。
  */
 :root {
-  /* 颜色 */
+  /* ===== 新：音乐海洋 · 浅色（与设计稿 :root 逐项一致）===== */
   --bg: #edf6fc;
+  --text: #0b2a42;
+  --text2: #46647e;
+  --text3: #6d8aa3;
+  --brand: #0ea5e9;
+  --brand-deep: #0369a1;
+  --brand-ink: #04263c;
+  --blue2: #2563eb;
+  --teal: #0d9488;
+  --gold: #e08700;
+  --ok: #0f766e;
+  --line: rgba(11, 42, 66, 0.11);
+  --r: 24px;
+  --r-s: 16px;
+  --ray: rgba(255, 255, 255, 0.55);
+
+  /* 玻璃（磨砂面板 / 卡片 / 导航） */
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass2: rgba(255, 255, 255, 0.6);
+  --gbd: rgba(255, 255, 255, 0.95);
+  --gsh: rgba(255, 255, 255, 0.95), rgba(8, 58, 92, 0.14);
+
+  /* Aurora 极光背景（三团模糊光斑 + 光带） */
+  --a1: rgba(56, 189, 248, 0.58);
+  --a2: rgba(13, 148, 136, 0.32);
+  --a3: rgba(37, 99, 235, 0.3);
+
+  /* 人格 6 色（与设计稿一致，六个类型各一色） */
+  --p-mel: #e0554f; /* 旋律捕手 */
+  --p-rhy: #e8873a; /* 节拍动物 */
+  --p-lyr: #c9a227; /* 词句收藏家 */
+  --p-tmb: #3f8f7a; /* 音色控 */
+  --p-clm: #5b7fa8; /* 安静聆听者 */
+  --p-exp: #8a6bc1; /* 探索者 */
+
+  /* ===== 旧命名（兼容未重做的页面，值向新体系对齐）===== */
   --surface: #ffffff;
   --surface-2: #f5fafd;
-  --brand: #0ea5e9;
-  --brand-deep: #075985;
   --brand-soft: #e0f2fe;
-  --accent: #f97316;
-  --text-1: #0f2a3f;
-  --text-2: #47657a;
-  --text-3: #7c97a8;
+  --accent: #e08700; /* 旧 accent 曾为橙；设计稿主 CTA 是天蓝，橙仅作点缀 */
+  --text-1: var(--text);
+  --text-2: var(--text2);
+  --text-3: var(--text3);
   --border: #d8e8f2;
-  --success: #0d9488;
+  --success: var(--ok);
   --danger: #dc2626;
 
-  /* 字体：展示字与正文字分工，避免全站默认字体 */
-  --font-display: 'Space Grotesk', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-  --font-body: 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+  /* ===== 字体：设计稿用系统字体栈（无展示/正文之分）===== */
+  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro SC', 'Segoe UI',
+    'Microsoft YaHei', sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro SC', 'Segoe UI',
+    'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', monospace;
 
-  /* 字阶 */
+  /* ===== 字阶 ===== */
   --fs-display: 44px;
   --fs-h1: 30px;
   --fs-h2: 22px;
@@ -35,7 +73,7 @@
   --fs-sm: 13px;
   --fs-xs: 12px;
 
-  /* 间距（8 的倍数体系） */
+  /* ===== 间距（8 的倍数体系）===== */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -45,24 +83,67 @@
   --sp-7: 48px;
   --sp-8: 64px;
 
-  /* 圆角 */
+  /* ===== 圆角（旧命名，向 --r / --r-s 对齐）===== */
   --radius-sm: 8px;
   --radius: 12px;
   --radius-lg: 20px;
   --radius-full: 999px;
 
-  /* 阴影（三级） */
+  /* ===== 阴影 ===== */
   --shadow-1: 0 2px 8px rgba(15, 42, 63, 0.06);
   --shadow-2: 0 8px 24px rgba(15, 42, 63, 0.08);
   --shadow-3: 0 24px 48px rgba(15, 42, 63, 0.12);
 
-  /* 动效 */
+  /* 封面投影（参考 Apple Music：封面本体是主角，弱边框、强投影） */
+  --cover-shadow: 0 12px 28px rgba(8, 58, 92, 0.22);
+  --cover-shadow-hover: 0 20px 40px rgba(8, 58, 92, 0.32);
+
+  /* ===== 动效 ===== */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast: 160ms;
   --dur: 320ms;
   --dur-slow: 640ms;
 
-  /* 布局 */
+  /* ===== 布局 ===== */
   --header-h: 64px;
   --content-max: 1180px;
+}
+
+/* ============ 深色主题（设计稿 body[data-theme="dark"]）============ */
+:root[data-theme='dark'],
+html[data-theme='dark'] {
+  --bg: #04121d;
+  --text: #e6f2fa;
+  --text2: #a5bfd2;
+  --text3: #83a1b9; /* 三级文字整体提亮：暗底上小字才看得清 */
+  --brand: #38bdf8;
+  --brand-deep: #7dd3fc;
+  --brand-ink: #04202f;
+  --blue2: #60a5fa;
+  --teal: #2dd4bf;
+  --gold: #fbbf24;
+  --ok: #5eead4;
+  --line: rgba(140, 200, 235, 0.13);
+  --ray: rgba(120, 200, 240, 0.1);
+
+  --glass: rgba(140, 200, 235, 0.1);
+  --glass2: rgba(140, 200, 235, 0.05);
+  --gbd: rgba(140, 200, 235, 0.19);
+  --gsh: rgba(140, 200, 235, 0.1), rgba(0, 0, 0, 0.55);
+
+  --a1: rgba(56, 189, 248, 0.36);
+  --a2: rgba(45, 212, 191, 0.22);
+  --a3: rgba(59, 130, 246, 0.3);
+
+  --surface: #0a1c2b;
+  --surface-2: #0d2434;
+  --brand-soft: rgba(56, 189, 248, 0.14);
+  --border: rgba(140, 200, 235, 0.19);
+  --danger: #fca5a5;
+
+  --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 24px 48px rgba(0, 0, 0, 0.55);
+  --cover-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+  --cover-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.55);
 }

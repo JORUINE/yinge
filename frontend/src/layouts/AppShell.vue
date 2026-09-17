@@ -1,38 +1,47 @@
 <template>
+  <!-- 极光背景：与设计稿 .aurora 一致，fixed 铺满、内容在其上 -->
+  <div class="aurora" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="ray r1"></div>
+    <div class="ray r2"></div>
+  </div>
+
   <div class="shell">
     <header class="topbar">
       <div class="container bar">
-        <RouterLink to="/" class="logo">
-          音格<span class="dot">.</span>
-        </RouterLink>
-
-        <nav class="nav">
-          <RouterLink to="/battle/create">专辑对决</RouterLink>
-          <RouterLink to="/personality/test">人格测评</RouterLink>
-          <RouterLink to="/rank">排行榜</RouterLink>
-          <RouterLink to="/personality/types">人格图鉴</RouterLink>
+        <nav class="nav-inline">
+          <RouterLink to="/" class="logo">音<i>格</i></RouterLink>
+          <RouterLink to="/battle/create" active-class="on">专辑对决</RouterLink>
+          <RouterLink to="/personality" active-class="on">音乐人格</RouterLink>
+          <RouterLink to="/rank" active-class="on">排行榜</RouterLink>
+          <RouterLink to="/personality/types" active-class="on">人格图鉴</RouterLink>
+          <RouterLink v-if="auth.isLoggedIn" to="/battle/mine" active-class="on">我的对决</RouterLink>
         </nav>
 
         <div class="right">
           <template v-if="auth.isLoggedIn">
-            <RouterLink to="/profile" class="who">{{ auth.nickname }}</RouterLink>
-            <el-button size="small" text @click="onLogout">退出</el-button>
+            <RouterLink to="/profile" class="me" :title="auth.nickname || '个人中心'">
+              {{ avatarChar }}
+            </RouterLink>
+            <a class="quit" @click="onLogout">退出</a>
           </template>
-          <RouterLink v-else to="/login">
-            <el-button type="primary" size="small">登录 / 注册</el-button>
-          </RouterLink>
+          <RouterLink v-else to="/login" class="btn pri sm">登录 / 注册</RouterLink>
         </div>
       </div>
     </header>
 
     <main class="main">
-      <RouterView v-slot="{ Component }">
-        <component :is="Component" />
-      </RouterView>
+      <div class="container">
+        <RouterView v-slot="{ Component }">
+          <component :is="Component" />
+        </RouterView>
+      </div>
     </main>
 
     <footer class="foot">
-      <div class="container muted">
+      <div class="container">
         音格 · 专辑对决与音乐人格测评　|　试听与封面数据来自 iTunes Search API（免登录，30 秒片段）
       </div>
     </footer>
@@ -53,7 +62,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { registerAuthHandlers } from '@/api/client';
@@ -64,6 +73,8 @@ const router = useRouter();
 const bannedVisible = ref(false);
 const bannedReason = ref(null);
 const bannedNote = ref(null);
+
+const avatarChar = computed(() => (auth.nickname || '音').slice(0, 1));
 
 const REASON_TEXT = {
   vote_fraud: '刷票行为',
@@ -101,19 +112,21 @@ async function onLogout() {
 
 <style scoped>
 .shell {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  min-height: 100vh;
 }
 
 .topbar {
   position: sticky;
   top: 0;
   z-index: 20;
-  height: var(--header-h);
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
+  background: var(--glass);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border-bottom: 1px solid var(--gbd);
 }
 
 .bar {
@@ -123,33 +136,36 @@ async function onLogout() {
   gap: var(--sp-5);
 }
 
-.logo {
-  font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
-  color: var(--text-1);
-}
-
-.logo .dot {
-  color: var(--accent);
-}
-
-.nav {
+/* 与设计稿 .nav 一致：左 logo + 链接，右头像 */
+.nav-inline {
   display: flex;
-  gap: var(--sp-5);
-  margin-left: var(--sp-5);
+  align-items: center;
+  gap: 22px;
 }
 
-.nav a {
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-  transition: color var(--dur-fast) var(--ease-out);
+.logo {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text);
+}
+.logo i {
+  color: var(--brand);
+  font-style: normal;
 }
 
-.nav a:hover,
-.nav a.router-link-active {
+.nav-inline a {
+  font-size: 13.5px;
+  color: var(--text2);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.nav-inline a:hover {
   color: var(--brand-deep);
+}
+.nav-inline a.on {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .right {
@@ -159,19 +175,40 @@ async function onLogout() {
   gap: var(--sp-3);
 }
 
-.who {
-  color: var(--text-1);
-  font-size: var(--fs-sm);
+.me {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  background: var(--brand);
+  cursor: pointer;
+}
+
+.quit {
+  font-size: 13px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.quit:hover {
+  color: var(--brand-deep);
 }
 
 .main {
   flex: 1;
+  padding: 26px 0 40px;
 }
 
 .foot {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   padding: var(--sp-5) 0;
   font-size: var(--fs-xs);
+  color: var(--text3);
 }
 
 .banned-line {
@@ -179,8 +216,8 @@ async function onLogout() {
   line-height: 1.7;
 }
 
-@media (max-width: 720px) {
-  .nav {
+@media (max-width: 760px) {
+  .nav-inline a:not(.logo) {
     display: none;
   }
 }

@@ -1,168 +1,333 @@
 <template>
-  <div class="container">
+  <div class="create">
     <div class="page-head">
       <p class="eyebrow">创建对决</p>
       <h1>先选一种比较方式</h1>
+      <p class="muted sub">
+        多歌手混战是默认项 —— 不同歌手的专辑放在同一个池子里比，这是音格的初衷。
+      </p>
     </div>
 
-    <section class="card block">
-      <h3>1. 范围模式</h3>
-      <el-radio-group v-model="mode">
-        <el-radio-button v-for="m in MODES" :key="m.value" :value="m.value">{{ m.label }}</el-radio-button>
-      </el-radio-group>
-      <p class="muted hint">{{ currentMode.hint }}</p>
-    </section>
+    <!-- 六种模式 -->
+    <div class="modes">
+      <button
+        v-for="m in MODES"
+        :key="m.value"
+        class="mode"
+        :class="{ on: mode === m.value }"
+        type="button"
+        @click="pickMode(m.value)"
+      >
+        <b>{{ m.label }}<span v-if="m.badge" class="badge">{{ m.badge }}</span></b>
+        <span>{{ m.desc }}</span>
+      </button>
+    </div>
 
-    <!-- 指定对决：自己排对阵表 -->
+    <!-- 对位赛说明（仅对位赛模式展开） -->
+    <div v-if="mode === 'aligned'" class="alignbox">
+      <div class="ah">
+        <b>对位赛长什么样</b>
+        <span>选 2 至 4 位歌手 · 按发行先后逐张对位 · 胜场积分制</span>
+      </div>
+      <div class="arow">
+        <div class="k">第 1 张</div>
+        <div class="nm">David Tao · 1997</div>
+        <div class="sc" style="color: var(--brand)">14 : 6</div>
+        <div class="nm">Jay · 2000</div>
+        <div class="wn">陶喆 胜</div>
+      </div>
+      <div class="arow">
+        <div class="k">第 2 张</div>
+        <div class="nm">I'm OK · 1999</div>
+        <div class="sc" style="color: var(--text3)">9 : 11</div>
+        <div class="nm">范特西 · 2001</div>
+        <div class="wn">周杰伦 胜</div>
+      </div>
+      <div class="arow hi">
+        <div class="k">第 3 张</div>
+        <div class="nm">黑色柳丁 · 2002</div>
+        <div class="sc" style="color: var(--brand)">12 : 8</div>
+        <div class="nm">八度空間 · 2002</div>
+        <div class="wn">陶喆 胜</div>
+      </div>
+      <div class="af">
+        逐张取各自发行顺序的第 k 张，同序号互相比 —— 回答的是"两位歌手同阶段的作品谁更强"。<br />
+        与混战模式的区别：混战会打乱专辑序号，首张专辑可能对上对方第五张，比较失去意义。<br />
+        胜负按 <b>胜场积分</b> 统计，不用淘汰制，否则第 3 张的胜者没有第 4 张对手，赛程会断裂。
+      </div>
+    </div>
+
+    <!-- 指定对决：逐组排对阵表 -->
     <template v-if="mode === 'duel'">
-      <section class="card block">
-        <h3>2. 排对阵表（逐组指定谁打谁）</h3>
+      <div class="block">
+        <h4>排对阵表 <em>逐组指定谁打谁，可跨歌手</em></h4>
         <div class="searchrow">
-          <el-input
+          <input
             v-model="duelTerm"
+            class="ipt"
             placeholder="先搜歌手，再从 TA 的专辑里挑，如 陶喆 / 周杰伦"
             @keyup.enter="duelSearch"
           />
-          <el-button type="primary" :loading="duelSearching" @click="duelSearch">搜索</el-button>
-        </div>
-
-        <div v-if="duelCandidates.length" class="cands">
-          <button v-for="a in duelCandidates" :key="a.artistId" class="cand" type="button" @click="loadDuelAlbums(a)">
-            <span class="cand-name">{{ a.name }}</span>
-            <span class="muted num">加载其专辑</span>
+          <button class="btn pri sm" type="button" :disabled="duelSearching" @click="duelSearch">
+            {{ duelSearching ? '搜索中…' : '搜索' }}
           </button>
         </div>
 
-        <div v-if="duelAlbums.length" class="duelbucket">
-          <p class="muted small">
-            {{ duelArtistName }} 的合格专辑，点两张组成一组对位（可跨歌手，先搜另一位再点）：
-          </p>
-          <div class="albums">
-            <figure
+        <div v-if="duelCandidates.length" class="chips" style="margin-top: 12px">
+          <button
+            v-for="a in duelCandidates"
+            :key="a.artistId"
+            class="chip"
+            type="button"
+            @click="loadDuelAlbums(a)"
+          >
+            <b>{{ a.name }}</b><i>加载其专辑</i>
+          </button>
+        </div>
+
+        <template v-if="duelAlbums.length">
+          <p class="hint">{{ duelArtistName }} 的合格专辑，点两张组成一组对位：</p>
+          <div class="pool">
+            <button
               v-for="al in duelAlbums"
               :key="al.albumId"
-              class="album"
-              :class="{ chosen: isChosen(al) }"
+              class="pk"
+              :class="{ off: isChosen(al) }"
+              type="button"
               @click="addDuelAlbum(al)"
             >
-              <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
-              <figcaption>{{ al.name }}</figcaption>
-            </figure>
+              <div class="art">
+                <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+                <span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg></span>
+              </div>
+              <b>{{ al.name }}</b><span>{{ year(al.releaseDate) }}</span>
+            </button>
           </div>
-        </div>
+        </template>
 
-        <div class="pairbar">
-          <span class="muted small">当前这一组：</span>
-          <span class="slot" :class="{ full: currentPair[0] }">{{ currentPair[0]?.name || '左：待选' }}</span>
-          <span class="vs small">VS</span>
-          <span class="slot" :class="{ full: currentPair[1] }">{{ currentPair[1]?.name || '右：待选' }}</span>
-          <el-button v-if="currentPair.length" text type="info" @click="currentPair = []">清空本组</el-button>
-        </div>
-      </section>
-
-      <section v-if="pairs.length" class="card block">
-        <h3>对阵表（{{ pairs.length }} 组 · 共 {{ pairs.length }} 场）</h3>
-        <div class="pairlist">
+        <div v-if="pairs.length" class="pairlist">
           <div v-for="(p, i) in pairs" :key="i" class="pairrow">
-            <span class="k num">第 {{ i + 1 }} 组</span>
+            <span class="k">第 {{ i + 1 }} 组</span>
             <span class="nm">{{ p[0].name }}</span>
-            <span class="vs small">VS</span>
+            <span class="vs-mini">VS</span>
             <span class="nm">{{ p[1].name }}</span>
-            <el-button text type="danger" @click="removePair(i)">移除</el-button>
+            <button class="mini-x" type="button" @click="removePair(i)">移除</button>
           </div>
         </div>
-      </section>
+      </div>
     </template>
 
-    <section v-if="needsArtists" class="card block">
-      <h3>2. 选择歌手</h3>
-      <div class="searchrow">
-        <el-input
-          v-model="term"
-          placeholder="输入歌手名，如 周杰伦 / 陶喆"
-          @keyup.enter="doSearch"
-        />
-        <el-button type="primary" :loading="searching" @click="doSearch">搜索</el-button>
+    <!-- 手动挑选：逐张勾专辑 -->
+    <template v-else-if="mode === 'custom'">
+      <div class="block">
+        <h4>手动挑选 <em>至少 4 张 · 可跨歌手</em></h4>
+        <div class="searchrow">
+          <input
+            v-model="term"
+            class="ipt"
+            placeholder="输入歌手名，如 周杰伦 / 陶喆"
+            @keyup.enter="doSearch"
+          />
+          <button class="btn pri sm" type="button" :disabled="searching" @click="doSearch">
+            {{ searching ? '搜索中…' : '搜索' }}
+          </button>
+        </div>
+        <div v-if="candidates.length" class="chips" style="margin-top: 12px">
+          <button
+            v-for="a in candidates"
+            :key="a.artistId"
+            class="chip"
+            type="button"
+            @click="loadCustomAlbums(a)"
+          >
+            <b>{{ a.name }}</b><i>加载其专辑</i>
+          </button>
+        </div>
+        <div v-if="customPool.length" class="pool">
+          <button
+            v-for="al in customPool"
+            :key="al.albumId"
+            class="pk"
+            :class="{ off: !customPick.includes(al.albumId) }"
+            type="button"
+            @click="toggleCustom(al.albumId)"
+          >
+            <div class="art">
+              <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+              <span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg></span>
+            </div>
+            <b>{{ al.name }}</b><span>{{ year(al.releaseDate) }}</span>
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- 需要选歌手的模式 -->
+    <template v-else>
+      <div class="block">
+        <h4>
+          参赛歌手
+          <em>{{ artistHint }}</em>
+        </h4>
+        <div class="searchrow">
+          <input
+            v-model="term"
+            class="ipt"
+            placeholder="输入歌手名，如 周杰伦 / 陶喆"
+            @keyup.enter="doSearch"
+          />
+          <button class="btn pri sm" type="button" :disabled="searching" @click="doSearch">
+            {{ searching ? '搜索中…' : '搜索' }}
+          </button>
+        </div>
+
+        <div v-if="candidates.length" class="chips" style="margin-top: 12px">
+          <button
+            v-for="a in candidates"
+            :key="a.artistId"
+            class="chip"
+            type="button"
+            @click="addArtist(a)"
+          >
+            <b>{{ a.name }}</b><i>加入</i>
+          </button>
+        </div>
+
+        <div v-if="picked.length" class="chips" style="margin-top: 12px">
+          <span v-for="a in picked" :key="a.artistId" class="chip on">
+            <b>{{ a.name }}</b>
+            <i v-if="cupMode">{{ scaleLabel }}</i>
+            <span class="x" @click="removeArtist(a.artistId)">×</span>
+          </span>
+        </div>
+
+        <p class="hint">或快速搜索：</p>
+        <div class="presets">
+          <button
+            v-for="n in QUICK"
+            :key="n"
+            class="preset"
+            type="button"
+            @click="quickSearch(n)"
+          >
+            {{ n }}
+          </button>
+        </div>
       </div>
 
-      <div v-if="candidates.length" class="cands">
-        <button v-for="a in candidates" :key="a.artistId" class="cand" type="button" @click="addArtist(a)">
-          <span class="cand-name">{{ a.name }}</span>
-          <span class="muted num">#{{ a.artistId }}</span>
-        </button>
+      <!-- v2 参赛规模（杯赛制才有：单歌手档位 / 多歌手每位张数） -->
+      <div v-if="cupMode" class="block">
+        <h4>
+          参赛规模
+          <em>{{ mode === 'artist' ? '这位歌手抽多少张进池' : '每位歌手抽多少张进池' }}</em>
+        </h4>
+        <div class="seg" style="margin-bottom: 12px">
+          <button
+            v-for="s in scaleOptions"
+            :key="s"
+            type="button"
+            :class="{ on: currentScale === s }"
+            @click="setScale(s)"
+          >
+            {{ s }} 张
+          </button>
+        </div>
+        <p class="hint" v-if="plan">
+          赛程：<b>{{ describePlan(plan) }}</b>。规模越大越热闹，但到 32 张封顶。
+        </p>
+        <p class="hint" v-else>先选歌手，才能算出赛程。</p>
       </div>
 
-      <div v-if="picked.length" class="picked">
-        <el-tag
-          v-for="a in picked"
-          :key="a.artistId"
-          closable
-          size="large"
-          @close="removeArtist(a.artistId)"
-        >
-          {{ a.name }}
-        </el-tag>
-      </div>
-    </section>
-
-    <section v-if="mode === 'aligned'" class="card block">
-      <h3>3. 对位张数与配对方式</h3>
-      <div class="alignrow">
-        <el-input-number v-model="alignCount" :min="1" :max="10" />
-        <el-radio-group v-model="alignMode">
-          <el-radio-button value="ordinal">同序号（第 k 张对第 k 张）</el-radio-button>
-          <el-radio-button value="chrono">年代就近</el-radio-button>
-        </el-radio-group>
-      </div>
-      <p class="muted hint">
-        取各歌手专辑数的较小值；总场次 = C(歌手数, 2) × 对位张数，当前为
-        <strong class="num">{{ alignedTotal }}</strong> 场
-      </p>
-    </section>
-
-    <section v-if="mode === 'era'" class="card block">
-      <h3>3. 年代区间</h3>
-      <div class="alignrow">
-        <el-input-number v-model="yearStart" :min="1900" :max="2026" :step="1" />
-        <span class="muted">—</span>
-        <el-input-number v-model="yearEnd" :min="1900" :max="2026" :step="1" />
-        <span class="muted small">年（含首尾）</span>
-      </div>
-      <p class="muted hint">
-        区间内命中的合格专辑会按<b>各歌手轮转取一张</b>的方式挑选，最多
-        <strong class="num">32</strong> 张参赛 —— 既保证有一定规模，又不会一场打不完。
-      </p>
-    </section>
-
-    <section v-if="pool" class="card block">
-      <h3>参赛池预览</h3>
-      <p class="muted">
-        共检索到 <strong class="num">{{ pool.stats.total }}</strong> 张，剔除
-        <strong class="num">{{ pool.stats.excluded }}</strong> 张，实际参赛
-        <strong class="num">{{ pool.stats.valid }}</strong> 张。
-      </p>
-
-      <div v-if="pool.excluded.length" class="excluded">
-        <p class="muted small">被剔除的专辑（每张都标注命中的规则）：</p>
-        <ul>
-          <li v-for="e in pool.excluded.slice(0, 12)" :key="e.albumId">
-            {{ e.name }} <span class="tag">{{ e.reason }}</span>
-          </li>
-        </ul>
+      <!-- 按流派 / 年代 子选择 -->
+      <div v-if="mode === 'genre-era'" class="block">
+        <h4>范围 <em>二选一</em></h4>
+        <div class="seg" style="margin-bottom: 14px">
+          <button type="button" :class="{ on: genreOrEra === 'genre' }" @click="genreOrEra = 'genre'">
+            按流派
+          </button>
+          <button type="button" :class="{ on: genreOrEra === 'era' }" @click="genreOrEra = 'era'">
+            按年代
+          </button>
+        </div>
+        <div v-if="genreOrEra === 'genre'" class="searchrow">
+          <input v-model="genre" class="ipt" placeholder="如 Pop / Rock / 华语流行" />
+        </div>
+        <div v-else class="yearrow">
+          <input v-model.number="yearStart" class="ipt year" type="number" min="1900" max="2100" />
+          <span class="dash">—</span>
+          <input v-model.number="yearEnd" class="ipt year" type="number" min="1900" max="2100" />
+          <span class="hint" style="margin: 0">年（含首尾）</span>
+        </div>
+        <p class="hint">流派 / 年代命中的合格专辑会自动入池，最多 32 张；赛程规模由实际入池张数决定。</p>
       </div>
 
-      <div class="albums">
-        <figure v-for="al in pool.eligible.slice(0, 24)" :key="al.albumId" class="album">
-          <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
-          <figcaption>{{ al.name }}</figcaption>
-        </figure>
+      <!-- 对位赛参数 -->
+      <div v-if="mode === 'aligned'" class="block">
+        <h4>对位张数与配对方式</h4>
+        <div class="yearrow">
+          <input v-model.number="alignCount" class="ipt year" type="number" min="1" max="10" />
+          <span class="hint" style="margin: 0">张/位</span>
+        </div>
+        <div class="seg" style="margin-top: 12px; margin-bottom: 0">
+          <button type="button" :class="{ on: alignMode === 'ordinal' }" @click="alignMode = 'ordinal'">
+            同序号（第 k 张对第 k 张）
+          </button>
+          <button type="button" :class="{ on: alignMode === 'chrono' }" @click="alignMode = 'chrono'">
+            年代就近
+          </button>
+        </div>
+        <p class="hint">
+          总场次 = C(歌手数, 2) × 对位张数，当前为 <b>{{ alignedTotal }}</b> 场。对位赛不产生冠军，出的是逐张对照表。
+        </p>
       </div>
-    </section>
 
-    <div class="submitbar">
-      <el-button type="primary" size="large" :loading="creating" @click="onCreate">
-        开始对决
-      </el-button>
+      <!-- 参赛池预览（规模模式：勾选态由档位决定） -->
+      <div v-if="poolPreview.length" class="block">
+        <h4>
+          参赛池预览
+          <em v-if="poolStats">共检索 {{ poolStats.total }} 张 · 剔除 {{ poolStats.excluded }} 张 · 实际参赛 {{ poolStats.valid }} 张</em>
+        </h4>
+
+        <div class="tipbar">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1 5h2v2h-2V7zm0 4h2v6h-2v-6z" />
+          </svg>
+          <span>
+            已按准入规则自动过滤：<b>单曲 / 现场与演唱会 / 影视原声 / 精选与复刻</b> 不计入正式专辑。
+            勾选态由上方「参赛规模」档位决定。
+          </span>
+        </div>
+
+        <div v-if="excludedList.length" class="excluded">
+          <p class="hint">被剔除的专辑（每张标注命中规则）：</p>
+          <ul>
+            <li v-for="e in excludedList.slice(0, 10)" :key="e.albumId">
+              {{ e.name }} <span class="tag">{{ e.reason }}</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="pool">
+          <div v-for="al in poolPreview" :key="al.albumId" class="pk" :class="{ off: !al._in }">
+            <div class="art">
+              <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+              <span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg></span>
+            </div>
+            <b>{{ al.name }}</b>
+            <span>{{ al._artistName || artistName }} · {{ year(al.releaseDate) }}</span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 开始条 -->
+    <div class="startbar">
+      <span class="info" v-if="startInfo">{{ startInfo }}</span>
+      <span class="info" v-else>先完成上面的选择，这里会显示规模与赛程</span>
+      <button class="btn pri sp" type="button" :disabled="creating || !canStart" @click="onCreate">
+        <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+        {{ creating ? '创建中…' : '开始对决' }}
+      </button>
     </div>
   </div>
 </template>
@@ -172,32 +337,54 @@ import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { musicApi, battleApi } from '@/api';
+import {
+  SINGER_SCALES,
+  PER_ARTIST_SCALES,
+  DEFAULT_SINGER_SCALE,
+  DEFAULT_PER_ARTIST,
+  planTournament,
+  describePlan,
+} from '@/utils/tournament.js';
 
 const MODES = [
-  { value: 'artist', label: '单歌手', hint: '选 1 位歌手，看"他哪张最好"。' },
-  { value: 'multi-artist', label: '多歌手混战', hint: '2-6 位歌手进入同一池，跨歌手比较谁更强。' },
-  { value: 'genre', label: '按流派', hint: '按流派汇集已缓存歌手的专辑。' },
-  { value: 'era', label: '按年代', hint: '自选年份区间，汇集区间内各歌手的专辑。' },
-  { value: 'custom', label: '手动挑选', hint: '逐张选专辑，完全自定义名单。' },
-  { value: 'aligned', label: '对位赛', hint: '第 1 张打第 1 张、第 2 张打第 2 张，胜场积分制。' },
-  { value: 'duel', label: '指定对决', hint: '自己排对阵表：逐行指定谁打谁，每组两张直接单挑，可跨歌手与年代。' },
+  { value: 'artist', label: '单歌手', desc: '某位歌手的专辑互相比', cup: true },
+  { value: 'multi-artist', label: '多歌手混战', badge: '首选', desc: '几位歌手的专辑放一起比', cup: true },
+  { value: 'genre-era', label: '按流派 / 年代', desc: '如华语流行 · 2000 年代', cup: true },
+  { value: 'custom', label: '手动挑选', desc: '自己勾专辑入池', cup: true },
+  { value: 'aligned', label: '对位赛', badge: '逐张对照', desc: '第 1 张打第 1 张，第 2 张打第 2 张', cup: false },
+  { value: 'duel', label: '指定对决', badge: '自定义', desc: '自己指定谁打谁，可跨歌手', cup: false },
 ];
 
+const QUICK = ['周杰伦', '林俊杰', '陈奕迅', '陶喆'];
+
 const router = useRouter();
-const mode = ref('artist');
+
+const mode = ref('multi-artist');
 const term = ref('');
 const searching = ref(false);
 const creating = ref(false);
 const candidates = ref([]);
 const picked = ref([]);
-const alignCount = ref(3);
-const alignMode = ref('ordinal');
-const pool = ref(null);
+
+// 规模
+const singerScale = ref(DEFAULT_SINGER_SCALE);
+const perArtistScale = ref(DEFAULT_PER_ARTIST);
+
+// 流派 / 年代
+const genreOrEra = ref('genre');
 const genre = ref('Pop');
 const yearStart = ref(2000);
 const yearEnd = ref(2020);
 
-// —— 指定对决状态 ——
+// 对位赛
+const alignCount = ref(3);
+const alignMode = ref('ordinal');
+
+// 手动挑选
+const customPool = ref([]);
+const customPick = ref([]);
+
+// 指定对决
 const duelTerm = ref('');
 const duelSearching = ref(false);
 const duelCandidates = ref([]);
@@ -206,34 +393,176 @@ const duelAlbums = ref([]);
 const currentPair = ref([]);
 const pairs = ref([]);
 
-const currentMode = computed(() => MODES.find((m) => m.value === mode.value));
-const needsArtists = computed(() => ['artist', 'multi-artist', 'aligned'].includes(mode.value));
+// 每位歌手的专辑池缓存：artistId -> { eligible, excluded, stats }
+const artistPool = ref({});
+
+const currentMode = computed(() => MODES.find((m) => m.value === mode.value) || MODES[0]);
+const cupMode = computed(() => currentMode.value.cup);
+const artistHint = computed(() => {
+  if (mode.value === 'artist') return '选 1 位';
+  if (mode.value === 'aligned') return '2 至 4 位 · 逐张对位';
+  return '2 至 6 位 · 跨歌手比较';
+});
+const scaleOptions = computed(() => (mode.value === 'artist' ? SINGER_SCALES : PER_ARTIST_SCALES));
+const currentScale = computed(() => (mode.value === 'artist' ? singerScale.value : perArtistScale.value));
+const scaleLabel = computed(() => `抽 ${currentScale.value} 张`);
 const alignedTotal = computed(() => {
   const a = picked.value.length;
   return ((a * (a - 1)) / 2) * alignCount.value;
 });
 
-watch(mode, () => {
-  picked.value = [];
-  candidates.value = [];
-  pool.value = null;
-  duelCandidates.value = [];
-  duelAlbums.value = [];
-  duelArtistName.value = '';
-  currentPair.value = [];
+const artistName = computed(() => picked.value[0]?.name || '');
+
+/** 参赛池预览项（带 _in / _artistName），仅规模类模式有 */
+const poolPreview = computed(() => {
+  const out = [];
+  if (mode.value === 'artist') {
+    const one = picked.value[0];
+    if (!one) return [];
+    const pool = artistPool.value[one.artistId];
+    if (!pool) return [];
+    pool.eligible.forEach((al, i) => {
+      out.push({ ...al, _artistName: one.name, _in: i < singerScale.value });
+    });
+    return out;
+  }
+  if (mode.value === 'multi-artist') {
+    for (const a of picked.value) {
+      const pool = artistPool.value[a.artistId];
+      if (!pool) continue;
+      pool.eligible.forEach((al, i) => {
+        out.push({ ...al, _artistName: a.name, _in: i < perArtistScale.value });
+      });
+    }
+    return out;
+  }
+  return [];
 });
 
+/** 剔除列表（用于说明"系统替你剔了哪些"） */
+const excludedList = computed(() => {
+  const out = [];
+  for (const a of picked.value) {
+    const pool = artistPool.value[a.artistId];
+    if (pool?.excluded) out.push(...pool.excluded);
+  }
+  return out;
+});
+
+const poolStats = computed(() => {
+  let total = 0;
+  let excluded = 0;
+  let valid = 0;
+  for (const a of picked.value) {
+    const s = artistPool.value[a.artistId]?.stats;
+    if (!s) continue;
+    total += s.total || 0;
+    excluded += s.excluded || 0;
+    valid += s.valid || 0;
+  }
+  return total ? { total, excluded, valid } : null;
+});
+
+/** 实际参赛张数（规模模式：取每档位内可用的张数） */
+const totalSelected = computed(() => {
+  if (mode.value === 'artist') {
+    const one = picked.value[0];
+    const pool = one && artistPool.value[one.artistId];
+    if (!pool) return 0;
+    return Math.min(singerScale.value, pool.eligible.length);
+  }
+  if (mode.value === 'multi-artist') {
+    if (picked.value.length < 2) return 0;
+    const avail = picked.value.map((a) => {
+      const pool = artistPool.value[a.artistId];
+      return pool ? Math.min(perArtistScale.value, pool.eligible.length) : 0;
+    });
+    if (avail.some((n) => n === 0)) return 0;
+    const each = Math.min(...avail); // 跨歌手取最小值（与后端一致）
+    return each * picked.value.length;
+  }
+  if (mode.value === 'custom') return customPick.value.length;
+  return 0;
+});
+
+const plan = computed(() => {
+  if (!cupMode.value) return null;
+  if (totalSelected.value < 2) return null;
+  return planTournament(totalSelected.value);
+});
+
+const startInfo = computed(() => {
+  if (mode.value === 'duel') {
+    return pairs.value.length ? `已排 ${pairs.value.length} 组对位 · 共 ${pairs.value.length} 场` : '';
+  }
+  if (mode.value === 'aligned') {
+    return picked.value.length >= 2
+      ? `已选 ${picked.value.length} 位歌手 · 每位 ${alignCount.value} 张 · 共 ${alignedTotal.value} 场（胜场积分制）`
+      : '';
+  }
+  if (mode.value === 'custom') {
+    const p = planTournament(customPick.value.length);
+    return customPick.value.length
+      ? `已选 ${customPick.value.length} 张 · 赛程：${p ? describePlan(p) : '至少 4 张' }`
+      : '';
+  }
+  if (mode.value === 'genre-era') {
+    return genreOrEra.value === 'genre'
+      ? `流派「${genre.value}」· 最多 32 张 · 赛程按实际入池张数生成`
+      : `${yearStart.value}–${yearEnd.value} 年 · 最多 32 张 · 赛程按实际入池张数生成`;
+  }
+  if (!plan.value) return '';
+  return `已选 ${totalSelected.value} 张 · 来自 ${picked.value.length} 位歌手 · 赛程：${describePlan(plan.value)}`;
+});
+
+const canStart = computed(() => {
+  if (mode.value === 'duel') return pairs.value.length >= 1;
+  if (mode.value === 'aligned') return picked.value.length >= 2;
+  if (mode.value === 'custom') return customPick.value.length >= 4;
+  if (mode.value === 'genre-era') {
+    return genreOrEra.value === 'genre' ? !!genre.value.trim() : yearStart.value <= yearEnd.value;
+  }
+  if (mode.value === 'artist') return !!picked.value[0];
+  if (mode.value === 'multi-artist') return picked.value.length >= 2;
+  return false;
+});
+
+const year = (d) => (d ? String(d).slice(0, 4) : '');
+
+async function loadArtistPool(artistId) {
+  if (artistPool.value[artistId]) return artistPool.value[artistId];
+  const data = await musicApi.listArtistAlbums(artistId);
+  const pool = { eligible: data.eligible || [], excluded: data.excluded || [], stats: data.stats || null };
+  artistPool.value = { ...artistPool.value, [artistId]: pool };
+  return pool;
+}
+
 watch(picked, async (list) => {
-  if (mode.value === 'artist' && list.length === 1) {
+  for (const a of list) {
     try {
-      pool.value = await musicApi.listArtistAlbums(list[0].artistId);
+      await loadArtistPool(a.artistId);
     } catch (err) {
       ElMessage.error(err?.message || '加载专辑失败');
     }
-  } else {
-    pool.value = null;
   }
-});
+}, { deep: true });
+
+function pickMode(v) {
+  mode.value = v;
+  candidates.value = [];
+  picked.value = [];
+  customPool.value = [];
+  customPick.value = [];
+  duelCandidates.value = [];
+  duelAlbums.value = [];
+  currentPair.value = [];
+  pairs.value = [];
+}
+
+function setScale(s) {
+  if (mode.value === 'artist') singerScale.value = s;
+  else perArtistScale.value = s;
+}
 
 async function doSearch() {
   if (!term.value.trim()) return;
@@ -249,6 +578,11 @@ async function doSearch() {
   }
 }
 
+function quickSearch(name) {
+  term.value = name;
+  doSearch();
+}
+
 function addArtist(artist) {
   if (picked.value.some((a) => a.artistId === artist.artistId)) return;
   const max = mode.value === 'multi-artist' ? 6 : mode.value === 'aligned' ? 4 : 1;
@@ -258,13 +592,34 @@ function addArtist(artist) {
   }
   if (mode.value === 'artist') picked.value = [artist];
   else picked.value = [...picked.value, artist];
+  candidates.value = [];
+  term.value = '';
 }
 
 function removeArtist(artistId) {
   picked.value = picked.value.filter((a) => a.artistId !== artistId);
 }
 
-// —— 指定对决交互 ——
+// —— 手动挑选 ——
+async function loadCustomAlbums(artist) {
+  try {
+    const data = await musicApi.listArtistAlbums(artist.artistId);
+    const list = (data.eligible || []).map((al) => ({ ...al, _artistName: artist.name }));
+    const seen = new Set(customPool.value.map((a) => a.albumId));
+    customPool.value = [...customPool.value, ...list.filter((a) => !seen.has(a.albumId))];
+    if (!list.length) ElMessage.info('该歌手暂无合格专辑');
+  } catch (err) {
+    ElMessage.error(err?.message || '加载专辑失败');
+  }
+}
+
+function toggleCustom(albumId) {
+  customPick.value = customPick.value.includes(albumId)
+    ? customPick.value.filter((x) => x !== albumId)
+    : [...customPick.value, albumId];
+}
+
+// —— 指定对决 ——
 async function duelSearch() {
   if (!duelTerm.value.trim()) return;
   duelSearching.value = true;
@@ -291,8 +646,10 @@ async function loadDuelAlbums(artist) {
 }
 
 function isChosen(al) {
-  return currentPair.value.some((x) => x.albumId === al.albumId)
-    || pairs.value.some((p) => p.some((x) => x.albumId === al.albumId));
+  return (
+    currentPair.value.some((x) => x.albumId === al.albumId) ||
+    pairs.value.some((p) => p.some((x) => x.albumId === al.albumId))
+  );
 }
 
 function addDuelAlbum(al) {
@@ -310,36 +667,55 @@ function removePair(i) {
 }
 
 async function onCreate() {
-  const payload = { scopeType: mode.value };
-  if (mode.value === 'duel') {
-    if (!pairs.value.length) return ElMessage.warning('至少先排 1 组对位');
-    payload.pairs = pairs.value.map((p) => [p[0].albumId, p[1].albumId]);
-  } else if (mode.value === 'artist') {
-    if (!picked.value.length) return ElMessage.warning('请先选择一位歌手');
-    payload.artistId = picked.value[0].artistId;
-  } else if (['multi-artist', 'aligned'].includes(mode.value)) {
-    if (picked.value.length < 2) return ElMessage.warning('请至少选择 2 位歌手');
-    payload.artists = picked.value.map((a) => ({ artistId: a.artistId }));
-  } else if (mode.value === 'genre') {
-    payload.genre = genre.value;
-  } else if (mode.value === 'era') {
-    if (yearStart.value > yearEnd.value) {
-      return ElMessage.warning('起始年份不能大于结束年份');
-    }
-    payload.startYear = yearStart.value;
-    payload.endYear = yearEnd.value;
-  } else if (mode.value === 'custom') {
-    return ElMessage.info('手动挑选模式待前端页面完善后开放');
+  if (!canStart.value) {
+    return ElMessage.warning('还差一点：请先完成上面的选择');
   }
-  if (mode.value === 'aligned') {
+  const payload = {};
+  if (mode.value === 'duel') {
+    payload.scopeType = 'duel';
+    payload.pairs = pairs.value.map((p) => [p[0].albumId, p[1].albumId]);
+  } else if (mode.value === 'aligned') {
+    // B 线：赛制不变，不传 tournamentVersion（走旧赛制）
+    payload.scopeType = 'aligned';
+    payload.artists = picked.value.map((a) => ({ artistId: a.artistId }));
     payload.alignCount = alignCount.value;
     payload.alignMode = alignMode.value;
+  } else if (mode.value === 'custom') {
+    payload.scopeType = 'custom';
+    payload.albumIds = customPick.value;
+    payload.tournamentVersion = 2;
+  } else if (mode.value === 'genre-era') {
+    payload.tournamentVersion = 2;
+    if (genreOrEra.value === 'genre') {
+      payload.scopeType = 'genre';
+      payload.genre = genre.value.trim();
+    } else {
+      payload.scopeType = 'era';
+      payload.startYear = yearStart.value;
+      payload.endYear = yearEnd.value;
+    }
+  } else if (mode.value === 'artist') {
+    payload.scopeType = 'artist';
+    payload.artistId = picked.value[0].artistId;
+    payload.albumCount = singerScale.value;
+    payload.tournamentVersion = 2;
+  } else {
+    payload.scopeType = 'multi-artist';
+    payload.artists = picked.value.map((a) => ({ artistId: a.artistId, albumCount: perArtistScale.value }));
+    payload.tournamentVersion = 2;
   }
 
   creating.value = true;
   try {
     const battle = await battleApi.create(payload);
-    ElMessage.success('对决已创建');
+    // 数字同源校验：后端算出的 stepTotal 应与前端预估一致
+    if (payload.tournamentVersion === 2 && plan.value && battle.stepTotal !== plan.value.totalSteps) {
+      ElMessage.warning(
+        `赛程预估 ${plan.value.totalSteps} 步，实际 ${battle.stepTotal} 步（以实际为准）`,
+      );
+    } else {
+      ElMessage.success('对决已创建');
+    }
     router.push({ name: 'battle-play', params: { id: battle.battleId } });
   } catch (err) {
     ElMessage.error(err?.message || '创建失败');
@@ -350,192 +726,129 @@ async function onCreate() {
 </script>
 
 <style scoped>
-.block {
-  padding: var(--sp-5);
-  margin-bottom: var(--sp-5);
+.create {
+  padding-bottom: var(--sp-6);
 }
 
-.block h3 {
-  margin-bottom: var(--sp-4);
-}
-
-.hint {
+.sub {
   margin-top: var(--sp-3);
   font-size: var(--fs-sm);
+  max-width: 620px;
 }
 
 .searchrow {
   display: flex;
   gap: var(--sp-3);
-  max-width: 520px;
+  max-width: 560px;
 }
 
-.cands {
-  margin-top: var(--sp-4);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+.ipt {
+  width: 100%;
+  font: inherit;
+  font-size: 14px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text);
+  outline: none;
+  transition: border 0.2s;
 }
-
-.cand {
-  display: flex;
-  gap: var(--sp-2);
-  align-items: baseline;
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: var(--fs-sm);
-  transition: border-color var(--dur-fast) var(--ease-out);
-}
-
-.cand:hover {
+.ipt:focus {
   border-color: var(--brand);
 }
 
-.cand-name {
-  color: var(--text-1);
+.hint {
+  margin-top: 10px;
+  font-size: var(--fs-sm);
+  color: var(--text2);
+}
+.hint b {
+  color: var(--brand-deep);
 }
 
-.picked {
-  margin-top: var(--sp-4);
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+.chip.on {
+  border-color: var(--brand);
+  background: rgba(14, 165, 233, 0.12);
 }
 
-.alignrow {
+.yearrow {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   flex-wrap: wrap;
 }
-
-.alignrow .hint {
-  margin-top: 0;
+.ipt.year {
+  width: 120px;
+}
+.dash {
+  color: var(--text3);
 }
 
 .excluded {
-  margin-top: var(--sp-4);
+  margin-top: var(--sp-3);
   font-size: var(--fs-sm);
 }
-
 .excluded ul {
-  margin: var(--sp-2) 0 0;
-  padding-left: var(--sp-5);
-  color: var(--text-2);
+  margin: 6px 0 0;
+  padding-left: 20px;
+  color: var(--text2);
 }
-
 .tag {
   color: var(--danger);
   font-size: var(--fs-xs);
 }
 
-.albums {
-  margin-top: var(--sp-5);
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: var(--sp-4);
-}
-
-.album img {
-  border-radius: var(--radius);
-  aspect-ratio: 1;
-  object-fit: cover;
-  box-shadow: var(--shadow-1);
-}
-
-.album figcaption {
-  margin-top: var(--sp-2);
-  font-size: var(--fs-xs);
-  color: var(--text-2);
-  line-height: 1.4;
-}
-
-/* 指定对决 */
-.duelbucket {
-  margin-top: var(--sp-4);
-}
-
-.small {
-  font-size: var(--fs-sm);
-}
-
-.duelbucket .album {
-  cursor: pointer;
-  border: 2px solid transparent;
-  border-radius: var(--radius);
-  padding: var(--sp-1);
-  transition: border-color var(--dur-fast) var(--ease-out);
-}
-
-.duelbucket .album:hover {
-  border-color: var(--brand);
-}
-
-.duelbucket .album.chosen {
-  border-color: var(--brand-deep);
-}
-
-.pairbar {
-  margin-top: var(--sp-5);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  flex-wrap: wrap;
-}
-
-.slot {
-  min-width: 140px;
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px dashed var(--border);
-  border-radius: var(--radius);
-  color: var(--text-3);
-  font-size: var(--fs-sm);
-  text-align: center;
-}
-
-.slot.full {
-  border-style: solid;
-  border-color: var(--brand);
-  color: var(--text-1);
-  background: var(--surface-2);
-}
-
 .pairlist {
+  margin-top: 14px;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
+  gap: 8px;
 }
-
 .pairrow {
   display: grid;
-  grid-template-columns: 84px 1fr auto 1fr auto;
+  grid-template-columns: 72px 1fr auto 1fr auto;
   align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--gbd);
+  border-radius: var(--r-s);
+  background: var(--glass2);
 }
-
 .pairrow .k {
-  color: var(--text-3);
   font-size: var(--fs-sm);
+  color: var(--text3);
 }
-
 .pairrow .nm {
-  color: var(--text-1);
+  color: var(--text);
 }
-
-.vs {
+.vs-mini {
   color: var(--brand);
   font-weight: 700;
 }
+.mini-x {
+  font-size: var(--fs-sm);
+  color: var(--danger);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
 
-.submitbar {
-  padding-bottom: var(--sp-8);
+@media (max-width: 980px) {
+  .modes {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pool {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .modes,
+  .pool {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pairrow {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
