@@ -22,6 +22,8 @@ import * as controller from './battles.controller.js';
 const artistEntry = z.object({
   artistId: z.coerce.number().int().positive(),
   albumCount: z.coerce.number().int().min(1).max(50).optional(),
+  // 多歌手模式下每位歌手可各自自选专辑
+  albumIds: z.array(z.coerce.number().int().positive()).optional(),
 });
 
 const createSchema = z
@@ -44,6 +46,8 @@ const createSchema = z
     withRevival: z.boolean().optional(),
     // 新赛制开关：2 = 规模自选 + 小组赛 4 选 2 + 遗珠复活 + 1v1 淘汰；默认 1（旧赛制）
     tournamentVersion: z.coerce.number().int().min(1).max(2).optional(),
+    // 抽张策略：random=随机抽（默认，保留盲盒刺激）/ newest=最新 N 张 / picked=用户自选（配合 albumIds）
+    pick: z.enum(['newest', 'random', 'picked']).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.scopeType === 'artist' && !data.artistId) {

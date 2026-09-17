@@ -201,27 +201,37 @@
           </span>
         </div>
 
-        <p class="hint">或快速搜索：</p>
+        <h4 style="margin: 16px 0 0">
+          或从常用组合开始
+          <em>一键装好模式 · 歌手 · 规模（后期可由社区提报、后台采纳）</em>
+        </h4>
         <div class="presets">
           <button
-            v-for="n in QUICK"
-            :key="n"
+            v-for="p in PRESETS"
+            :key="p.label"
             class="preset"
             type="button"
-            @click="quickSearch(n)"
+            :disabled="presetLoading === p.label"
+            @click="applyPreset(p)"
           >
+            {{ presetLoading === p.label ? '装填中…' : p.label }}
+          </button>
+        </div>
+        <p class="hint">或快速搜单个歌手：</p>
+        <div class="presets">
+          <button v-for="n in QUICK" :key="n" class="preset" type="button" @click="quickSearch(n)">
             {{ n }}
           </button>
         </div>
       </div>
 
-      <!-- v2 参赛规模（杯赛制才有：单歌手档位 / 多歌手每位张数） -->
+      <!-- v2 参赛规模 + 抽张方式（杯赛制才有） -->
       <div v-if="cupMode" class="block">
         <h4>
           参赛规模
-          <em>{{ mode === 'artist' ? '这位歌手抽多少张进池' : '每位歌手抽多少张进池' }}</em>
+          <em>{{ mode === 'artist' ? '这位歌手有几张能进池' : '每位歌手有几张能进池' }}</em>
         </h4>
-        <div class="seg" style="margin-bottom: 12px">
+        <div class="seg" style="margin-bottom: 14px">
           <button
             v-for="s in scaleOptions"
             :key="s"
@@ -232,6 +242,48 @@
             {{ s }} 张
           </button>
         </div>
+
+        <h4>
+          这几张怎么选
+          <em>不指定就随机抽 —— 保留开盲盒的刺激感</em>
+        </h4>
+        <div class="seg" style="margin-bottom: 12px">
+          <button type="button" :class="{ on: pickStrategy === 'random' }" @click="pickStrategy = 'random'">
+            随机抽 {{ currentScale }} 张
+          </button>
+          <button type="button" :class="{ on: pickStrategy === 'newest' }" @click="pickStrategy = 'newest'">
+            最新 {{ currentScale }} 张
+          </button>
+          <button type="button" :class="{ on: pickStrategy === 'picked' }" @click="pickStrategy = 'picked'">
+            自己挑
+          </button>
+        </div>
+
+        <!-- 自己挑：列出已选歌手的合格专辑，勾选即入池 -->
+        <template v-if="pickStrategy === 'picked'">
+          <p class="hint">
+            点封面勾选要参赛的专辑（<b>已选 {{ selfPicked.length }} 张</b>，至少 4 张；再点一次可取消）。
+          </p>
+          <div v-if="selfPickPool.length" class="pool">
+            <button
+              v-for="al in selfPickPool"
+              :key="al.albumId"
+              class="pk"
+              type="button"
+              :class="{ off: !selfPicked.map(Number).includes(Number(al.albumId)) }"
+              @click="toggleSelfPick(al.albumId)"
+            >
+              <div class="art">
+                <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+                <span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg></span>
+              </div>
+              <b>{{ al.name }}</b>
+              <span>{{ al._artistName }} · {{ year(al.releaseDate) }}</span>
+            </button>
+          </div>
+          <p v-else class="hint">先选歌手，才能列出可挑的专辑。</p>
+        </template>
+
         <p class="hint" v-if="plan">
           赛程：<b>{{ describePlan(plan) }}</b>。规模越大越热闹，但到 32 张封顶。
         </p>
@@ -377,6 +429,19 @@ const picked = ref([]);
 // 规模
 const singerScale = ref(DEFAULT_SINGER_SCALE);
 const perArtistScale = ref(DEFAULT_PER_ARTIST);
+/** 抽张方式：random=随机抽（默认，保留盲盒刺激）/ newest=最新 N 张 / picked=自己挑 */
+const pickStrategy = ref('random');
+/** 自己挑模式下勾选的专辑（albumId） */
+const selfPicked = ref([]);
+
+/** 常用组合：一键填好模式 + 歌手 + 规模。后期可扩成社区维护（用户提报、后台采纳） */
+const PRESETS = [
+  { label: '周杰伦 vs 林俊杰', names: ['周杰伦', '林俊杰'], per: 8 },
+  { label: '华语三强混战', names: ['周杰伦', '林俊杰', '陈奕迅'], per: 8 },
+  { label: '欧美经典对决', names: ['Taylor Swift', 'Adele'], per: 8 },
+  { label: '中外对决', names: ['周杰伦', 'Taylor Swift'], per: 8 },
+];
+const presetLoading = ref('');
 
 // 流派 / 年代
 const genreOrEra = ref('genre');
@@ -433,31 +498,44 @@ const EXPOSE_PER_ARTIST = 2;
 
 const poolPreview = computed(() => {
   const out = [];
-  const expose = (artist, take) => {
-    for (const al of take) out.push({ ...al, _artistName: artist.name, _in: true });
-  };
-  if (mode.value === 'artist') {
-    const one = picked.value[0];
-    const pool = one && artistPool.value[one.artistId];
+  const takeFor = (artist) => {
+    const pool = artistPool.value[artist.artistId];
     if (!pool) return [];
-    const take = pool.eligible.slice(0, Math.min(singerScale.value, pool.eligible.length));
-    expose(one, take.slice(0, EXPOSE_PER_ARTIST));
-    return out;
-  }
-  if (mode.value === 'multi-artist') {
-    for (const a of picked.value) {
-      const pool = artistPool.value[a.artistId];
-      if (!pool) continue;
-      const take = pool.eligible.slice(0, Math.min(perArtistScale.value, pool.eligible.length));
-      expose(a, take.slice(0, EXPOSE_PER_ARTIST));
+    const list = pool.eligible;
+    // 自己挑：把勾选的显示出来（用户本来就知道自己选了啥）
+    if (pickStrategy.value === 'picked') {
+      const wanted = new Set(selfPicked.value.map(Number));
+      return list.filter((a) => wanted.has(Number(a.albumId)));
     }
-    return out;
+    const count = mode.value === 'artist' ? singerScale.value : perArtistScale.value;
+    const base =
+      pickStrategy.value === 'newest'
+        ? [...list].sort((a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0))
+        : list;
+    return base.slice(0, Math.min(count, list.length)).slice(0, EXPOSE_PER_ARTIST);
+  };
+  const artists = mode.value === 'artist' ? picked.value.slice(0, 1) : picked.value;
+  for (const a of artists) {
+    for (const al of takeFor(a)) out.push({ ...al, _artistName: a.name, _in: true });
   }
-  return [];
+  return out;
 });
 
 /** 预览里没露出来的张数（其余进对决时揭晓） */
-const hiddenCount = computed(() => Math.max(0, totalSelected.value - poolPreview.value.length));
+const hiddenCount = computed(() =>
+  pickStrategy.value === 'picked' ? 0 : Math.max(0, totalSelected.value - poolPreview.value.length),
+);
+
+/** 「自己挑」模式下的候选池：已选歌手的全部合格专辑 */
+const selfPickPool = computed(() => {
+  const out = [];
+  for (const a of picked.value) {
+    const pool = artistPool.value[a.artistId];
+    if (!pool) continue;
+    for (const al of pool.eligible) out.push({ ...al, _artistName: a.name });
+  }
+  return out;
+});
 
 /** 剔除列表（用于说明"系统替你剔了哪些"） */
 const excludedList = computed(() => {
@@ -485,6 +563,8 @@ const poolStats = computed(() => {
 
 /** 实际参赛张数（规模模式：取每档位内可用的张数） */
 const totalSelected = computed(() => {
+  // 自己挑：就以勾选数为准
+  if (pickStrategy.value === 'picked') return selfPicked.value.length;
   if (mode.value === 'artist') {
     const one = picked.value[0];
     const pool = one && artistPool.value[one.artistId];
@@ -542,8 +622,12 @@ const canStart = computed(() => {
   if (mode.value === 'genre-era') {
     return genreOrEra.value === 'genre' ? !!genre.value.trim() : yearStart.value <= yearEnd.value;
   }
-  if (mode.value === 'artist') return !!picked.value[0];
-  if (mode.value === 'multi-artist') return picked.value.length >= 2;
+  if (mode.value === 'artist') {
+    return !!picked.value[0] && (pickStrategy.value !== 'picked' || selfPicked.value.length >= 4);
+  }
+  if (mode.value === 'multi-artist') {
+    return picked.value.length >= 2 && (pickStrategy.value !== 'picked' || selfPicked.value.length >= 4);
+  }
   return false;
 });
 
@@ -571,12 +655,47 @@ function pickMode(v) {
   mode.value = v;
   candidates.value = [];
   picked.value = [];
+  selfPicked.value = [];
   customPool.value = [];
   customPick.value = [];
   duelCandidates.value = [];
   duelAlbums.value = [];
   currentPair.value = [];
   pairs.value = [];
+}
+
+function toggleSelfPick(albumId) {
+  const id = Number(albumId);
+  selfPicked.value = selfPicked.value.map(Number).includes(id)
+    ? selfPicked.value.filter((x) => Number(x) !== id)
+    : [...selfPicked.value, id];
+}
+
+/** 常用组合：按名字搜到歌手 → 一键填好模式/歌手/规模 */
+async function applyPreset(p) {
+  presetLoading.value = p.label;
+  try {
+    pickMode('multi-artist');
+    pickStrategy.value = 'random';
+    perArtistScale.value = p.per;
+    const found = [];
+    for (const name of p.names) {
+      // eslint-disable-next-line no-await-in-loop
+      const data = await musicApi.searchArtists({ term: name, limit: 1 });
+      const hit = (data.artists || [])[0];
+      if (hit) found.push(hit);
+    }
+    if (!found.length) {
+      ElMessage.warning('组合里的歌手没搜到，请手动搜索添加');
+      return;
+    }
+    picked.value = found;
+    ElMessage.success(`已装好「${p.label}」：${found.map((a) => a.name).join(' vs ')}`);
+  } catch (err) {
+    ElMessage.error(err?.message || '加载组合失败');
+  } finally {
+    presetLoading.value = '';
+  }
 }
 
 function setScale(s) {
@@ -718,10 +837,22 @@ async function onCreate() {
     payload.scopeType = 'artist';
     payload.artistId = picked.value[0].artistId;
     payload.albumCount = singerScale.value;
+    payload.pick = pickStrategy.value;
+    if (pickStrategy.value === 'picked') payload.albumIds = selfPicked.value.map(Number);
     payload.tournamentVersion = 2;
   } else {
     payload.scopeType = 'multi-artist';
-    payload.artists = picked.value.map((a) => ({ artistId: a.artistId, albumCount: perArtistScale.value }));
+    payload.pick = pickStrategy.value;
+    payload.artists = picked.value.map((a) => {
+      const entry = { artistId: a.artistId, albumCount: perArtistScale.value };
+      if (pickStrategy.value === 'picked') {
+        const pool = artistPool.value[a.artistId]?.eligible || [];
+        const want = selfPicked.value.map(Number);
+        const ids = pool.map((x) => Number(x.albumId)).filter((id) => want.includes(id));
+        if (ids.length) entry.albumIds = ids;
+      }
+      return entry;
+    });
     payload.tournamentVersion = 2;
   }
 

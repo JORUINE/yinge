@@ -58,13 +58,45 @@ async function artistMeta(artistExternalId) {
   return { artistId: id, name: doc?.name || `歌手 ${id}`, albumCount: doc?.albumCount || 0 };
 }
 
+/**
+ * 从某歌手的合格专辑里挑出参赛的那几张。
+ * ------------------------------------------------------------
+ * 背景（2026-09-17 用户反馈）：以前一律 `slice(0, N)` = 取**最早**的 N 张，
+ * 导致专辑超过 N 张的歌手，后面的专辑永远没机会参赛。现在改为可控：
+ *   pick = 'picked' → 用用户勾选的 albumIds（自选）
+ *   pick = 'newest' → 发行时间倒序取最新 N 张
+ *   pick = 'random'（默认）→ 洗牌随机取 N 张（保留"盲盒"的刺激感）
+ * @param {Array} list 该歌手的合格专辑（已按发行时间升序）
+ * @param {number} count 目标张数
+ * @param {{pick?: string, albumIds?: Array}} opts
+ */
+function pickAlbums(list, count, { pick = 'random', albumIds = null } = {}) {
+  if (albumIds && albumIds.length) {
+    const wanted = new Set(albumIds.map(Number));
+    const picked = list.filter((a) => wanted.has(Number(a.albumId)));
+    if (picked.length) return picked;
+  }
+  if (!count || count >= list.length) return list;
+  if (pick === 'newest') {
+    return [...list]
+      .sort((a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0))
+      .slice(0, count);
+  }
+  const arr = [...list];
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, count);
+}
+
 /** 依据范围模式解析参赛池 */
 export async function resolvePool(payload) {
   const { scopeType } = payload;
 
   if (scopeType === 'artist') {
     const list = await eligibleAlbumsOf(payload.artistId);
-    const take = payload.albumCount ? list.slice(0, payload.albumCount) : list;
+    const take = pickAlbums(list, payload.albumCount, payload);
     const meta = await artistMeta(payload.artistId);
     return { albums: take, artists: [{ ...meta, albumCount: take.length }] };
   }
@@ -76,7 +108,11 @@ export async function resolvePool(payload) {
     const metas = [];
     for (const item of payload.artists) {
       const list = await eligibleAlbumsOf(item.artistId);
-      const take = item.albumCount ? list.slice(0, item.albumCount) : list;
+      // 每位歌手按同一策略抽（可各自自选：item.albumIds）
+      const take = pickAlbums(list, item.albumCount, {
+        pick: payload.pick,
+        albumIds: item.albumIds || (payload.artists.length === 1 ? payload.albumIds : null),
+      });
       const meta = await artistMeta(item.artistId);
       if (!take.length) throw new BadRequestError(`歌手「${meta.name}」没有可参赛的合格专辑`);
       lists.push(take);
