@@ -1693,3 +1693,470 @@ html[data-theme='dark'] .v b {
   font-size: 11.5px;
   color: var(--text2);
 }
+
+/* ==================== 音乐人格测评 ==================== */
+.qintro {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 34px;
+  align-items: center;
+  margin-top: 26px;
+}
+.qintro h2 {
+  margin: 0 0 12px;
+  font-size: 34px;
+  letter-spacing: -1.2px;
+  line-height: 1.16;
+}
+.qintro h2 em {
+  font-style: normal;
+  color: var(--brand-deep);
+}
+.qintro p {
+  margin: 0 0 18px;
+  color: var(--text2);
+  font-size: 14.5px;
+}
+.qfacts {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.qfacts span {
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  color: var(--text2);
+}
+.typesprev {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.tpv {
+  padding: 13px 15px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  border-left: 3px solid var(--tc);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tpv:hover {
+  transform: translateY(-3px);
+}
+.tpv b {
+  display: block;
+  font-size: 13.5px;
+  color: var(--tc);
+}
+.tpv span {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.quizwrap {
+  max-width: 780px;
+  margin: 24px auto 0;
+}
+.qbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.qbar .dots {
+  flex: 1;
+  display: flex;
+  gap: 5px;
+}
+.qbar .dots i {
+  flex: 1;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--line);
+}
+.qbar .dots i.done {
+  background: var(--brand);
+}
+.qbar .dots i.cur {
+  background: var(--brand);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.3);
+}
+.qbar .cnt {
+  font-size: 12.5px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+.qcard2 {
+  padding: 28px 30px 24px;
+  border-radius: var(--r);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: 0 20px 52px var(--gsh);
+  margin-bottom: 20px;
+}
+.qcard2 .qno {
+  font-size: 11.5px;
+  letter-spacing: 1.8px;
+  color: var(--brand-deep);
+  font-weight: 700;
+}
+.qcard2 h3 {
+  margin: 10px 0 6px;
+  font-size: 22px;
+  letter-spacing: -0.45px;
+  line-height: 1.38;
+}
+.qcard2 .qtip {
+  font-size: 12.5px;
+  color: var(--text3);
+  margin: 0 0 20px;
+}
+.audioplay {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--r-s);
+  background: rgba(14, 165, 233, 0.09);
+  border: 1px solid rgba(14, 165, 233, 0.24);
+  margin-bottom: 18px;
+}
+.audioplay .bb {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex: 0 0 auto;
+  border: 0;
+  transition: background 0.2s;
+}
+.audioplay .bb:hover {
+  background: var(--brand-deep);
+}
+.audioplay .bb svg {
+  width: 17px;
+  height: 17px;
+  fill: var(--brand-ink);
+}
+.audioplay .tx3 {
+  flex: 1;
+  min-width: 0;
+}
+.audioplay .tx3 b {
+  display: block;
+  font-size: 13.5px;
+}
+.audioplay .tx3 span {
+  font-size: 11.5px;
+  color: var(--text2);
+}
+.audioplay .tm {
+  font-size: 12px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+.oi {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  border-radius: var(--r-s);
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 10px;
+}
+.oi:last-child {
+  margin-bottom: 0;
+}
+.oi:hover {
+  border-color: var(--brand);
+  background: rgba(14, 165, 233, 0.07);
+}
+.oi.on {
+  border-color: var(--brand);
+  background: rgba(14, 165, 233, 0.13);
+}
+.oi .k {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  color: var(--text2);
+  flex: 0 0 auto;
+}
+.oi.on .k {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: var(--brand);
+}
+.oi .tx2 {
+  font-size: 14.5px;
+}
+.qnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+}
+
+/* 人格卡 */
+.ptcard {
+  border-radius: var(--r);
+  padding: 30px 34px;
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  backdrop-filter: blur(26px) saturate(185%);
+  -webkit-backdrop-filter: blur(26px) saturate(185%);
+  box-shadow: 0 24px 60px var(--gsh);
+  position: relative;
+  overflow: hidden;
+  margin-top: 22px;
+  --pc: #e0554f;
+  --pc2: rgba(224, 85, 79, 0.3);
+}
+.ptcard .glowc {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(58% 88% at 10% 6%, var(--pc2), transparent 70%);
+}
+.ptcard > * {
+  position: relative;
+  z-index: 1;
+}
+.pthd {
+  display: grid;
+  grid-template-columns: 1fr 296px;
+  gap: 32px;
+  align-items: center;
+}
+.ptcode {
+  font-size: 12px;
+  letter-spacing: 2.6px;
+  font-weight: 800;
+  color: var(--pc);
+}
+.ptname {
+  font-size: 38px;
+  font-weight: 700;
+  letter-spacing: -1.5px;
+  margin: 10px 0 14px;
+  line-height: 1.08;
+}
+.accent2 {
+  width: 58px;
+  height: 5px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--pc), transparent);
+  margin: 0 0 16px;
+}
+.ptdesc {
+  font-size: 14.5px;
+  color: var(--text2);
+  margin: 0 0 20px;
+}
+.dim2 {
+  margin-bottom: 15px;
+}
+.dim2 .lb {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+}
+.dim2 .lb span {
+  color: var(--text2);
+}
+.dim2 .bar2 {
+  height: 9px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.dim2 .bar2 i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--pc), var(--pc2));
+}
+.ai2 {
+  margin-top: 22px;
+  padding: 18px 22px;
+  border-radius: var(--r-s);
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  border-left: 3px solid var(--pc);
+}
+.ai2 h4 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 1.3px;
+  color: var(--pc);
+}
+.ai2 p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--text2);
+  line-height: 1.85;
+}
+.ai2 .src {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 11px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  color: var(--text3);
+}
+
+/* 人格图鉴 */
+.atlas {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 22px;
+}
+.at {
+  padding: 18px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  cursor: pointer;
+  transition: all 0.2s;
+  --tc: #0ea5e9;
+}
+.at:hover {
+  transform: translateY(-4px);
+  border-color: var(--tc);
+}
+.at .num {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--tc);
+  letter-spacing: -0.7px;
+}
+.at .nm {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+.at .ds {
+  font-size: 11.5px;
+  color: var(--text2);
+  line-height: 1.65;
+}
+.at .pct {
+  font-size: 12px;
+  color: var(--tc);
+  font-weight: 600;
+  margin-top: 10px;
+}
+.dist {
+  margin-top: 22px;
+  padding: 22px 24px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.dist h4 {
+  margin: 0 0 16px;
+  font-size: 14.5px;
+}
+.dist .dr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.dist .dr b {
+  width: 80px;
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+.dist .dr .bb2 {
+  flex: 1;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+}
+.dist .dr .bb2 i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+}
+.dist .dr .vv {
+  width: 56px;
+  text-align: right;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+/* 推荐专辑（人格卡下方三张，复用对决页呈现 + 三团光晕） */
+.recs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+.vglow .g1,
+.vglow .g2,
+.vglow .g3 {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(74px);
+  opacity: 0.4;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.vglow .g1 {
+  width: 400px;
+  height: 400px;
+  left: -90px;
+  top: -80px;
+  background: var(--g1, var(--brand));
+}
+.vglow .g2 {
+  width: 400px;
+  height: 400px;
+  left: 34%;
+  top: 40%;
+  background: var(--g2, var(--brand));
+}
+.vglow .g3 {
+  width: 400px;
+  height: 400px;
+  right: -90px;
+  bottom: -90px;
+  background: var(--g3, var(--brand));
+}
+.recmatch {
+  font-size: 11.5px;
+  margin-top: 7px;
+  font-weight: 700;
+  color: var(--ac);
+}

@@ -1,40 +1,47 @@
 <template>
-  <div class="container">
-    <section class="head">
-      <div>
-        <p class="eyebrow">人格图鉴</p>
-        <h1>全站都在测的几种音乐人格</h1>
-        <p class="muted">下面是类型库，条形是按当前全站测评结果统计的占比。</p>
-      </div>
-      <RouterLink to="/personality/test"><el-button type="primary">去测我自己</el-button></RouterLink>
-    </section>
+  <div class="types">
+    <div class="hd" style="margin-top: 22px">
+      <b class="big">音乐人格图鉴</b>
+      <span>{{ items.length }} 种人格 · 已有 {{ stats.total || 0 }} 人完成测评 · 数据每日更新</span>
+    </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
-    <div v-else-if="!items.length" class="state card empty">
-      <p class="big">类型库还是空的</p>
+    <div v-else-if="!items.length" class="state g-card">
+      <h2>类型库还是空的</h2>
       <p class="muted">需要管理员先在后台导入人格类型与题目。</p>
     </div>
 
-    <div v-else class="grid">
-      <RouterLink
-        v-for="it in items"
-        :key="it.code"
-        :to="{ name: 'personality-type', params: { code: it.code } }"
-        class="card item"
-      >
-        <div class="top">
-          <span class="code">{{ it.code }}</span>
-          <span class="pct num">{{ pctText(it.ratio) }}</span>
+    <template v-else>
+      <div class="atlas">
+        <div
+          v-for="it in items"
+          :key="it.code"
+          class="at"
+          :style="{ '--tc': typeColor(it.code) }"
+          @click="$router.push({ name: 'personality-type', params: { code: it.code } })"
+        >
+          <div class="num">{{ it.code }}</div>
+          <div class="nm">{{ it.name }}</div>
+          <div class="ds">{{ it.description }}</div>
+          <div class="pct">{{ pct(it.ratio) }} · {{ it.count }} 人</div>
         </div>
-        <h3>{{ it.name }}</h3>
-        <p class="desc muted">{{ it.description }}</p>
-        <div class="bar">
-          <span class="fill" :style="{ width: pctText(it.ratio) }" />
+      </div>
+
+      <div class="dist">
+        <h4>各种人格的分布情况</h4>
+        <div v-for="it in sorted" :key="it.code" class="dr">
+          <b>{{ it.name }}</b>
+          <span class="bb2"><i :style="{ width: Math.max(2, Math.round((it.ratio || 0) * 100)) + '%', background: typeColor(it.code) }"></i></span>
+          <span class="vv">{{ pct(it.ratio) }}</span>
         </div>
-        <p class="count muted small">已有 {{ it.count }} 人测出</p>
-      </RouterLink>
-    </div>
+      </div>
+
+      <p class="note">
+        <b>说明：</b>图鉴的作用不只是"展示分类"，而是让用户<b>看到自己在人群中的位置</b> —— 每张卡上都写着占比与人数。
+        这些数字来自真实用户作答的累计，清空数据库就会归零。
+      </p>
+    </template>
   </div>
 </template>
 
@@ -42,6 +49,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
+import { typeColor } from '@/utils/personality.js';
 
 const loading = ref(true);
 const types = ref([]);
@@ -56,13 +64,14 @@ const statMap = computed(() => {
 const items = computed(() =>
   (types.value || []).map((t) => {
     const s = statMap.value.get(t.code) || { count: 0, ratio: 0 };
-    return { ...t, count: s.count, ratio: s.ratio };
+    return { ...t, count: s.count || 0, ratio: s.ratio || 0 };
   }),
 );
 
-function pctText(ratio) {
-  const pct = Math.round((ratio || 0) * 100);
-  return `${pct}%`;
+const sorted = computed(() => items.value.slice().sort((a, b) => (b.ratio || 0) - (a.ratio || 0)));
+
+function pct(ratio) {
+  return `${Math.round((ratio || 0) * 100)}%`;
 }
 
 onMounted(async () => {
@@ -80,94 +89,27 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--sp-4);
-  padding: var(--sp-7) 0 var(--sp-5);
+.types {
+  padding-bottom: var(--sp-7);
 }
-.head h1 {
-  font-size: var(--fs-h1);
-  margin-top: var(--sp-2);
-}
-.head .muted {
-  margin-top: var(--sp-2);
-}
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
+.big {
+  font-size: 20px;
+  letter-spacing: -0.3px;
 }
 .state {
+  margin: var(--sp-7) auto;
   padding: var(--sp-6);
+  max-width: 520px;
   text-align: center;
 }
-.empty {
-  max-width: 460px;
-  margin: var(--sp-5) auto var(--sp-8);
+@media (max-width: 860px) {
+  .atlas {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
-.empty .big {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-2);
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--sp-4);
-  padding-bottom: var(--sp-8);
-}
-.item {
-  padding: var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
-}
-.item:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-2);
-}
-.top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.code {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  color: var(--text-3);
-}
-.pct {
-  color: var(--accent);
-  font-weight: 600;
-}
-.item h3 {
-  font-size: var(--fs-h2);
-}
-.desc {
-  font-size: var(--fs-sm);
-  line-height: 1.6;
-  flex: 1;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.bar {
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  overflow: hidden;
-}
-.fill {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--brand), var(--accent));
-}
-.small {
-  font-size: var(--fs-sm);
+@media (max-width: 560px) {
+  .atlas {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

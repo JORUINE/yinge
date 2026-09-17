@@ -1,35 +1,81 @@
 <template>
-  <div class="container narrow">
-    <div class="page-head">
-      <p class="eyebrow">音乐人格测评</p>
-      <h1>12 道题，测出你的音乐人格</h1>
-      <p class="muted">含 2 道听感题。答完会得到一张人格卡，以及一段个性化解读和三张推荐专辑。</p>
+  <div class="test">
+    <div v-if="loading" class="state muted">正在加载题目…</div>
+
+    <div v-else-if="!questions.length" class="state g-card">
+      <h2>题目还没准备好</h2>
+      <p class="muted">需要管理员先在后台导入题目。</p>
     </div>
 
-    <div v-if="loading" class="muted">正在加载题目…</div>
-
     <template v-else>
-      <article v-for="(q, index) in questions" :key="q.questionId" class="card block">
-        <div class="qhead">
-          <span class="qno num">{{ String(index + 1).padStart(2, '0') }}</span>
-          <h3>{{ q.title }}</h3>
-          <el-tag v-if="q.type === 'audio'" size="small" type="warning">听感题</el-tag>
+      <div class="quizwrap">
+        <div class="qbar">
+          <div class="dots">
+            <i
+              v-for="(q, i) in questions"
+              :key="q.questionId"
+              :class="{ done: answers[q.questionId], cur: i === idx }"
+            ></i>
+          </div>
+          <span class="cnt">第 {{ idx + 1 }} / {{ questions.length }} 题</span>
         </div>
-        <el-radio-group v-model="answers[q.questionId]" class="opts">
-          <el-radio v-for="o in q.options" :key="o.key" :value="o.key" border>{{ o.label }}</el-radio>
-        </el-radio-group>
-      </article>
 
-      <div class="submitbar">
-        <span class="muted small">已答 <strong class="num">{{ answeredCount }} / {{ questions.length }}</strong></span>
-        <el-button type="primary" size="large" :loading="submitting" @click="onSubmit">提交，看结果</el-button>
+        <div class="qcard2">
+          <div class="qno">Q{{ idx + 1 }}<template v-if="current.type === 'audio'"> · 听感题</template></div>
+          <h3>{{ current.title }}</h3>
+          <p class="qtip">
+            {{ current.type === 'audio' ? '先听，再答 —— 这是音乐测评与普通问卷的区别所在' : '凭第一直觉选就好，不用想太久' }}
+          </p>
+
+          <!-- 听感题：播放器嵌在题干下方 -->
+          <div v-if="current.type === 'audio'" class="audioplay">
+            <button class="bb" type="button" :disabled="!audioSrc" @click="togglePlay">
+              <svg viewBox="0 0 24 24">
+                <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
+                <path v-else d="M8 5v14l11-7z" />
+              </svg>
+            </button>
+            <span class="tx3">
+              <b>测试片段 · 30 秒</b>
+              <span>{{ audioSrc ? '听完再选择你的第一感觉' : '本题为听感题（音频源待后台配置）' }}</span>
+            </span>
+            <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
+          </div>
+
+          <div>
+            <div
+              v-for="o in current.options"
+              :key="o.key"
+              class="oi"
+              :class="{ on: answers[current.questionId] === o.key }"
+              @click="pick(o.key)"
+            >
+              <span class="k">{{ o.key }}</span>
+              <span class="tx2">{{ o.label }}</span>
+            </div>
+          </div>
+
+          <div class="qnav">
+            <button class="btn ghost" type="button" :disabled="idx === 0" @click="prev">上一题</button>
+            <button class="btn pri" type="button" :disabled="submitting" @click="next">
+              {{ isLast ? (submitting ? '提交中…' : '提交，看结果') : '下一题' }}
+            </button>
+          </div>
+        </div>
       </div>
+
+      <p class="note">
+        <b>说明：</b>答题页的关键是<b>不让人中途放弃</b>：① 顶部进度点，一眼知道还剩多少；
+        ② 一屏只出一道题，答完自动进下一题；③ 听感题必须能播出来，播放器嵌在题干下方。
+      </p>
     </template>
+
+    <audio v-if="audioSrc" ref="audioEl" :src="audioSrc" @ended="playing = false"></audio>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
@@ -42,23 +88,53 @@ const loading = ref(true);
 const submitting = ref(false);
 const questions = ref([]);
 const answers = reactive({});
+const idx = ref(0);
 
-const answeredCount = computed(() => Object.values(answers).filter(Boolean).length);
+const audioEl = ref(null);
+const playing = ref(false);
+const audioSrc = ref('');
 
-onMounted(async () => {
-  try {
-    const data = await personalityApi.questions();
-    questions.value = data.list || [];
-  } catch (err) {
-    ElMessage.error(err?.message || '题目加载失败');
-  } finally {
-    loading.value = false;
-  }
+const current = computed(() => questions.value[idx.value] || {});
+const isLast = computed(() => idx.value === questions.value.length - 1);
+const answeredCount = computed(() => questions.value.filter((q) => answers[q.questionId]).length);
+
+/** 听感题的音频：兼容几种可能的字段名，拿不到就提示"待配置" */
+function audioOf(q) {
+  return q?.audioUrl || q?.previewUrl || q?.audio || q?.sampleUrl || '';
+}
+
+watch(current, (q) => {
+  audioSrc.value = q?.type === 'audio' ? audioOf(q) : '';
+  playing.value = false;
 });
 
-async function onSubmit() {
+function pick(key) {
+  answers[current.value.questionId] = key;
+  // 选完稍等片刻自动进下一题（最后一题不自动提交）
+  if (!isLast.value) {
+    setTimeout(() => {
+      if (answers[current.value.questionId] === key) next();
+    }, 220);
+  }
+}
+
+function prev() {
+  if (idx.value > 0) idx.value -= 1;
+}
+
+async function next() {
+  if (!answers[current.value.questionId]) {
+    ElMessage.info('先选一个答案');
+    return;
+  }
+  if (!isLast.value) {
+    idx.value += 1;
+    return;
+  }
   if (answeredCount.value < questions.value.length) {
-    ElMessage.warning('请答完全部题目再提交');
+    const firstUnanswered = questions.value.findIndex((q) => !answers[q.questionId]);
+    idx.value = firstUnanswered;
+    ElMessage.warning('还有题没答完');
     return;
   }
   if (!auth.isLoggedIn) {
@@ -77,57 +153,41 @@ async function onSubmit() {
     submitting.value = false;
   }
 }
+
+function togglePlay() {
+  const el = audioEl.value;
+  if (!el) return;
+  if (el.paused) {
+    el.play?.().catch(() => {});
+    playing.value = true;
+    nextTick();
+  } else {
+    el.pause?.();
+    playing.value = false;
+  }
+}
+
+onMounted(async () => {
+  try {
+    const data = await personalityApi.questions();
+    questions.value = data.list || [];
+    if (questions.value.length) audioSrc.value = questions.value[0].type === 'audio' ? audioOf(questions.value[0]) : '';
+  } catch (err) {
+    ElMessage.error(err?.message || '题目加载失败');
+  } finally {
+    loading.value = false;
+  }
+});
 </script>
 
 <style scoped>
-.narrow {
-  max-width: 720px;
+.test {
+  padding-bottom: var(--sp-7);
 }
-
-.block {
-  padding: var(--sp-5);
-  margin-bottom: var(--sp-4);
-}
-
-.qhead {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  margin-bottom: var(--sp-4);
-}
-
-.qno {
-  color: var(--brand);
-  font-size: var(--fs-sm);
-}
-
-.qhead h3 {
-  flex: 1;
-}
-
-.opts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-  align-items: stretch;
-}
-
-.opts :deep(.el-radio) {
-  margin-right: 0;
-  height: auto;
-  padding: var(--sp-3) var(--sp-4);
-}
-
-.submitbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: var(--sp-8);
-  gap: var(--sp-4);
-  flex-wrap: wrap;
-}
-
-.small {
-  font-size: var(--fs-sm);
+.state {
+  margin: var(--sp-8) auto;
+  padding: var(--sp-6);
+  max-width: 520px;
+  text-align: center;
 }
 </style>

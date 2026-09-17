@@ -1,37 +1,54 @@
 <template>
-  <div class="container narrow">
+  <div class="detail">
     <RouterLink to="/personality/types" class="back">← 返回图鉴</RouterLink>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
     <template v-else-if="type">
-      <section class="card head">
-        <span class="code">{{ type.code }}</span>
-        <h1>{{ type.name }}</h1>
-        <p class="desc muted">{{ type.description }}</p>
-        <div v-if="dims.length" class="dims">
-          <span v-for="d in dims" :key="d.label" class="dim">
-            <strong class="num">{{ d.score }}</strong>{{ d.label }}
-          </span>
+      <div class="ptcard" :style="{ '--pc': pc, '--pc2': pc2 }">
+        <div class="glowc"></div>
+        <div class="pthd">
+          <div>
+            <div class="ptcode">{{ type.code }}</div>
+            <div class="ptname">{{ type.name }}</div>
+            <div class="accent2"></div>
+            <p class="ptdesc">{{ type.description }}</p>
+            <div class="btns">
+              <RouterLink to="/personality/test" class="btn pri">测测我是哪种</RouterLink>
+              <RouterLink to="/personality/types" class="btn ghost">看看其他人格</RouterLink>
+            </div>
+          </div>
+          <div>
+            <div v-for="d in dims" :key="d.label" class="dim2">
+              <div class="lb"><span>{{ d.label }}</span><span>{{ d.ten }} / 10</span></div>
+              <div class="bar2"><i :style="{ width: d.ratio + '%' }"></i></div>
+            </div>
+            <p v-if="!dims.length" class="hint muted">这个类型没有配置维度特征</p>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section v-if="albums.length" class="rec">
-        <h2>这个人格常听的专辑</h2>
-        <div class="grid">
-          <article v-for="a in albums" :key="a.albumId" class="card album">
-            <img :src="a.artworkUrl" :alt="a.name" />
-            <p class="name">{{ a.name }}</p>
-            <p class="muted small num">{{ year(a.releaseDate) }} · {{ a.trackCount }} 首</p>
-          </article>
+      <div class="hd" style="margin-top: 26px">
+        <b>这个人格常听的专辑</b><span>来自该类型的推荐池</span>
+      </div>
+
+      <div v-if="albums.length" class="recs">
+        <div v-for="a in albums" :key="a.albumId" class="alb" :style="accentStyle(a)">
+          <div class="art albc"><img :src="a.artworkUrl" :alt="a.name" loading="lazy" /></div>
+          <b>{{ a.name }}</b>
+          <div class="accent"></div>
+          <div class="ar"><i></i>{{ a.artistName || '—' }}</div>
+          <div class="mt num">{{ year(a.releaseDate) }} · {{ a.trackCount }} 首</div>
         </div>
-      </section>
-      <p v-else class="muted none">这个类型暂时还没有推荐专辑。</p>
+      </div>
+      <p v-else class="note">
+        这个类型还没有推荐专辑 —— 后台 `recommendAlbumIds` 为空。管理员在「人格类型管理」里绑几张即可。
+      </p>
     </template>
 
-    <div v-else class="state card empty">
-      <p class="big">找不到这个人格类型</p>
-      <RouterLink to="/personality/types"><el-button type="primary">回图鉴</el-button></RouterLink>
+    <div v-else class="state g-card">
+      <h2>找不到这个人格类型</h2>
+      <RouterLink to="/personality/types" class="btn ghost">回图鉴</RouterLink>
     </div>
   </div>
 </template>
@@ -41,20 +58,32 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
+import { typeColor, normalizeScores } from '@/utils/personality.js';
 
 const route = useRoute();
 const code = route.params.code;
+
 const loading = ref(true);
 const type = ref(null);
 const albums = ref([]);
 
-const dims = computed(() => {
-  const d = type.value?.dims || [];
-  return Array.isArray(d) ? d : Object.entries(d).map(([label, score]) => ({ label, score }));
+const pc = computed(() => typeColor(type.value?.code || code));
+const pc2 = computed(() => {
+  const c = pc.value;
+  if (c.startsWith('#')) {
+    const n = parseInt(c.slice(1), 16);
+    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0.3)`;
+  }
+  return 'rgba(14,165,233,.3)';
 });
+const dims = computed(() => normalizeScores(type.value?.dims));
 
-function year(d) {
-  return d ? String(d).slice(0, 4) : '';
+const year = (d) => (d ? String(d).slice(0, 4) : '');
+function accentStyle(album) {
+  const key = String(album?.albumId ?? '');
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
+  return { '--ac': `hsl(${h} 70% 52%)`, '--acs': `hsla(${h}, 70%, 45%, 0.34)` };
 }
 
 onMounted(async () => {
@@ -71,90 +100,35 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.narrow {
-  max-width: 880px;
-  padding-top: var(--sp-7);
-  padding-bottom: var(--sp-8);
+.detail {
+  padding-bottom: var(--sp-7);
 }
 .back {
   display: inline-block;
   color: var(--brand-deep);
   font-size: var(--fs-sm);
-  margin-bottom: var(--sp-4);
-}
-.head {
-  padding: var(--sp-6);
-  margin-bottom: var(--sp-5);
-}
-.code {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-}
-.head h1 {
-  font-size: var(--fs-display);
-  margin: var(--sp-2) 0 var(--sp-3);
-}
-.desc {
-  line-height: 1.8;
-}
-.dims {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-4);
-  margin-top: var(--sp-4);
-}
-.dim {
-  font-size: var(--fs-sm);
-  color: var(--text-2);
-}
-.dim strong {
-  color: var(--brand-deep);
-  font-size: var(--fs-h3);
-  margin-right: 4px;
-}
-.rec h2 {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-4);
-}
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: var(--sp-4);
-}
-.album {
-  padding: var(--sp-3);
-  text-align: center;
-}
-.album img {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: var(--radius);
-  object-fit: cover;
-  margin-bottom: var(--sp-2);
-}
-.album .name {
-  font-size: var(--fs-body);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.small {
-  font-size: var(--fs-sm);
-}
-.none {
-  padding-bottom: var(--sp-6);
+  margin: var(--sp-5) 0 var(--sp-4);
 }
 .state {
+  margin: var(--sp-7) auto;
   padding: var(--sp-6);
+  max-width: 520px;
   text-align: center;
 }
-.empty {
-  max-width: 460px;
-  margin: var(--sp-5) auto;
+.btns {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
-.empty .big {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-3);
+.hint {
+  font-size: var(--fs-sm);
+}
+@media (max-width: 860px) {
+  .pthd {
+    grid-template-columns: 1fr;
+  }
+  .recs {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 </style>
