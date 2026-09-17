@@ -10,11 +10,65 @@ export const MIN_TRACK_COUNT = 7;
 
 /** 名称关键词集合（规则 3~6 使用），后续可由后台维护 */
 export const DEFAULT_KEYWORDS = {
-  live: ['live', '现场', '演唱會', '演唱会', 'concert', 'unplugged', 'acoustic live'],
+  // live：除了 live/concert，还要拦「巡演 / 体育场」这类现场录音（2026-09-17 补：Stadium Tour 漏筛）
+  live: [
+    'live',
+    '现场',
+    '演唱會',
+    '演唱会',
+    'concert',
+    'unplugged',
+    'acoustic live',
+    ' tour',
+    'tour ',
+    '巡演',
+    '巡迴',
+    '巡回',
+    'stadium',
+    '体育馆',
+    '紅館',
+    '红馆',
+  ],
   soundtrack: ['ost', 'original soundtrack', 'soundtrack', '原声', '电影原声', '配乐', '主題曲', '主题曲'],
-  compilation: ['精选', '精選', 'greatest hits', 'best of', 'collection', 'hits', '典藏', '精裝', '精装'],
+  // compilation：playlist 也算拼盘（2026-09-17 补：Surprise Song Playlist 漏筛）
+  compilation: [
+    '精选',
+    '精選',
+    'greatest hits',
+    'best of',
+    'collection',
+    'hits',
+    '典藏',
+    '精裝',
+    '精装',
+    'playlist',
+    '歌单',
+    '歌單',
+  ],
   multiArtist: ['群星', '合辑', '合輯', '、', ' vs ', ' VS '],
-  deluxe: ['deluxe', '豪华', '豪華', 'remaster', 'remastered', '重制', 'reissue', 'expanded', 'special edition', '限量'],
+  // karaoke：卡拉OK / 伴奏 / 纯伴奏版——不是正式专辑（2026-09-17 新增：
+  //   「Taylor Swift Karaoke: 1989 (Deluxe)」曾一路夺冠，属于严重漏筛）
+  karaoke: ['karaoke', '卡拉ok', '伴唱', '伴奏', 'instrumental', 'instrumentals'],
+  deluxe: [
+    'deluxe',
+    '豪华',
+    '豪華',
+    'remaster',
+    'remastered',
+    '重制',
+    'reissue',
+    'expanded',
+    'special edition',
+    '限量',
+    '改版',
+    '紀念版',
+    '纪念版',
+    '復刻',
+    '复刻',
+    '日本盤',
+    '台版',
+    '港版',
+  ],
 };
 
 /** 规则序号 → 过滤原因，供前端展示"命中规则" */
@@ -25,6 +79,7 @@ export const RULE_LABELS = {
   NOT_SOUNDTRACK: '非影视原声',
   NOT_COMPILATION: '非精选集',
   NOT_MULTI_ARTIST: '非合辑拼盘',
+  NOT_KARAOKE: '非卡拉OK / 伴奏版',
   DEDUPE: '同名去重',
 };
 
@@ -64,7 +119,7 @@ export function normalizeAlbumName(name) {
   return normalizeText(name)
     .replace(/\(.*?\)|\[.*?\]|（.*?）|【.*?】/g, '')
     .replace(
-      /deluxe|豪华|remaster(ed)?|重制|reissue|expanded|special edition|platinum edition|anniversary|限量版?/gi,
+      /deluxe|豪华|remaster(ed)?|重制|reissue|expanded|special edition|platinum edition|anniversary|限量版?|改版|紀念版|纪念版|復刻|复刻|日本盤|台版|港版/gi,
       '',
     )
     .replace(/[\s\-_·.,'"!?&/\\|:;]/g, '')
@@ -92,6 +147,10 @@ export function evaluateAlbum(album, { artistExternalId, keywords = DEFAULT_KEYW
   }
   if (hitKeyword(album.name, keywords.multiArtist)) {
     return { isEligible: false, excludeReason: RULE_LABELS.NOT_MULTI_ARTIST };
+  }
+  // 规则 6.5：卡拉OK / 伴奏版（不是正式专辑）
+  if (hitKeyword(album.name, keywords.karaoke)) {
+    return { isEligible: false, excludeReason: RULE_LABELS.NOT_KARAOKE };
   }
   return { isEligible: true, excludeReason: null };
 }

@@ -51,6 +51,10 @@
   .rule b{color:var(--brand-deep)}
   .foot{text-align:center;font-size:12px;color:var(--text3);padding:18px}
   .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-top:6px}
+  tr.grp td{background:rgba(14,165,233,.08);font-weight:700;color:var(--brand-deep);font-size:12px;letter-spacing:.3px}
+  .task{background:var(--glass);border:1px solid var(--gbd);border-left:3px solid var(--gold);
+    border-radius:0 var(--r-s) var(--r-s) 0;padding:12px 16px;margin:10px 0}
+  .task b{color:var(--ink,#0B2A42)}
 </style>
 </head>
 <body>
@@ -192,13 +196,57 @@
         <tr><td>7</td><td>排行榜</td><td>「地区 / 年代 / 周期」三重筛选无接口</td><td>后端补接口后再上 UI（未编假 UI）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>8</td><td>对决</td><td>抽卡式进入动画</td><td>收尾阶段做（见第 3 节③）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>9</td><td>全站</td><td>深色模式未逐页验收；响应式 375/768/1024/1440 未逐页过</td><td>收尾统一验收</td><td><span class="pill p2">P2</span></td></tr>
-        <tr><td>10</td><td>全站 · 专辑主色</td><td>歌手名/色条/光晕的颜色**现在是按 <code>albumId</code> 稳定映射一个色相**，<b>不是从封面像素取色</b>（设计稿原意是"背景跟着专辑变"）。观感上每张专辑颜色都不同且稳定，但不是真取色。</td><td>收尾可选升级：canvas 读封面主色（需处理跨域，iTunes 图源通常允许 <code>crossorigin</code>）</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>10</td><td>全站 · 专辑主色</td><td><b>颜色采样是错的</b>：现在是按 <code>albumId</code> 哈希出一个色相，<b>根本没读封面</b> —— 所以黑白封面的 reputation 会显示成紫色。</td><td><b>必须修</b>：改为 canvas 读封面主色（需处理跨域，iTunes 图源通常允许 <code>crossorigin</code>），失败再退回哈希</td><td><span class="pill p0">P0</span></td></tr>
+
+        <tr><td colspan="5" class="grp">— 2026-09-17 晚 用户新反馈（逐条待落实）—</td></tr>
+
+        <tr><td>11</td><td>全站 · 术语</td><td>「<b>步</b>」很难听，"根本不像比赛用语"（如「已投 22 / 42 步」）</td><td>统一改成「<b>场</b>」（与设计稿"共 15 场"一致）：创建页/投票页/对阵表/分享图一起改</td><td><span class="pill p0">P0</span></td></tr>
+        <tr><td>12</td><td>投票页 · 纵向高度</td><td>100% 缩放看不全（专辑+试听+投票要缩到 80% 才看得下）</td><td>压缩纵向：封面尺寸/间距收紧，目标一屏放得下"两张专辑 + 试听 + 投票"</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>13</td><td>投票页 · 横向留白</td><td>左右留白太多</td><td>主体加宽 / 收紧容器边距</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>14</td><td>投票页 · 提示行</td><td>"没听过？先试听 30 秒再投"这类提示占了一整行</td><td>上移/并入阶段标签行，别单独占一行</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>15</td><td>投票页 · 投票方式</td><td>要求：<b>点封面图也能投票</b>；下方「投给《X》」按钮可以优化掉</td><td>整张专辑卡可点投票；保留一个弱化的操作提示即可</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>16</td><td>投票页 · 播放条</td><td>demo 的播放条有<b>歌名 + 曲目切换（⏮ ▶ ⏭ + 1/10）</b>，我们只有一个泛泛提示 —— <b>正式功能必须做</b></td><td>接入曲目列表（iTunes 专辑曲目已有 <code>previewUrl</code>）：显示当前歌名 + 上一首/下一首 + 序号</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>17</td><td>投票页 · 淘汰赛 UI</td><td>淘汰赛界面不如 demo 清晰（demo：阶段标签 + 「半决赛 · 第 1 场」+ 进度）</td><td>按 demo 重做淘汰赛头部与舞台</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>18</td><td>分享页 · 布局</td><td>100% 缩放下图片大小全乱，缩到 50% 才看得清</td><td>分享卡与设置区布局重排（限制卡片宽度、自适应）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>19</td><td>冠军页 · 名次</td><td>只有冠军，没有<b>亚军 / 季军</b></td><td>冠军下方补亚军、季军（后端 <code>path</code>/对阵数据已够推导）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>20</td><td>冠军页 · 叙事</td><td>没有"<b>我选的专辑一路打赢其他组冠军走上来</b>"的感觉 —— 单看结果页乐趣性、比赛性不足（音乐世界杯那种清晰感）</td><td>补**晋级叙事**：从小组赛 → 复活 → 各轮 → 夺冠的完整"打过谁"时间线 + 可点开每一轮</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>21</td><td>全站 · 导航</td><td><b>各个层级界面都没有返回按钮</b></td><td>所有二级/三级页补返回（含后台）；AppShell 统一提供面包屑/返回</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>22</td><td>玩法 · 好友一起玩</td><td>玩法说明里写了「和好友一起玩」，<b>功能还没落地</b></td><td>同款签表分享链接 → 好友进同一批专辑 → 双人对比页（冠军是否一致 / 从第几轮分歧）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>23</td><td>测评 · 题量与听感</td><td>12 道题会不会太局限？<b>听感题只有 2 道太少</b>（且当前没有真实音频）</td><td><b>需专门研究</b>：题量/听感题占比/音频来源（详见下方"研究项"）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>24</td><td>数据 · 歌曲 API</td><td>用户问"什么时候接入歌曲 API"</td><td>现状：已用 iTunes，专辑曲目自带 30 秒试听（<code>previewUrl</code>）；<b>是否需要更完整播放要先定</b>（版权/密钥成本）</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>25</td><td>数据 · 准入筛选</td><td>卡拉OK / 巡演现场 / playlist 被漏筛（<b>卡拉OK专辑曾一路夺冠</b>）</td><td><b>已修</b>：新增「非卡拉OK/伴奏版」规则、live 补 tour/巡演/stadium、compilation 补 playlist；重算后剔除 3 张（Karaoke 1989 (Deluxe) / Eras Tour Setlist / reputation Stadium Tour Surprise Song Playlist）</td><td><span class="pill ok">已修</span></td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-top:10px">注：第 12~18、20 属"排版/动效"，按既定原则统一放到**收尾阶段**做；第 11（术语）、15（点图投票）、16（播放器）、19（亚季军）、21（返回）、22（好友同玩）属**功能**，随功能进度做；第 10（颜色）与 25（筛选）为**必须修**，10 已排 P0。</p>
+  </div>
       </tbody>
     </table>
   </div>
 
   <div class="card">
-    <h2><span class="n">7</span>落地方式</h2>
+    <h2><span class="n">7</span>需要专门研究的问题</h2>
+    <p class="muted">这两条不是"排个版就完事"，是要先想清楚再动手。</p>
+
+    <h3>① 测评题量与听感题占比</h3>
+    <div class="task"><b>用户的疑问：</b>"十二道题目会不会太局限 我感觉听感题目两道太少了 这里必须研究下怎么优化。"</div>
+    <ul>
+      <li><b>题量：</b>12 题约 3 分钟；要评估"加到 16~20 题"对<b>完成率 vs 区分度</b>的影响（题太多会劝退，太少则 6 个类型分不开）。方向：先按 16 题设计（4 维度各 4 题），保持 3~4 分钟。</li>
+      <li><b>听感题：</b>从 2 道扩到 <b>4 道</b>左右。听感题是"音乐测评 ≠ 普通问卷"的核心差异，只有 2 道确实撑不住。</li>
+      <li><b>音频来源（关键）：</b>现在听感题<b>没有真实音频</b>。可行做法 —— 从 iTunes 30 秒片段里<b>固定挑几段</b>绑到题目上（后台可维护 <code>audioRef</code>），保证<b>所有人听的是同一段</b>（可复现、公平）。绝不能用随机片段。</li>
+      <li><b>验收标准：</b>每道听感题都能真实播放、且不同人打开听到的是同一段。</li>
+    </ul>
+
+    <h3>② 歌曲 API / 播放能力到哪一步</h3>
+    <div class="task"><b>用户的疑问：</b>"还有什么时候接入歌曲api。"</div>
+    <ul>
+      <li><b>现状（已经接好了）：</b>数据源就是 <b>iTunes Search API</b>，专辑曲目自带 <b>30 秒试听地址</b>（<code>previewUrl</code>），免密钥、免登录、可公开部署。</li>
+      <li><b>要定的只有一件事：</b>是否需要"<b>完整播放</b>"。完整播放涉及版权与密钥（网易云路线已证实会 -462 风控），<b>建议不做</b>，维持 30 秒试听。</li>
+      <li><b>真正要补的是体验：</b>把 30 秒试听做"完整"—— 显示<b>歌名</b>、支持<b>上一首/下一首</b>、显示<b>序号（1/10）</b>（见第 16 条）。这才是用户能感知的差别。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">8</span>落地方式</h2>
     <ul>
       <li>守则<b>长期有效</b>：每次做前端都先读它；提新意见时<b>追加进本文件</b>，不散落在聊天里。</li>
       <li>收尾阶段按第 5 节清单逐条打勾，并<b>把修改前后截图附在《自检清单》里</b>，不靠"我觉得改好了"。</li>
