@@ -55,7 +55,23 @@
             </div>
             <b>{{ al.name }}</b>
             <div class="ar"><i></i>{{ al.artistName }}</div>
-            <div class="mt num">{{ year(al.releaseDate) }} · {{ al.trackCount }} 首</div>
+            <div class="mt num">
+              {{ year(al.releaseDate) }} · {{ al.trackCount }} 首
+              <!-- 小组赛试听：iTunes 没有热度数据，取「专辑首支可播片段」当主打代理；不参与计票 -->
+              <span
+                class="qprev"
+                role="button"
+                tabindex="0"
+                :class="{ on: previewingId === al.albumId, busy: previewLoadingId === al.albumId }"
+                title="试听主打（专辑首支可播片段，不参与计票）"
+                @click.stop="quickPreview(al)"
+                @keydown.enter.prevent="quickPreview(al)"
+                @keydown.space.prevent="quickPreview(al)"
+              >
+                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                {{ previewingId === al.albumId ? '停止' : '试听主打' }}
+              </span>
+            </div>
           </button>
         </div>
 
@@ -72,6 +88,21 @@
             清空重选
           </button>
         </div>
+      </div>
+
+      <!-- 小组赛迷你播放条：试听主打时显示（与淘汰赛共用同一套播放状态） -->
+      <div v-if="playerAlbum && curTrack" class="nowbar">
+        <div class="a"><img :src="playerAlbumArt" alt="" /></div>
+        <div class="t">
+          <b>{{ curTrack.name }}</b>
+          <span>《{{ playerAlbumName }}》试听主打 · {{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}</span>
+        </div>
+        <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
+          <svg viewBox="0 0 24 24">
+            <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
+            <path v-else d="M8 5v14l11-7z" />
+          </svg>
+        </button>
       </div>
 
       <p class="note">
@@ -340,6 +371,54 @@ async function loadAccents() {
   for (const al of pair) {
     // eslint-disable-next-line no-await-in-loop
     await ensureAlbumAccent(al);
+  }
+}
+
+/**
+ * 小组赛试听：播这张专辑的「主打」。
+ * iTunes 没有热度数据 —— 取「专辑首支可播片段」作主打的代理，并如实标注，不参与计票。
+ */
+const previewingId = ref(null);
+const previewLoadingId = ref(null);
+async function quickPreview(al) {
+  if (!al) return;
+  // 再点同一个 = 停止
+  if (previewingId.value === al.albumId) {
+    audioEl.value?.pause?.();
+    playing.value = false;
+    previewingId.value = null;
+    return;
+  }
+  previewLoadingId.value = al.albumId;
+  try {
+    const data = await musicApi.getAlbumPreview(al.albumId);
+    if (!data?.previewUrl) {
+      ElMessage.info('这张专辑没有可试听的片段');
+      return;
+    }
+    // 复用全局播放器状态：单曲队列
+    playerAlbum.value = {
+      albumId: al.albumId,
+      name: al.name,
+      artistName: al.artistName,
+      artworkUrl: al.artworkUrl,
+      trackCount: al.trackCount,
+    };
+    tracks.value = [
+      {
+        trackId: data.track?.trackId,
+        name: data.track?.name || al.name,
+        trackNumber: data.track?.trackNumber || 1,
+        previewUrl: data.previewUrl,
+      },
+    ];
+    trackIdx.value = 0;
+    previewingId.value = al.albumId;
+    loadCurrent();
+  } catch (err) {
+    ElMessage.error(err?.message || '试听加载失败');
+  } finally {
+    previewLoadingId.value = null;
   }
 }
 const stageStyle = computed(() => ({ ...accentStyle(match.value?.leftAlbum), ...glowStyle() }));
@@ -739,6 +818,44 @@ onMounted(load);
   font-size: 11.5px;
   color: var(--text2);
   margin-top: 2px;
+}
+/* 小组赛「试听主打」：卡片内的次级操作（span+role，避免在 <button> 里嵌 <button>） */
+.qprev {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-deep);
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  cursor: pointer;
+  user-select: none;
+  vertical-align: middle;
+  transition: all 0.2s;
+}
+.qprev svg {
+  width: 10px;
+  height: 10px;
+  fill: currentColor;
+}
+.qprev:hover,
+.qprev:focus-visible {
+  background: rgba(14, 165, 233, 0.2);
+  border-color: var(--brand);
+  outline: none;
+}
+.qprev.on {
+  color: #04263c;
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.qprev.busy {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 .submitrow {

@@ -1,11 +1,13 @@
 /**
  * 专辑主色：从封面像素里取（设计稿原意"背景跟着专辑变"）
  * ------------------------------------------------------------
- * 做法：把封面画到 24×24 的 canvas 上，加权平均出主色
- *   · 过滤过亮 / 过暗的像素（黑白封面的暗部不该把整张染黑）
- *   · 灰白 / 黑白封面：拿不到"彩色主色"时，返回中性灰（绝不退回随机高饱和色）
- *   · 取到的彩色色也压到友好区间（饱和度 / 亮度收口），避免荧光刺眼
- * 跨域失败 / 取色失败 → 返回 null，由调用方退回 albumId 哈希色（也已降饱和）
+ * 做法（业界管线，Spotify / ColorThief 同思路）：
+ *   把封面画到 48×48 的 canvas 上 → RGB 分桶量化 →
+ *   滤掉近黑/近白/低饱和像素 → 按「像素数 × 鲜艳度」选出主色桶 →
+ *   同色相合并 → 压进友好区间。
+ *   ⚠️ 不要用"彩色像素求平均"：平均法会把封面平均成谁也不像的颜色（已踩坑）。
+ * 灰白 / 黑白封面：没有彩色身份 → 返回中性灰（绝不退回随机高饱和色）。
+ * 跨域失败 / 取色失败 → 返回 null，由调用方退回 albumId 哈希色（已降饱和）。
  */
 import { reactive } from 'vue';
 
@@ -67,13 +69,13 @@ function hslToRgb(h, s, l) {
   return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 }
 
-/** 把任意取到的主色压进"不刺眼"的友好区间（饱和度 8–46%，亮度 46–60%） */
+/** 把主色压进"不刺眼但认得出"的友好区间（饱和度 18–48%，亮度 46–62%） */
 function soften(rgb) {
   const m = rgb.match(/\d+/g);
   if (!m) return rgb;
   let [h, s, l] = rgbToHsl(+m[0], +m[1], +m[2]);
-  s = Math.min(Math.max(s, 8), 46);
-  l = Math.min(Math.max(l, 46), 60);
+  s = Math.min(Math.max(s, 18), 48);
+  l = Math.min(Math.max(l, 46), 62);
   return hslToRgb(h, s, l);
 }
 
@@ -107,7 +109,7 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
   }
   clearTimeout(timer);
 
-  const size = 24;
+  const size = 48; // 量化需要比 24 更多的样本才稳
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -125,38 +127,69 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     return null; // 跨域被拦
   }
 
-  let r = 0;
-  let g = 0;
-  let b = 0;
-  let n = 0; // 彩色像素累计
-  let gr = 0;
-  let gg = 0;
-  let gb = 0;
-  let gn = 0; // 全部（含灰）像素累计
+  // ① 量化：RGB 每通道取高 3 位 → 8×8×8 = 512 个色桶
+  const buckets = new Map();
+  const gray = { count: 0, r: 0, g: 0, b: 0 };
   for (let i = 0; i < data.length; i += 4) {
     const R = data[i];
     const G = data[i + 1];
     const B = data[i + 2];
     const lum = 0.299 * R + 0.587 * G + 0.114 * B;
-    if (lum < 20 || lum > 246) continue; // 太暗/太亮
+    if (lum < 26 || lum > 238) continue; // 近黑 / 近白：不属于封面的"身份色"
     const sat = Math.max(R, G, B) - Math.min(R, G, B);
-    gr += R; gg += G; gb += B; gn += 1; // 全部像素都计入，用于判断"这封面是不是灰的"
-    if (sat < 14) continue; // 灰像素不进彩色累计
-    r += R; g += G; b += B; n += 1;
+    if (sat < 20) {
+      // 低饱和：进灰池（黑白封面的兜底用）
+      gray.count += 1;
+      gray.r += R;
+      gray.g += G;
+      gray.b += B;
+      continue;
+    }
+    const key = ((R >> 5) << 10) | ((G >> 5) << 5) | (B >> 5);
+    const bkt = buckets.get(key) || { count: 0, r: 0, g: 0, b: 0 };
+    bkt.count += 1;
+    bkt.r += R;
+    bkt.g += G;
+    bkt.b += B;
+    buckets.set(key, bkt);
   }
-  if (!gn) return null; // 整张都太暗/太亮，取不到
-  if (n) {
-    // 有彩色像素：取彩色平均色，再压进友好区间
-    return soften(`rgb(${Math.round(r / n)}, ${Math.round(g / n)}, ${Math.round(b / n)})`);
+
+  // ② 纯灰 / 黑白封面：中性灰，安静不抢戏
+  if (!buckets.size) {
+    if (!gray.count) return null; // 整张都太暗 / 太亮
+    const lum = (0.299 * gray.r + 0.587 * gray.g + 0.114 * gray.b) / gray.count;
+    const l = Math.min(Math.max(Math.round((lum / 255) * 100), 46), 58);
+    return hslToRgb(215, 6, l);
   }
-  // 纯灰 / 黑白封面：返回中性灰（带极弱的冷暖倾向，避免死板），绝不退回随机高饱和色
-  const avgR = gr / gn;
-  const avgG = gg / gn;
-  const avgB = gb / gn;
-  const neutralL = Math.min(Math.max(0.299 * avgR + 0.587 * avgG + 0.114 * avgB, 120), 200);
-  // 蓝分量略高 → 偏冷灰；红分量略高 → 偏暖灰；否则中性冷灰
-  const neutralH = avgB > avgR ? 215 : avgB < avgR ? 30 : 215;
-  return hslToRgb(neutralH, 6, Math.round((neutralL / 255) * 100));
+
+  // ③ 打分：像素数 × 鲜艳度（"大面积的鲜艳色"才是这张封面的角色色）
+  const scored = [];
+  for (const bkt of buckets.values()) {
+    const r = bkt.r / bkt.count;
+    const g = bkt.g / bkt.count;
+    const b = bkt.b / bkt.count;
+    const [h, s, l] = rgbToHsl(r, g, b);
+    const score = bkt.count * (0.15 + (s / 100) * 0.85) * (1 - Math.abs(l - 52) / 150);
+    scored.push({ h, s, l, count: bkt.count, r: bkt.r, g: bkt.g, b: bkt.b, score });
+  }
+  scored.sort((a, b) => b.score - a.score);
+
+  // ④ 同色相合并（±26°）：防止冠军桶只是封面角落里一小块高饱和
+  const win = scored[0];
+  let count = 0;
+  let rSum = 0;
+  let gSum = 0;
+  let bSum = 0;
+  for (const s of scored) {
+    const d = Math.abs(s.h - win.h);
+    if (Math.min(d, 360 - d) <= 26) {
+      count += s.count;
+      rSum += s.r;
+      gSum += s.g;
+      bSum += s.b;
+    }
+  }
+  return soften(`rgb(${Math.round(rSum / count)}, ${Math.round(gSum / count)}, ${Math.round(bSum / count)})`);
 }
 
 /** 已取到主色就用它，否则退回哈希色 —— 统一给模板用的同步方法 */

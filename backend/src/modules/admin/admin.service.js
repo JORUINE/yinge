@@ -26,15 +26,53 @@ export async function login({ account, password }) {
 }
 
 export async function dashboard() {
-  const [userTotal, bannedTotal, battleTotal, albumTotal, artistTotal, resultTotal, voteTotal] = await Promise.all([
-    User.countDocuments({ role: 'user' }),
-    User.countDocuments({ status: 'banned' }),
-    Battle.countDocuments(),
-    Album.countDocuments(),
-    Artist.countDocuments(),
-    PersonalityResult.countDocuments(),
-    Vote.countDocuments({ isInvalid: false }),
-  ]);
+  const [userTotal, bannedTotal, battleTotal, albumTotal, artistTotal, resultTotal, voteTotal, topAlbumRows, genreRows, artistRows] =
+    await Promise.all([
+      User.countDocuments({ role: 'user' }),
+      User.countDocuments({ status: 'banned' }),
+      Battle.countDocuments(),
+      Album.countDocuments(),
+      Artist.countDocuments(),
+      PersonalityResult.countDocuments(),
+      Vote.countDocuments({ isInvalid: false }),
+      // 用户投出来的专辑 Top10（只算有效票 —— 榜单铁律：统计口径必须 isInvalid=false）
+      Vote.aggregate([
+        { $match: { isInvalid: false } },
+        { $group: { _id: '$albumId', votes: { $sum: 1 } } },
+        { $sort: { votes: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: { from: 'albums', localField: '_id', foreignField: '_id', as: 'album' },
+        },
+        { $unwind: '$album' },
+        {
+          $project: {
+            votes: 1,
+            name: '$album.name',
+            artistName: '$album.artistName',
+            albumId: '$album.albumId',
+          },
+        },
+      ]),
+      // 专辑偏好 · 按流派分布（Album.genre 来自 iTunes 歌手流派标签，2026-09-18 起才有数据）
+      Vote.aggregate([
+        { $match: { isInvalid: false } },
+        { $lookup: { from: 'albums', localField: 'albumId', foreignField: '_id', as: 'album' } },
+        { $unwind: '$album' },
+        { $group: { _id: { $ifNull: ['$album.genre', '未知'] }, votes: { $sum: 1 } } },
+        { $sort: { votes: -1 } },
+        { $limit: 8 },
+      ]),
+      // 专辑偏好 · 按歌手分布
+      Vote.aggregate([
+        { $match: { isInvalid: false } },
+        { $lookup: { from: 'albums', localField: 'albumId', foreignField: '_id', as: 'album' } },
+        { $unwind: '$album' },
+        { $group: { _id: '$album.artistName', votes: { $sum: 1 } } },
+        { $sort: { votes: -1 } },
+        { $limit: 8 },
+      ]),
+    ]);
   const typeRows = await PersonalityResult.aggregate([
     { $group: { _id: '$typeCode', count: { $sum: 1 } } },
     { $sort: { count: -1 } },
@@ -47,6 +85,15 @@ export async function dashboard() {
     results: { total: resultTotal },
     votes: { valid: voteTotal },
     typeStats: typeRows.map((r) => ({ typeCode: r._id, count: r.count })),
+    // ↓ 新增：排行投票 / 用户专辑倾向（2026-09-18 用户要求管理员能看见"大家投了什么"）
+    topAlbums: topAlbumRows.map((r) => ({
+      name: r.name,
+      artistName: r.artistName,
+      votes: r.votes,
+      albumId: r.albumId,
+    })),
+    genreAffinity: genreRows.map((r) => ({ genre: r._id, votes: r.votes })),
+    artistAffinity: artistRows.map((r) => ({ artist: r._id, votes: r.votes })),
   };
 }
 

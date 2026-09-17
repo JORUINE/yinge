@@ -137,14 +137,60 @@ export async function resolvePool(payload) {
   }
 
   if (scopeType === 'genre') {
-    const matched = await Artist.find({ genre: new RegExp(payload.genre, 'i') }).select('artistId name');
-    if (!matched.length) throw new BadRequestError('该流派下暂无已缓存的歌手，请先搜索歌手');
+    const term = String(payload.genre || '').trim();
+    const matched = await Artist.find({ genre: new RegExp(term, 'i') }).select('artistId name');
+    if (!matched.length) {
+      // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索（2026-09-18 修复 genre 不落库后才会真的有命中）
+      throw new BadRequestError(
+        `曲库里还没有流派含「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方搜索并缓存几位该流派的歌手再回来，或换个流派词（如 Pop / Mandopop / Cantopop / Rock）`,
+      );
+    }
     const ids = matched.map((a) => a.artistId);
-    const list = await Album.find({ artistExternalId: { $in: ids }, isEligible: true }).sort({ releaseDate: 1 });
-    return {
-      albums: list,
-      artists: matched.map((a) => ({ artistId: a.artistId, name: a.name, albumCount: 0 })),
-    };
+    const list = await Album.find({ artistExternalId: { $in: ids }, isEligible: true }).sort({
+      releaseDate: 1,
+    });
+
+    // 与年代模式完全同口径（2026-09-18 修复）：此前流派分支直接返回全量且 albumCount=0，
+    // ①池子可能远超 32 破坏赛程公式 ②跨歌手分组退化 ③专辑多的歌手挤掉别人。
+    const byArtist = new Map();
+    for (const al of list) {
+      const key = Number(al.artistExternalId);
+      if (!byArtist.has(key)) byArtist.set(key, []);
+      byArtist.get(key).push(al);
+    }
+
+    // 各歌手轮转取一张封顶（默认 32）：既压住规模，又保证流派池里歌手足够多、谁也不挤谁
+    const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
+    const buckets = [...byArtist.values()].map((bucket) => [...bucket]);
+    const picked = [];
+    let progressed = true;
+    while (picked.length < cap && progressed) {
+      progressed = false;
+      for (const bucket of buckets) {
+        if (picked.length >= cap) break;
+        const next = bucket.shift();
+        if (next) {
+          picked.push(next);
+          progressed = true;
+        }
+      }
+    }
+    picked.sort(byReleaseThenId);
+
+    const docs = await Artist.find({ artistId: { $in: [...byArtist.keys()] } }).select('artistId name');
+    const nameById = new Map(docs.map((d) => [d.artistId, d.name]));
+    const countById = new Map();
+    for (const al of picked) {
+      const key = Number(al.artistExternalId);
+      countById.set(key, (countById.get(key) || 0) + 1);
+    }
+    const artists = [...countById.keys()].map((id) => ({
+      artistId: id,
+      name: nameById.get(id) || `歌手 ${id}`,
+      albumCount: countById.get(id),
+    }));
+
+    return { albums: picked, artists };
   }
 
   if (scopeType === 'era') {

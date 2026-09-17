@@ -20,6 +20,8 @@ const albumSchema = new mongoose.Schema(
     releaseDate: { type: Date, default: null },
     isEligible: { type: Boolean, required: true, default: true },
     excludeReason: { type: String, default: null },
+    // iTunes 的流派标签（歌手 primaryGenreName 的冗余）：流派模式筛选 + 用户偏好分析用
+    genre: { type: String, default: null },
     cachedAt: { type: Date, required: true },
   },
   { timestamps: true },

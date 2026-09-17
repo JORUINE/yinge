@@ -81,5 +81,6 @@ export async function getAlbumPreview(req, res) {
 }
 
 export async function listGenres(req, res) {
-  return ok(res, { list: musicService.GENRES });
+  // 数据源 = 曲库里实际存在的流派（含歌手数），不是写死的列表
+  return ok(res, { list: await musicService.listGenres() });
 }

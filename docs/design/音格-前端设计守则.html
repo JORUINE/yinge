@@ -257,6 +257,15 @@
         <tr><td>51</td><td>全站 · Edge 闪烁</td><td><b>打开网址后 Edge 最小化 / 回桌面，窗口一直闪、回不到桌面</b>（Chrome 正常）—— "必须修复"</td><td><b>已修（降级）</b>：判定为 Edge 合成器对「大量 <code>backdrop-filter</code> + 固定层 <code>blur(100px)</code>」的兼容问题。按 UA 自动降级（<code>html.ua-edge</code>）：关掉毛玻璃、降低大 blur、玻璃调不透；极光背景加独立合成层；另留 <code>?lite=1</code>（连极光一起关，最强兜底）与 <code>?glass=1</code>（恢复毛玻璃）</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>52</td><td>开发 · 重启后端</td><td>"每次要我自己关闭打开后端数据库我都不知道操作对没对"</td><td><b>已修</b>：后端本就有 <code>npm run dev</code>（<code>node --watch</code>），但启动器用的是 <code>npm start</code>（不重载）。已把 <code>start-dev.bat</code> 改成 <code>npm run dev</code> → <b>后端改代码自动重载，不用再手动重启</b>（需重新双击一次启动器生效）</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>53</td><td>玩法 · 免注册可玩（需求项）</td><td>需求文档写明「不注册也能玩对决，只有<b>保留数据 / 收藏</b>需要注册」，但现状对决相关路由<b>全是 requiresAuth</b>（必须注册才能玩）</td><td><b>方案已出，待实施</b>：游客设备 ID（localStorage）+ <code>X-Guest-Id</code> 头 + <code>loadOwnedBattle</code> 兼容 <code>userId / guestId</code> + 放开对决路由登录限制 + 登录后把游客对决迁到账号；收藏仍要求登录</td><td><span class="pill p1">待做</span></td></tr>
+
+        <tr><td colspan="5" class="grp">— 2026-09-18 凌晨 第二批（取色 / 流派 / 试听 / 对位赛 / 管理员）—</td></tr>
+
+        <tr><td>54</td><td>全站 · 取色算法</td><td>"颜色问题还是没解决，是你修出问题了还是算法一开始就没对"</td><td><b>已修（调阅业界经验后重写）</b>：结论是<b>算法一开始就不对</b> —— 之前是"彩色像素求平均"，平均法必然失真（橙粉黑的封面平均出来是土绿）。改为业界管线（Spotify/ColorThief 同思路）：<b>降采样 → RGB 分桶量化(512 桶) → 滤近黑近白低饱和 → 按「像素数×鲜艳度」打分 → 同色相合并 → 压进友好区间</b>；纯灰封面回中性灰</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>55</td><td>玩法 · 流派模式</td><td>"流派模式貌似不行啊，不能选歌手，但纯按流派那么多专辑怎么筛"</td><td><b>已修（三处根因）</b>：① <code>syncArtist</code> 从不写 <code>genre</code> → 按流派查歌手<b>永远空</b>；② <code>lookupAlbums</code> 把 iTunes 的 <code>primaryGenreName</code> 丢掉了；③ 流派选项写死英文 Pop/Rock，而 hk 区返回的是<b>繁体</b>（國語流行樂/流行樂）永远对不上。修：落库 + 回填脚本（已跑 16/16 歌手）+ 流派选择器改为<b>曲库实时统计</b> + 入池镜像年代模式（各歌手轮转抽最多 32 张）。产品答：流派=曲库内筛选，命中后准入过滤+轮转抽 32，不用手动挑</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>56</td><td>投票页 · 小组赛试听</td><td>"小组赛如何试听？倾向于就选专辑里的大热歌曲播放就行"</td><td><b>已做</b>：小组赛每张卡加「<b>试听主打</b>」—— iTunes 无热度数据，取<b>专辑首支可播片段</b>作主打代理并如实标注（不参与计票）；复用全局播放器 + 迷你播放条</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>57</td><td>结果页 · 对位赛</td><td>"对位赛怎么这么寒酸，分享图片这些都没了，必须优化"</td><td><b>已做（第一批）</b>：战报卡（领先者 + 总场次 + 总比分）+ 逐行<b>胜方高亮与徽标</b> + 「<b>保存战报图</b>」（html2canvas 截图下载）+ 再玩一次。完整对位赛分享卡/玩法增强列下一批</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>58</td><td>后台 · 数据看板</td><td>"管理员功能不够，大家的排行投票、用户专辑倾向喜好这种"</td><td><b>已做</b>：数据看板新增「<b>大家投出来的专辑 Top10</b>」+「<b>用户专辑倾向</b>」（有效票按歌手 / 按流派聚合）；后台顶栏加「<b>返回前台</b>」</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>59</td><td>全站 · 收藏</td><td>"收藏功能目前也还没实现"（此前按钮报"暂时无法收藏"）</td><td><b>已修并实测</b>：根因是<b>后端旧进程没吐专辑本地 id</b>（新代码才有）。已在临时实例真实跑通 增✓查✓删✓ 全链路；<b>重启后端即恢复</b></td><td><span class="pill ok">已修</span></td></tr>
       </tbody>
     </table>
     <p class="muted" style="margin-top:10px">注：第 12~18 属"排版/动效"，按既定原则统一放到**收尾阶段**做；第 11（术语）、15（点封面投票）、16（播放器）、19（亚季军）、<b>21（全站返回）均已做</b>；20 / 39（晋级叙事）已做；22（好友同玩）属功能、待做；第 10（颜色）、25（筛选）已修；43~49 为 2026-09-17 深夜用户实测反馈（含 48 排行榜配色 / 49 胜方字段两处二次修复）。</p>

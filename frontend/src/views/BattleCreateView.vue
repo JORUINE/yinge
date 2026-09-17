@@ -301,8 +301,29 @@
             按年代
           </button>
         </div>
-        <div v-if="genreOrEra === 'genre'" class="searchrow">
-          <input v-model="genre" class="ipt" placeholder="如 Pop / Rock / 华语流行" />
+        <div v-if="genreOrEra === 'genre'" class="genrewrap">
+          <!-- 流派选项 = 曲库里真实存在的流派（带歌手数），不是写死的英文表 —— hk 区是「國語流行樂」这类繁体标签 -->
+          <div v-if="genreOptions.length" class="chips">
+            <button
+              v-for="g in genreOptions"
+              :key="g.genre"
+              type="button"
+              class="chip"
+              :class="{ on: genre === g.genre }"
+              @click="genre = g.genre"
+            >
+              {{ g.genre }}<i>{{ g.artists }} 位歌手</i>
+            </button>
+          </div>
+          <p v-else class="hint">
+            曲库里还没有带流派标签的歌手 —— 先在上方搜索并缓存几位歌手，回来这里就能按流派开局。
+          </p>
+          <div class="searchrow" style="margin-top: 10px">
+            <input v-model="genre" class="ipt" placeholder="或直接输入流派词（需与曲库标签一致，如 流行樂）" />
+          </div>
+          <p class="hint">
+            流派 = 曲库里已缓存歌手的 iTunes 流派标签；命中后自动按准入规则过滤，再<b>各歌手轮转抽最多 32 张</b>入池 —— 不用手动挑，专辑多也不怕。
+          </p>
         </div>
         <div v-else class="yearrow">
           <input v-model.number="yearStart" class="ipt year" type="number" min="1900" max="2100" />
@@ -397,7 +418,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { musicApi, battleApi } from '@/api';
@@ -420,6 +441,17 @@ const MODES = [
 ];
 
 const QUICK = ['周杰伦', '林俊杰', '陈奕迅', '陶喆'];
+
+/** 流派选项：来自曲库的真实流派（带歌手数）；拉不到就只留手输框 */
+const genreOptions = ref([]);
+onMounted(async () => {
+  try {
+    const data = await musicApi.listGenres();
+    genreOptions.value = data.list || [];
+  } catch {
+    /* 忽略：流派选项拉不到不影响手输 */
+  }
+});
 
 const router = useRouter();
 

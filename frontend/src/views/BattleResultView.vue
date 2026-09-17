@@ -5,28 +5,54 @@
     <template v-else-if="data">
       <!-- 对位赛 / 指定对决：没有冠军，直接给逐行对照表（此前会误显示"还没结束"死循环） -->
       <template v-if="data.type === 'aligned'">
-        <div class="hd" style="margin-top: 4px">
-          <b>逐行对照表</b><span>每行一组对位 · 胜场积分制</span>
-        </div>
-        <div class="list">
-          <div v-for="(r, i) in data.rows || []" :key="i" class="r">
-            <span class="nw num">{{ r.alignIndex }}</span>
-            <div class="m">
-              <b>{{ r.left?.name }} <span class="muted">vs</span> {{ r.right?.name }}</b>
-              <span>{{ r.left?.artistName || '—' }} / {{ r.right?.artistName || '—' }}</span>
+        <!-- 战报头：此前这页只有两张表，被用户说"寒酸" —— 先给一张能直接截图/保存的战报卡 -->
+        <div ref="reportEl" class="aligned-report">
+          <div class="arep-head">
+            <span class="pillx">对位赛 · 战报</span>
+            <div class="ahead-main">
+              <template v-if="alignedLeader">
+                <b>{{ alignedLeader.name }}</b> 领先<span class="muted"> · 胜 {{ alignedLeader.wins }} 场</span>
+              </template>
+              <template v-else>暂无胜场</template>
             </div>
-            <span class="v num"><b>{{ r.leftVotes ?? 0 }} : {{ r.rightVotes ?? 0 }}</b></span>
+            <div class="ahead-sub num">
+              共 {{ (data.rows || []).length }} 场对位 · 总比分 {{ alignedScore[0] }} : {{ alignedScore[1] }}
+            </div>
+          </div>
+
+          <div class="hd" style="margin-top: 18px">
+            <b>逐行对照表</b><span>每行一组对位 · 高亮为该行胜方</span>
+          </div>
+          <div class="list">
+            <div v-for="(r, i) in data.rows || []" :key="i" class="r">
+              <span class="nw num">{{ r.alignIndex }}</span>
+              <div class="m">
+                <b :class="{ awin: rowWinnerSide(r) === 'left' }">{{ r.left?.name }}</b>
+                <span class="muted">vs</span>
+                <b :class="{ awin: rowWinnerSide(r) === 'right' }">{{ r.right?.name }}</b>
+                <span class="asub">{{ r.left?.artistName || '—' }} / {{ r.right?.artistName || '—' }}</span>
+              </div>
+              <span v-if="rowWinnerSide(r)" class="abadge">{{ rowWinnerSide(r) === 'left' ? '左侧' : '右侧' }}胜</span>
+              <span class="v num"><b>{{ r.leftVotes ?? 0 }} : {{ r.rightVotes ?? 0 }}</b></span>
+            </div>
+          </div>
+
+          <div class="hd" style="margin-top: 20px">
+            <b>歌手积分</b><span>按胜场累计 · 不产生冠军</span>
+          </div>
+          <div class="list">
+            <div v-for="(p, i) in data.points || []" :key="i" class="r">
+              <div class="m"><b>{{ artistNameOf(p.artistExternalId) }}</b><span>胜 {{ p.wins }} 场</span></div>
+              <span class="v num"><b>{{ p.wins }}</b></span>
+            </div>
           </div>
         </div>
 
-        <div class="hd" style="margin-top: 20px">
-          <b>歌手积分</b><span>按胜场累计 · 不产生冠军</span>
-        </div>
-        <div class="list">
-          <div v-for="(p, i) in data.points || []" :key="i" class="r">
-            <div class="m"><b>{{ artistNameOf(p.artistExternalId) }}</b><span>胜 {{ p.wins }} 场</span></div>
-            <span class="v num"><b>{{ p.wins }}</b></span>
-          </div>
+        <div class="btns" style="margin-top: 18px">
+          <button class="btn pri" type="button" :disabled="exporting" @click="exportReport">
+            {{ exporting ? '生成中…' : '保存战报图' }}
+          </button>
+          <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
         </div>
       </template>
 
@@ -221,6 +247,61 @@ const artistNameOf = (id) => {
   const hit = (data.value?.battle?.artists || []).find((a) => String(a.artistId) === String(id));
   return hit?.name || `歌手 ${id}`;
 };
+
+// —— 对位赛战报（此前这页只有两张表，被用户说"寒酸"） ——
+const reportEl = ref(null);
+const exporting = ref(false);
+
+/** 这一行的胜方在哪一侧（'left' | 'right' | null）。winnerAlbumId 与 left/right 同为外部 id，可直接比 */
+function rowWinnerSide(r) {
+  if (!r?.winnerAlbumId) return null;
+  if (String(r.winnerAlbumId) === String(r.left?.albumId)) return 'left';
+  if (String(r.winnerAlbumId) === String(r.right?.albumId)) return 'right';
+  return null;
+}
+
+/** 总比分：两侧各行的票数累加 */
+const alignedScore = computed(() => {
+  let l = 0;
+  let rr = 0;
+  for (const r of data.value?.rows || []) {
+    l += Number(r.leftVotes || 0);
+    rr += Number(r.rightVotes || 0);
+  }
+  return [l, rr];
+});
+
+/** 积分榜首（平手时 points[0].wins 为 0 → 不显示"领先"） */
+const alignedLeader = computed(() => {
+  const ps = [...(data.value?.points || [])];
+  if (!ps.length || !ps[0]?.wins) return null;
+  const top = ps[0];
+  return { name: artistNameOf(top.artistExternalId), wins: top.wins };
+});
+
+/** 保存战报图：html2canvas 截战报卡（对位赛此前没有任何分享出口） */
+async function exportReport() {
+  const el = reportEl.value;
+  if (!el) return;
+  exporting.value = true;
+  try {
+    const { default: html2canvas } = await import('html2canvas');
+    const canvas = await html2canvas(el, {
+      scale: Math.max(2, 1080 / el.offsetWidth),
+      backgroundColor: null,
+      useCORS: true,
+    });
+    const a = document.createElement('a');
+    a.href = canvas.toDataURL('image/png');
+    a.download = `音格对位赛战报-${id}.png`;
+    a.click();
+    ElMessage.success('战报图已保存');
+  } catch (err) {
+    ElMessage.error(err?.message || '生成失败');
+  } finally {
+    exporting.value = false;
+  }
+}
 
 const isChampion = (al) => !!champion.value && String(al?.albumId) === String(champion.value.albumId);
 
@@ -422,6 +503,46 @@ onMounted(load);
 <style scoped>
 .result {
   padding-bottom: var(--sp-7);
+}
+
+/* 对位赛战报卡 */
+.aligned-report {
+  padding: 18px 20px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.arep-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.ahead-main {
+  font-size: 18px;
+  letter-spacing: -0.3px;
+}
+.ahead-sub {
+  font-size: 12.5px;
+  color: var(--text3);
+}
+.awin {
+  color: var(--brand-deep);
+}
+.asub {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text3);
+}
+.abadge {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #04263c;
+  background: var(--brand);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
 }
 .state {
   margin: var(--sp-8) auto;

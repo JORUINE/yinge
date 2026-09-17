@@ -92,6 +92,9 @@ export async function lookupAlbums(artistId, limit = 200) {
       artworkUrl: upscaleArtwork(r.artworkUrl100),
       trackCount: Number(r.trackCount || 0),
       releaseDate: r.releaseDate ? new Date(r.releaseDate) : null,
+      // ⚠️ 流派必须带上：syncArtist 靠它给 Artist/Album 落 genre（流派模式依赖）。
+      //    之前只有 searchArtists 存了 genre，lookupAlbums 丢掉了 → 流派模式 100% 查不到。
+      genre: r.primaryGenreName || null,
       isAlbumType: r.collectionType === 'Album',
       collectionType: r.collectionType || null,
     }));

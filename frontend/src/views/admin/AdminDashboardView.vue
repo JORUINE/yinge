@@ -42,6 +42,42 @@
           </tbody>
         </table>
       </div>
+      <div class="panel">
+        <h4>大家投出来的专辑 Top10</h4>
+        <p class="ps">按有效票数 · 与前台排行榜同口径</p>
+        <ol v-if="topAlbums.length" class="ranklist">
+          <li v-for="(a, i) in topAlbums" :key="a.albumId">
+            <span class="no num">{{ i + 1 }}</span>
+            <span class="nm">{{ a.name }}<i>{{ a.artistName || '—' }}</i></span>
+            <b class="num">{{ a.votes }} 票</b>
+          </li>
+        </ol>
+        <p v-else class="muted">还没有投票数据。</p>
+      </div>
+
+      <div class="panel">
+        <h4>用户专辑倾向</h4>
+        <p class="ps">有效票按歌手 / 按流派聚合 · 看大家的口味分布</p>
+        <div v-if="artistAffinity.length || genreAffinity.length" class="affgrid">
+          <div>
+            <h5>按歌手</h5>
+            <div v-for="a in artistAffinity" :key="a.artist" class="affrow">
+              <span class="an">{{ a.artist || '—' }}</span>
+              <div class="abar"><i :style="{ width: affH(a.votes, artistAffinity) }"></i></div>
+              <b class="num">{{ a.votes }}</b>
+            </div>
+          </div>
+          <div>
+            <h5>按流派</h5>
+            <div v-for="g in genreAffinity" :key="g.genre" class="affrow">
+              <span class="an">{{ g.genre }}</span>
+              <div class="abar"><i :style="{ width: affH(g.votes, genreAffinity) }"></i></div>
+              <b class="num">{{ g.votes }}</b>
+            </div>
+          </div>
+        </div>
+        <p v-else class="muted">还没有投票数据。</p>
+      </div>
     </template>
   </AdminShell>
 </template>
@@ -59,6 +95,14 @@ const typeStats = computed(() => d.value.typeStats || []);
 function barH(count) {
   const max = Math.max(1, ...typeStats.value.map((t) => t.count));
   return `${Math.max(4, Math.round((count / max) * 100))}%`;
+}
+
+const topAlbums = computed(() => d.value.topAlbums || []);
+const artistAffinity = computed(() => d.value.artistAffinity || []);
+const genreAffinity = computed(() => d.value.genreAffinity || []);
+function affH(v, list) {
+  const max = Math.max(1, ...list.map((x) => x.votes));
+  return `${Math.max(6, Math.round((v / max) * 100))}%`;
 }
 
 async function reload() {
@@ -82,5 +126,80 @@ onMounted(reload);
 }
 .bars {
   height: 150px;
+}
+.ranklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ranklist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ranklist li:last-child {
+  border-bottom: 0;
+}
+.ranklist .no {
+  width: 22px;
+  text-align: center;
+  color: var(--text3);
+  font-weight: 700;
+}
+.ranklist .nm {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ranklist .nm i {
+  font-style: normal;
+  color: var(--text3);
+  font-size: 12px;
+  margin-left: 8px;
+}
+.affgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.affgrid h5 {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  color: var(--text3);
+}
+.affrow {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.affrow .an {
+  font-size: 12px;
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.abar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(14, 165, 233, 0.12);
+  overflow: hidden;
+}
+.abar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--brand);
+}
+@media (max-width: 860px) {
+  .affgrid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

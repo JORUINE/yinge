@@ -7,6 +7,7 @@
       </button>
       <span class="lg">音<i>格</i> · 管理后台</span>
       <span class="sp">
+        <RouterLink to="/" class="backsite">返回前台</RouterLink>
         {{ auth.nickname || '管理员' }}
         <button class="mini" type="button" @click="logout">退出</button>
       </span>
@@ -72,6 +73,15 @@ async function logout() {
 }
 .mini {
   margin-left: 8px;
+}
+.backsite {
+  margin-right: 10px;
+  font-size: 12.5px;
+  color: var(--brand-deep);
+  text-decoration: none;
+}
+.backsite:hover {
+  text-decoration: underline;
 }
 .back {
   display: inline-flex;

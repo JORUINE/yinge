@@ -40,6 +40,7 @@ export function serializeAlbum(album) {
     releaseDate: album.releaseDate,
     isEligible: album.isEligible,
     excludeReason: album.excludeReason,
+    genre: album.genre || null,
   };
 }
 
@@ -52,10 +53,19 @@ export async function syncArtist(artistExternalId) {
   const now = new Date();
 
   const artistName = rawAlbums[0]?.artistName || `歌手 ${id}`;
+  // ⚠️ 流派必须落库：之前 $set 里从来没写 genre，Artist.genre 永远是 null，
+  //    导致「按流派建对决」100% 查不到歌手（2026-09-18 修复）。流派取 iTunes 的 primaryGenreName。
+  const artistGenre = rawAlbums.find((a) => a.genre)?.genre || null;
   const artist = await Artist.findOneAndUpdate(
     { artistId: id },
     {
-      $set: { name: artistName, region: country, albumCount: rawAlbums.length, cachedAt: now },
+      $set: {
+        name: artistName,
+        region: country,
+        albumCount: rawAlbums.length,
+        cachedAt: now,
+        ...(artistGenre ? { genre: artistGenre } : {}),
+      },
       $setOnInsert: { artistId: id },
     },
     { upsert: true, new: true, setDefaultsOnInsert: true },
@@ -77,6 +87,7 @@ export async function syncArtist(artistExternalId) {
               releaseDate: album.releaseDate,
               isEligible: !excludeMap.has(album.albumId),
               excludeReason: excludeMap.get(album.albumId) || null,
+              genre: album.genre || null,
               cachedAt: now,
             },
             $setOnInsert: { albumId: album.albumId },
@@ -227,6 +238,20 @@ export async function getAlbumPreview(albumExternalId) {
 }
 
 /** 流派列表（用于范围模式选择；iTunes 无流派接口，此处为策展集合） */
+/**
+ * 曲库里实际存在的流派（来自已缓存歌手的 iTunes 流派标签），带歌手数。
+ * ⚠️ 流派选择器的数据源必须是它，而不是写死的英文列表 —— hk 区返回的是
+ *    「國語流行樂 / 流行樂 / 舞曲」这类繁体标签，写死 Pop/Rock 永远匹配不上（已踩坑）。
+ */
+export async function listGenres() {
+  const rows = await Artist.aggregate([
+    { $match: { genre: { $type: 'string' } } },
+    { $group: { _id: '$genre', artists: { $sum: 1 } } },
+    { $sort: { artists: -1, _id: 1 } },
+  ]);
+  return rows.map((r) => ({ genre: r._id, artists: r.artists }));
+}
+
 export const GENRES = [
   'Pop',
   'Rock',
