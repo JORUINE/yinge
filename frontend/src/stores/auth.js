@@ -14,6 +14,8 @@ export const useAuthStore = defineStore('auth', {
   getters: {
     isLoggedIn: (state) => Boolean(state.token),
     isAdmin: (state) => state.user?.role === 'admin',
+    /** 免注册可玩：游客身份（数据只保存在本机浏览器） */
+    isGuest: (state) => state.user?.role === 'guest',
     nickname: (state) => state.user?.nickname || '未登录',
   },
   actions: {
@@ -26,6 +28,16 @@ export const useAuthStore = defineStore('auth', {
       const data = await authApi.register(payload);
       this.applySession(data);
       return data;
+    },
+    /**
+     * 免注册可玩（需求文档）：没有登录态时自动领一个游客身份。
+     * 游客 = 真实账号（role=guest）+ 正式 JWT，所以对决归属 / 每人一票 / 防刷全部复用现有逻辑。
+     */
+    async ensureGuest() {
+      if (this.token) return this.user;
+      const data = await authApi.guest();
+      this.applySession(data);
+      return this.user;
     },
     applySession({ token, user }) {
       this.token = token;

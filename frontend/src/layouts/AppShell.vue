@@ -28,6 +28,14 @@
 
         <div class="right">
           <template v-if="auth.isLoggedIn">
+            <RouterLink
+              v-if="auth.isGuest"
+              to="/login"
+              class="guest-tag"
+              title="游客身份：对决数据只保存在本机浏览器，注册后才能收藏与长期保留"
+            >
+              游客 · 注册
+            </RouterLink>
             <RouterLink to="/profile" class="me" :title="auth.nickname || '个人中心'">
               {{ avatarChar }}
             </RouterLink>
@@ -263,6 +271,22 @@ async function onLogout() {
 }
 .quit:hover {
   color: var(--brand-deep);
+}
+
+/* 游客身份标识：点去注册（需求口径——玩可以免注册，收藏/长期保留要注册） */
+.guest-tag {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand-deep);
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px dashed rgba(14, 165, 233, 0.5);
+  border-radius: 999px;
+  padding: 3px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.guest-tag:hover {
+  background: rgba(14, 165, 233, 0.2);
 }
 
 .main {

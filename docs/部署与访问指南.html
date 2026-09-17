@@ -84,9 +84,19 @@ npm run dev</pre>
       ① 前端命令是 <code>npm run dev</code>，<u>不是</u> <code>npm run serve</code>；端口是 <code>5173</code>，<u>不是</u> 8080。<br>
       ② 如果你的电脑默认 Node 是 18，启动会报 <code>error:0308010C</code> 的错。解决：用 <b>Node 20 以上</b>（你机器上托管了 Node 22）。用 20+ 就不用管那个报错。</div>
 
-    <h3 style="margin-top:24px">更省事：一键启动</h3>
-    <p>不想每次开三个窗口？双击 <code>E:\桌面\毕业设计\yinge\start-dev.bat</code>（或 <code>桌面\毕业设计\start-dev.bat</code>）——
-    它会自动依次：起 <b>MongoDB</b> → 清历史索引 → 起 <b>后端</b> → 起 <b>前端</b> → 打开浏览器。停服务就双击同目录的 <code>stop-dev.bat</code>（再关掉那两个黑窗口）。</p>
+    <h3 style="margin-top:24px">更省事：一键启动 / 重启 / 关闭（背下这张表就够了）</h3>
+    <table>
+      <tr><th>想做什么</th><th>怎么做</th></tr>
+      <tr><td><b>启动</b></td><td>双击 <code>E:\桌面\毕业设计\yinge\start-dev.bat</code>（或 <code>桌面\毕业设计\start-dev.bat</code>）—— 自动起 <b>MongoDB</b> → 清历史索引 → <b>后端</b> → <b>前端</b> → 开浏览器。</td></tr>
+      <tr><td><b>重启</b></td><td><b>再双击一次 start-dev.bat</b>。它现在会自动把 3000 / 5173 端口上还活着的旧进程杀掉再启动，所以"重启"永远有效，不会出现旧代码一直跑的情况。</td></tr>
+      <tr><td><b>关闭</b></td><td>直接关掉 <code>yinge-backend</code> 和 <code>yinge-frontend</code> 两个黑窗口；要连数据库一起停，双击同目录 <code>stop-dev.bat</code>。</td></tr>
+      <tr><td><b>验证后端活着</b></td><td>浏览器打开 <code>http://127.0.0.1:3000/health</code>，看到 <code>{"status":"ok",…}</code> 即正常（<code>uptime</code> 数字很小 = 刚重启过）。</td></tr>
+      <tr><td>改了代码</td><td>后端是 <code>node --watch</code> 自动重载，<b>保存即生效，什么都不用按</b>；前端本来就热更新。</td></tr>
+    </table>
+    <div class="note"><b>为什么你之前"重启了没效果"：</b>旧的后端窗口还开着、一直占着 3000 端口，新窗口启动直接失败，实际跑的始终是旧代码（收藏、流派这些新功能自然全不生效）。现在启动器会自动清旧进程，这个问题从根上没有了。</div>
+
+    <h3 style="margin-top:24px">不注册能玩吗？（游客身份）</h3>
+    <p><b>能。</b>点「专辑对决」这类需要登录的页面时，系统会<b>自动发一个游客身份</b>（不需要你填任何东西），直接开玩。游客的对决数据照常记录，但<b>只保存在本机浏览器</b>——清缓存、换设备就没了。所以口径是：<b>玩 = 免注册；收藏、长期保留数据 = 注册正式账号</b>。游客登录状态下，页面右上角会显示「游客 · 注册」入口，点它就能去注册。</p>
 
     <h3 style="margin-top:24px">怎么进「管理后台」（管理员登录）</h3>
     <table>

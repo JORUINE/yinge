@@ -1,5 +1,8 @@
 <template>
   <div class="play">
+    <!-- 全局音频元素：小组赛试听与淘汰赛 1v1 共用（放根级，避免某阶段里 audioEl 是空导致播不出来） -->
+    <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
+
     <!-- 加载 -->
     <div v-if="loading" class="state muted">正在加载下一场…</div>
 
@@ -90,18 +93,24 @@
         </div>
       </div>
 
-      <!-- 小组赛迷你播放条：试听主打时显示（与淘汰赛共用同一套播放状态） -->
+      <!-- 小组赛播放条：与淘汰赛完全同一套控制逻辑（上一首 / 播放暂停 / 下一首），共用全局播放状态 -->
       <div v-if="playerAlbum && curTrack" class="nowbar">
         <div class="a"><img :src="playerAlbumArt" alt="" /></div>
         <div class="t">
           <b>{{ curTrack.name }}</b>
           <span>《{{ playerAlbumName }}》试听主打 · {{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}</span>
         </div>
+        <button class="trk" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+        </button>
         <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
           <svg viewBox="0 0 24 24">
             <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
             <path v-else d="M8 5v14l11-7z" />
           </svg>
+        </button>
+        <button class="trk" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
         </button>
       </div>
 
@@ -257,8 +266,6 @@
             </button>
           </div>
         </div>
-
-      <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
     </template>
 
     <!-- ============ 等待生成下一轮 ============ -->

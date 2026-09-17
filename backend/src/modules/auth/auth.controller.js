@@ -16,6 +16,12 @@ export async function login(req, res) {
   return ok(res, result, '登录成功');
 }
 
+/** 免注册可玩：无登录态时前端自动来领一个游客身份 */
+export async function guest(req, res) {
+  const result = await authService.createGuest();
+  return ok(res, result, '游客身份已创建');
+}
+
 export async function me(req, res) {
   return ok(res, req.user.toSafeJSON());
 }

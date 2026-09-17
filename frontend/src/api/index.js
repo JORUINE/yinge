@@ -7,6 +7,7 @@ import { http } from './client.js';
 export const authApi = {
   register: (data) => http.post('/auth/register', data),
   login: (data) => http.post('/auth/login', data),
+  guest: () => http.post('/auth/guest'),
   me: () => http.get('/auth/me'),
   logout: () => http.post('/auth/logout'),
   updateProfile: (data) => http.put('/users/me', data),

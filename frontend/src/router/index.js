@@ -51,7 +51,13 @@ router.beforeEach(async (to) => {
   if (!auth.loaded && auth.token) await auth.fetchMe();
 
   if (to.meta.requiresAuth && !auth.isLoggedIn) {
-    return { name: 'login', query: { redirect: to.fullPath } };
+    // 免注册可玩（需求文档）：不弹登录，自动领一个游客身份继续玩。
+    // 游客数据只存本机浏览器；收藏等仍要求正式注册（FavoriteButton 会拦）。
+    try {
+      await auth.ensureGuest();
+    } catch {
+      return { name: 'login', query: { redirect: to.fullPath } };
+    }
   }
   if (to.meta.requiresAdmin && !auth.isAdmin) {
     return { name: 'home' };

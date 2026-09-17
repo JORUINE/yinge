@@ -50,9 +50,9 @@ onMounted(() => {
 });
 
 async function onClick() {
-  // 需求：不注册也能玩，但「收藏 / 保留数据」需要登录
-  if (!auth.isLoggedIn) {
-    ElMessage.info('收藏需要先登录 —— 登录后你的收藏与数据会被保留');
+  // 需求口径：不注册能玩，但「收藏 / 长期保留」需要正式注册 —— 游客身份在这里拦下
+  if (!auth.isLoggedIn || auth.user?.role === 'guest') {
+    ElMessage.info('收藏需要正式注册 —— 游客身份的数据只保存在本机浏览器');
     router.push({ name: 'login', query: { redirect: route.fullPath } });
     return;
   }

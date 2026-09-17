@@ -20,7 +20,9 @@ const userSchema = new mongoose.Schema(
     account: { type: String, required: true, unique: true, trim: true, lowercase: true },
     passwordHash: { type: String, required: true },
     nickname: { type: String, required: true, unique: true, trim: true },
-    role: { type: String, enum: ['user', 'admin'], default: 'user', required: true },
+    // guest = 免注册可玩的游客身份（发正式 JWT，对决归属/每人一票/防刷全部复用现有逻辑；
+    // 数据绑定本机浏览器，换设备或清缓存会丢 —— 需求文档「不注册也能玩」的实现载体）
+    role: { type: String, enum: ['user', 'admin', 'guest'], default: 'user', required: true },
     status: { type: String, enum: ['active', 'banned'], default: 'active', required: true },
 
     bannedReason: { type: String, enum: [...BANNED_REASONS, null], default: null },

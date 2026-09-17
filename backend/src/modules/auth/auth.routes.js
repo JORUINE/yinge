@@ -32,6 +32,8 @@ const router = Router();
 
 router.post('/register', validate(registerSchema, 'body'), asyncHandler(controller.register));
 router.post('/login', validate(loginSchema, 'body'), asyncHandler(controller.login));
+// 免注册可玩（公开）：领游客身份。放在 /me 之前无所谓，路径不冲突
+router.post('/guest', asyncHandler(controller.guest));
 router.get('/me', authenticate, asyncHandler(controller.me));
 router.post('/logout', authenticate, asyncHandler(controller.logout));
 
