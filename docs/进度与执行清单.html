@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>音格 · 进度与执行清单</title>
+<style>
+  :root{--bg:#EDF6FC;--text:#0B2A42;--text2:#46647E;--text3:#6D8AA3;--brand:#0EA5E9;--brand-deep:#0369A1;
+    --gold:#E08700;--ok:#0F766E;--danger:#DC2626;--line:rgba(11,42,66,.11);--r:18px;--r-s:13px;
+    --glass:rgba(255,255,255,.82);--gbd:rgba(255,255,255,.95);--gsh:rgba(255,255,255,.95),rgba(8,58,92,.14)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);line-height:1.65;font-size:14px;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro SC","Segoe UI","Microsoft YaHei",sans-serif}
+  .hero{position:relative;overflow:hidden;padding:44px 30px 28px;background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C}
+  .hero .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5}
+  .hero .b1{width:420px;height:420px;background:#fff;left:-120px;top:-160px}
+  .hero .b2{width:340px;height:340px;background:#38BDF8;right:-120px;bottom:-160px}
+  .hero-inner{position:relative;max-width:1040px;margin:0 auto}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.4px;font-weight:800;background:rgba(255,255,255,.35);padding:5px 14px;border-radius:999px;margin-bottom:14px}
+  .hero h1{margin:0 0 10px;font-size:32px;letter-spacing:-1px;line-height:1.15}
+  .hero p{margin:0;max-width:860px;font-size:15px;opacity:.93}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 30px 70px}
+  .card{background:var(--glass);border:1px solid var(--gbd);border-radius:var(--r);box-shadow:0 18px 46px var(--gsh);padding:22px 26px;margin-bottom:20px}
+  h2{font-size:20px;margin:0 0 10px;letter-spacing:-.4px;display:flex;align-items:center;gap:10px}
+  h2 .n{width:26px;height:26px;border-radius:8px;background:var(--brand);color:#04263C;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex:0 0 auto}
+  h3{font-size:15px;margin:16px 0 6px;color:var(--brand-deep)}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+  th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{font-size:11.5px;letter-spacing:.5px;color:var(--text2);font-weight:700;background:rgba(14,165,233,.06)}
+  tr:last-child td{border-bottom:0}
+  .pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .p0{background:rgba(220,38,38,.13);color:var(--danger)}
+  .p1{background:rgba(224,135,0,.15);color:var(--gold)}
+  .p2{background:rgba(14,165,233,.14);color:var(--brand-deep)}
+  .ok{background:rgba(15,118,110,.14);color:var(--ok)}
+  .bar{height:9px;border-radius:99px;background:var(--line);overflow:hidden;min-width:90px}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#38BDF8,#0EA5E9 55%,#0D9488)}
+  .muted{color:var(--text2)}
+  ul{margin:6px 0 8px;padding-left:20px}li{margin:4px 0}
+  .rule{background:var(--glass);border:1px solid var(--gbd);border-left:3px solid var(--brand);border-radius:0 var(--r-s) var(--r-s) 0;padding:12px 16px;margin:10px 0}
+  .rule b{color:var(--brand-deep)}
+  .new{background:rgba(15,118,110,.07);border:1px solid rgba(15,118,110,.2);border-radius:var(--r-s);padding:14px 18px;margin-bottom:20px}
+  .new h3{margin:0 0 8px;color:var(--ok)}
+  .new ul{margin:0}
+  .foot{text-align:center;font-size:12px;color:var(--text3);padding:18px}
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="hero-inner">
+    <span class="tag">进度与执行清单 · 2026-09-17 深夜（本轮已更新）</span>
+    <h1>音格 · 现在到哪一步了</h1>
+    <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节大修」</b>阶段 —— 就是你实测抓出来那一批。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="new">
+    <h3>本轮（9/17 深夜）新修 —— 对应你最近这组截图</h3>
+    <ul>
+      <li><b>对阵表渲染大修</b>：根因是后端返回的"晋级专辑"用的是<b>本地 ID</b>，前端拿<b>外部专辑 ID</b>去比 → 永远对不上、全部显示"未晋级"。已改成返回外部 ID；顺带把对阵条重排成规整三栏 + 冠军独立列。实测两组晋级标记正确。</li>
+      <li><b>试听曲目数（15 首只看到 9 首 / 旁边那张只有 2 首）</b>：根因是曲目同步<b>按歌手拉歌、硬卡 200 首上限</b>，多专辑歌手后面的专辑被截断；另一部分是 <b>iTunes 本身对部分曲目不给 30 秒片段</b>。已改为<b>逐专辑同步</b>（hk 区实测可展开完整曲目列表），并在播放条下新增<b>「试听清单」</b>：列出本专辑<b>全部曲目</b>，可播的高亮可点、不可播的标"无试听"，顶部写明"共 N 首 · M 首有试听片段"。</li>
+      <li><b>「步」→「场」</b>（你最早提的 P0）：创建页 / 投票页 / 对阵表 / 分享页 / 个人中心全部改完，实测无残留。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">1</span>完成度总览</h2>
+    <table>
+      <thead><tr><th>模块</th><th style="width:150px">完成度</th><th>说明</th></tr></thead>
+      <tbody>
+        <tr><td>后端接口</td><td><div class="bar"><i style="width:95%"></i></div>95%</td><td>40+ 接口全部可用：对决 / 投票 / 榜单 / 人格 / 收藏 / 后台</td></tr>
+        <tr><td><b>对决玩法（v2 赛制）</b></td><td><div class="bar"><i style="width:88%"></i></div>88%</td><td>规模自选 / 抽张策略 / 小组 4选2 / 遗珠复活 / 1v1 淘汰 / 跨歌手配对 / 冠军判定 —— 全部实测跑通；剩亚季军与晋级叙事</td></tr>
+        <tr><td>前端页面还原（18 页）</td><td><div class="bar"><i style="width:80%"></i></div>80%</td><td>14 页已是设计系统 1:1（含后台登录/看板/题目）；剩后台 3 页</td></tr>
+        <tr><td>人格线（玩法二）</td><td><div class="bar"><i style="width:90%"></i></div>90%</td><td>5 页 1:1 + 设计稿那套分类法 + AI 解读（无密钥时模板降级）；<b>推荐专辑池仍为空</b></td></tr>
+        <tr><td>数据质量</td><td><div class="bar"><i style="width:92%"></i></div>92%</td><td>准入 8 条规则（已补卡拉OK/巡演/playlist）；490 张专辑回填歌手名；曲目改<b>逐专辑同步</b>（不再被 200 首上限截断）</td></tr>
+        <tr><td>分享 / 传播</td><td><div class="bar"><i style="width:70%"></i></div>70%</td><td>分享卡 + 导出 PNG + 复制链接可用；布局待优化；Apple Music 外链未做</td></tr>
+        <tr><td>自检 / 回归</td><td><div class="bar"><i style="width:80%"></i></div>80%</td><td>6 个 verify 脚本 + Playwright 截图自检（能自己看渲染）；缺一次性全量回归</td></tr>
+        <tr><td>部署上云</td><td><div class="bar"><i style="width:0%"></i></div>0%</td><td>还没上云（Vercel + Render + Atlas 方案已定）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">2</span>已经做完的（近几轮累计）</h2>
+    <h3>玩法与逻辑</h3>
+    <ul>
+      <li>v2 赛制端到端跑通：规模自选 → <b>小组每组 4 张一次选 2 张</b> → 遗珠复活 → 1v1 淘汰 → 冠军</li>
+      <li><b>抽张策略</b>：随机抽（默认）/ 最新 N 张 / 自己挑（可勾可取消）—— 修掉"只取最早 N 张"</li>
+      <li><b>常用组合</b>一键装填（周杰伦 vs 林俊杰 / 华语三强混战 / 欧美经典对决 / 中外对决）</li>
+      <li><b>淘汰赛跨歌手优先配对</b>（实测第一轮 8 场全部跨歌手，同歌手 0 场）</li>
+      <li>单张组自动晋级（不再出现"从 1 张里选 1 张"）；遗珠复活可一次选 7 张（修掉校验上限）</li>
+      <li>删除对决级联清理（不再留孤儿票污染榜单，已清 471 条）</li>
+      <li><b>「步」→「场」全站术语统一</b>（创建/投票/对阵表/分享/个人中心）</li>
+    </ul>
+    <h3>数据与展示</h3>
+    <ul>
+      <li><b>专辑主色改为真读封面像素</b>（蓝灰封面→蓝灰光晕、暖棕→暖棕），取不到才退回哈希</li>
+      <li><b>试听真接通</b>：点试听按需拉曲目（任何歌手都能听）+ 播放条显示歌名/上一首/播放/下一首/序号</li>
+      <li><b>曲目同步改逐专辑</b>（修掉 200 首上限截断）+ <b>试听清单透明化</b>（列出全部曲目、标明 N 首可试听、无片段标"无试听"）</li>
+      <li>准入漏筛修复：卡拉OK专辑曾夺冠 → 已拦；巡演/音乐会/playlist → 已拦；重算剔除 4 张</li>
+      <li>参赛池盲盒化（每位只露 2 张 + 「还有 N 张」虚位卡）</li>
+      <li><b>对阵表：晋级标记修复</b>（后端返回本地 ID 导致全部"未晋级"）+ 对阵条重排为三栏 + 冠军独立列</li>
+    </ul>
+    <h3>页面还原（1:1）</h3>
+    <ul>
+      <li>对决主线 5 屏、人格线 5 页、首页 / 登录 / 个人中心 / 排行榜 / 收藏、后台 3 页 —— 全部换成设计系统版式</li>
+      <li>设计系统：令牌 + 组件库（~100 个类）+ 后台骨架 AdminShell</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">3</span>还没做的（你提过的，逐条列出）</h2>
+    <table>
+      <thead><tr><th>#</th><th>事项</th><th>级别</th><th>为什么还没做</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>「同室操戈」界面标注</td><td><span class="pill p1">P1</span></td><td>数据已能判断（左右歌手相同即显示），只差 UI</td></tr>
+        <tr><td>2</td><td>盲盒呈现升级（模糊堆叠 + 计数）</td><td><span class="pill p1">P1</span></td><td>现在只露 2 张，容易被误读成"就这两张"</td></tr>
+        <tr><td>3</td><td><b>亚军 / 季军</b></td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
+        <tr><td>4</td><td><b>晋级叙事</b>（能看到其他组淘汰情况）</td><td><span class="pill p1">P1</span></td><td>现在只有冠军自己的场次，"冠军怎么来的"看不出来</td></tr>
+        <tr><td>5</td><td>全站返回按钮</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
+        <tr><td>6</td><td>手动挑选交互（说明 / 上限 / 可勾可取消）</td><td><span class="pill p1">P1</span></td><td>未做（创建页「自己挑」已可勾可取消，但模式化的"手动挑选"页仍待补说明与上限）</td></tr>
+        <tr><td>7</td><td>指定对决交互（默认全勾、取消反而进对阵表）</td><td><span class="pill p1">P1</span></td><td>未做；要按你说的"选中→缩入对阵表 + 上方变灰"重做</td></tr>
+        <tr><td>8</td><td>搜索过滤更严 + <b>已选歌手单独一排</b></td><td><span class="pill p1">P1</span></td><td>未做（iTunes 模糊匹配会混入无关歌手）</td></tr>
+        <tr><td>9</td><td>分享页布局（100% 缩放下图片乱）</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
+        <tr><td>10</td><td><b>歌手官方图</b>（放在搜索结果空白处）</td><td><span class="pill p1">P1</span></td><td>iTunes Search API 不返回歌手头像；可用"歌手封面图作代位头像"或接 Apple Music API（需密钥）</td></tr>
+        <tr><td>11</td><td>投票页"点封面即投票"（省掉下方按钮）</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
+        <tr><td>12</td><td>后台剩余 3 页（人格类型 / 音乐数据 / 用户管理）</td><td><span class="pill p1">P1</span></td><td>未还原</td></tr>
+        <tr><td>13</td><td>好友一起玩</td><td><span class="pill p2">P2</span></td><td>玩法里写了，功能未落地</td></tr>
+        <tr><td>14</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷你对阵树 / 本地续玩</td><td><span class="pill p2">P2</span></td><td>排版动效类，按约定放收尾阶段</td></tr>
+        <tr><td>15</td><td>榜单「地区/年代/周期」筛选</td><td><span class="pill p2">P2</span></td><td>需后端补接口</td></tr>
+        <tr><td>16</td><td>6 个人格类型的推荐专辑池</td><td><span class="pill p2">P2</span></td><td>后台未绑 recommendAlbumIds → 图鉴/人格卡"常听专辑"为空</td></tr>
+        <tr><td>17</td><td>原型 p4/p5/p6 按 v2 重绘</td><td><span class="pill p2">P2</span></td><td>设计稿还是 v1 旧稿（含旧的组内两两对决与 15 场数字）</td></tr>
+        <tr><td>18</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2><span class="n">4</span>前端页面什么时候产出？（直接回答）</h2>
+    <div class="rule"><b>页面其实已经产出了 —— 现在就能点。</b>18 页全部可访问，其中 14 页已是设计稿那套 1:1 版式（对决主线 5 屏、人格线 5 页、首页/登录/个人中心/排行榜/收藏、后台 3 页）。</div>
+    <ul>
+      <li><b>"能不能看、能不能点"</b> —— 现在就有，不用等。</li>
+      <li><b>"打磨到设计稿那种质感"</b> —— 需要走完收尾（守则里的排版/动效清单）。</li>
+    </ul>
+    <h3>接下来 5 步（相对时间，可按你秋招节奏压）</h3>
+    <table>
+      <thead><tr><th>步</th><th>内容</th><th>预计</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><b>玩法大修收尾</b>：同室操戈标注、盲盒堆叠、亚季军、晋级叙事、返回按钮、手动挑选/指定对决交互、搜索与已选歌手（「步」→「场」本轮已完成）</td><td>2~3 个工作日</td></tr>
+        <tr><td>2</td><td>后台剩余 3 页还原 + 绑 6 人格推荐专辑池</td><td>1 天</td></tr>
+        <tr><td>3</td><td>原型 p4/p5/p6 按 v2 重绘（让设计稿和产品一致）</td><td>0.5 天</td></tr>
+        <tr><td>4</td><td><b>收尾打磨</b>：按《前端设计工作守则》逐条做排版/动效/可读性 + 深色模式 + 响应式 375/768/1024/1440 验收</td><td>2~3 天</td></tr>
+        <tr><td>5</td><td>部署上云（Vercel + Render + Atlas）+ 演示视频 + 论文</td><td>3~5 天</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="foot">音格 · 进度与执行清单 · 2026-09-17 · 与《前端设计工作守则》配套使用</div>
+</div>
+</body>
+</html>

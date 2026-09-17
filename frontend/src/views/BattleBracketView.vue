@@ -12,7 +12,7 @@
         <div class="left">
           <span class="pillx">{{ phaseLabel }}</span>
           <span class="meta">
-            {{ poolCount }} 张专辑 · {{ artistCount }} 位歌手 · 共 {{ battle.stepTotal || 0 }} 步 ·
+            {{ poolCount }} 张专辑 · {{ artistCount }} 位歌手 · 共 {{ battle.stepTotal || 0 }} 场 ·
             <b>已投 {{ decided }} / {{ battle.stepTotal || 0 }}</b>
           </span>
         </div>
@@ -58,9 +58,9 @@
       <div class="tree" v-if="rounds.length">
         <div class="tt">
           {{ groups.length ? '小组赛全部结束后进入淘汰赛；' : '' }}当前进度
-          <b style="color: var(--text)">{{ decided }} / {{ battle.stepTotal || 0 }}</b> 步
+          <b style="color: var(--text)">{{ decided }} / {{ battle.stepTotal || 0 }}</b> 场
         </div>
-        <div class="rounds" :style="{ gridTemplateColumns: `repeat(${rounds.length + 1}, 1fr)` }">
+        <div class="rounds" :style="{ gridTemplateColumns: `repeat(${rounds.length}, minmax(0, 1fr)) 220px` }">
           <div v-for="r in rounds" :key="r.name" class="rcol">
             <h5>{{ r.cn }}</h5>
             <div
@@ -69,14 +69,14 @@
               class="tie"
               :class="{ live: m.matchId === nextMatchId }"
             >
-              <div class="t1" :class="sideClass(m, m.leftAlbum)">
-                <img v-if="m.leftAlbum" :src="m.leftAlbum.artworkUrl" alt="" />
+              <div class="side" :class="sideClass(m, m.leftAlbum)">
+                <div class="t1"><img v-if="m.leftAlbum" :src="m.leftAlbum.artworkUrl" alt="" /></div>
+                <span class="tn">{{ m.leftAlbum ? m.leftAlbum.name : '待定' }}</span>
               </div>
-              <div class="tn">{{ m.leftAlbum ? m.leftAlbum.name : '待定' }}</div>
               <div class="mid">{{ tieMid(m) }}</div>
-              <div class="tn right">{{ m.rightAlbum ? m.rightAlbum.name : '待定' }}</div>
-              <div class="t2" :class="sideClass(m, m.rightAlbum)">
-                <img v-if="m.rightAlbum" :src="m.rightAlbum.artworkUrl" alt="" />
+              <div class="side right" :class="sideClass(m, m.rightAlbum)">
+                <span class="tn">{{ m.rightAlbum ? m.rightAlbum.name : '待定' }}</span>
+                <div class="t2"><img v-if="m.rightAlbum" :src="m.rightAlbum.artworkUrl" alt="" /></div>
               </div>
             </div>
           </div>
@@ -270,26 +270,60 @@ onMounted(load);
   border-color: var(--brand);
   box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.4);
 }
+/* 对阵条：左专辑 | 比分 | 右专辑（三栏，长名省略，不再挤成一团） */
+.tie {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+.tie .side {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.tie .side.right {
+  justify-content: flex-end;
+}
+.tie .t1,
+.tie .t2 {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.tie .t1 img,
+.tie .t2 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.tie .tn {
+  font-size: 11.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .tie .mid {
   font-size: 10.5px;
   color: var(--text3);
+  text-align: center;
   white-space: nowrap;
-  padding: 0 2px;
-}
-.tie .tn.right {
-  text-align: right;
 }
 .tie.champ {
-  justify-content: center;
+  grid-template-columns: 1fr;
   border-style: dashed;
 }
-.tie .t1.win,
-.tie .t2.win {
+.tie .side.win {
   outline: 2px solid var(--brand);
-  outline-offset: 1px;
+  outline-offset: 2px;
+  border-radius: 8px;
 }
-.tie .t1.lose img,
-.tie .t2.lose img {
+.tie .side.lose img {
   opacity: 0.35;
 }
 

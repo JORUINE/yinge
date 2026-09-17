@@ -113,7 +113,7 @@ const footLine = computed(() => {
   const parts = [];
   if (b.poolTarget) parts.push(`${b.poolTarget} 张专辑`);
   if ((b.artists || []).length) parts.push(`${b.artists.length} 位歌手`);
-  parts.push(`${b.stepTotal || 0} 步决出`);
+  parts.push(`${b.stepTotal || 0} 场决出`);
   return parts.join(' · ');
 });
 const outSize = computed(() => (shape.value === 'square' ? '1080 × 1080' : '1080 × 1440'));

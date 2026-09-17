@@ -862,7 +862,7 @@ async function onCreate() {
     // 数字同源校验：后端算出的 stepTotal 应与前端预估一致
     if (payload.tournamentVersion === 2 && plan.value && battle.stepTotal !== plan.value.totalSteps) {
       ElMessage.warning(
-        `赛程预估 ${plan.value.totalSteps} 步，实际 ${battle.stepTotal} 步（以实际为准）`,
+        `赛程预估 ${plan.value.totalSteps} 场，实际 ${battle.stepTotal} 场（以实际为准）`,
       );
     } else {
       ElMessage.success('对决已创建');

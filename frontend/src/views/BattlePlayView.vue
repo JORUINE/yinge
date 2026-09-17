@@ -1,7 +1,7 @@
 <template>
   <div class="play">
     <!-- 加载 -->
-    <div v-if="loading" class="state muted">正在加载下一步…</div>
+    <div v-if="loading" class="state muted">正在加载下一场…</div>
 
     <!-- 全部投完 -->
     <template v-else-if="finished">
@@ -21,7 +21,7 @@
           <span class="pillx">{{ groupLabel }}</span>
           <span class="meta">{{ groupHint }}</span>
         </div>
-        <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 步</div>
+        <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
       </div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
 
@@ -87,7 +87,7 @@
           <span class="pillx">{{ koLabel }}</span>
           <span class="meta">{{ koHint }}</span>
         </div>
-        <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 步</div>
+        <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
       </div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
 
@@ -168,32 +168,61 @@
         </div>
       </div>
 
-      <div class="nowbar">
-        <div class="a"><img :src="playerAlbumArt" alt="" /></div>
-        <div class="t">
-          <b>{{ curTrack ? curTrack.name : '点上面的「试听 30 秒」听片段' }}</b>
-          <span v-if="curTrack">
-            《{{ playerAlbumName }}》第 {{ curTrack.trackNumber }} 首 ·
-            {{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}
-            <template v-if="tracks.length > 1"> · 想换一首点右边的箭头</template>
-          </span>
-          <span v-else>对决对象是专辑，片段只帮你听个大概，不参与计票</span>
+        <div class="nowbar">
+          <div class="a"><img :src="playerAlbumArt" alt="" /></div>
+          <div class="t">
+            <b>{{ curTrack ? curTrack.name : '点上面的「试听 30 秒」听片段' }}</b>
+            <span v-if="curTrack">
+              《{{ playerAlbumName }}》第 {{ curTrack.trackNumber }} 首 ·
+              <template v-if="curTrack.previewUrl">
+                {{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}
+              </template>
+              <template v-else>这首没有试听片段</template>
+            </span>
+            <span v-else>对决对象是专辑，片段只帮你听个大概，不参与计票</span>
+          </div>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
+          <button class="trk" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+          </button>
+          <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
+            <svg viewBox="0 0 24 24">
+              <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
+              <path v-else d="M8 5v14l11-7z" />
+            </svg>
+          </button>
+          <button class="trk" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
+            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
+          </button>
+          <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
         </div>
-        <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
-        <button class="trk" type="button" title="上一首" :disabled="trackIdx <= 0" @click="prevTrack">
-          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
-        </button>
-        <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
-          <svg viewBox="0 0 24 24">
-            <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
-            <path v-else d="M8 5v14l11-7z" />
-          </svg>
-        </button>
-        <button class="trk" type="button" title="下一首" :disabled="trackIdx >= tracks.length - 1" @click="nextTrack">
-          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
-        </button>
-        <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
-      </div>
+
+        <!-- 试听清单：列出本专辑全部曲目，可播的高亮可点，不可播的标「无试听」（说明 iTunes 未提供片段） -->
+        <div class="tracklist" v-if="playerAlbum">
+          <div class="tl-head">
+            <b>《{{ playerAlbumName }}》试听清单</b>
+            <span class="tl-sub">
+              专辑共 {{ playerAlbum.trackCount }} 首 · {{ playableCount }} 首有试听片段<template v-if="tracks.length < playerAlbum.trackCount">（剩余曲目 iTunes 未提供）</template><template v-else-if="playableCount < tracks.length">（其中 {{ tracks.length - playableCount }} 首无片段）</template>
+            </span>
+          </div>
+          <div class="tl-chips">
+            <button
+              v-for="(t, i) in tracks"
+              :key="t.trackId || i"
+              class="tl-chip"
+              :class="{ on: i === trackIdx, off: !t.previewUrl }"
+              type="button"
+              :disabled="!t.previewUrl"
+              :title="t.previewUrl ? t.name : t.name + '（无试听片段）'"
+              @click="jumpTo(i)"
+            >
+              <span class="tn">{{ t.trackNumber || i + 1 }}</span>
+              <span class="nm">{{ t.name }}</span>
+              <span class="tag" v-if="!t.previewUrl">无试听</span>
+            </button>
+          </div>
+        </div>
+
       <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
     </template>
 
@@ -245,6 +274,8 @@ const audioEl = ref(null);
 const playerAlbum = ref(null); // { albumId, name, artworkUrl }
 
 const curTrack = computed(() => tracks.value[trackIdx.value] || null);
+/** 本专辑有试听片段的曲目数（iTunes 并非每张专辑每首都有 30 秒片段） */
+const playableCount = computed(() => tracks.value.filter((t) => t.previewUrl).length);
 const playerAlbumName = computed(() => playerAlbum.value?.name || '');
 const playerAlbumArt = computed(
   () => playerAlbum.value?.artworkUrl || match.value?.leftAlbum?.artworkUrl || '',
@@ -393,14 +424,26 @@ async function play(album) {
   if (playerAlbum.value?.albumId !== album.albumId) {
     try {
       const data = await musicApi.listAlbumTracks(album.albumId);
-      const list = (data.list || []).filter((t) => t.previewUrl);
+      const list = data.list || [];
       if (!list.length) {
+        ElMessage.info('这张专辑暂无可试听的曲目');
+        return;
+      }
+      // 曲目**全部列出**（用户要看到这张专辑到底有几首），没有试听地址的跳过播放
+      tracks.value = list;
+      const first = list.findIndex((t) => t.previewUrl);
+      trackIdx.value = first < 0 ? 0 : first;
+      playerAlbum.value = {
+        albumId: album.albumId,
+        name: album.name,
+        artworkUrl: album.artworkUrl,
+        // 专辑在 iTunes 登记的曲目总数（可能多于我们能拉到的，用于如实说明）
+        trackCount: Number(data.album?.trackCount) || list.length,
+      };
+      if (first < 0) {
         ElMessage.info('这张专辑暂无可试听的片段');
         return;
       }
-      tracks.value = list;
-      trackIdx.value = 0;
-      playerAlbum.value = { albumId: album.albumId, name: album.name, artworkUrl: album.artworkUrl };
     } catch (err) {
       ElMessage.error(err?.message || '试听加载失败');
       return;
@@ -409,9 +452,29 @@ async function play(album) {
   loadCurrent();
 }
 
+/** 往后找第一个可播的曲目（iTunes 有些曲目没有片段） */
+function nextPlayable(from) {
+  for (let i = from; i < tracks.value.length; i += 1) {
+    if (tracks.value[i].previewUrl) return i;
+  }
+  return -1;
+}
+/** 往前找第一个可播的曲目 */
+function prevPlayable(from) {
+  for (let i = from; i >= 0; i -= 1) {
+    if (tracks.value[i].previewUrl) return i;
+  }
+  return -1;
+}
+
 function loadCurrent() {
   const t = curTrack.value;
   if (!t) return;
+  if (!t.previewUrl) {
+    previewUrl.value = '';
+    playing.value = false;
+    return;
+  }
   previewUrl.value = t.previewUrl;
   audioTime.value = 0;
   audioDur.value = 0;
@@ -432,16 +495,24 @@ function loadCurrent() {
 }
 
 function nextTrack() {
-  if (trackIdx.value < tracks.value.length - 1) {
-    trackIdx.value += 1;
+  const i = nextPlayable(trackIdx.value + 1);
+  if (i >= 0) {
+    trackIdx.value = i;
     loadCurrent();
   }
 }
 function prevTrack() {
-  if (trackIdx.value > 0) {
-    trackIdx.value -= 1;
+  const i = prevPlayable(trackIdx.value - 1);
+  if (i >= 0) {
+    trackIdx.value = i;
     loadCurrent();
   }
+}
+/** 点试听清单里的某首直接跳过去（只接受有片段的） */
+function jumpTo(i) {
+  if (!tracks.value[i]?.previewUrl) return;
+  trackIdx.value = i;
+  loadCurrent();
 }
 function onEnded() {
   // 用户明确要求：播完不自动切下一首，点「下一首」才播
@@ -698,5 +769,94 @@ onMounted(load);
   .pickgrid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+}
+
+/* 试听清单：透明化曲目数，可播/不可播一目了然 */
+.tracklist {
+  margin-top: 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.tl-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.tl-head b {
+  font-size: 14px;
+  color: var(--text);
+}
+.tl-sub {
+  font-size: 12px;
+  color: var(--text2);
+}
+.tl-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.tl-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 200px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12.5px;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+}
+.tl-chip .tn {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-chip .nm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tl-chip:hover:not(:disabled) {
+  border-color: var(--brand);
+  transform: translateY(-1px);
+}
+.tl-chip.on {
+  border-color: var(--brand);
+  background: rgba(14, 165, 233, 0.12);
+  font-weight: 600;
+}
+.tl-chip.off {
+  cursor: not-allowed;
+  color: var(--text3);
+  opacity: 0.7;
+}
+.tl-chip.off .tn {
+  background: var(--text3);
+}
+.tl-chip .tag {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: var(--text3);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 5px;
 }
 </style>

@@ -706,7 +706,12 @@ export async function getBattleDetail(battleId, userId) {
       groupNo: g.groupNo,
       advanceCount: g.advanceCount,
       picked: g.isPicked(),
-      advancedAlbumIds: (g.pickedAlbumIds || []).map(String),
+      // ⚠️ 必须是「外部专辑标识」：前端拿 al.albumId（iTunes 的 id）来比对，
+      //    之前返回的是本地 ObjectId，导致对阵表里所有专辑都显示"未晋级"（2026-09-17 修复）
+      advancedAlbumIds: (g.pickedAlbumIds || []).map((id) => {
+        const a = albumMap.get(String(id));
+        return a ? String(a.albumId) : String(id);
+      }),
       albums: g.albumIds
         .map((id) => {
           const a = albumMap.get(String(id));

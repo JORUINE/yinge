@@ -110,7 +110,7 @@ export async function getAlbumByExternalId(albumExternalId) {
   return album;
 }
 
-/** 按歌手批量拉曲目再归组落库（按专辑查询不展开曲目，故必须如此） */
+/** 按歌手批量拉曲目再归组落库（仅作批量预缓存；上限 200 首，多专辑歌手会漏，正式试听走逐专辑） */
 export async function syncTracks(artistExternalId) {
   const id = Number(artistExternalId);
   const { songs } = await itunes.lookupSongs(id);
@@ -147,12 +147,59 @@ export async function syncTracks(artistExternalId) {
   return songs.length;
 }
 
+/** 逐专辑拉曲目并落库（hk 区可展开完整列表，不受 200 上限截断影响） */
+export async function syncAlbumTracks(albumExternalId, artistExternalId) {
+  const id = Number(albumExternalId);
+  const { songs } = await itunes.lookupAlbumSongs(id);
+  if (!songs.length) return 0;
+  const albumDoc = await Album.findOne({ albumId: id });
+  const albumObjectId = albumDoc?._id;
+  const now = new Date();
+  const ops = songs.map((song) => ({
+    updateOne: {
+      filter: { trackId: song.trackId },
+      update: {
+        $set: {
+          albumId: albumObjectId,
+          albumExternalId: song.albumExternalId,
+          artistExternalId: Number(artistExternalId),
+          name: song.name,
+          previewUrl: song.previewUrl,
+          duration: song.duration,
+          discNumber: song.discNumber,
+          trackNumber: song.trackNumber,
+          cachedAt: now,
+        },
+        $setOnInsert: { trackId: song.trackId },
+      },
+      upsert: true,
+    },
+  }));
+  await Track.bulkWrite(ops);
+  return songs.length;
+}
+
+/** 进程内去重：同一专辑已尝试过逐专辑同步就不再重拉（避免曲目数天生少于 trackCount 时反复请求） */
+const TRACK_SYNC_TRIED = new Set();
+
 export async function getAlbumTracks(albumExternalId, { force = false } = {}) {
   const album = await getAlbumByExternalId(albumExternalId);
   let tracks = await Track.find({ albumExternalId: album.albumId }).sort({ discNumber: 1, trackNumber: 1 });
 
-  if (force || tracks.length === 0 || freshness(album.cachedAt) === 'expired') {
-    await syncTracks(album.artistExternalId);
+  const expect = Number(album.trackCount || 0);
+  // 已缓存但条数少于专辑应有数 → 很可能是旧的「按歌手拉歌被 200 上限截断」留下的残缺缓存，补一次逐专辑同步
+  const short = expect > 0 && tracks.length < expect;
+  const needSync =
+    force || tracks.length === 0 || freshness(album.cachedAt) === 'expired' || (short && !TRACK_SYNC_TRIED.has(album.albumId));
+
+  if (needSync) {
+    TRACK_SYNC_TRIED.add(album.albumId);
+    try {
+      // 逐专辑同步：拿该专辑完整曲目列表（不受歌手 200 首上限截断）
+      await syncAlbumTracks(album.albumId, album.artistExternalId);
+    } catch (err) {
+      logger.warn('逐专辑曲目同步失败，沿用本地缓存', { albumId: album.albumId, error: err.message });
+    }
     tracks = await Track.find({ albumExternalId: album.albumId }).sort({ discNumber: 1, trackNumber: 1 });
   }
   return { album, tracks };

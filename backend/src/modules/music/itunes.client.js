@@ -3,7 +3,8 @@
  * ------------------------------------------------------------
  * 免密钥、免登录、无风控，可公开部署（对比网易云接口已被风控 -462，故弃用）。
  * 地区策略：默认 hk，失败按 hk -> tw -> us -> cn 依次回退（接口文档 2.1）。
- * 实测约束：按 collectionId 查询曲目不会展开列表，必须按 artistId 拉曲目再归组。
+ * 实测约束：按 artistId 拉曲目被 200 上限截断（无法 offset 翻页），多专辑歌手部分专辑会漏歌；
+ * 故曲目同步改用「逐专辑 lookupAlbumSongs」拿完整列表（hk 区可展开），artistId 拉歌仅作批量预缓存。
  */
 import config from '../../config/index.js';
 import { ExternalMusicError } from '../../shared/errors.js';
@@ -99,6 +100,27 @@ export async function lookupAlbums(artistId, limit = 200) {
 
 export async function lookupSongs(artistId, limit = 200) {
   const { json, country } = await request('/lookup', { id: artistId, entity: 'song', limit });
+  const songs = (json.results || [])
+    .filter((r) => r.wrapperType === 'track' || r.trackId)
+    .map((r) => ({
+      trackId: Number(r.trackId),
+      albumExternalId: Number(r.collectionId),
+      artistExternalId: Number(r.artistId),
+      name: r.trackName,
+      previewUrl: r.previewUrl || null,
+      duration: r.trackTimeMillis || null,
+      discNumber: r.discNumber || null,
+      trackNumber: r.trackNumber || null,
+    }));
+  return { country, songs };
+}
+
+/**
+ * 按专辑逐张拉曲目（实测 hk 区可展开：返回该专辑完整曲目列表）。
+ * 用于修正「按歌手拉歌被 200 上限截断、导致多专辑歌手部分专辑曲目不全」的问题。
+ */
+export async function lookupAlbumSongs(collectionId, limit = 200) {
+  const { json, country } = await request('/lookup', { id: collectionId, entity: 'song', limit });
   const songs = (json.results || [])
     .filter((r) => r.wrapperType === 'track' || r.trackId)
     .map((r) => ({

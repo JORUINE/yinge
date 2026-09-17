@@ -98,11 +98,11 @@ export const ROUND_CN = {
   duel: '指定对决',
 };
 
-/** 一句话赛程摘要（创建页开始条用），例：3 组小组赛 · 复活捞 2 · 8 强淘汰赛 · 共 11 步 */
+/** 一句话赛程摘要（创建页开始条用），例：3 组小组赛 · 复活捞 2 · 8 强淘汰赛 · 共 11 场 */
 export function describePlan(plan) {
   if (!plan) return '';
   const parts = [`${plan.groupCount} 组小组赛（每组 ${GROUP_PICK_SIZE} 张选 ${GROUP_ADVANCE}）`];
   if (plan.revivalNeed > 0) parts.push(`遗珠复活捞 ${plan.revivalNeed} 张`);
   parts.push(`${plan.knockoutSize} 强淘汰赛`);
-  return `${parts.join(' → ')} · 共 ${plan.totalSteps} 步`;
+  return `${parts.join(' → ')} · 共 ${plan.totalSteps} 场`;
 }

@@ -51,7 +51,7 @@
             <span>
               {{ b.poolTarget || '—' }} 张专辑 ·
               {{ b.status === 'finished' ? '已完赛' : '进行中' }} ·
-              共 {{ b.stepTotal || 0 }} 步 · {{ fmtDate(b.createdAt) }}
+              共 {{ b.stepTotal || 0 }} 场 · {{ fmtDate(b.createdAt) }}
             </span>
           </div>
           <div class="v">
