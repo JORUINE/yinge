@@ -16,7 +16,9 @@ const routes = [
   { path: '/battle/create', name: 'battle-create', component: () => import('@/views/BattleCreateView.vue'), meta: { title: '创建对决', requiresAuth: true } },
   { path: '/battle/mine', name: 'battle-mine', component: () => import('@/views/BattleMineView.vue'), meta: { title: '我的对决', requiresAuth: true } },
   { path: '/battle/:id', name: 'battle-play', component: () => import('@/views/BattlePlayView.vue'), meta: { title: '对决进行中', requiresAuth: true } },
+  { path: '/battle/:id/bracket', name: 'battle-bracket', component: () => import('@/views/BattleBracketView.vue'), meta: { title: '对决对阵表', requiresAuth: true } },
   { path: '/battle/:id/result', name: 'battle-result', component: () => import('@/views/BattleResultView.vue'), meta: { title: '对决结果与夺冠之路', requiresAuth: true } },
+  { path: '/battle/:id/share', name: 'battle-share', component: () => import('@/views/BattleShareView.vue'), meta: { title: '夺冠之路分享图', requiresAuth: true } },
 
   { path: '/personality', name: 'personality-intro', component: () => import('@/views/PersonalityIntroView.vue'), meta: { title: '音乐人格测评' } },
   { path: '/personality/test', name: 'personality-test', component: () => import('@/views/PersonalityTestView.vue'), meta: { title: '开始测评' } },

@@ -28,6 +28,7 @@ export function serializeAlbum(album) {
     albumId: album.albumId,
     name: album.name,
     artistId: album.artistExternalId,
+    artistName: album.artistName || '',
     artworkUrl: album.artworkUrl,
     trackCount: album.trackCount,
     releaseDate: album.releaseDate,
@@ -62,6 +63,7 @@ export async function syncArtist(artistExternalId) {
           update: {
             $set: {
               name: album.name,
+              artistName: album.artistName || artistName,
               artistId: artist._id,
               artistExternalId: album.artistExternalId,
               artworkUrl: album.artworkUrl,

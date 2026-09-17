@@ -203,6 +203,10 @@
         <button class="btn pri" type="button" @click="load">刷新</button>
       </div>
     </template>
+
+    <div v-if="!loading" class="crumb">
+      <RouterLink :to="{ name: 'battle-bracket', params: { id } }">查看对阵表 →</RouterLink>
+    </div>
   </div>
 </template>
 
@@ -396,6 +400,15 @@ onMounted(load);
 <style scoped>
 .play {
   padding-bottom: var(--sp-8);
+}
+
+.crumb {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13px;
+}
+.crumb a {
+  color: var(--brand-deep);
 }
 
 .state {

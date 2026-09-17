@@ -40,8 +40,8 @@ export async function create(req, res) {
 
 export async function detail(req, res) {
   const { id } = req.validated.params;
-  const { battle, matches, standings } = await battleService.getBattleDetail(id, req.user._id);
-  return ok(res, { ...serializeBattle(battle), matches, standings });
+  const { battle, matches, standings, groups } = await battleService.getBattleDetail(id, req.user._id);
+  return ok(res, { ...serializeBattle(battle), matches, standings, groups });
 }
 
 export async function nextMatch(req, res) {

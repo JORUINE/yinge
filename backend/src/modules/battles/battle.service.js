@@ -640,10 +640,31 @@ export async function getBattleDetail(battleId, userId) {
     }));
   }
 
+  // 新赛制 v2：小组 / 复活环节（对阵列 + 已晋级）——对阵表页需要
+  let v2GroupList = [];
+  if (battle.tournamentVersion === 2) {
+    const groupDocs = await BattleGroup.find({ battleId: battle._id }).sort({ roundName: 1, groupNo: 1 });
+    v2GroupList = groupDocs.map((g) => ({
+      groupId: String(g._id),
+      roundName: g.roundName, // 'group' | 'revival'
+      groupNo: g.groupNo,
+      advanceCount: g.advanceCount,
+      picked: g.isPicked(),
+      advancedAlbumIds: (g.pickedAlbumIds || []).map(String),
+      albums: g.albumIds
+        .map((id) => {
+          const a = albumMap.get(String(id));
+          return a ? musicService.serializeAlbum(a) : null;
+        })
+        .filter(Boolean),
+    }));
+  }
+
   return {
     battle,
     matches: matches.map((m) => serializeMatch(m, albumMap)),
     standings,
+    groups: v2GroupList,
   };
 }
 

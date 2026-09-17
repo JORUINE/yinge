@@ -12,6 +12,8 @@ const albumSchema = new mongoose.Schema(
     albumId: { type: Number, required: true, unique: true },
     artistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Artist', required: true },
     artistExternalId: { type: Number, required: true },
+    // 冗余存一份歌手名：卡片要显示「周杰伦 · 2001」，避免每次都联表查询
+    artistName: { type: String, default: '', trim: true },
     name: { type: String, required: true, trim: true },
     artworkUrl: { type: String, required: true },
     trackCount: { type: Number, required: true },

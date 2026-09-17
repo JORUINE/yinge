@@ -1,83 +1,111 @@
 <template>
-  <div class="container">
+  <div class="result">
     <div v-if="loading" class="state muted">正在加载结果…</div>
 
     <template v-else-if="data">
-      <div class="page-head">
-        <p class="eyebrow">{{ scopeLabel }}</p>
-        <h1>{{ isTable ? '逐行对照表' : '冠军与夺冠之路' }}</h1>
-        <p v-if="!isFinished" class="muted">
-          对决尚未结束，下面是当前进度。<RouterLink :to="{ name: 'battle-play', params: { id } }">继续投票 →</RouterLink>
-        </p>
-      </div>
-
-      <!-- 标准赛制：冠军 + 夺冠之路 -->
-      <template v-if="!isTable">
-        <section v-if="data.champion" class="card champ">
-          <img :src="data.champion.artworkUrl" :alt="data.champion.name" />
-          <div>
-            <p class="muted small">冠军专辑</p>
-            <h2>{{ data.champion.name }}</h2>
-            <p class="muted">{{ data.champion.artistName }} · {{ year(data.champion.releaseDate) }}</p>
+      <!-- 还没打完 -->
+      <template v-if="!champion">
+        <div class="state g-card">
+          <h2>对决还没结束</h2>
+          <p class="muted">冠军还没决出来，先把剩下的场次投完。</p>
+          <div class="btns">
+            <RouterLink :to="{ name: 'battle-play', params: { id } }" class="btn pri">继续投票</RouterLink>
+            <RouterLink :to="{ name: 'battle-bracket', params: { id } }" class="btn ghost">看对阵表</RouterLink>
           </div>
-        </section>
-        <section v-if="data.path && data.path.length" class="card">
-          <h3>夺冠之路</h3>
-          <ol class="path">
-            <li v-for="(p, i) in data.path" :key="i">
-              <span class="rnd">{{ roundName(p.roundName) }}</span>
-              <template v-if="p.isBye">
-                <span>轮空 · <strong>直接晋级</strong></span>
-                <span class="num score muted">—</span>
-              </template>
-              <template v-else>
-                <span v-if="p.won">战胜 <strong>{{ p.opponent?.name || '—' }}</strong></span>
-                <span v-else>不敌 <strong>{{ p.opponent?.name || '—' }}</strong></span>
-                <span class="num score">{{ p.score }}</span>
-              </template>
-            </li>
-          </ol>
-        </section>
+        </div>
+      </template>
+
+      <!-- 冠军 -->
+      <template v-else>
+        <div class="crown-wrap">
+          <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" /></div>
+          <div class="cinfo">
+            <div class="cw">CHAMPION · 冠军</div>
+            <h3>{{ champion.name }}</h3>
+            <p>{{ championMeta }}</p>
+            <div class="btns">
+              <RouterLink :to="{ name: 'battle-share', params: { id } }" class="btn pri">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
+                </svg>
+                生成夺冠之路
+              </RouterLink>
+              <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
+            </div>
+          </div>
+        </div>
+
+        <div class="kpis">
+          <div class="kpi"><b>{{ kpiRounds }}</b><span>夺冠轮次</span></div>
+          <div class="kpi"><b>{{ kpiMine }}</b><span>累计得票</span></div>
+          <div class="kpi"><b>{{ kpiTheirs }}</b><span>对手总票数</span></div>
+        </div>
+
+        <!-- 小组赛 / 遗珠复活（v2 才有） -->
+        <template v-if="groupLine">
+          <div class="hd" style="margin-top: 26px">
+            <b>小组赛</b><span>{{ groupLine }}</span>
+          </div>
+        </template>
+
+        <div class="hd" style="margin-top: 26px">
+          <b>夺冠之路</b><span>每一场：谁赢了谁，各自得了多少票</span>
+        </div>
+
+        <div class="path">
+          <div v-if="!pathRows.length" class="note">这个赛制没有淘汰赛路径（对位赛 / 指定对决请看上面的对照表）。</div>
+          <div v-for="(row, i) in pathRows" :key="i" class="mres" :class="{ final: row.isFinal }">
+            <div class="mhd">
+              <span class="rd">{{ row.roundLabel }}</span>
+              <span class="say" v-if="row.opponent">
+                <b>《{{ champion.name }}》</b> 战胜 <i>《{{ row.opponent.name }}》</i>
+                <template v-if="row.isFinal">，拿下冠军</template>
+              </span>
+              <span class="say" v-else><b>《{{ champion.name }}》</b> 轮空直接晋级</span>
+            </div>
+
+            <div class="pside win">
+              <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" /></div>
+              <div class="tx">
+                <b>{{ champion.name }}</b>
+                <span>{{ champion.artistName }} · {{ year(champion.releaseDate) }}</span>
+              </div>
+              <div class="pc" v-if="row.pct !== null">{{ row.pct }}%</div>
+              <span class="bw">胜</span>
+            </div>
+
+            <div class="pside lose" v-if="row.opponent">
+              <div class="art"><img :src="row.opponent.artworkUrl" :alt="row.opponent.name" /></div>
+              <div class="tx">
+                <b>{{ row.opponent.name }}</b>
+                <span>{{ row.opponent.artistName }} · {{ year(row.opponent.releaseDate) }}</span>
+              </div>
+              <div class="pc" v-if="row.pct !== null">{{ 100 - row.pct }}%</div>
+            </div>
+          </div>
+        </div>
       </template>
 
       <!-- 对位赛 / 指定对决：逐行对照表 -->
-      <template v-else>
-        <section class="card">
-          <h3>逐行对照表（{{ data.rows.length }} 组）</h3>
-          <table class="rows">
-            <thead>
-              <tr><th>#</th><th>左</th><th>比分</th><th>右</th><th>胜者</th></tr>
-            </thead>
-            <tbody>
-              <tr v-for="(r, i) in data.rows" :key="i">
-                <td class="num">{{ i + 1 }}</td>
-                <td :class="{ win: isWinner(r, 'left') }">
-                  {{ r.left?.name }}<span class="muted small"> {{ year(r.left?.releaseDate) }}</span>
-                </td>
-                <td class="num score">{{ r.leftVotes }} : {{ r.rightVotes }}</td>
-                <td :class="{ win: isWinner(r, 'right') }">
-                  {{ r.right?.name }}<span class="muted small"> {{ year(r.right?.releaseDate) }}</span>
-                </td>
-                <td>{{ winnerName(r) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-
-        <section v-if="data.points && data.points.length > 1" class="card">
-          <h3>按歌手胜场</h3>
-          <div class="points">
-            <span v-for="(p, i) in data.points" :key="i" class="pt">
-              {{ artistName(p.artistExternalId) }} <strong class="num">{{ p.wins }}</strong> 胜
-            </span>
+      <template v-if="data.type === 'aligned'">
+        <div class="hd" style="margin-top: 26px"><b>逐行对照表</b><span>每行一组对位 · 胜场积分制</span></div>
+        <div class="list">
+          <div v-for="(r, i) in data.rows || []" :key="i" class="r">
+            <span class="nw num">{{ r.alignIndex }}</span>
+            <div class="m">
+              <b>{{ r.left?.name }} <span class="muted">vs</span> {{ r.right?.name }}</b>
+              <span>{{ r.left?.artistName }} / {{ r.right?.artistName }}</span>
+            </div>
+            <span class="v num"><b>{{ r.leftVotes ?? 0 }} : {{ r.rightVotes ?? 0 }}</b></span>
           </div>
-        </section>
+        </div>
       </template>
-
-      <div class="submitbar">
-        <RouterLink to="/battle/create"><el-button>再来一次</el-button></RouterLink>
-      </div>
     </template>
+
+    <div v-else class="state g-card">
+      <h2>读不到这个对决</h2>
+      <RouterLink to="/battle/mine" class="btn ghost">回我的对决</RouterLink>
+    </div>
   </div>
 </template>
 
@@ -86,6 +114,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
+import { ROUND_CN } from '@/utils/tournament.js';
 
 const route = useRoute();
 const id = route.params.id;
@@ -93,142 +122,89 @@ const id = route.params.id;
 const loading = ref(true);
 const data = ref(null);
 
-const isTable = computed(() => data.value?.type === 'aligned');
-const isFinished = computed(() => data.value?.battle?.status === 'finished');
-const scopeLabel = computed(() => {
-  const map = {
-    artist: '单歌手对决',
-    'multi-artist': '多歌手混战',
-    genre: '按流派对决',
-    era: '按年代对决',
-    custom: '手动挑选对决',
-    aligned: '对位赛 · 逐张对照',
-    duel: '指定对决 · 自定义对位',
-  };
-  return map[data.value?.battle?.scopeType] || '专辑对决';
-});
-
-const artistMap = computed(() => {
-  const m = new Map();
-  for (const a of data.value?.battle?.artists || []) m.set(a.artistId, a.name);
-  return m;
-});
-
+const champion = computed(() => data.value?.champion || null);
 const year = (d) => (d ? String(d).slice(0, 4) : '');
-const roundName = (n) => ({ group: '小组赛', revival: '复活赛', semi: '半决赛', final: '决赛' }[n] || n);
-const artistName = (idv) => artistMap.value.get(idv) || `歌手 ${idv}`;
-const isWinner = (r, side) => r.winnerAlbumId != null && String(r[side]?.albumId) === String(r.winnerAlbumId);
-const winnerName = (r) => {
-  if (r.winnerAlbumId == null) return '进行中';
-  if (String(r.left?.albumId) === String(r.winnerAlbumId)) return r.left?.name || '左';
-  if (String(r.right?.albumId) === String(r.winnerAlbumId)) return r.right?.name || '右';
-  return '—';
-};
 
-onMounted(async () => {
+const championMeta = computed(() => {
+  if (!champion.value) return '';
+  const b = data.value?.battle || {};
+  const parts = [champion.value.artistName, year(champion.value.releaseDate)].filter(Boolean);
+  if (champion.value.trackCount) parts.push(`${champion.value.trackCount} 首`);
+  const pool = b.poolTarget || 0;
+  const artists = (b.artists || []).length;
+  if (pool && artists) parts.push(`在 ${pool} 张专辑、${artists} 位歌手的混战中胜出`);
+  else if (pool) parts.push(`在 ${pool} 张专辑的对决中胜出`);
+  return parts.join(' · ');
+});
+
+/** 小组阶段一句话（v2） */
+const groupLine = computed(() => {
+  const gs = data.value?.groupsSummary || [];
+  if (!gs.length || !champion.value) return '';
+  const cid = champion.value.albumId;
+  const hit = gs.find((g) => (g.advanced || []).some((a) => a?.albumId === cid));
+  if (!hit) return '';
+  return hit.roundName === 'revival'
+    ? `从遗珠复活中被捞回，进入淘汰赛`
+    : `第 ${hit.groupNo} 组出线（每组选 ${hit.advanceCount} 张）`;
+});
+
+/** 夺冠之路行：解析后端给的比分字符串 "我方 : 对方" */
+const pathRows = computed(() => {
+  const list = data.value?.path || [];
+  const lastRound = list.length ? list[list.length - 1].roundName : null;
+  return list.map((p) => {
+    let pct = null;
+    if (p.score) {
+      const [a, b] = String(p.score).split(':').map((x) => Number(String(x).trim()));
+      const tot = (a || 0) + (b || 0);
+      if (tot > 0) pct = Math.round(((a || 0) / tot) * 100);
+    }
+    return { ...p, pct, isFinal: p.roundName === 'final' || p.roundName === lastRound, roundLabel: ROUND_CN[p.roundName] || p.roundName };
+  });
+});
+
+function sumVotes(idx) {
+  let n = 0;
+  for (const p of data.value?.path || []) {
+    if (!p.score) continue;
+    const parts = String(p.score).split(':').map((x) => Number(String(x).trim()));
+    n += parts[idx] || 0;
+  }
+  return n;
+}
+const kpiRounds = computed(() => (data.value?.path || []).filter((p) => p.won).length);
+const kpiMine = computed(() => sumVotes(0));
+const kpiTheirs = computed(() => sumVotes(1));
+
+async function load() {
+  loading.value = true;
   try {
     data.value = await battleApi.result(id);
   } catch (err) {
-    ElMessage.error(err?.message || '加载结果失败');
+    ElMessage.error(err?.message || '加载失败');
+    data.value = null;
   } finally {
     loading.value = false;
   }
-});
+}
+
+onMounted(load);
 </script>
 
 <style scoped>
+.result {
+  padding-bottom: var(--sp-7);
+}
 .state {
   margin: var(--sp-8) auto;
   padding: var(--sp-6);
-  max-width: 520px;
+  max-width: 560px;
   text-align: center;
 }
-
-.champ {
+.btns {
   display: flex;
-  gap: var(--sp-5);
-  align-items: center;
-}
-
-.champ img {
-  width: 140px;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-2);
-}
-
-.champ h2 {
-  margin: var(--sp-1) 0;
-}
-
-.path {
-  margin: 0;
-  padding-left: var(--sp-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-2);
-}
-
-.path li {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-}
-
-.rnd {
-  flex: 0 0 auto;
-  min-width: 72px;
-  font-size: var(--fs-sm);
-  color: var(--text-3);
-}
-
-.score {
-  color: var(--brand-deep);
-}
-
-.rows {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.rows th,
-.rows td {
-  padding: var(--sp-3);
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  font-size: var(--fs-sm);
-}
-
-.rows th {
-  color: var(--text-3);
-  font-weight: 500;
-}
-
-.rows td.win {
-  color: var(--brand-deep);
-  font-weight: 700;
-}
-
-.points {
-  display: flex;
+  gap: 10px;
   flex-wrap: wrap;
-  gap: var(--sp-3);
-}
-
-.pt {
-  padding: var(--sp-2) var(--sp-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  background: var(--surface-2);
-  font-size: var(--fs-sm);
-}
-
-.small {
-  font-size: var(--fs-xs);
-}
-
-.submitbar {
-  padding: var(--sp-5) 0 var(--sp-8);
 }
 </style>
