@@ -114,12 +114,7 @@
             <div class="ar"><i></i>{{ match.leftAlbum?.artistName }}</div>
             <div class="mt num">{{ year(match.leftAlbum?.releaseDate) }} · {{ match.leftAlbum?.trackCount }} 首</div>
             <div class="plays">
-              <button
-                class="btn tune"
-                type="button"
-                :disabled="!match.leftAlbum?.previewUrl"
-                @click="play(match.leftAlbum)"
-              >
+              <button class="btn tune" type="button" @click="play(match.leftAlbum)">
                 <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 试听 30 秒
               </button>
@@ -143,12 +138,7 @@
             <div class="ar"><i></i>{{ match.rightAlbum?.artistName }}</div>
             <div class="mt num">{{ year(match.rightAlbum?.releaseDate) }} · {{ match.rightAlbum?.trackCount }} 首</div>
             <div class="plays">
-              <button
-                class="btn tune"
-                type="button"
-                :disabled="!match.rightAlbum?.previewUrl"
-                @click="play(match.rightAlbum)"
-              >
+              <button class="btn tune" type="button" @click="play(match.rightAlbum)">
                 <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 试听 30 秒
               </button>
@@ -227,6 +217,7 @@ import { computed, onMounted, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi, musicApi } from '@/api';
+import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 import { ROUND_CN } from '@/utils/tournament.js';
 
 const route = useRoute();
@@ -292,13 +283,22 @@ const gridStyle = computed(() => {
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
 
-/** 专辑主色：由 albumId 稳定映射到一个色相（同一张专辑到哪都是同色） */
+/** 专辑主色：优先从封面像素取（ensureAlbumAccent 会写入缓存），取不到再退回哈希色 */
 function accentStyle(album) {
-  if (!album) return {};
-  const key = String(album.albumId ?? album.name ?? '');
-  let h = 0;
-  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
-  return { '--ac': `hsl(${h} 70% 52%)`, '--acs': `hsla(${h}, 70%, 45%, 0.34)` };
+  return accentStyleOf(album);
+}
+
+/** 当前两张专辑的封面主色（舞台光晕 + 文字着色都跟着它走） */
+async function loadAccents() {
+  const pair = [
+    ...(group.value?.albums || []),
+    match.value?.leftAlbum,
+    match.value?.rightAlbum,
+  ].filter(Boolean);
+  for (const al of pair) {
+    // eslint-disable-next-line no-await-in-loop
+    await ensureAlbumAccent(al);
+  }
 }
 const stageStyle = computed(() => ({ ...accentStyle(match.value?.leftAlbum), ...glowStyle() }));
 function glowStyle() {
@@ -350,6 +350,8 @@ async function load() {
     match.value = data?.match || null;
     picked.value = [];
     lit.value = 'c';
+    // 封面主色是异步取的：先把哈希色渲染出来，取到真色后自动更新
+    loadAccents();
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {

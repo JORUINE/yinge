@@ -354,6 +354,50 @@ export function computeStandings(groupMatches) {
 }
 
 /**
+ * 淘汰赛第一轮配对（**跨歌手优先**）。
+ * ------------------------------------------------------------
+ * 用户规则：尽量不让同歌手的专辑第一轮就互打（音格的价值就是"不同歌手的专辑放在一起比"）。
+ * 做法：按歌手分桶（桶内保持传入次序），每一场先从"剩余最多"的桶取一位，
+ *      再从**另一位歌手**的桶取对手；只有当某位歌手占了一半以上、实在配不出时，
+ *      才允许同歌手对决（界面上应标「同室操戈」）。
+ * @param {Array} seeds 种子（{_id} 或 ObjectId）
+ * @param {(id:any)=>string} artistOf 由专辑 id 取歌手标识
+ * @returns {Array<{left:any, right:any|null, isBye:boolean}>}
+ */
+export function buildFirstRoundCrossArtist(seeds, artistOf) {
+  const items = seeds.map((s) => {
+    const id = s && s._id ? s._id : s;
+    return { album: s && s._id ? s : { _id: s }, artist: String(artistOf(id) ?? 'unknown') };
+  });
+
+  const buckets = new Map();
+  for (const it of items) {
+    if (!buckets.has(it.artist)) buckets.set(it.artist, []);
+    buckets.get(it.artist).push(it);
+  }
+
+  const takeFrom = (avoidArtist) => {
+    const sorted = [...buckets.entries()].sort((a, b) => b[1].length - a[1].length);
+    for (const [key, list] of sorted) {
+      if (list.length && key !== avoidArtist) return list.shift();
+    }
+    for (const [, list] of sorted) {
+      if (list.length) return list.shift();
+    }
+    return null;
+  };
+
+  const out = [];
+  for (;;) {
+    const left = takeFrom(null);
+    if (!left) break;
+    const right = takeFrom(left.artist);
+    out.push({ left: left.album, right: right ? right.album : null, isBye: !right });
+  }
+  return out;
+}
+
+/**
  * 淘汰赛对阵生成（标准种子配对）。
  * 传入的 ranked 必须已按综合排序排好；本函数按「第 1 对第 n、第 2 对第 n-1……」配对，
  * 使成绩最好者对上成绩最差者；轮空给排序最前的一张。

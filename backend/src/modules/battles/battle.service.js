@@ -603,7 +603,25 @@ async function startKnockoutV2(battle, seeds) {
   }
   const roundName = bracket.roundNameFor(seeds.length);
   const order = await nextMatchOrder(battle._id);
-  const matches = bracket.buildKnockoutMatches(seeds, roundName, { roundIndex: 1, startOrder: order });
+
+  // 跨歌手优先配对（用户规则）：第一轮尽量不让同歌手的专辑互打（2026-09-17 修复）
+  const docs = await Album.find({ _id: { $in: seeds.map((s) => s._id) } }).select('_id artistExternalId');
+  const artistOf = new Map(docs.map((d) => [String(d._id), String(d.artistExternalId ?? d._id)]));
+  let matches;
+  if (artistOf.size > 1) {
+    const pairs = bracket.buildFirstRoundCrossArtist(seeds, (id) => artistOf.get(String(id)));
+    matches = pairs.map((p, i) => ({
+      roundName,
+      roundIndex: 1,
+      matchOrder: order + i,
+      leftAlbumId: p.left._id,
+      rightAlbumId: p.right ? p.right._id : null,
+      isBye: !p.right,
+      isRevival: false,
+    }));
+  } else {
+    matches = bracket.buildKnockoutMatches(seeds, roundName, { roundIndex: 1, startOrder: order });
+  }
   await BattleMatch.insertMany(matches.map((m) => ({ ...m, battleId: battle._id })));
   battle.currentRound = battle.groupCount + (battle.revivalNeed > 0 ? 1 : 0) + 1;
   await battle.save();
