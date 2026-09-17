@@ -442,8 +442,8 @@ function prevTrack() {
   }
 }
 function onEnded() {
-  if (trackIdx.value < tracks.value.length - 1) nextTrack();
-  else playing.value = false;
+  // 用户明确要求：播完不自动切下一首，点「下一首」才播
+  playing.value = false;
 }
 function onTime() {
   const el = audioEl.value;
@@ -612,6 +612,13 @@ onMounted(load);
 .pickcard.on {
   transform: translateY(-4px);
 }
+/* 设计语言一致性：专辑类卡片统一 hover 上浮 + 色晕加深 */
+.pickcard:hover {
+  transform: translateY(-6px);
+}
+.pickcard:hover .art {
+  box-shadow: 0 26px 52px rgba(0, 0, 0, 0.4), 0 14px 40px var(--acs);
+}
 .pickcard b {
   display: block;
   font-size: 15px;
@@ -653,12 +660,17 @@ onMounted(load);
   flex-wrap: wrap;
 }
 
-/* 淘汰赛 1v1 */
+/* 淘汰赛 1v1：限制专辑卡宽度，保证"专辑 + 试听 + 投票"一屏放得下 */
 .duelgrid {
   display: grid;
-  grid-template-columns: 1fr 96px 1fr;
+  grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1fr);
   align-items: center;
   gap: 16px;
+}
+.duelgrid .alb {
+  width: 100%;
+  max-width: 330px;
+  margin: 0 auto;
 }
 .voterow {
   display: flex;

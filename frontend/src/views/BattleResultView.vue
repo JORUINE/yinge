@@ -3,20 +3,35 @@
     <div v-if="loading" class="state muted">正在加载结果…</div>
 
     <template v-else-if="data">
-      <!-- 还没打完 -->
-      <template v-if="!champion">
-        <div class="state g-card">
-          <h2>对决还没结束</h2>
-          <p class="muted">冠军还没决出来，先把剩下的场次投完。</p>
-          <div class="btns">
-            <RouterLink :to="{ name: 'battle-play', params: { id } }" class="btn pri">继续投票</RouterLink>
-            <RouterLink :to="{ name: 'battle-bracket', params: { id } }" class="btn ghost">看对阵表</RouterLink>
+      <!-- 对位赛 / 指定对决：没有冠军，直接给逐行对照表（此前会误显示"还没结束"死循环） -->
+      <template v-if="data.type === 'aligned'">
+        <div class="hd" style="margin-top: 4px">
+          <b>逐行对照表</b><span>每行一组对位 · 胜场积分制</span>
+        </div>
+        <div class="list">
+          <div v-for="(r, i) in data.rows || []" :key="i" class="r">
+            <span class="nw num">{{ r.alignIndex }}</span>
+            <div class="m">
+              <b>{{ r.left?.name }} <span class="muted">vs</span> {{ r.right?.name }}</b>
+              <span>{{ r.left?.artistName || '—' }} / {{ r.right?.artistName || '—' }}</span>
+            </div>
+            <span class="v num"><b>{{ r.leftVotes ?? 0 }} : {{ r.rightVotes ?? 0 }}</b></span>
+          </div>
+        </div>
+
+        <div class="hd" style="margin-top: 20px">
+          <b>歌手积分</b><span>按胜场累计 · 不产生冠军</span>
+        </div>
+        <div class="list">
+          <div v-for="(p, i) in data.points || []" :key="i" class="r">
+            <div class="m"><b>{{ artistNameOf(p.artistExternalId) }}</b><span>胜 {{ p.wins }} 场</span></div>
+            <span class="v num"><b>{{ p.wins }}</b></span>
           </div>
         </div>
       </template>
 
       <!-- 冠军 -->
-      <template v-else>
+      <template v-else-if="champion">
         <div class="crown-wrap">
           <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" /></div>
           <div class="cinfo">
@@ -70,7 +85,7 @@
                 <b>{{ champion.name }}</b>
                 <span>{{ champion.artistName }} · {{ year(champion.releaseDate) }}</span>
               </div>
-              <div class="pc" v-if="row.pct !== null">{{ row.pct }}%</div>
+              <div class="pc" v-if="row.mine !== null">{{ row.mine }} 票</div>
               <span class="bw">胜</span>
             </div>
 
@@ -80,23 +95,20 @@
                 <b>{{ row.opponent.name }}</b>
                 <span>{{ row.opponent.artistName }} · {{ year(row.opponent.releaseDate) }}</span>
               </div>
-              <div class="pc" v-if="row.pct !== null">{{ 100 - row.pct }}%</div>
+              <div class="pc" v-if="row.theirs !== null">{{ row.theirs }} 票</div>
             </div>
           </div>
         </div>
       </template>
 
-      <!-- 对位赛 / 指定对决：逐行对照表 -->
-      <template v-if="data.type === 'aligned'">
-        <div class="hd" style="margin-top: 26px"><b>逐行对照表</b><span>每行一组对位 · 胜场积分制</span></div>
-        <div class="list">
-          <div v-for="(r, i) in data.rows || []" :key="i" class="r">
-            <span class="nw num">{{ r.alignIndex }}</span>
-            <div class="m">
-              <b>{{ r.left?.name }} <span class="muted">vs</span> {{ r.right?.name }}</b>
-              <span>{{ r.left?.artistName }} / {{ r.right?.artistName }}</span>
-            </div>
-            <span class="v num"><b>{{ r.leftVotes ?? 0 }} : {{ r.rightVotes ?? 0 }}</b></span>
+      <!-- 杯赛但还没打完 -->
+      <template v-else>
+        <div class="state g-card">
+          <h2>对决还没结束</h2>
+          <p class="muted">冠军还没决出来，先把剩下的场次投完。</p>
+          <div class="btns">
+            <RouterLink :to="{ name: 'battle-play', params: { id } }" class="btn pri">继续投票</RouterLink>
+            <RouterLink :to="{ name: 'battle-bracket', params: { id } }" class="btn ghost">看对阵表</RouterLink>
           </div>
         </div>
       </template>
@@ -124,6 +136,12 @@ const data = ref(null);
 
 const champion = computed(() => data.value?.champion || null);
 const year = (d) => (d ? String(d).slice(0, 4) : '');
+
+/** 对位赛的积分按歌手外部标识聚合，这里换回名字 */
+const artistNameOf = (id) => {
+  const hit = (data.value?.battle?.artists || []).find((a) => String(a.artistId) === String(id));
+  return hit?.name || `歌手 ${id}`;
+};
 
 const championMeta = computed(() => {
   if (!champion.value) return '';
@@ -154,13 +172,20 @@ const pathRows = computed(() => {
   const list = data.value?.path || [];
   const lastRound = list.length ? list[list.length - 1].roundName : null;
   return list.map((p) => {
-    let pct = null;
+    let mine = null;
+    let theirs = null;
     if (p.score) {
-      const [a, b] = String(p.score).split(':').map((x) => Number(String(x).trim()));
-      const tot = (a || 0) + (b || 0);
-      if (tot > 0) pct = Math.round(((a || 0) / tot) * 100);
+      const parts = String(p.score).split(':').map((x) => Number(String(x).trim()));
+      mine = parts[0] || 0;
+      theirs = parts[1] || 0;
     }
-    return { ...p, pct, isFinal: p.roundName === 'final' || p.roundName === lastRound, roundLabel: ROUND_CN[p.roundName] || p.roundName };
+    return {
+      ...p,
+      mine,
+      theirs,
+      isFinal: p.roundName === 'final' || p.roundName === lastRound,
+      roundLabel: ROUND_CN[p.roundName] || p.roundName,
+    };
   });
 });
 

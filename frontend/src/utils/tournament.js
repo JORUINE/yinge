@@ -58,7 +58,7 @@ export function planTournament(total) {
   while (knockoutSize < qualified) knockoutSize *= 2;
   const revivalNeed = knockoutSize - qualified;
 
-  const groupSteps = groupSizes.length;
+  const groupSteps = groupSizes.filter((s) => s > 1).length; // 只有 1 张的组自动晋级，不算一步
   const revivalSteps = revivalNeed > 0 ? 1 : 0;
   const knockoutMatches = knockoutSize - 1;
 

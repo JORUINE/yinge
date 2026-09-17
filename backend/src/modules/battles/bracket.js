@@ -76,7 +76,7 @@ export function planTournament(total) {
   while (knockoutSize < qualified) knockoutSize *= 2;
   const revivalNeed = knockoutSize - qualified;
 
-  const groupSteps = groupSizes.length;
+  const groupSteps = groupSizes.filter((s) => s > 1).length; // 只有 1 张的组无需投票，自动晋级（2026-09-17 修复"从 1 张里选 1 张"的无效步骤）
   const revivalSteps = revivalNeed > 0 ? 1 : 0;
   const knockoutMatches = knockoutSize - 1;
 

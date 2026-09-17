@@ -215,6 +215,23 @@
         <tr><td>23</td><td>测评 · 题量与听感</td><td>12 道题会不会太局限？<b>听感题只有 2 道太少</b>（且当前没有真实音频）</td><td><b>需专门研究</b>：题量/听感题占比/音频来源（详见下方"研究项"）</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>24</td><td>数据 · 歌曲 API</td><td>用户问"什么时候接入歌曲 API"</td><td>现状：已用 iTunes，专辑曲目自带 30 秒试听（<code>previewUrl</code>）；<b>是否需要更完整播放要先定</b>（版权/密钥成本）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>25</td><td>数据 · 准入筛选</td><td>卡拉OK / 巡演现场 / playlist 被漏筛（<b>卡拉OK专辑曾一路夺冠</b>）</td><td><b>已修</b>：新增「非卡拉OK/伴奏版」规则、live 补 tour/巡演/stadium、compilation 补 playlist；重算后剔除 3 张（Karaoke 1989 (Deluxe) / Eras Tour Setlist / reputation Stadium Tour Surprise Song Playlist）</td><td><span class="pill ok">已修</span></td></tr>
+
+        <tr><td colspan="5" class="grp">— 2026-09-17 晚 实测又发现一批（玩法/交互大修清单）—</td></tr>
+
+        <tr><td>26</td><td>创建页 · 流派年代</td><td>「按流派/年代」模式<b>不该出现「参赛歌手」选择器</b>（后端按命中专辑反推歌手，根本不用它），而且此时点歌手会误报「最多选择 1 位歌手」——提示与规则自相矛盾</td><td><b>已修</b>：该模式隐藏歌手选择器；max 判断补齐 genre-era</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>27</td><td>全站 · 专辑卡动效</td><td>小组赛选专辑<b>没有鼠标移过的动效</b> —— "所有专辑这样的地方都要保持设计语言一致性，你没有记住"</td><td><b>已修</b>（投票卡）；<b>守则硬规则：凡是摆专辑的地方，hover 一律上浮 + 色晕加深</b>，其余页面逐一排查</td><td><span class="pill ok">部分</span></td></tr>
+        <tr><td>28</td><td>投票页 · 播放条位置</td><td>播放条放太下面，"我还以为没有做" —— 对用户理解有门槛</td><td><b>已做</b>：封面限宽 330px 压缩纵向，一屏放得下（播放条自然上移）</td><td><span class="pill ok">已做</span></td></tr>
+        <tr><td>29</td><td>投票页 · 自动切歌</td><td><b>不需要</b>播完一首试听自动下一首，用户点切换才播</td><td><b>已改</b>：播完只停止，不自动切</td><td><span class="pill ok">已改</span></td></tr>
+        <tr><td>30</td><td>结果页 · 得票率</td><td>1 票对 0 票显示 <b>100% / 0%</b>，"太奇怪了 也不好看 这个胜率莫名其妙的"</td><td><b>已改</b>：改显示<b>票数</b>（如 1 票 / 0 票），不再显示百分比</td><td><span class="pill ok">已改</span></td></tr>
+        <tr><td>31</td><td>投票页 · 其他歌手</td><td>"是不是只接了周杰伦的播放，其他人的都没法听；其他歌手专辑封面依然点不了"</td><td><b>待查</b>：按需同步逻辑对所有专辑一致，需复测定位（可能与该歌手曲目同步失败/超时有关）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>32</td><td>结果页 · 对位赛</td><td>对位赛/指定对决<b>没有冠军</b>，结果页却显示"对决还没结束"→点继续又回投票页，死循环</td><td><b>已修</b>：结果页按 <code>type</code> 分支，对位赛直接给逐行对照表 + 歌手积分</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>33</td><td>赛制 · 单张组</td><td>17 张参赛会出现「从这 1 张里，选出 1 张晋级」的无效步骤</td><td><b>已修</b>：单张组直接自动晋级，不产生投票步骤（前后端公式同步）</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>34</td><td>赛制 · 单歌手选张策略</td><td>周杰伦 10 张以上时，<b>只取最早的 N 张，后面的专辑连参赛资格都没有</b> —— "我们玩法是不是问题太多了"</td><td><b>需定玩法</b>：改为「用户自选哪 N 张」或「按热度/随机抽」，并在创建页可见</td><td><span class="pill p0">P0</span></td></tr>
+        <tr><td>35</td><td>筛选 · 现场演出</td><td>「拉闊音樂會」这类现场专辑又冒出来</td><td><b>已修</b>：live 关键词补 音乐会/音樂會/拉闊/拉阔/音乐节；重算再剔 1 张</td><td><span class="pill ok">已修</span></td></tr>
+        <tr><td>36</td><td>创建页 · 手动挑选</td><td>①没有说明 ②没写上限专辑数 ③可挑的专辑太少 ④<b>勾选了无法取消打勾</b></td><td>补说明与上限；支持多歌手多专辑；修勾选交互（可勾可取消）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>37</td><td>创建页 · 指定对决</td><td>一进来全默认打勾，<b>取消勾选反而是"进下面对决表"</b>——操作逻辑反了、无提示，"完全搞不懂"。应有动效：选中的专辑缩小移到下面对阵表、上面变灰消失</td><td>重做选择交互：点选 → 加入下方对阵表（带动效）+ 明确提示</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>38</td><td>创建页 · 搜索与已选</td><td>①搜"周杰伦"旁边冒出周深/王力宏等 ②<b>已选歌手应单独一排</b>，方便在已选歌手的专辑间切换 ③指定对决里"选出来全是自己打自己"</td><td>候选过滤更严 + 已选歌手独立成排；指定对决默认引导跨歌手</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>39</td><td>冠军页 · 晋级叙事</td><td>"夺冠之路其他那些专辑跟消失了一样" —— 只有冠军打的场次，缺少"我选的专辑一路打赢其他组冠军走上来"的完整叙事</td><td>补完整晋级图：每轮谁打了谁、淘汰了谁（结合第 19/20 条亚季军）</td><td><span class="pill p1">P1</span></td></tr>
       </tbody>
     </table>
     <p class="muted" style="margin-top:10px">注：第 12~18、20 属"排版/动效"，按既定原则统一放到**收尾阶段**做；第 11（术语）、15（点图投票）、16（播放器）、19（亚季军）、21（返回）、22（好友同玩）属**功能**，随功能进度做；第 10（颜色）与 25（筛选）为**必须修**，10 已排 P0。</p>

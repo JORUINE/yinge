@@ -164,7 +164,7 @@
 
     <!-- 需要选歌手的模式 -->
     <template v-else>
-      <div class="block">
+      <div v-if="needsArtists" class="block">
         <h4>
           参赛歌手
           <em>{{ artistHint }}</em>
@@ -406,6 +406,8 @@ const artistPool = ref({});
 
 const currentMode = computed(() => MODES.find((m) => m.value === mode.value) || MODES[0]);
 const cupMode = computed(() => currentMode.value.cup);
+/** 流派/年代由后端按命中专辑反推歌手，不需要（也不该）让用户挑歌手 */
+const needsArtists = computed(() => ['artist', 'multi-artist', 'aligned'].includes(mode.value));
 const artistHint = computed(() => {
   if (mode.value === 'artist') return '选 1 位';
   if (mode.value === 'aligned') return '2 至 4 位 · 逐张对位';
@@ -603,7 +605,7 @@ function quickSearch(name) {
 
 function addArtist(artist) {
   if (picked.value.some((a) => a.artistId === artist.artistId)) return;
-  const max = mode.value === 'multi-artist' ? 6 : mode.value === 'aligned' ? 4 : 1;
+  const max = ['multi-artist', 'genre-era'].includes(mode.value) ? 6 : mode.value === 'aligned' ? 4 : 1;
   if (picked.value.length >= max) {
     ElMessage.warning(`该模式最多选择 ${max} 位歌手`);
     return;

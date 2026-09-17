@@ -375,6 +375,8 @@ async function createBattleV2(userId, payload, resolved) {
       groupNo: g.groupNo,
       albumIds: g.albumIds,
       advanceCount: g.advanceCount,
+      // 只有 1 张的组没有可比性：直接算作已晋级，不产生投票步骤（与 planTournament 的 groupSteps 对齐）
+      ...(g.albumIds.length <= 1 ? { pickedAlbumIds: g.albumIds, pickedAt: new Date() } : {}),
     })),
   );
 
