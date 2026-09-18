@@ -49,7 +49,7 @@
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-inner">
-    <span class="tag">进度与执行清单 · 2026-09-17 深夜（本轮已更新）</span>
+    <span class="tag">进度与执行清单 · 2026-09-18（本轮已更新）</span>
     <h1>音格 · 现在到哪一步了</h1>
     <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节大修」</b>阶段 —— 就是你实测抓出来那一批。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。</p>
   </div>
@@ -58,11 +58,17 @@
 <div class="wrap">
 
   <div class="new">
-    <h3>本轮（9/17 深夜）新修 —— 对应你最近这组截图</h3>
+    <h3>本轮（9/18）新修 —— 对应你最新这组 10 张截图</h3>
     <ul>
-      <li><b>对阵表渲染大修</b>：根因是后端返回的"晋级专辑"用的是<b>本地 ID</b>，前端拿<b>外部专辑 ID</b>去比 → 永远对不上、全部显示"未晋级"。已改成返回外部 ID；顺带把对阵条重排成规整三栏 + 冠军独立列。实测两组晋级标记正确。</li>
-      <li><b>试听曲目数（15 首只看到 9 首 / 旁边那张只有 2 首）</b>：根因是曲目同步<b>按歌手拉歌、硬卡 200 首上限</b>，多专辑歌手后面的专辑被截断；另一部分是 <b>iTunes 本身对部分曲目不给 30 秒片段</b>。已改为<b>逐专辑同步</b>（hk 区实测可展开完整曲目列表），并在播放条下新增<b>「试听清单」</b>：列出本专辑<b>全部曲目</b>，可播的高亮可点、不可播的标"无试听"，顶部写明"共 N 首 · M 首有试听片段"。</li>
-      <li><b>「步」→「场」</b>（你最早提的 P0）：创建页 / 投票页 / 对阵表 / 分享页 / 个人中心全部改完，实测无残留。</li>
+      <li><b>投票卡死（最严重）</b>：根因是<b>游客</b>投满 50 票后被"新账号大量投票"规则误判为异常 → 该票作废且<b>本场不推进</b> → 再点就报"已投过这一场"，彻底进退不得。修法：① 游客不再参与异常判定 ② 异常票<b>照样推进赛程</b>、只是不进排行榜 ③ 前端遇到"已投过"直接刷新进下一场 + 防连点。实测：整场 5 票跑通、重复投票返回 3001。</li>
+      <li><b>小组赛试听</b>：以前只拉 1 首"主打"，播放条永远显示 <b>1/1</b>、上一首/下一首全灰。已改为与淘汰赛<b>同一套</b>：拉整张专辑曲目、可逐首切歌、显示序号。</li>
+      <li><b>对位赛显示"本轮出战 0 张"、没有盲盒</b>：根因是对位赛没算进"本轮张数"。已修 —— 现在正确显示张数，并出现<b>盲盒虚位卡</b>（模糊堆叠 + 省略号 + "还有 N 张"）。</li>
+      <li><b>收藏只做专辑</b>：按你的要求去掉"人格类型"收藏与筛选，收藏页只留专辑。</li>
+      <li><b>自选专辑上限 100 张</b>：前端拦截 + 后端校验；并补上"同一歌手可能在某一轮内战（同室操戈）"的<b>声明</b>（模式说明 + 手动挑选页）。</li>
+      <li><b>"加载其专辑"没反馈</b>：现在点一下会弹「<b>已添加 XX 的 N 张专辑</b>」提示，新加入的卡片带<b>入场动画</b>。</li>
+      <li><b>"我的对决"列表封面全裂</b>：根因是接口从不返回封面。已补（批量取每场第一张专辑封面）+ 无封面时占位图标。</li>
+      <li><b>Edge 最小化闪屏 / 偶尔卡住</b>：根因是"铺满视口的固定层 + blur(100px)"让浏览器合成器持续重绘。已把极光背景改成<b>径向渐变（零 blur）</b>，并在 Edge 下关掉所有毛玻璃与大 blur —— 既治闪屏也提性能。</li>
+      <li><b>颜色硬化</b>：浅色 / 暖白封面不再硬凑彩色（避免白底封面跑出粉、紫），饱和度上限 48%→40%。</li>
     </ul>
   </div>
 
@@ -72,7 +78,7 @@
       <thead><tr><th>模块</th><th style="width:150px">完成度</th><th>说明</th></tr></thead>
       <tbody>
         <tr><td>后端接口</td><td><div class="bar"><i style="width:95%"></i></div>95%</td><td>40+ 接口全部可用：对决 / 投票 / 榜单 / 人格 / 收藏 / 后台</td></tr>
-        <tr><td><b>对决玩法（v2 赛制）</b></td><td><div class="bar"><i style="width:88%"></i></div>88%</td><td>规模自选 / 抽张策略 / 小组 4选2 / 遗珠复活 / 1v1 淘汰 / 跨歌手配对 / 冠军判定 —— 全部实测跑通；剩亚季军与晋级叙事</td></tr>
+        <tr><td><b>对决玩法（v2 赛制）</b></td><td><div class="bar"><i style="width:94%"></i></div>94%</td><td>规模自选 / 抽张策略 / 小组 4选2 / 遗珠复活 / 1v1 淘汰 / 跨歌手配对 / 冠军判定 / 亚季军 / 晋级叙事 / 点封面投票 / 自选上限 100 —— 均实测跑通；剩指定对决交互与分享页布局</td></tr>
         <tr><td>前端页面还原（18 页）</td><td><div class="bar"><i style="width:80%"></i></div>80%</td><td>14 页已是设计系统 1:1（含后台登录/看板/题目）；剩后台 3 页</td></tr>
         <tr><td>人格线（玩法二）</td><td><div class="bar"><i style="width:90%"></i></div>90%</td><td>5 页 1:1 + 设计稿那套分类法 + AI 解读（无密钥时模板降级）；<b>推荐专辑池仍为空</b></td></tr>
         <tr><td>数据质量</td><td><div class="bar"><i style="width:92%"></i></div>92%</td><td>准入 8 条规则（已补卡拉OK/巡演/playlist）；490 张专辑回填歌手名；曲目改<b>逐专辑同步</b>（不再被 200 首上限截断）</td></tr>
@@ -116,24 +122,21 @@
     <table>
       <thead><tr><th>#</th><th>事项</th><th>级别</th><th>为什么还没做</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td>「同室操戈」界面标注</td><td><span class="pill p1">P1</span></td><td>数据已能判断（左右歌手相同即显示），只差 UI</td></tr>
-        <tr><td>2</td><td>盲盒呈现升级（模糊堆叠 + 计数）</td><td><span class="pill p1">P1</span></td><td>现在只露 2 张，容易被误读成"就这两张"</td></tr>
-        <tr><td>3</td><td><b>亚军 / 季军</b></td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
-        <tr><td>4</td><td><b>晋级叙事</b>（能看到其他组淘汰情况）</td><td><span class="pill p1">P1</span></td><td>现在只有冠军自己的场次，"冠军怎么来的"看不出来</td></tr>
-        <tr><td>5</td><td>全站返回按钮</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
-        <tr><td>6</td><td>手动挑选交互（说明 / 上限 / 可勾可取消）</td><td><span class="pill p1">P1</span></td><td>未做（创建页「自己挑」已可勾可取消，但模式化的"手动挑选"页仍待补说明与上限）</td></tr>
-        <tr><td>7</td><td>指定对决交互（默认全勾、取消反而进对阵表）</td><td><span class="pill p1">P1</span></td><td>未做；要按你说的"选中→缩入对阵表 + 上方变灰"重做</td></tr>
-        <tr><td>8</td><td>搜索过滤更严 + <b>已选歌手单独一排</b></td><td><span class="pill p1">P1</span></td><td>未做（iTunes 模糊匹配会混入无关歌手）</td></tr>
-        <tr><td>9</td><td>分享页布局（100% 缩放下图片乱）</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
-        <tr><td>10</td><td><b>歌手官方图</b>（放在搜索结果空白处）</td><td><span class="pill p1">P1</span></td><td>iTunes Search API 不返回歌手头像；可用"歌手封面图作代位头像"或接 Apple Music API（需密钥）</td></tr>
-        <tr><td>11</td><td>投票页"点封面即投票"（省掉下方按钮）</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
-        <tr><td>12</td><td>后台剩余 3 页（人格类型 / 音乐数据 / 用户管理）</td><td><span class="pill p1">P1</span></td><td>未还原</td></tr>
-        <tr><td>13</td><td>好友一起玩</td><td><span class="pill p2">P2</span></td><td>玩法里写了，功能未落地</td></tr>
-        <tr><td>14</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷你对阵树 / 本地续玩</td><td><span class="pill p2">P2</span></td><td>排版动效类，按约定放收尾阶段</td></tr>
-        <tr><td>15</td><td>榜单「地区/年代/周期」筛选</td><td><span class="pill p2">P2</span></td><td>需后端补接口</td></tr>
-        <tr><td>16</td><td>6 个人格类型的推荐专辑池</td><td><span class="pill p2">P2</span></td><td>后台未绑 recommendAlbumIds → 图鉴/人格卡"常听专辑"为空</td></tr>
-        <tr><td>17</td><td>原型 p4/p5/p6 按 v2 重绘</td><td><span class="pill p2">P2</span></td><td>设计稿还是 v1 旧稿（含旧的组内两两对决与 15 场数字）</td></tr>
-        <tr><td>18</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
+        <tr><td>1</td><td><b>Edge 闪屏 / 卡顿 —— 需你实测确认</b></td><td><span class="pill p0">P0</span></td><td>本轮已把"大 blur 固定层"改成径向渐变（治本）。我这边没有 Edge 可跑，请你在 Edge 里最小化 / 回桌面验证；若仍闪，网址后加 <code>?lite=1</code> 可强制关掉极光背景兜底。</td></tr>
+        <tr><td>2</td><td><b>颜色问题 —— 需你对照确认</b></td><td><span class="pill p1">P1</span></td><td>封面本身<b>不叠任何彩色</b>（CSS 注释可查），"怪色"来自背景光晕取的封面主色。已让浅色 / 暖白封面走中性灰、并压低饱和度上限。若某张仍不对，把专辑名发我即可精确定位。</td></tr>
+        <tr><td>3</td><td>游客数据迁移到正式账号</td><td><span class="pill p1">P1</span></td><td>注册后把该游客的对决 / 票转进账号（现在游客数据只留本机浏览器）</td></tr>
+        <tr><td>4</td><td>后台剩余 3 页（人格类型 / 音乐数据 / 用户管理）</td><td><span class="pill p1">P1</span></td><td>未还原成设计系统版式</td></tr>
+        <tr><td>5</td><td>分享页布局（100% 缩放下图片乱）</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
+        <tr><td>6</td><td><b>歌手官方图</b>（搜索结果空白处）</td><td><span class="pill p1">P1</span></td><td>iTunes Search API 不返回歌手头像；可用"歌手封面图代位"或接 Apple Music API（需密钥）</td></tr>
+        <tr><td>7</td><td>搜索过滤更严 + 已选歌手单独一排</td><td><span class="pill p1">P1</span></td><td>未做（iTunes 模糊匹配会混入无关歌手）</td></tr>
+        <tr><td>8</td><td>指定对决交互（默认全勾、取消反而进对阵表）</td><td><span class="pill p1">P1</span></td><td>未做；要按"选中 → 缩入对阵表 + 上方变灰"重做</td></tr>
+        <tr><td>9</td><td><b>大逃杀模式</b>（100 张彩蛋）</td><td><span class="pill p2">P2</span></td><td>上限已提到 100 张；100 张全选的"大逃杀"玩法按你说的，<b>正式版做完再议可行性</b></td></tr>
+        <tr><td>10</td><td>6 个人格类型的推荐专辑池</td><td><span class="pill p2">P2</span></td><td>后台未绑 recommendAlbumIds → 图鉴 / 人格卡"常听专辑"为空</td></tr>
+        <tr><td>11</td><td>榜单「地区 / 年代 / 周期」筛选</td><td><span class="pill p2">P2</span></td><td>需后端补接口</td></tr>
+        <tr><td>12</td><td>原型 p4/p5/p6 按 v2 重绘</td><td><span class="pill p2">P2</span></td><td>设计稿还是 v1 旧稿</td></tr>
+        <tr><td>13</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷你对阵树 / 本地续玩</td><td><span class="pill p2">P2</span></td><td>排版动效类，按约定放收尾阶段</td></tr>
+        <tr><td>14</td><td>好友一起玩</td><td><span class="pill p2">P2</span></td><td>玩法里写了，功能未落地</td></tr>
+        <tr><td>15</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
       </tbody>
     </table>
   </div>
@@ -149,7 +152,7 @@
     <table>
       <thead><tr><th>步</th><th>内容</th><th>预计</th></tr></thead>
       <tbody>
-        <tr><td>1</td><td><b>玩法大修收尾</b>：同室操戈标注、盲盒堆叠、亚季军、晋级叙事、返回按钮、手动挑选/指定对决交互、搜索与已选歌手（「步」→「场」本轮已完成）</td><td>2~3 个工作日</td></tr>
+        <tr><td>1</td><td><b>玩法大修收尾</b>：指定对决交互、搜索过滤 + 已选歌手单排、分享页布局（同室操戈 / 盲盒堆叠 / 亚季军 / 晋级叙事 / 返回按钮 / 点封面投票 / 自选上限 均已在前几轮完成）</td><td>1~2 个工作日</td></tr>
         <tr><td>2</td><td>后台剩余 3 页还原 + 绑 6 人格推荐专辑池</td><td>1 天</td></tr>
         <tr><td>3</td><td>原型 p4/p5/p6 按 v2 重绘（让设计稿和产品一致）</td><td>0.5 天</td></tr>
         <tr><td>4</td><td><b>收尾打磨</b>：按《前端设计工作守则》逐条做排版/动效/可读性 + 深色模式 + 响应式 375/768/1024/1440 验收</td><td>2~3 天</td></tr>
@@ -158,7 +161,7 @@
     </table>
   </div>
 
-  <div class="foot">音格 · 进度与执行清单 · 2026-09-17 · 与《前端设计工作守则》配套使用</div>
+  <div class="foot">音格 · 进度与执行清单 · 2026-09-18 · 与《前端设计工作守则》配套使用</div>
 </div>
 </body>
 </html>

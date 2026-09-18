@@ -859,7 +859,33 @@ export async function listMyBattles(userId, query) {
     Battle.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
     Battle.countDocuments(filter),
   ]);
-  return { list, page, pageSize, total };
+
+  // 「我的对决」列表缩略图：取每场对决第一场比赛的左侧专辑封面。
+  // 批量查（一次 BattleMatch + 一次 Album），避免 N+1；某场还没生成对阵时为 null。
+  const battleIds = list.map((b) => b._id);
+  const coverByBattle = new Map();
+  if (battleIds.length) {
+    const firstMatches = await BattleMatch.find({ battleId: { $in: battleIds } })
+      .sort({ matchOrder: 1 })
+      .select('battleId leftAlbumId');
+    for (const m of firstMatches) {
+      const key = String(m.battleId);
+      if (!coverByBattle.has(key) && m.leftAlbumId) coverByBattle.set(key, String(m.leftAlbumId));
+    }
+    const albumIds = [...new Set([...coverByBattle.values()])];
+    if (albumIds.length) {
+      const albums = await Album.find({ _id: { $in: albumIds } }).select('artworkUrl');
+      const artMap = new Map(albums.map((a) => [String(a._id), a.artworkUrl]));
+      for (const [key, albumId] of coverByBattle) coverByBattle.set(key, artMap.get(albumId) || null);
+    }
+  }
+  const withCover = list.map((b) => {
+    const obj = b.toObject();
+    obj.coverUrl = coverByBattle.get(String(b._id)) || null;
+    return obj;
+  });
+
+  return { list: withCover, page, pageSize, total };
 }
 
 export async function deleteBattle(battleId, userId) {

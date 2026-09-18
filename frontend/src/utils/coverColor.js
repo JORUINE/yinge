@@ -69,12 +69,12 @@ function hslToRgb(h, s, l) {
   return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 }
 
-/** 把主色压进"不刺眼但认得出"的友好区间（饱和度 18–48%，亮度 46–62%） */
+/** 把主色压进"不刺眼但认得出"的友好区间（饱和度 16–40%，亮度 46–62%） */
 function soften(rgb) {
   const m = rgb.match(/\d+/g);
   if (!m) return rgb;
   let [h, s, l] = rgbToHsl(+m[0], +m[1], +m[2]);
-  s = Math.min(Math.max(s, 18), 48);
+  s = Math.min(Math.max(s, 16), 40);
   l = Math.min(Math.max(l, 46), 62);
   return hslToRgb(h, s, l);
 }
@@ -137,7 +137,7 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     const lum = 0.299 * R + 0.587 * G + 0.114 * B;
     if (lum < 26 || lum > 238) continue; // 近黑 / 近白：不属于封面的"身份色"
     const sat = Math.max(R, G, B) - Math.min(R, G, B);
-    if (sat < 20) {
+    if (sat < 26) {
       // 低饱和：进灰池（黑白封面的兜底用）
       gray.count += 1;
       gray.r += R;
@@ -154,8 +154,11 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     buckets.set(key, bkt);
   }
 
-  // ② 纯灰 / 黑白封面：中性灰，安静不抢戏
-  if (!buckets.size) {
+  // ② 纯灰 / 黑白 / 大面积浅色封面：中性灰，安静不抢戏。
+  //    判据：没有彩色桶，或彩色像素不到灰像素的 6 成（浅色 / 暖白封面）→ 认作"没有彩色身份"，
+  //    不硬凑一个彩色（否则白底封面会跑出粉/紫，这正是之前"颜色怪"的来源）。
+  const coloredPixels = [...buckets.values()].reduce((sum, b) => sum + b.count, 0);
+  if (!buckets.size || coloredPixels < gray.count * 0.6) {
     if (!gray.count) return null; // 整张都太暗 / 太亮
     const lum = (0.299 * gray.r + 0.587 * gray.g + 0.114 * gray.b) / gray.count;
     const l = Math.min(Math.max(Math.round((lum / 255) * 100), 46), 58);

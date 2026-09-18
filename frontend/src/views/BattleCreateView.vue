@@ -120,7 +120,7 @@
     <!-- 手动挑选：逐张勾专辑 -->
     <template v-else-if="mode === 'custom'">
       <div class="block">
-        <h4>手动挑选 <em>至少 4 张 · 可跨歌手</em></h4>
+        <h4>手动挑选 <em>至少 4 张 · 最多 100 张 · 可跨歌手</em></h4>
         <div class="searchrow">
           <input
             v-model="term"
@@ -143,12 +143,17 @@
             <b>{{ a.name }}</b><i>加载其专辑</i>
           </button>
         </div>
+        <p v-if="lastAdded" class="addedtip">✓ {{ lastAdded }}</p>
+        <p class="hint">点「加载其专辑」把某位歌手的专辑放进来，再点封面勾选；一局至少 4 张、<b>最多 100 张</b>。</p>
+        <p class="hint warnline">
+          注意：跨歌手混战会优先把不同歌手配到一起，但同一歌手的专辑仍可能在某一轮相遇（同室操戈），这属正常赛制。
+        </p>
         <div v-if="customPool.length" class="pool">
           <button
             v-for="al in customPool"
             :key="al.albumId"
             class="pk"
-            :class="{ off: !customPick.includes(al.albumId) }"
+            :class="{ off: !customPick.includes(al.albumId), just: justAdded.includes(Number(al.albumId)) }"
             type="button"
             @click="toggleCustom(al.albumId)"
           >
@@ -543,7 +548,7 @@ const poolPreview = computed(() => {
       const wanted = new Set(selfPicked.value.map(Number));
       return list.filter((a) => wanted.has(Number(a.albumId)));
     }
-    const count = mode.value === 'artist' ? singerScale.value : perArtistScale.value;
+    const count = mode.value === 'artist' ? singerScale.value : mode.value === 'aligned' ? alignCount.value : perArtistScale.value;
     const base =
       pickStrategy.value === 'newest'
         ? [...list].sort((a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0))
@@ -618,6 +623,9 @@ const totalSelected = computed(() => {
     return each * picked.value.length;
   }
   if (mode.value === 'custom') return customPick.value.length;
+  // 对位赛：每位歌手取前 alignCount 张 → 总出战数 = 歌手数 × 对位张数
+  // （以前这里漏了 aligned，直接 return 0，导致对位赛显示「本轮出战 0 张」且盲盒虚位卡不出现）
+  if (mode.value === 'aligned') return picked.value.length * alignCount.value;
   return 0;
 });
 
@@ -776,19 +784,47 @@ function removeArtist(artistId) {
 }
 
 // —— 手动挑选 ——
+/** 单场对决的专辑数上限（100 张 ≈「大逃杀模式」的规模，属彩蛋方向，正式版再议） */
+const MAX_CUSTOM = 100;
+/** 刚加入的 albumId（入场动画用）+ 最近一次「已添加」提示文案 */
+const justAdded = ref([]);
+const lastAdded = ref('');
+function flashAdded(ids) {
+  justAdded.value = ids.map(Number);
+  window.setTimeout(() => {
+    justAdded.value = [];
+  }, 900);
+}
+
 async function loadCustomAlbums(artist) {
   try {
     const data = await musicApi.listArtistAlbums(artist.artistId);
     const list = (data.eligible || []).map((al) => ({ ...al, _artistName: artist.name }));
     const seen = new Set(customPool.value.map((a) => a.albumId));
-    customPool.value = [...customPool.value, ...list.filter((a) => !seen.has(a.albumId))];
-    if (!list.length) ElMessage.info('该歌手暂无合格专辑');
+    const fresh = list.filter((a) => !seen.has(a.albumId));
+    customPool.value = [...customPool.value, ...fresh];
+    if (!list.length) {
+      ElMessage.info('该歌手暂无合格专辑');
+      return;
+    }
+    if (fresh.length) {
+      // 明确反馈 + 入场动画：让人看到"我点的那位歌手，专辑真的加进来了"
+      lastAdded.value = `已添加 ${artist.name} 的 ${fresh.length} 张专辑`;
+      flashAdded(fresh.map((a) => a.albumId));
+      ElMessage.success(`已添加 ${artist.name} 的 ${fresh.length} 张专辑，点封面即可勾选入池`);
+    } else {
+      ElMessage.info(`${artist.name} 的专辑都已经在池子里了`);
+    }
   } catch (err) {
     ElMessage.error(err?.message || '加载专辑失败');
   }
 }
 
 function toggleCustom(albumId) {
+  if (!customPick.value.includes(albumId) && customPick.value.length >= MAX_CUSTOM) {
+    ElMessage.warning(`单场对决最多 ${MAX_CUSTOM} 张专辑`);
+    return;
+  }
   customPick.value = customPick.value.includes(albumId)
     ? customPick.value.filter((x) => x !== albumId)
     : [...customPick.value, albumId];
@@ -952,6 +988,38 @@ async function onCreate() {
 }
 .hint b {
   color: var(--brand-deep);
+}
+/* 「已添加 XX 的 N 张专辑」即时反馈条 */
+.addedtip {
+  margin-top: 10px;
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--brand-ink, #04263c);
+  background: var(--brand);
+  animation: tipPop 0.5s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+.warnline {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.22);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+/* 新加入专辑的入场动画：「我点的歌手，专辑进来了」的视效反馈 */
+.pk.just {
+  animation: pkPop 0.55s var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+@keyframes pkPop {
+  0% { transform: translateY(12px) scale(0.9); opacity: 0; }
+  60% { transform: translateY(-4px) scale(1.03); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes tipPop {
+  0% { transform: translateY(-6px); opacity: 0; }
+  100% { transform: none; opacity: 1; }
 }
 
 .chip.on {

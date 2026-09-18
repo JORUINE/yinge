@@ -93,12 +93,16 @@
         </div>
       </div>
 
-      <!-- 小组赛播放条：与淘汰赛完全同一套控制逻辑（上一首 / 播放暂停 / 下一首），共用全局播放状态 -->
+      <!-- 小组赛播放条：与淘汰赛同一套（整专辑曲目 + 上一首 / 播放暂停 / 下一首 + 序号） -->
       <div v-if="playerAlbum && curTrack" class="nowbar">
         <div class="a"><img :src="playerAlbumArt" alt="" /></div>
         <div class="t">
           <b>{{ curTrack.name }}</b>
-          <span>《{{ playerAlbumName }}》试听主打 · {{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}</span>
+          <span>
+            《{{ playerAlbumName }}》第 {{ curTrack.trackNumber }} 首 ·
+            <template v-if="curTrack.previewUrl">{{ fmtTime(audioTime) }} / {{ fmtTime(audioDur || 30000) }}</template>
+            <template v-else>这首没有试听片段</template>
+          </span>
         </div>
         <button class="trk" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
           <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
@@ -112,6 +116,7 @@
         <button class="trk" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
           <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
         </button>
+        <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
       </div>
 
       <p class="note">
@@ -146,9 +151,11 @@
             :style="accentStyle(match.leftAlbum)"
             @mouseenter="lit = 'l'"
             @mouseleave="lit = 'c'"
+            @click="onCoverVote(match.leftAlbum)"
           >
             <div class="art albc">
               <img :src="match.leftAlbum?.artworkUrl" :alt="match.leftAlbum?.name" />
+              <span class="picktag">点击投票</span>
             </div>
             <b>{{ match.leftAlbum?.name }}</b>
             <div class="accent"></div>
@@ -170,9 +177,11 @@
             :style="accentStyle(match.rightAlbum)"
             @mouseenter="lit = 'r'"
             @mouseleave="lit = 'c'"
+            @click="onCoverVote(match.rightAlbum)"
           >
             <div class="art albc">
               <img :src="match.rightAlbum?.artworkUrl" :alt="match.rightAlbum?.name" />
+              <span class="picktag">点击投票</span>
             </div>
             <b>{{ match.rightAlbum?.name }}</b>
             <div class="accent"></div>
@@ -387,6 +396,10 @@ async function loadAccents() {
  */
 const previewingId = ref(null);
 const previewLoadingId = ref(null);
+/**
+ * 小组赛试听：与淘汰赛**同一套**播放器 —— 拉整张专辑的曲目，可逐首切歌。
+ * （以前只拉了一首"主打"，于是播放条永远显示 1/1、上一首/下一首 都是灰的；2026-09-18 修正）
+ */
 async function quickPreview(al) {
   if (!al) return;
   // 再点同一个 = 停止
@@ -398,32 +411,8 @@ async function quickPreview(al) {
   }
   previewLoadingId.value = al.albumId;
   try {
-    const data = await musicApi.getAlbumPreview(al.albumId);
-    if (!data?.previewUrl) {
-      ElMessage.info('这张专辑没有可试听的片段');
-      return;
-    }
-    // 复用全局播放器状态：单曲队列
-    playerAlbum.value = {
-      albumId: al.albumId,
-      name: al.name,
-      artistName: al.artistName,
-      artworkUrl: al.artworkUrl,
-      trackCount: al.trackCount,
-    };
-    tracks.value = [
-      {
-        trackId: data.track?.trackId,
-        name: data.track?.name || al.name,
-        trackNumber: data.track?.trackNumber || 1,
-        previewUrl: data.previewUrl,
-      },
-    ];
-    trackIdx.value = 0;
-    previewingId.value = al.albumId;
-    loadCurrent();
-  } catch (err) {
-    ElMessage.error(err?.message || '试听加载失败');
+    await play(al); // 复用淘汰赛的整专辑曲目加载 + 全局播放器
+    previewingId.value = playerAlbum.value?.albumId === al.albumId ? al.albumId : null;
   } finally {
     previewLoadingId.value = null;
   }
@@ -487,7 +476,11 @@ async function load() {
   }
 }
 
+/** 后端业务码 3001 = 重复（这一场 / 这一组已经投过）——不是失败，直接刷新进下一步即可 */
+const isAlreadyDone = (err) => err?.code === 3001;
+
 async function submitGroup() {
+  if (submitting.value) return; // 防连点：上一次提交没回来之前不再发第二次
   if (picked.value.length !== group.value.advanceCount) return;
   submitting.value = true;
   try {
@@ -495,21 +488,25 @@ async function submitGroup() {
     if (result?.invalid) ElMessage.warning(result.message);
     await load();
   } catch (err) {
-    ElMessage.error(err?.message || '提交失败');
+    // 已经投过这一组 → 说明上一次其实已成功（后端已推进），直接刷新，别卡死在这一屏
+    if (isAlreadyDone(err)) await load();
+    else ElMessage.error(err?.message || '提交失败');
   } finally {
     submitting.value = false;
   }
 }
 
 async function vote(album) {
-  if (!album) return;
+  if (!album || submitting.value) return; // 防连点：请求飞行中忽略后续点击（点封面 / 点按钮都走这里）
   submitting.value = true;
   try {
     const result = await battleApi.vote(id, match.value.matchId, album.albumId);
     if (result?.invalid) ElMessage.warning(result.message);
     await load();
   } catch (err) {
-    ElMessage.error(err?.message || '投票失败');
+    // 已经投过这一场 → 上一次其实已投成功（后端已推进），直接刷新到下一场，避免"投不进去又退不出来"
+    if (isAlreadyDone(err)) await load();
+    else ElMessage.error(err?.message || '投票失败');
   } finally {
     submitting.value = false;
   }

@@ -19,28 +19,31 @@
 .aurora .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(100px);
+  /* ⚠️ 这里曾用 filter: blur(100px)。「铺满视口的固定层 + 超大范围 blur」会让 Chromium
+     合成器持续重绘 —— Edge(Windows) 最小化 / 回桌面时整窗一直闪，Chrome 也偶发卡顿。
+     改用「径向渐变」做柔边：观感同样是柔和光晕，但基本不花渲染成本（2026-09-18 修复）。 */
+  background-image: radial-gradient(closest-side, var(--blob), rgba(255, 255, 255, 0) 100%);
 }
 .aurora .b1 {
   width: 680px;
   height: 680px;
   left: -180px;
   top: -220px;
-  background: var(--a1);
+  --blob: var(--a1);
 }
 .aurora .b2 {
   width: 760px;
   height: 760px;
   right: -260px;
   top: 40px;
-  background: var(--a3);
+  --blob: var(--a3);
 }
 .aurora .b3 {
   width: 620px;
   height: 620px;
   left: 30%;
   bottom: -320px;
-  background: var(--a2);
+  --blob: var(--a2);
 }
 .aurora .ray {
   position: absolute;
@@ -49,7 +52,7 @@
   height: 160%;
   transform: rotate(13deg);
   background: linear-gradient(180deg, var(--ray), transparent 72%);
-  filter: blur(30px);
+  filter: blur(16px);
 }
 .aurora .r1 {
   left: 32%;
@@ -2819,19 +2822,19 @@ html.ua-edge[data-theme='dark'] {
   --glass: rgba(20, 40, 60, 0.85);
   --glass2: rgba(20, 40, 60, 0.7);
 }
+/* Edge：关毛玻璃 + 极光不再有任何 blur（blob 本身已是径向渐变，无需 filter） */
 html.ua-edge * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
-html.ua-edge .aurora .blob {
-  filter: blur(52px);
-}
+html.ua-edge .aurora .blob,
 html.ua-edge .aurora .ray {
-  filter: blur(14px);
+  filter: none;
 }
 html.ua-edge .vglow .g1,
 html.ua-edge .vglow .g2,
 html.ua-edge .vglow .g3 {
+  filter: blur(34px);
   will-change: auto;
 }
 

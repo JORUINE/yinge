@@ -23,7 +23,7 @@ const artistEntry = z.object({
   artistId: z.coerce.number().int().positive(),
   albumCount: z.coerce.number().int().min(1).max(50).optional(),
   // 多歌手模式下每位歌手可各自自选专辑
-  albumIds: z.array(z.coerce.number().int().positive()).optional(),
+  albumIds: z.array(z.coerce.number().int().positive()).max(100, '单场对决最多 100 张专辑').optional(),
 });
 
 const createSchema = z
@@ -42,7 +42,7 @@ const createSchema = z
     genre: z.string().trim().max(40).optional(),
     startYear: z.coerce.number().int().min(1900).max(2100).optional(),
     endYear: z.coerce.number().int().min(1900).max(2100).optional(),
-    albumIds: z.array(z.coerce.number().int().positive()).optional(),
+    albumIds: z.array(z.coerce.number().int().positive()).max(100, '单场对决最多 100 张专辑').optional(),
     withRevival: z.boolean().optional(),
     // 新赛制开关：2 = 规模自选 + 小组赛 4 选 2 + 遗珠复活 + 1v1 淘汰；默认 1（旧赛制）
     tournamentVersion: z.coerce.number().int().min(1).max(2).optional(),

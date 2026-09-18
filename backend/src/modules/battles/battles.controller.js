@@ -17,6 +17,8 @@ function serializeBattle(battle) {
     alignCount: battle.alignCount,
     withRevival: battle.withRevival,
     status: battle.status,
+    // 列表缩略图：「我的对决」用它显示封面（其它接口不带则为 null）
+    coverUrl: battle.coverUrl || null,
     groupCount: battle.groupCount,
     roundCount: battle.roundCount,
     currentRound: battle.currentRound,

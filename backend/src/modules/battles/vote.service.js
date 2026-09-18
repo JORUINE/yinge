@@ -50,21 +50,27 @@ async function checkLightRate(userId) {
   if (perDay >= config.vote.perDayLimit) throw new TooFrequentError('今日投票次数已达上限');
 }
 
-/** 中度异常判定：返回原因或 null */
+/**
+ * 中度异常判定：返回原因或 null
+ * ⚠️ 本作是「单人对决」——同一个人要从头把整场赛程投完（最多 100 张 → 约 70 场），
+ *    所以"投得多"是正常游玩特征，不是作弊。以下判据只用于把异常票**排除出排行榜统计**，
+ *    且**对游客一律不判定**：游客天生就是新账号、数据只留本机，误判会把正常游玩卡死（2026-09-18 修）。
+ */
 async function detectMediumFraud(user, match) {
-  // 连续 15 场总投同一侧
-  const recent = await Vote.find({ userId: user._id }).sort({ createdAt: -1 }).limit(15).populate('matchId');
-  if (recent.length === 15) {
+  if (user.role === 'guest') return null;
+  // 连续 40 场总投同一侧（阈值放宽：有人就是偏爱某一边）
+  const recent = await Vote.find({ userId: user._id }).sort({ createdAt: -1 }).limit(40).populate('matchId');
+  if (recent.length === 40) {
     const sides = recent
       .filter((v) => v.matchId)
       .map((v) => (String(v.albumId) === String(v.matchId.leftAlbumId) ? 'L' : 'R'));
-    if (sides.length === 15 && sides.every((s) => s === sides[0])) return '连续多场投向同一侧';
+    if (sides.length === 40 && sides.every((s) => s === sides[0])) return '连续多场投向同一侧';
   }
-  // 注册不足 1 小时已投 50 场以上
+  // 注册不足 1 小时已投 300 场以上（阈值放宽：一场大型对决就可能上百票）
   const ageMs = Date.now() - new Date(user.createdAt).getTime();
   if (ageMs < 60 * MINUTE) {
     const count = await Vote.countDocuments({ userId: user._id });
-    if (count >= 50) return '新账号短时间内大量投票';
+    if (count >= 300) return '新账号短时间内大量投票';
   }
   return null;
 }
@@ -100,37 +106,20 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
   // 轻度限流：不计违规
   await checkLightRate(user._id);
 
-  // 中度异常：票作废 + 记违规，不参与统计
+  // 中度异常：票**记为异常**（不进排行榜统计），但**仍然推进赛程**。
+  // ⚠️ 关键：以前这里直接 return、不推进本场，导致"本场永远决不出胜负 + 该用户再投被唯一索引挡住"，
+  //    用户被彻底卡死（2026-09-18 修复：异常票也决定胜负、推进赛程，只是不计入统计）。
   const mediumReason = await detectMediumFraud(user, match);
-  if (mediumReason) {
-    await Vote.create({
-      matchId,
-      battleId,
-      albumId: albumObjectId,
-      userId: user._id,
-      ip: meta.ip || null,
-      deviceHash: meta.deviceHash || null,
-      isInvalid: true,
-      invalidReason: mediumReason,
-    });
-    const result = await applyViolation(user);
-    return {
-      invalid: true,
-      reason: mediumReason,
-      violation: result,
-      message: '该票被判定为异常，已作废且不计入统计',
-    };
-  }
 
-  // 正常投票：落库 + 累加比分
-  const vote = await Vote.create({
+  await Vote.create({
     matchId,
     battleId,
     albumId: albumObjectId,
     userId: user._id,
     ip: meta.ip || null,
     deviceHash: meta.deviceHash || null,
-    isInvalid: false,
+    isInvalid: Boolean(mediumReason),
+    invalidReason: mediumReason || null,
   });
 
   const isLeft = String(match.leftAlbumId) === String(albumObjectId);
@@ -146,6 +135,21 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
 
   // 返回外部专辑标识（与接口文档 5.4 一致）
   const winnerDoc = match.winnerAlbumId ? await Album.findById(match.winnerAlbumId).select('albumId') : null;
+
+  if (mediumReason) {
+    const violation = await applyViolation(user);
+    return {
+      invalid: true,
+      reason: mediumReason,
+      violation,
+      matchId: String(match._id),
+      winnerAlbumId: winnerDoc?.albumId ?? null,
+      leftVotes: match.leftVotes,
+      rightVotes: match.rightVotes,
+      progress,
+      message: '这一票已记录，但被判为异常、不计入排行榜',
+    };
+  }
 
   return {
     invalid: false,

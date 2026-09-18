@@ -45,7 +45,10 @@
       <!-- 我的对决 -->
       <div v-if="tab === 'battles'" class="list">
         <div v-for="b in battles" :key="b.battleId" class="r">
-          <div class="th"><img :src="coverOf(b)" alt="" /></div>
+          <div class="th">
+            <img v-if="b.coverUrl" :src="b.coverUrl" alt="" loading="lazy" />
+            <span v-else class="noart">♪</span>
+          </div>
           <div class="m">
             <b>{{ titleOf(b) }}</b>
             <span>
@@ -146,9 +149,6 @@ function titleOf(b) {
   if (b.scopeType === 'artist' && names.length) return `${names[0]} 专辑对决`;
   return SCOPE_CN[b.scopeType] || '专辑对决';
 }
-function coverOf(b) {
-  return b.coverUrl || '';
-}
 
 async function setTab(t) {
   tab.value = t;
@@ -235,6 +235,10 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+.noart {
+  font-size: 18px;
+  color: var(--text3);
 }
 @media (max-width: 720px) {
   .stats {
