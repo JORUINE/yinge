@@ -207,6 +207,27 @@ onMounted(load);
 .scard.square {
   aspect-ratio: 1 / 1;
 }
+/**
+ * 方形图的硬伤兜底（2026-09-18）：封面原来是"按卡宽 58%"定尺寸的，
+ * 换成 1:1 方卡后这个宽度对应的封面高度超出了可用高度，被 `overflow:hidden` 硬裁掉半张 ——
+ * 用户的原话是"你这方形图就纯粹裁剪一下，把信息都搞没了"。
+ * 这里改成**按高度定尺寸**（height:38% + aspect-ratio 自动出宽），封面就完整了。
+ * ⚠️ 方形版的整体版式重做留到 UI 大改，这一版只解掉"撑破被裁"。
+ */
+.scard.square .smain .art {
+  width: auto;
+  height: 38%;
+}
+.scard.square .smain {
+  gap: 8px;
+}
+.scard.square .cname {
+  font-size: 22px;
+}
+.scard.square .spath div {
+  width: 26px;
+  height: 26px;
+}
 .sharel {
   max-width: 46%;
   overflow: hidden;

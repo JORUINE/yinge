@@ -60,39 +60,13 @@
           {{ groups.length ? '小组赛全部结束后进入淘汰赛；' : '' }}当前进度
           <b style="color: var(--text)">{{ decided }} / {{ battle.stepTotal || 0 }}</b> 场
         </div>
-        <div class="rounds" :style="{ gridTemplateColumns: `repeat(${rounds.length}, minmax(0, 1fr)) 220px` }">
-          <div v-for="r in rounds" :key="r.name" class="rcol">
-            <h5>{{ r.cn }}</h5>
-            <div
-              v-for="m in r.matches"
-              :key="m.matchId"
-              class="tie"
-              :class="{ live: m.matchId === nextMatchId }"
-            >
-              <div class="side" :class="sideClass(m, m.leftAlbum)">
-                <div class="t1"><img v-if="m.leftAlbum" :src="m.leftAlbum.artworkUrl" alt="" /></div>
-                <span class="tn">{{ m.leftAlbum ? m.leftAlbum.name : '待定' }}</span>
-              </div>
-              <div class="mid">{{ tieMid(m) }}</div>
-              <div class="side right" :class="sideClass(m, m.rightAlbum)">
-                <span class="tn">{{ m.rightAlbum ? m.rightAlbum.name : '待定' }}</span>
-                <div class="t2"><img v-if="m.rightAlbum" :src="m.rightAlbum.artworkUrl" alt="" /></div>
-              </div>
-            </div>
-          </div>
-          <div class="rcol">
-            <h5>冠军</h5>
-            <div class="tie champ">
-              <template v-if="champion">
-                <div class="t1 win"><img :src="champion.artworkUrl" alt="" /></div>
-                <div class="tn">{{ champion.name }}</div>
-              </template>
-              <template v-else>
-                <div class="tn" style="color: var(--text3)">等待决出</div>
-              </template>
-            </div>
-          </div>
-        </div>
+        <!--
+          ⚠️ 2026-09-18 换成整棵「完整晋级图」（BracketTree）。
+          之前是「每轮一列 + 每列内拆成 左|比分|右 三栏」的网格，列一多每侧只剩几十 px，
+          专辑名被省略成「…」——用户的原话是"扩展宽一点，这样里面专辑的字就能展现出来了"。
+          树状图左浅右深、每个节点自带专辑名（最多两行），多轮次也只是变宽，不会挤掉信息。
+        -->
+        <BracketTree :matches="matches" :champion="champion" />
       </div>
 
       <p v-if="!groups.length && !rounds.length" class="note">
@@ -118,6 +92,7 @@ import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
+import BracketTree from '@/components/BracketTree.vue';
 
 const route = useRoute();
 const id = route.params.id;
@@ -176,11 +151,6 @@ const rounds = computed(() => {
   }));
 });
 
-const nextMatchId = computed(() => {
-  const ko = matches.value.find((m) => !m.isBye && !m.winnerAlbumId && ROUND_ORDER.indexOf(m.roundName) >= 2);
-  return ko?.matchId || null;
-});
-
 const champion = computed(() => {
   const cid = battle.value?.championAlbumId;
   if (!cid) return null;
@@ -194,29 +164,6 @@ const champion = computed(() => {
   }
   return null;
 });
-
-/** 胜方外部 albumId（优先后端字段；旧后端按票数兜底，避免高亮全失效） */
-function winnerExternalIdOf(m) {
-  if (m?.winnerAlbumExternalId != null) return String(m.winnerAlbumExternalId);
-  const l = Number(m?.leftVotes || 0);
-  const r = Number(m?.rightVotes || 0);
-  if (l === r) return null;
-  const side = l > r ? m.leftAlbum : m.rightAlbum;
-  return side ? String(side.albumId) : null;
-}
-
-function sideClass(m, album) {
-  // ⚠️ 必须用「外部 albumId」比对：winnerAlbumId 是本地 ObjectId，跟专辑的外部 id 永远对不上
-  //    （曾导致淘汰赛对阵条的胜方高亮全部失效）
-  const w = winnerExternalIdOf(m);
-  if (w == null || !album) return {};
-  return String(album.albumId) === w ? { win: true } : { lose: true };
-}
-function tieMid(m) {
-  if (m.isBye) return '轮空';
-  if (m.winnerAlbumId) return `${m.leftVotes ?? 0} : ${m.rightVotes ?? 0}`;
-  return '待投';
-}
 
 async function load() {
   loading.value = true;
@@ -282,67 +229,7 @@ onMounted(load);
   border-color: var(--brand);
   box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.4);
 }
-/* 对阵条：左专辑 | 比分 | 右专辑（三栏，长名省略，不再挤成一团） */
-.tie {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 58px minmax(0, 1fr);
-  align-items: center;
-  gap: 8px;
-}
-.tie .side {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-.tie .side.right {
-  justify-content: flex-end;
-}
-.tie .t1,
-.tie .t2 {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  overflow: hidden;
-  flex: 0 0 auto;
-}
-.tie .t1 img,
-.tie .t2 img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-.tie .tn {
-  font-size: 11.5px;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tie .mid {
-  font-size: 10.5px;
-  color: var(--text3);
-  text-align: center;
-  white-space: nowrap;
-}
-.tie.champ {
-  grid-template-columns: 1fr;
-  border-style: dashed;
-}
-.tie .side.win {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
-  border-radius: 8px;
-}
-.tie .side.lose img {
-  opacity: 0.35;
-}
-
 @media (max-width: 900px) {
-  .rounds {
-    grid-template-columns: 1fr !important;
-  }
   .groups {
     grid-template-columns: 1fr;
   }

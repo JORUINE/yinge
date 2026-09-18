@@ -54,6 +54,25 @@ export function nextRoundName(name) {
   return KO_NAMES[i + 1];
 }
 
+/**
+ * 场次所属「阶段」序号 —— 用于撤销时判断"哪些场次必须跟着一起撤掉"。
+ *   0 = 小组赛 / 对位赛 / 指定对决（同一批勾选或同一批指定产生，属同一阶段）
+ *   1 = 遗珠复活
+ *   2+ = 淘汰赛各轮（r32 → final 依次递增）
+ *
+ * ⚠️ 绝不能用 `matchOrder` 大小来判断"更晚的阶段"：**同一轮内的兄弟场次 matchOrder 也是递增的**，
+ *    按序号删会把同轮的兄弟场次一起删掉 → 剩下"半决赛只有 1 场"的残缺轮次 →
+ *    推进逻辑误判该轮已投完 → 用 1 个胜者生成决赛（轮空场，无法投票）→ 对局永久卡在
+ *    「本轮已投完，正在生成下一轮对阵…」（2026-09-18 用户报的卡死 bug，根因即此）。
+ */
+export function stageRankOf(match) {
+  const name = match?.roundName;
+  if (name === 'revival') return 1;
+  const i = KO_NAMES.indexOf(name);
+  if (i >= 0) return 2 + i;
+  return 0; // group / duel / aligned
+}
+
 /** 取某歌手的合格专辑（已缓存优先，必要时同步） */
 async function eligibleAlbumsOf(artistExternalId) {
   const { albums } = await musicService.getArtistAlbums(artistExternalId);
@@ -527,7 +546,7 @@ export async function castGroupVote(battleId, groupId, pickedExternalIds, userId
 }
 
 /** 取下一个待投票步骤（统一覆盖 小组 / 复活 / 淘汰赛 / 已结束），前端据此渲染 */
-export async function getNextStep(battleId, userId) {
+export async function getNextStep(battleId, userId, _depth = 0) {
   const battle = await loadOwnedBattle(battleId, userId);
   if (battle.status === 'finished') {
     return { finished: true, phase: 'finished', progress: { decided: battle.stepTotal || 0, total: battle.stepTotal || 0 } };
@@ -536,6 +555,20 @@ export async function getNextStep(battleId, userId) {
     // 旧赛制：交由既有 next-match 接口处理
     return { legacy: true };
   }
+
+  /**
+   * 兜底自愈：赛程其实已经可以推进（所有场次都判定完了 / 小组都勾完了），
+   * 但 status 还停在 playing 时，**读状态这一下就顺手推进**。
+   * 为什么必须这么做：推进原本只发生在投票那一刻，一旦出现"最后一轮全是轮空场"
+   * 这类**没有可投场次**的局面，就再也没有触发推进的机会 → 前端永远停在
+   * 「本轮已投完，正在生成下一轮对阵…」（2026-09-18 用户报的卡死 bug 的兜底）。
+   */
+  const selfHeal = async (state) => {
+    if (_depth >= 5) return state;
+    const p = await progressBattle(battle);
+    if (p?.advanced) return getNextStep(battleId, userId, _depth + 1);
+    return state;
+  };
 
   const groups = await BattleGroup.find({ battleId: battle._id }).sort({ groupNo: 1, roundName: 1 });
   const groupPickedCount = groups.filter((g) => g.isPicked()).length;
@@ -570,7 +603,11 @@ export async function getNextStep(battleId, userId) {
   if (koMatches.length) {
     const match = koMatches.find((m) => !m.isBye && !m.winnerAlbumId);
     if (!match) {
-      return { finished: false, phase: 'await', progress: { decided: groupPickedCount + koDecided, total: battle.stepTotal } };
+      return selfHeal({
+        finished: false,
+        phase: 'await',
+        progress: { decided: groupPickedCount + koDecided, total: battle.stepTotal },
+      });
     }
     const albumDocs = await Album.find({ _id: { $in: [match.leftAlbumId, match.rightAlbumId].filter(Boolean) } });
     const albumMap = new Map(albumDocs.map((a) => [String(a._id), a]));
@@ -604,8 +641,8 @@ export async function getNextStep(battleId, userId) {
     };
   }
 
-  // 兜底：分组都投完但还没生成淘汰赛（progressBattleV2 会同步生成，正常不会停在这里）
-  return { finished: false, phase: 'await', progress: { decided: groupPickedCount, total: battle.stepTotal } };
+  // 兜底：分组都投完但还没生成淘汰赛（progressBattleV2 会同步生成，正常不会停在这里）→ 自愈一次
+  return selfHeal({ finished: false, phase: 'await', progress: { decided: groupPickedCount, total: battle.stepTotal } });
 }
 
 /** 新赛制推进：小组 / 复活阶段（淘汰赛已生成则转交 progressKnockoutV2） */
@@ -902,10 +939,15 @@ export async function undoLastStep(battleId, userId) {
     const match = await BattleMatch.findById(last.matchId);
     await Vote.deleteMany({ battleId, userId, matchId: last.matchId });
     if (match) {
-      const later = await BattleMatch.find({ battleId, matchOrder: { $gt: match.matchOrder } }).select('_id');
-      if (later.length) {
-        await Vote.deleteMany({ battleId, userId, matchId: { $in: later.map((m) => m._id) } });
-        await BattleMatch.deleteMany({ _id: { $in: later.map((m) => m._id) } });
+      // ⚠️ 只撤销「严格更晚阶段」的场次。同轮的兄弟场次必须留着 ——
+      //    历史实现按 matchOrder 删，会把同轮兄弟一起删掉，从而造出残缺轮次并把对局卡死
+      //    （2026-09-18 用户报的「本轮已投完」死锁）。见 stageRankOf 注释。
+      const rank = stageRankOf(match);
+      const all = await BattleMatch.find({ battleId }).select('_id roundName').lean();
+      const laterIds = all.filter((m) => stageRankOf(m) > rank).map((m) => m._id);
+      if (laterIds.length) {
+        await Vote.deleteMany({ battleId, userId, matchId: { $in: laterIds } });
+        await BattleMatch.deleteMany({ _id: { $in: laterIds } });
       }
       // 重新计票 + 重判胜方
       const [left, right] = await Promise.all([
@@ -916,6 +958,12 @@ export async function undoLastStep(battleId, userId) {
       match.rightVotes = right;
       match.winnerAlbumId = left || right ? await decideWinner(match, battle) : null;
       await match.save();
+
+      // 回写当前轮次：= 小组阶段轮数 + 复活 + 现存淘汰赛轮数（与 startKnockoutV2 / progressKnockoutV2 的口径一致）
+      const leftRounds = await BattleMatch.find({ battleId }).select('roundName').lean();
+      const koRoundsLeft = new Set(leftRounds.filter((m) => KO_NAMES.includes(m.roundName)).map((m) => m.roundName));
+      battle.currentRound =
+        (battle.groupCount || 0) + (battle.revivalNeed > 0 ? 1 : 0) + Math.max(1, koRoundsLeft.size);
       undone = `淘汰赛 · ${match.roundName}`;
     }
   } else {

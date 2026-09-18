@@ -245,16 +245,22 @@
 
         <h4 style="margin: 16px 0 0">
           或从常用组合 / 我收藏的组合开始
-          <em>系统组合由管理员在后台维护 · 你自建的组合只有你自己看得到</em>
+          <em>我收藏的组合排在前面、用金色框区分 · 系统组合由管理员在后台维护</em>
         </h4>
         <div class="presets">
-          <span v-for="c in shownCombos" :key="c.comboId || c.label" class="combowrap">
+          <span
+            v-for="c in shownCombos"
+            :key="c.comboId || c.label"
+            class="combowrap"
+            :class="{ mine: c.mine }"
+          >
             <button
               class="preset"
               type="button"
               :disabled="presetLoading === c.label"
               @click="applyCombo(c)"
             >
+              <span v-if="c.mine" class="minetag">我的</span>
               {{ presetLoading === c.label ? '装填中…' : c.label }}
             </button>
             <span v-if="c.mine" class="combox" title="删除这个组合" @click.stop="removeCombo(c)">×</span>
@@ -395,28 +401,44 @@
               >
                 {{ discovering ? '正在查找…' : '先看看有哪些歌手' }}
               </button>
-              <button
-                v-if="discovered.length"
-                class="btn pri sm"
-                type="button"
-                :disabled="growing || !missing.length"
-                @click="warmAll"
-              >
-                {{ growing ? `入库中 ${warmDone}/${missing.length}…` : `把前 ${missing.length} 位补进曲库` }}
-              </button>
+              <template v-if="discovered.length">
+                <button
+                  class="btn ghost sm"
+                  type="button"
+                  :disabled="growing || !missing.length"
+                  @click="toggleAllWarm"
+                >
+                  {{ warmPick.length === missing.length ? '取消全选' : `全选未入库（${missing.length}）` }}
+                </button>
+                <button
+                  class="btn pri sm"
+                  type="button"
+                  :disabled="growing || !warmPick.length"
+                  @click="warmSelected"
+                >
+                  {{ growing ? `入库中 ${warmDone}/${warmPick.length}…` : `入库已选 ${warmPick.length} 位` }}
+                </button>
+              </template>
             </div>
 
             <p v-if="discoverNote" class="hint">{{ discoverNote }}</p>
+            <p v-if="discovered.length" class="hint pickhint">
+              <b>点名字即可勾选</b>，只把你要的歌手补进曲库（显示「已入库」的不用再选）。
+            </p>
 
             <div v-if="discovered.length" class="glist">
               <span
                 v-for="a in discovered"
                 :key="a.artistId"
                 class="chip"
-                :class="{ on: a.cached }"
-                :title="a.genre"
+                :class="{ lock: a.cached, sel: warmPick.includes(a.artistId) }"
+                :title="a.cached ? '已在曲库' : '点击勾选／取消'"
+                role="button"
+                :tabindex="a.cached ? -1 : 0"
+                @click="toggleWarm(a.artistId, a.cached)"
               >
-                <b>{{ a.name }}</b><i>{{ a.cached ? '已入库' : a.genre || '—' }}</i>
+                <b>{{ a.name }}</b>
+                <i>{{ a.cached ? `已入库 ${a.localAlbumCount} 张` : a.genre || genre.trim() }}</i>
               </span>
             </div>
           </div>
@@ -556,6 +578,11 @@ const genreCount = computed(
 );
 /** 还没入库的那些（只补这些，已入库的不重复拉） */
 const missing = computed(() => discovered.value.filter((a) => !a.cached));
+/**
+ * 用户逐个点选出来"要入库"的歌手（2026-09-18 用户要求「增加点选可以入库」）。
+ * 以前只有一个"把前 N 位补进曲库"的全量按钮 —— 榜上混着不想收的人也没法挑。
+ */
+const warmPick = ref([]);
 
 onMounted(async () => {
   try {
@@ -567,11 +594,27 @@ onMounted(async () => {
   loadCombos();
 });
 
+/** 点选 / 取消一位歌手（已在库的不可选） */
+function toggleWarm(artistId, cached) {
+  if (cached || growing.value) return;
+  warmPick.value = warmPick.value.includes(artistId)
+    ? warmPick.value.filter((x) => x !== artistId)
+    : [...warmPick.value, artistId];
+}
+
+/** 全选 / 取消全选未入库的那些 */
+function toggleAllWarm() {
+  if (growing.value) return;
+  warmPick.value =
+    warmPick.value.length === missing.value.length ? [] : missing.value.map((a) => a.artistId);
+}
+
 /** ① 看看这个流派在 Apple Music 里靠前的是哪些歌手 */
 async function discoverGenre() {
   if (!genre.value.trim()) return;
   discovering.value = true;
   discovered.value = [];
+  warmPick.value = [];
   discoverNote.value = '';
   try {
     const d = await musicApi.discoverGenreArtists({ genre: genre.value.trim(), limit: 30 });
@@ -581,9 +624,15 @@ async function discoverGenre() {
       return;
     }
     const name = genre.value.trim();
+    const srcNote =
+      d?.source === 'chart'
+        ? '（来自 Apple Music 该流派榜单，华语区 + 欧美区合并）'
+        : d?.source === 'mixed'
+          ? '（流派榜单 + 关键词检索合并）'
+          : '';
     discoverNote.value = d?.loose
-      ? `Apple Music 里「${name}」在中文区没有统一流派标签，这 ${discovered.value.length} 位是按相关度收的 —— 入库前你可以先看一眼名字对不对`
-      : `Apple Music 里「${name}」靠前的 ${discovered.value.length} 位歌手，其中 ${discovered.value.length - missing.value.length} 位已在曲库`;
+      ? `Apple Music 里「${name}」在中文区没有统一流派标签，这 ${discovered.value.length} 位是按相关度收的 —— 勾选前你可以先看一眼名字对不对`
+      : `Apple Music 里「${name}」靠前的 ${discovered.value.length} 位歌手${srcNote}，其中 ${discovered.value.length - missing.value.length} 位已在曲库`;
   } catch (e) {
     discoverNote.value = e?.message || '查找失败';
   } finally {
@@ -592,8 +641,8 @@ async function discoverGenre() {
 }
 
 /** ② 分批入库（后端每批最多 8 位 —— 每位都要打一次 Apple 的专辑接口） */
-async function warmAll() {
-  const ids = missing.value.map((a) => a.artistId);
+async function warmSelected() {
+  const ids = warmPick.value.slice();
   if (!ids.length) return;
   growing.value = true;
   warmDone.value = 0;
@@ -612,8 +661,9 @@ async function warmAll() {
       // eslint-disable-next-line no-await-in-loop
       const done = new Set((r?.results || []).filter((x) => x.ok).map((x) => x.artistId));
       discovered.value = discovered.value.map((a) =>
-        done.has(a.artistId) ? { ...a, cached: true } : a,
+        done.has(a.artistId) ? { ...a, cached: true, localAlbumCount: a.localAlbumCount } : a,
       );
+      warmPick.value = warmPick.value.filter((x) => !done.has(x));
     }
     ElMessage.success(`已把 ${saved} 位歌手补进曲库，现在可以按「${genre.value.trim()}」开局了`);
     // 刷新流派列表，让歌手数显示同步更新
@@ -1377,6 +1427,31 @@ async function onCreate() {
   position: relative;
   display: inline-flex;
 }
+/**
+ * 我收藏的组合：金色框 + 金色小标，跟内置（系统）组合的蓝白框区分开
+ * （2026-09-18 用户要求「我自己收藏的对决组合最好单独做个和默认不一样的框架颜色」）。
+ * 排序上也让我的排在前面 —— 见后端 listCombos。
+ */
+.combowrap.mine .preset {
+  border-color: rgba(224, 135, 0, 0.55);
+  background: rgba(224, 135, 0, 0.12);
+  color: var(--gold);
+  font-weight: 700;
+}
+.combowrap.mine .preset:hover {
+  border-color: var(--gold);
+  box-shadow: var(--gsh-hi), 0 4px 14px rgba(224, 135, 0, 0.28);
+}
+.minetag {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--gold);
+  color: #fff;
+  line-height: 1.6;
+}
 .combox {
   position: absolute;
   right: -5px;
@@ -1537,6 +1612,12 @@ async function onCreate() {
   margin-top: 10px;
   max-height: 190px;
   overflow-y: auto;
+}
+.pickhint {
+  margin-top: 8px;
+}
+.pickhint b {
+  color: var(--brand-deep);
 }
 
 /* 待成组托盘：明确显示"还差几张"，选错可点 × 撤销 */

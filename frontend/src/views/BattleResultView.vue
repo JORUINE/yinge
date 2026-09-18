@@ -163,12 +163,22 @@
               <div class="pc" v-if="row.theirs !== null">{{ row.theirs }} 票</div>
             </div>
           </div>
+
+          <!-- 完整晋级图（树状）：像音乐世界杯那样一张图看完全程 -->
+          <details class="fold sub" open>
+            <summary class="foldhd">
+              <b>完整晋级图</b>
+              <span>一张图看完整条淘汰赛路径 · 左边是早期轮次，右边是决赛与冠军</span>
+              <i class="chev" aria-hidden="true"></i>
+            </summary>
+            <BracketTree :matches="allMatches" :champion="champion" compact />
+          </details>
         </div>
 
-        <!-- 完整晋级图（守则 39）：每一轮谁打了谁、谁被淘汰 —— 含冠军没参与的对局 -->
+        <!-- 全部淘汰赛对局（守则 39）：每一轮谁打了谁、谁被淘汰 —— 含冠军没参与的对局 -->
         <template v-if="koRounds.length">
           <div class="hd" style="margin-top: 26px">
-            <b>完整晋级图</b><span>按轮次展开全部对局 · 冠军的对局会描边高亮</span>
+            <b>全部淘汰赛对局</b><span>按轮次列全部对局（含冠军未参与的）· 冠军的对局会描边高亮</span>
           </div>
           <div class="ko">
             <div v-for="r in koRounds" :key="r.roundName" class="koround">
@@ -255,6 +265,7 @@ import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
 import FavoriteButton from '@/components/FavoriteButton.vue';
+import BracketTree from '@/components/BracketTree.vue';
 
 const route = useRoute();
 const id = route.params.id;
@@ -622,6 +633,19 @@ onMounted(load);
 }
 .fold > .gstage {
   padding: 16px;
+}
+/* 二级折叠：嵌在「夺冠之路」里的完整晋级图（缩进由父级 .fold > :not(summary) 统一给） */
+.fold.sub {
+  margin: 8px 0 16px;
+  max-width: none;
+  background: var(--glass2);
+  border-color: var(--gbd);
+}
+.fold.sub .foldhd {
+  padding: 10px 14px;
+}
+.fold.sub .foldhd b {
+  font-size: 14px;
 }
 
 /* 对位赛战报卡 */

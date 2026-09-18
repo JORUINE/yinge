@@ -175,7 +175,8 @@
   border: 1px solid var(--gbd);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: 0 18px 46px var(--gsh);
+  /* 默认就有实体阴影 + 顶部内高光（"玻璃框架"），不再只靠 hover 才看得见 */
+  box-shadow: var(--gsh-hi), 0 18px 46px var(--gsh);
 }
 .seg {
   display: flex;
@@ -185,6 +186,8 @@
   background: var(--glass2);
   border: 1px solid var(--gbd);
   margin-bottom: 20px;
+  /* 同 chip/preset：静止态也有"玻璃框架"（内高光 + 落影），不再只是一片白 */
+  box-shadow: var(--gsh-hi), 0 2px 8px var(--gsh);
 }
 .seg button {
   flex: 1;
@@ -533,9 +536,36 @@ html[data-theme='dark'] .v b {
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text);
+  /* 默认就给"玻璃框架"：内高光 + 落影。以前只有 hover 才有淡蓝描边，
+     静止状态下一片白，字浮在背景上可读性差（2026-09-18 用户点名） */
+  box-shadow: var(--gsh-hi), 0 2px 8px var(--gsh);
 }
 .chip:hover {
   border-color: var(--brand);
+  box-shadow: var(--gsh-hi), 0 4px 14px var(--gsh);
+}
+/* 可点选（流派补库那种逐个勾选）：选中态要一眼看得出 */
+.chip.sel {
+  border-color: var(--brand);
+  background: rgba(14, 165, 233, 0.16);
+  color: var(--brand-deep);
+  font-weight: 700;
+  box-shadow: var(--gsh-hi), 0 0 0 2px rgba(14, 165, 233, 0.18), 0 4px 14px var(--gsh);
+}
+.chip.sel::before {
+  content: '✓';
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--brand);
+}
+/* 已入库：不可再选，压成"已完成"的观感 */
+.chip.lock {
+  cursor: default;
+  opacity: 0.72;
+  border-color: rgba(13, 148, 136, 0.5);
+  background: rgba(13, 148, 136, 0.1);
+  color: var(--ok);
+  box-shadow: none;
 }
 .chip i {
   font-style: normal;
@@ -713,10 +743,12 @@ html[data-theme='dark'] .v b {
   cursor: pointer;
   transition: all 0.2s;
   color: var(--text);
+  box-shadow: var(--gsh-hi), 0 2px 8px var(--gsh);
 }
 .preset:hover {
   border-color: var(--brand);
   color: var(--brand-deep);
+  box-shadow: var(--gsh-hi), 0 4px 14px var(--gsh);
 }
 .preset .avs {
   display: flex;
@@ -1377,9 +1409,10 @@ html[data-theme='dark'] .v b {
   gap: 26px;
   padding: 24px;
   border-radius: var(--r);
-  background: var(--glass);
-  border: 1px solid var(--gbd);
-  box-shadow: 0 16px 44px var(--gsh);
+  /* 冠军块用金色描边 + 金色渐入：用户要求「冠军的字体和颜色更鲜艳显眼突出」 */
+  background: linear-gradient(135deg, rgba(224, 135, 0, 0.16), var(--glass) 58%);
+  border: 2px solid rgba(224, 135, 0, 0.55);
+  box-shadow: var(--gsh-hi), 0 16px 44px var(--gsh);
   margin-top: 22px;
 }
 .crown-wrap .art {
@@ -1397,20 +1430,34 @@ html[data-theme='dark'] .v b {
   display: block;
 }
 .crown-wrap .cinfo .cw {
-  font-size: 11.5px;
-  letter-spacing: 2.4px;
-  color: var(--gold);
-  font-weight: 700;
+  display: inline-block;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  color: #fff;
+  font-weight: 900;
+  padding: 4px 13px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #d97b00, #f3b23a);
+  box-shadow: 0 6px 16px rgba(224, 135, 0, 0.35);
 }
 .crown-wrap .cinfo h3 {
-  margin: 8px 0 4px;
-  font-size: 30px;
-  letter-spacing: -0.9px;
+  margin: 10px 0 4px;
+  font-size: 40px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -1.2px;
+  color: var(--gold);
+  text-shadow: 0 2px 16px rgba(224, 135, 0, 0.32);
 }
 .crown-wrap .cinfo p {
   margin: 0 0 14px;
   color: var(--text2);
   font-size: 13.5px;
+}
+@media (max-width: 760px) {
+  .crown-wrap .cinfo h3 {
+    font-size: 30px;
+  }
 }
 .kpis {
   display: grid;
@@ -1497,9 +1544,11 @@ html[data-theme='dark'] .v b {
   flex-direction: column;
 }
 .scard .stop {
-  font-size: 11px;
-  letter-spacing: 1.6px;
-  opacity: 0.7;
+  /* 「音格 · YINGE.APP」水印：用户要求"水印也可以做大一点，字体也是" */
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  opacity: 0.92;
 }
 .scard .stitle {
   font-size: 15px;
@@ -1513,6 +1562,7 @@ html[data-theme='dark'] .v b {
   align-items: center;
   justify-content: center;
   gap: 11px;
+  min-height: 0;
 }
 .scard .smain .art {
   width: 58%;
@@ -1528,20 +1578,23 @@ html[data-theme='dark'] .v b {
   display: block;
 }
 .scard .crown {
-  font-size: 10.5px;
-  letter-spacing: 2px;
-  color: var(--gold);
-  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #ffcf66;
+  font-weight: 900;
+  text-shadow: 0 2px 12px rgba(224, 135, 0, 0.55);
 }
 .scard .cname {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 26px;
+  font-weight: 900;
   letter-spacing: -0.4px;
   text-align: center;
+  color: #ffd777;
+  text-shadow: 0 2px 16px rgba(224, 135, 0, 0.45);
 }
 .scard .cartist {
   font-size: 12px;
-  opacity: 0.75;
+  opacity: 0.78;
   margin-top: -6px;
 }
 .scard .spath {

@@ -26,10 +26,14 @@ function serialize(c) {
   };
 }
 
-/** 我可以看到的组合 = 系统组合 + 我自己建的（系统组合排在前面） */
+/**
+ * 我可以看到的组合 = 系统组合 + 我自己建的。
+ * ⚠️ 排序（2026-09-18 用户要求）：**我收藏的组合排在前面**，内置（系统）组合在后。
+ *    原来的排序是 isSystem 降序（系统在前），用户明确说"我收藏的优先排在内置的前"。
+ */
 export async function listCombos(user) {
   const list = await Combo.find({ $or: [{ isSystem: true }, { ownerId: user._id }] }).sort({
-    isSystem: -1,
+    isSystem: 1,
     createdAt: -1,
   });
   return { list: list.map(serialize) };

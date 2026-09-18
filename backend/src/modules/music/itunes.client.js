@@ -139,4 +139,59 @@ export async function lookupAlbumSongs(collectionId, limit = 200) {
   return { country, songs };
 }
 
-export default { searchArtists, lookupAlbums, lookupSongs, upscaleArtwork };
+/**
+ * 按流派取「Apple Music 榜单专辑」——**这是唯一能真正做到"按流派取歌手"的路子**。
+ * ------------------------------------------------------------
+ * 为什么不用 search 接口：iTunes Search API **没有**流派筛选参数
+ * （`attribute=genreTerm` 实测等同普通关键词搜索）。实测 `term=Rock` 在 hk 区
+ * 返回的前 40 位是 BTS / Ed Sheeran / BLACKPINK / Taylor Swift…… 跟摇滚毫无关系，
+ * 只能靠结果自带的 `primaryGenreName` 反筛 —— 筛出来的人数少、还混着制作者与
+ * 歌单伪歌手（Greg Kurstin / Ari Levine / 「流行摇滚」「摇滚老太」）。
+ *
+ * 老版 RSS 榜单（`/{country}/rss/topalbums/limit=N/genre=<id>/json`）**支持 genre 参数**
+ * 且 hk/us 两个区各自有榜，实测 `genre=21`（摇滚）在 us 区给的是
+ * Journey / Pink Floyd / Fleetwood Mac / Boston / TOOL / Creedence —— 正是要的"流派大咖"。
+ *
+ * 附带好处：条目里的 `im:artist.attributes.href` 形如
+ * `https://music.apple.com/us/artist/journey/486597?uo=2`，**歌手 ID 直接就在里面**，
+ * 不必再为每位歌手打一次搜索请求（30 位歌手省 30 次请求）。
+ *
+ * @param {number} genreId iTunes 音乐流派 ID（21=摇滚 18=嘻哈 14=流行 15=R&B 见 genreExpand.js）
+ * @param {{country?: string, limit?: number, explicit?: boolean}} options
+ * @returns {Promise<{country:string, entries:Array<{artistId:number, artistName:string, albumName:string, rank:number}>}>}
+ */
+export async function topAlbumsByGenre(genreId, { country = 'us', limit = 100, explicit = true } = {}) {
+  const url = new URL(
+    `/${country}/rss/topalbums/limit=${limit}/genre=${genreId}${explicit ? '/explicit=true' : ''}/json`,
+    BASE,
+  );
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), config.itunes.timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'yinge/0.1 (+https://github.com/JORUINE/yinge)' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    let list = json?.feed?.entry || [];
+    if (!Array.isArray(list)) list = [list]; // 只有 1 条时返回对象
+    const entries = list
+      .map((e, i) => {
+        const href = e?.['im:artist']?.attributes?.href || '';
+        const hit = href.match(/\/artist\/[^/]*\/(\d+)/);
+        return {
+          artistId: hit ? Number(hit[1]) : null,
+          artistName: e?.['im:artist']?.label || null,
+          albumName: e?.['im:name']?.label || null,
+          rank: i + 1,
+        };
+      })
+      .filter((x) => x.artistId && x.artistName);
+    return { country, entries };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export default { searchArtists, lookupAlbums, lookupSongs, topAlbumsByGenre, upscaleArtwork };

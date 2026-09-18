@@ -562,6 +562,7 @@ export default {
   buildAlignedChronoMatches,
   buildDuelMatches,
   computeStandings,
+  buildFirstRoundCrossArtist,
   buildKnockoutMatches,
   computeStandardTotal,
   computeAlignedTotal,

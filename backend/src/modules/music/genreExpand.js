@@ -16,6 +16,7 @@
  */
 import { Artist } from '../../models/index.js';
 import * as itunes from './itunes.client.js';
+import { looksLikeArtistList } from './admission.js';
 
 /**
  * 流派 → 检索词 + 认可的 iTunes 流派标签关键词。
@@ -89,43 +90,186 @@ const hasAny = (hay, keys) => {
 };
 
 /**
- * ① 发现：按流派去 Apple Music 找靠前的歌手（**只读，不写库**）
- * 返回的 artists 按 iTunes 的相关度（≈ 热度）排序，已经入库的会标 cached。
+ * 库里流派名 → Apple Music **榜单流派 ID** + 取榜地区。
+ * ------------------------------------------------------------
+ * 这是 2026-09-18 修「流派大咖进不来」的关键：search 接口没有流派筛选，
+ * 而老版榜单接口 `/{country}/rss/topalbums/limit=N/genre=<id>/json` **有**，
+ * 且 hk/us 各区各有一份榜 → 两个区穿插取，华语与欧美的大咖就都进来了。
+ *
+ * ID 是实测对出来的（探针把 1~40 全部拉了一遍）：
+ *   5=古典 6=乡村 7=电子 8=节庆 10=民谣/创作歌手 11=爵士 12=拉丁 14=流行
+ *   15=R&B/骚灵 16=原声配乐 17=舞曲 20=另类 21=摇滚 24=雷鬼 27=日本流行
+ * countries 的顺序 = 混合优先级（欧美流派 us 先，华语语境 hk 先）。
+ *
+ * ⚠️ 华语系流派**故意不进这张表**：hk 区的 14 号（流行）榜里混着 aespa、IVE 这类
+ *    K-pop，而中文流派的正确来源是"关键词搜 + primaryGenreName 反筛"（那条路能靠
+ *    标签把 K-pop 筛掉）。所以华语流派继续走关键词源。
  */
-export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
-  const conf = resolveGenreConf(genre);
+export const GENRE_RSS = {
+  摇滚: { id: 21, countries: ['us', 'hk'] },
+  搖滾: { id: 21, countries: ['us', 'hk'] },
+  rock: { id: 21, countries: ['us', 'hk'] },
+  hiphoprap: { id: 18, countries: ['us', 'hk'] },
+  hiphop: { id: 18, countries: ['us', 'hk'] },
+  嘻哈: { id: 18, countries: ['us', 'hk'] },
+  流行樂: { id: 14, countries: ['us', 'hk'] },
+  流行乐: { id: 14, countries: ['us', 'hk'] },
+  pop: { id: 14, countries: ['us', 'hk'] },
+  'r&b騷靈樂': { id: 15, countries: ['us', 'hk'] },
+  'r&b骚灵乐': { id: 15, countries: ['us', 'hk'] },
+  '當代r&b': { id: 15, countries: ['us', 'hk'] },
+  '当代r&b': { id: 15, countries: ['us', 'hk'] },
+  'r&b': { id: 15, countries: ['us', 'hk'] },
+  舞曲: { id: 17, countries: ['us', 'hk'] },
+  dance: { id: 17, countries: ['us', 'hk'] },
+  另類音樂: { id: 20, countries: ['us', 'hk'] },
+  另类音乐: { id: 20, countries: ['us', 'hk'] },
+  電子音樂: { id: 7, countries: ['us', 'hk'] },
+  电子音乐: { id: 7, countries: ['us', 'hk'] },
+  爵士: { id: 11, countries: ['us', 'hk'] },
+  jazz: { id: 11, countries: ['us', 'hk'] },
+  古典: { id: 5, countries: ['us', 'hk'] },
+  鄉村: { id: 6, countries: ['us', 'hk'] },
+  乡村: { id: 6, countries: ['us', 'hk'] },
+  民謠: { id: 10, countries: ['us', 'hk'] },
+  民谣: { id: 10, countries: ['us', 'hk'] },
+  原聲配樂: { id: 16, countries: ['us', 'hk'] },
+  原声配乐: { id: 16, countries: ['us', 'hk'] },
+  節慶: { id: 8, countries: ['us', 'hk'] },
+  节庆: { id: 8, countries: ['us', 'hk'] },
+  jpop: { id: 27, countries: ['hk', 'us'] },
+};
+
+/**
+ * 剔除"伪歌手"噪声（2026-09-18 用户报「搜摇滚出来一堆奇怪的」）。
+ * 实测两类噪声：
+ *   ① iTunes 自制的**歌单/电台伪歌手**：流行摇滚、摇滚老太、反叛摇滚、我的摇滚青春、
+ *      Traditional、Today's Hits …… —— 它们有 artistId，但不是一个艺人；
+ *   ② **词曲作者 / 制作人**（Greg Kurstin、Ari Levine、Mike Elizondo）—— iTunes 给他们
+ *      开了艺人页，标签还正好是「摇滚」。这类靠名字不好认，靠"榜单源优先"把它们挤出去
+ *      （榜单是真实销量/播放排序，制作人不会上榜）。
+ */
+const JUNK_NAME_RES = [
+  /hits\b/i,
+  /hottest/i,
+  /essentials/i,
+  /staples/i,
+  /playlist/i,
+  /\bradio\b/i,
+  /top\s*\d+/i,
+  /workout/i,
+  /\bchill\b/i,
+  /mixtape/i,
+  /^various/i,
+  /karaoke/i,
+  /\btribute\b/i,
+  /^traditional$/i,
+];
+const PURE_CHINESE_RE = /^[\u4e00-\u9fa5·・\s]+$/;
+const GENRE_WORDS = ['摇滚', '搖滾', '流行', '嘻哈', '说唱', '說唱', '舞曲', '爵士', '民谣', '民謠', '乡村', '鄉村'];
+
+export function looksLikeCuratedArtist(name, genre) {
+  const n = String(name || '').trim();
+  if (!n) return true;
+  if (JUNK_NAME_RES.some((re) => re.test(n))) return true;
+  // 纯中文 + 名字里带流派词 → 判为歌单伪歌手（真乐队不会叫「流行摇滚」「我的摇滚青春」）
+  if (PURE_CHINESE_RE.test(n) && GENRE_WORDS.some((w) => n.includes(w))) return true;
+  // 正在搜的流派词被完整写进名字里（「摇滚老太」），且名字很短 → 也判伪歌手
+  const g = String(genre || '').trim();
+  if (g && n.length <= 8 && n.includes(g)) return true;
+  return false;
+}
+
+/**
+ * 发现阶段的统一"要不要这个人"判定：
+ *   ① 歌单/电台伪歌手、制作人式噪声 → 丢
+ *   ② 多人拼盘署名（「Rakim, Kurupt & Masta Killa」）→ 丢。
+ *      这类**入库也白入**：专辑准入里"非多人拼盘署名"会把它们的专辑全剔掉
+ *      （实测榜单里有好几条这种），提前筛掉可以省下入库请求。
+ */
+function skipArtist(name, genre) {
+  return looksLikeCuratedArtist(name, genre) || looksLikeArtistList(name);
+}
+
+/** 关键词源：按检索词搜歌手 → 用 primaryGenreName 反筛（华语流派与无榜单 ID 的流派走这条） */async function keywordArtistsOf(conf, genre, { limit, seen }) {
   const strict = new Map();
   const loose = new Map();
-
   for (const term of conf.terms) {
-    if (strict.size >= limit) break;
+    if (strict.size >= limit * 3 || seen.size + strict.size >= limit) break;
     let artists = [];
     try {
-      // 每个检索词多取一些，筛完流派还能剩下足够的人
       // eslint-disable-next-line no-await-in-loop
       ({ artists } = await itunes.searchArtists(term, 100));
     } catch {
-      // 单个检索词失败不影响其它词（iTunes 偶发限流）
-      continue;
+      continue; // 单个检索词失败不影响其它词（iTunes 偶发限流）
     }
     for (const a of artists) {
-      if (strict.has(a.artistId) || loose.has(a.artistId)) continue;
+      if (seen.has(a.artistId) || strict.has(a.artistId) || loose.has(a.artistId)) continue;
+      if (skipArtist(a.name, genre)) continue;
       const row = { artistId: a.artistId, name: a.name, genre: a.genre };
-      // 反筛：只收流派标签对得上的（这是质量的关键一步）
       if (hasAny(a.genre, conf.accept)) strict.set(a.artistId, row);
       else loose.set(a.artistId, { ...row, loose: true });
-      if (strict.size >= limit * 3) break;
+    }
+  }
+  return { strict, loose };
+}
+
+/**
+ * ① 发现：按流派去 Apple Music 找靠前的歌手（**只读，不写库**）
+ * 返回的 artists 按热度（榜单名次 / iTunes 相关度）排序，已经入库的会标 cached。
+ */
+export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
+  const conf = resolveGenreConf(genre);
+  const rss = GENRE_RSS[normalizeGenre(genre)] || null;
+  const seen = new Map();
+  let usedChart = false;
+
+  // ①-a 流派榜单源（首选）：hk / us 两区穿插，保证华语与欧美的大咖都进得来
+  if (rss) {
+    const lists = [];
+    for (const country of rss.countries) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const { entries } = await itunes.topAlbumsByGenre(rss.id, { country, limit: 100 });
+        lists.push(entries);
+      } catch {
+        lists.push([]);
+      }
+    }
+    const deepest = Math.max(0, ...lists.map((l) => l.length));
+    for (let i = 0; i < deepest && seen.size < limit; i += 1) {
+      for (const list of lists) {
+        const e = list[i];
+        if (!e || seen.has(e.artistId) || skipArtist(e.artistName, genre)) continue;
+        seen.set(e.artistId, {
+          artistId: e.artistId,
+          name: e.artistName,
+          genre: null, // 榜单条目不带流派标签，前端显示"该流派"即可
+          chartRank: e.rank,
+          from: 'chart',
+        });
+        if (seen.size >= limit) break;
+      }
+    }
+    usedChart = seen.size > 0;
+  }
+
+  // ①-b 关键词源：无榜单 ID 的流派（华语系）或榜单不足时补足
+  let looseUsed = false;
+  if (seen.size < limit) {
+    const { strict, loose } = await keywordArtistsOf(conf, genre, { limit, seen });
+    const need = limit - seen.size;
+    const useStrict = strict.size >= Math.min(need, 5);
+    const pool = useStrict ? [...strict.values()] : [...strict.values(), ...loose.values()];
+    looseUsed = !useStrict;
+    for (const a of pool) {
+      if (seen.size >= limit) break;
+      if (seen.has(a.artistId)) continue;
+      seen.set(a.artistId, { ...a, chartRank: null, from: 'keyword' });
     }
   }
 
-  /**
-   * 兜底：某些流派在 `country=cn` 下的官方标签是中文（实测「Reggaeton」→「拉丁都市音乐」），
-   * 严格反筛会一条都不剩。这时退化为"按 iTunes 相关度收录"，并打上 loose 标记，
-   * 让界面能如实说明"这批是按相关度收的，没做流派标签精确对照"。
-   */
-  const useStrict = strict.size >= Math.min(limit, 5);
-  const pool = useStrict ? [...strict.values()] : [...strict.values(), ...loose.values()];
-  const list = pool.slice(0, limit);
+  const list = [...seen.values()].slice(0, limit);
   const ids = list.map((a) => a.artistId);
   const cached = ids.length
     ? await Artist.find({ artistId: { $in: ids } }).select('artistId albumCount genre').lean()
@@ -135,15 +279,18 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
   return {
     genre,
     searched: conf.terms,
+    /** 'chart' = 来自流派榜单（准）｜'keyword' = 关键词+标签反筛｜'mixed' = 两者混合 */
+    source: usedChart && list.some((a) => a.from === 'keyword') ? 'mixed' : usedChart ? 'chart' : 'keyword',
     total: list.length,
-    /** true = 命中数不足，这批是按相关度收的（流派标签没做精确对照） */
-    loose: !useStrict,
+    /** true = 命中数不足，部分是按相关度收的（流派标签没做精确对照） */
+    loose: !usedChart && looseUsed,
     artists: list.map((a) => {
       const hit = cacheMap.get(a.artistId);
       return {
         ...a,
         cached: Boolean(hit),
         localAlbumCount: hit?.albumCount || 0,
+        localGenre: hit?.genre || null,
       };
     }),
   };

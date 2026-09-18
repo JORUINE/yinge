@@ -7,6 +7,13 @@
  */
 
 export const MIN_TRACK_COUNT = 7;
+/**
+ * 曲目数上限（2026-09-18 新增）。
+ * 用户报「合集类专辑 30 多首歌的那种」会混进参赛池 —— 精选/大盒装/加曲合集版
+ * 动辄 30+ 首，与"专辑对决"的语义不符（比的是专辑，不是打包合集）。
+ * 30 是留过余量的：The Beatles（白专辑）30 首整、多数双唱片专辑 20~28 首，都不受影响。
+ */
+export const MAX_TRACK_COUNT = 30;
 
 /** 名称关键词集合（规则 3~6 使用），后续可由后台维护 */
 export const DEFAULT_KEYWORDS = {
@@ -35,7 +42,46 @@ export const DEFAULT_KEYWORDS = {
     '紅館',
     '红馆',
   ],
-  soundtrack: ['ost', 'original soundtrack', 'soundtrack', '原声', '电影原声', '配乐', '主題曲', '主题曲'],
+  soundtrack: [
+    'ost',
+    'original soundtrack',
+    'soundtrack',
+    '原声',
+    '电影原声',
+    '配乐',
+    '主題曲',
+    '主题曲',
+    // 2026-09-18 补：影视原声有好几种写法，之前只拦了 "OST/Soundtrack/原声"，
+    // 于是「Black Panther: Wakanda Forever - Music From and Inspired By」「Top Gun: Maverick
+    // (Music from the Motion Picture)」这类以**曲目用途**命名的原声碟全部漏筛进参赛池。
+    'music from and inspired by',
+    'music from the motion picture',
+    'music from',
+    'inspired by',
+    'motion picture',
+    'score from',
+    'original motion picture',
+    '电影原声带',
+    '原聲帶',
+    '影视原声',
+    '影視原聲',
+  ],
+  // remix：混音 / 重混专辑不是正式专辑（2026-09-18 用户报「随机出来全是 remix」）
+  //   实测命中：The Remix、Judas (Remixes)、What Now (Remixes)、You da One (Remixes)、
+  //            Unfaithful Remixes、Umbrella (feat. JAŸ-Z) [Remixes] …
+  remix: ['remix', 'remixes', 'remixed', 'rmx', 're-mix', '混音', '重混'],
+  // single：iTunes 用「 - Single / - EP」标注单曲与迷你专辑；有些单曲塞了 8 首混音，
+  //   光靠 MIN_TRACK_COUNT 拦不住（2026-09-18 用户报：Disease - Single 混进来了）
+  single: [' - single', ' - ep', ' (single)', ' - maxi'],
+  /**
+   * 再版硬剔（2026-09-18 用户点名：「已经发行的专辑的加曲合集版也不行」）。
+   * 只放**只会出现在"再版"上**的词（reloaded / complete confection / 周年纪念版）。
+   * ⚠️ 刻意**不**把 deluxe / expanded / remaster 放进来：它们经常是某张专辑**唯一的版本**
+   *    （实测 Rihanna 的 ANTI 在港区只有 "ANTI (Deluxe)"），硬剔会把整张专辑弄丢。
+   *    这类版本词交给规则 7 同名去重：与本体同时存在时保留最早那张（本体），
+   *    只有当本体压根不存在时才保留它。
+   */
+  reissue: ['reloaded', 'complete confection', '周年纪念版', '周年紀念版', '超值版', '加值版'],
   // compilation：playlist 也算拼盘（2026-09-17 补：Surprise Song Playlist 漏筛）
   compilation: [
     '精选',
@@ -55,6 +101,10 @@ export const DEFAULT_KEYWORDS = {
   // karaoke：卡拉OK / 伴奏 / 纯伴奏版——不是正式专辑（2026-09-17 新增：
   //   「Taylor Swift Karaoke: 1989 (Deluxe)」曾一路夺冠，属于严重漏筛）
   karaoke: ['karaoke', '卡拉ok', '伴唱', '伴奏', 'instrumental', 'instrumentals'],
+  // reissue（原名 deluxe）：再版 / 加曲版 / 周年版。
+  // ⚠️ 这些**不做硬性剔除**，而是靠规则 7「同名去重」在本体与再版之间保留最早那张
+  //    （若某歌手只有再版没有本体，硬剔会把整张专辑弄丢，例如 Rihanna 的 ANTI 只出过 Deluxe）。
+  //    这里只负责把"版本词"识别出来，供去重归一化与同日期时的优先级使用。
   deluxe: [
     'deluxe',
     '豪华',
@@ -74,8 +124,50 @@ export const DEFAULT_KEYWORDS = {
     '日本盤',
     '台版',
     '港版',
+    // 2026-09-18 补：用户点名的两张"已发行专辑的加曲合集版"——
+    //   「Good Girl Gone Bad: Reloaded」「Teenage Dream: The Complete Confection」
+    'reloaded',
+    'complete confection',
+    'anniversary',
+    'bonus track',
+    'bonus version',
+    '加值',
+    '加曲',
+    '超值版',
   ],
 };
+
+/** 歌手名里出现"名单"特征 → 多作者专辑（Various Artists / A, B & C）。2026-09-18 新增。 */
+export const MULTI_ARTIST_NAME_HINTS = [
+  'various artists',
+  'various artist',
+  '群星',
+  '合辑',
+  '合輯',
+  'tribute',
+];
+
+/**
+ * 判断「专辑作者是不是一串人」。
+ * 为什么要单列：图 8 那类「Lady Gaga, 遥恩, 巴夫, Harold Faltermeyer & Hans Zimmer」
+ * 作者名本身暴露了它是拼盘，但专辑名看不出来 —— 只看专辑名会漏。
+ * 保守设计（避免误杀真歌手）：
+ *   · 2 个以上逗号 / 顿号 → 名单（例：Lady Gaga, A, B & C、Earth, Wind & Fire）
+ *   · 1 个逗号 + ' & ' → 名单
+ *   · 明确写作 feat./featuring/with 别人 → 合作曲，不算该歌手专辑
+ *   · 正常含 1 个逗号或 ' & ' 的独立歌手名不算（例：Tyler, The Creator、Simon & Garfunkel）
+ */
+export function looksLikeArtistList(artistName) {
+  const s = normalizeText(artistName);
+  if (!s) return false;
+  if (MULTI_ARTIST_NAME_HINTS.some((k) => s.includes(normalizeText(k)))) return true;
+  const commas = (s.match(/[,、]/g) || []).length;
+  if (commas >= 2) return true;
+  if (commas === 1 && /\s&\s/.test(s)) return true;
+  if (/\bfeat\.|\bfeaturing\b/.test(s)) return true;
+  return false;
+}
+
 
 /** 规则序号 → 过滤原因，供前端展示"命中规则" */
 export const RULE_LABELS = {
@@ -86,6 +178,10 @@ export const RULE_LABELS = {
   NOT_COMPILATION: '非精选集',
   NOT_MULTI_ARTIST: '非合辑拼盘',
   NOT_KARAOKE: '非卡拉OK / 伴奏版',
+  NOT_REMIX: '非混音版',
+  NOT_SINGLE: '非单曲 / EP',
+  NOT_REISSUE: '非再版 / 加曲版',
+  NOT_ARTIST_LIST: '非多人拼盘署名',
   DEDUPE: '同名去重',
 };
 
@@ -125,7 +221,10 @@ export function normalizeAlbumName(name) {
   return normalizeText(name)
     .replace(/\(.*?\)|\[.*?\]|（.*?）|【.*?】/g, '')
     .replace(
-      /deluxe|豪华|remaster(ed)?|重制|reissue|expanded|special edition|platinum edition|anniversary|限量版?|改版|紀念版|纪念版|復刻|复刻|日本盤|台版|港版/gi,
+      // ⚠️ 这里每加一个"版本词"，就等于把该版本与本体合并为同一张（去重时保留最早那张）。
+      //    2026-09-18 用户点名的「Good Girl Gone Bad: Reloaded」「Teenage Dream: The Complete
+      //    Confection」就是靠 reloaded / complete confection 两个词归一到本体的。
+      /the complete confection|complete confection|deluxe|豪华|remaster(ed)?|重制|reissue|expanded|special edition|platinum edition|anniversary|限量版?|改版|紀念版|纪念版|復刻|复刻|日本盤|台版|港版|reloaded|bonus tracks?|加值|加曲|超值版/gi,
       '',
     )
     .replace(/[\s\-_·.,'"!?&/\\|:;]/g, '')
@@ -134,14 +233,19 @@ export function normalizeAlbumName(name) {
 
 /** 单张专辑的规则 1~6 判定（规则 7 在批量处理时执行） */
 export function evaluateAlbum(album, { artistExternalId, keywords = DEFAULT_KEYWORDS } = {}) {
-  // 规则 1：类型与体量（必须为专辑且曲目数不少于 7）
+  // 规则 1：类型与体量（必须为专辑，曲目数落在 [7, 30]）
   if (album.isAlbumType === false) return { isEligible: false, excludeReason: RULE_LABELS.TYPE_AND_SIZE };
-  if (Number(album.trackCount || 0) < MIN_TRACK_COUNT) {
+  const tracks = Number(album.trackCount || 0);
+  if (tracks < MIN_TRACK_COUNT || tracks > MAX_TRACK_COUNT) {
     return { isEligible: false, excludeReason: RULE_LABELS.TYPE_AND_SIZE };
   }
   // 规则 2：归属必须按标识比对，不可按名称
   if (artistExternalId != null && Number(album.artistExternalId) !== Number(artistExternalId)) {
     return { isEligible: false, excludeReason: RULE_LABELS.ARTIST_MATCH };
+  }
+  // 规则 2.5：多作者署名（Various Artists / A, B & C / feat.）—— 不是"某歌手的专辑"
+  if (looksLikeArtistList(album.artistName)) {
+    return { isEligible: false, excludeReason: RULE_LABELS.NOT_ARTIST_LIST };
   }
   // 规则 3~6：名称关键词
   if (hitKeyword(album.name, keywords.live)) return { isEligible: false, excludeReason: RULE_LABELS.NOT_LIVE };
@@ -157,6 +261,18 @@ export function evaluateAlbum(album, { artistExternalId, keywords = DEFAULT_KEYW
   // 规则 6.5：卡拉OK / 伴奏版（不是正式专辑）
   if (hitKeyword(album.name, keywords.karaoke)) {
     return { isEligible: false, excludeReason: RULE_LABELS.NOT_KARAOKE };
+  }
+  // 规则 6.6：混音版（2026-09-18 新增）
+  if (hitKeyword(album.name, keywords.remix)) {
+    return { isEligible: false, excludeReason: RULE_LABELS.NOT_REMIX };
+  }
+  // 规则 6.7：单曲 / EP（2026-09-18 新增）
+  if (hitKeyword(album.name, keywords.single)) {
+    return { isEligible: false, excludeReason: RULE_LABELS.NOT_SINGLE };
+  }
+  // 规则 6.8：再版 / 加曲合集版（2026-09-18 新增，用户点名）
+  if (hitKeyword(album.name, keywords.reissue)) {
+    return { isEligible: false, excludeReason: RULE_LABELS.NOT_REISSUE };
   }
   return { isEligible: true, excludeReason: null };
 }
@@ -217,4 +333,13 @@ export function applyAdmission(albums, { artistExternalId = null, keywords = DEF
   };
 }
 
-export default { applyAdmission, evaluateAlbum, normalizeAlbumName, DEFAULT_KEYWORDS, RULE_LABELS, MIN_TRACK_COUNT };
+export default {
+  applyAdmission,
+  evaluateAlbum,
+  normalizeAlbumName,
+  looksLikeArtistList,
+  DEFAULT_KEYWORDS,
+  RULE_LABELS,
+  MIN_TRACK_COUNT,
+  MAX_TRACK_COUNT,
+};
