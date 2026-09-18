@@ -46,6 +46,18 @@
       </div>
     </header>
 
+    <!-- 游客醒目提醒：不注册也能玩全部主线；但游客数据只留本机，注册后可云同步 -->
+    <div v-if="!isAdmin && auth.isLoggedIn && auth.isGuest" class="guestbar">
+      <div class="container">
+        <span class="gt">游客模式</span>
+        <span class="gm">
+          不注册也能玩全部主线玩法。但<b>游客数据只保存在这台设备的浏览器里</b>（换设备 / 清缓存会丢），也不计入排行榜；
+          注册后可云同步、收藏专辑、上榜。
+        </span>
+        <RouterLink to="/login" class="btn pri sm">注册 / 登录</RouterLink>
+      </div>
+    </div>
+
     <main class="main">
       <div class="container">
         <RouterView v-slot="{ Component }">
@@ -287,6 +299,39 @@ async function onLogout() {
 }
 .guest-tag:hover {
   background: rgba(14, 165, 233, 0.2);
+}
+
+/* 游客醒目提醒条 */
+.guestbar {
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.16), rgba(14, 165, 233, 0.06));
+  border-bottom: 1px solid rgba(14, 165, 233, 0.28);
+}
+.guestbar .container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.guestbar .gt {
+  flex: 0 0 auto;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--brand-ink, #04263c);
+  background: var(--brand);
+  border-radius: 999px;
+  padding: 3px 11px;
+}
+.guestbar .gm {
+  flex: 1;
+  min-width: 220px;
+  font-size: 12.5px;
+  color: var(--text2);
+}
+.guestbar .gm b {
+  color: var(--brand-deep);
 }
 
 .main {

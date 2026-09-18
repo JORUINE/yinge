@@ -633,10 +633,13 @@ onMounted(load);
   color: var(--text3);
 }
 
-/* 小组赛 / 复活 */
+/* 小组赛 / 复活
+   ⚠️ 原来 .gstage 用 `repeat(auto-fit, minmax(0, 1fr))` —— 没有最小列宽，
+      多歌手多专辑混战出现 8 组时，8 张卡被挤成一条、每组 4 张封面缩成指甲盖、
+      专辑名全被截成 2 个字（用户截图指出）。现在给列一个可读的最小宽度让它换行。 */
 .gstage {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
   gap: 12px;
 }
 .gsrow {
@@ -657,12 +660,12 @@ onMounted(load);
   font-size: 13.5px;
 }
 .gshd span {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--text3);
 }
 .gslist {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
   gap: 8px;
 }
 .gsi {
@@ -682,7 +685,7 @@ onMounted(load);
 .gsi span {
   display: block;
   margin-top: 4px;
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--text3);
   overflow: hidden;
   text-overflow: ellipsis;

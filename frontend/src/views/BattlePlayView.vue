@@ -114,7 +114,7 @@
           </svg>
         </button>
         <button class="trk" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
-          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
         </button>
         <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
       </div>
@@ -162,7 +162,7 @@
             <div class="ar"><i></i>{{ match.leftAlbum?.artistName }}</div>
             <div class="mt num">{{ year(match.leftAlbum?.releaseDate) }} · {{ match.leftAlbum?.trackCount }} 首</div>
             <div class="plays">
-              <button class="btn tune" type="button" @click="play(match.leftAlbum)">
+              <button class="btn tune" type="button" @click.stop="play(match.leftAlbum)">
                 <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 试听 30 秒
               </button>
@@ -188,7 +188,7 @@
             <div class="ar"><i></i>{{ match.rightAlbum?.artistName }}</div>
             <div class="mt num">{{ year(match.rightAlbum?.releaseDate) }} · {{ match.rightAlbum?.trackCount }} 首</div>
             <div class="plays">
-              <button class="btn tune" type="button" @click="play(match.rightAlbum)">
+              <button class="btn tune" type="button" @click.stop="play(match.rightAlbum)">
                 <svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 试听 30 秒
               </button>

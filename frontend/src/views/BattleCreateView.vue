@@ -624,7 +624,9 @@ const totalSelected = computed(() => {
     return Math.min(singerScale.value, pool.eligible.length);
   }
   if (mode.value === 'multi-artist') {
-    if (picked.value.length < 2) return 0;
+    // ⚠️ 不能因为"只选了 1 位歌手"就返回 0 —— 否则参赛池既不显示张数、也不出现盲盒虚位卡。
+    //    "≥2 位才允许开局"的门槛在 canStart 里单独管，不要混进"预览计数"（2026-09-18 再修）。
+    if (!picked.value.length) return 0;
     const avail = picked.value.map((a) => {
       const pool = artistPool.value[a.artistId];
       return pool ? Math.min(perArtistScale.value, pool.eligible.length) : 0;

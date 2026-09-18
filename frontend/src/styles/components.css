@@ -2822,20 +2822,32 @@ html.ua-edge[data-theme='dark'] {
   --glass: rgba(20, 40, 60, 0.85);
   --glass2: rgba(20, 40, 60, 0.7);
 }
-/* Edge：关毛玻璃 + 极光不再有任何 blur（blob 本身已是径向渐变，无需 filter） */
+/* Edge（Windows）：最小化 / 回桌面会整窗闪、甚至按快捷键回不了桌面。
+   「减 blur」实测关不干净 → 这里改成最彻底的一档：
+     ① 极光那一层不再渲染（它是「铺满视口的 fixed 层」，正是合成器卡住的来源）
+     ② 改为把同款海洋蓝光晕**画在 body 背景**上（普通背景，不是合成层，成本≈0）
+     ③ 所有 filter / 毛玻璃一律关掉
+   只影响观感，不动任何功能。 */
+html.ua-edge .aurora {
+  display: none !important;
+}
+html.ua-edge body {
+  background-image:
+    radial-gradient(1100px 900px at 8% 0%, var(--a1), transparent 62%),
+    radial-gradient(1100px 900px at 100% 12%, var(--a3), transparent 60%),
+    radial-gradient(900px 800px at 40% 100%, var(--a2), transparent 62%);
+  background-attachment: scroll;
+}
 html.ua-edge * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-}
-html.ua-edge .aurora .blob,
-html.ua-edge .aurora .ray {
-  filter: none;
+  filter: none !important;
 }
 html.ua-edge .vglow .g1,
 html.ua-edge .vglow .g2,
 html.ua-edge .vglow .g3 {
-  filter: blur(34px);
   will-change: auto;
+  opacity: 0.45;
 }
 
 /* lite：连极光与大 blur 一并关掉（最后的兜底开关） */

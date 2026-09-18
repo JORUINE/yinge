@@ -23,7 +23,10 @@ import './styles/components.css';
  */
 (function applyCompatMode() {
   const root = document.documentElement;
-  const isEdge = /Edg\//.test(navigator.userAgent || '');
+  // Edge 判定：UA 里的 Edg/ 之外，再看 Chromium 的 brands（更稳）
+  const ua = navigator.userAgent || '';
+  const brands = navigator.userAgentData?.brands || [];
+  const isEdge = /Edg[A-Za-z]*\//.test(ua) || brands.some((b) => /Microsoft Edge/i.test(b.brand || ''));
   let q = null;
   try {
     q = new URLSearchParams(window.location.search);

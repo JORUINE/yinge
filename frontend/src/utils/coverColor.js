@@ -84,8 +84,8 @@ export function hashColor(albumId) {
   const key = String(albumId ?? '');
   let h = 0;
   for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
-  // 兜底也走友好区间：饱和度压到 36%、亮度 50%，不再用 70% 满饱和（避免灰封面变荧光色）
-  return hslToRgb(h, 36, 50);
+  // 兜底也走友好区间：饱和度压到 30%、亮度 50%，不再用 70% 满饱和（避免灰封面变荧光色）
+  return hslToRgb(h, 30, 50);
 }
 
 /** 取单张封面的主色（rgb 字符串），失败返回 null */
@@ -162,7 +162,8 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     if (!gray.count) return null; // 整张都太暗 / 太亮
     const lum = (0.299 * gray.r + 0.587 * gray.g + 0.114 * gray.b) / gray.count;
     const l = Math.min(Math.max(Math.round((lum / 255) * 100), 46), 58);
-    return hslToRgb(215, 6, l);
+    // 取不到彩色 → 用「品牌同调的蓝灰」：与海洋蓝背景同一色域，安静但不跟背景打架
+    return hslToRgb(203, 13, l);
   }
 
   // ③ 打分：像素数 × 鲜艳度（"大面积的鲜艳色"才是这张封面的角色色）
