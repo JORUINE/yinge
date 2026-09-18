@@ -122,8 +122,24 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
   try {
     await loaded;
   } catch {
-    clearTimeout(timer);
-    return null;
+    // 首次失败（超时 / 网络抖动）→ 带 cache-buster 再试一次，减少"偶发取不到颜色"
+    try {
+      img.src = url + (url.includes('?') ? '&' : '?') + 'yc=' + Date.now();
+      await new Promise((resolve, reject) => {
+        const t2 = setTimeout(() => reject(new Error('timeout')), timeout);
+        img.onload = () => {
+          clearTimeout(t2);
+          resolve();
+        };
+        img.onerror = () => {
+          clearTimeout(t2);
+          reject(new Error('load'));
+        };
+      });
+    } catch {
+      clearTimeout(timer);
+      return null;
+    }
   }
   clearTimeout(timer);
 
@@ -181,44 +197,37 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     .slice(0, 64);
   const maxCount = palette[0].count || 1;
 
-  // ④ Vibrant 权重打分 + ⑤ 占比 / 饱和度门槛
-  const MIN_SHARE = 0.04; // 一个色桶至少占 4% 才算"有身份"（防一小块亮色劫持整块光晕）
-  const MIN_SAT = 16; // 饱和度门槛放低：宁可收下"偏灰但确实是主色"的颜色，也不轻易退回中性
-  //                     （门槛定太高会让大量正常封面都变中性灰，光晕就整片蓝灰、像功能没了）
-  const cand = [];
+  // ④ 按「色相家族」聚合（±30°），**以面积为准**选出这张封面的整体色调。
+  //    为什么不再用"饱和度加权"：封面上的标题 / logo 常常是一小块高饱和色 ——
+  //    实测《七里香》：红字只占 8%，而整片草地是低饱和的绿系（29%+29%+21%）；
+  //    按饱和度选就会把 logo 当主色，于是"绿封面配出红晕"，用户看到的就是"完全一塌糊涂"。
+  //    按面积选，小块 logo 永远赢不过大片场景。
+  const families = [];
   for (const c of palette) {
-    const share = c.count / sampled;
-    if (share < MIN_SHARE || c.s < MIN_SAT) continue;
-    const lumaScore = 1 - Math.abs(c.l / 100 - 0.5) * 2;
-    const popScore = c.count / maxCount;
-    cand.push({ ...c, share, score: (c.s / 100) * 3 + lumaScore * 6 + popScore });
-  }
-  if (cand.length) {
-    cand.sort((a, b) => b.score - a.score);
-    const win = cand[0];
-    // 同色相合并（±20°），按像素数加权取平均色
-    let n = 0;
-    let R = 0;
-    let G = 0;
-    let B = 0;
-    for (const c of cand) {
-      const d = Math.abs(c.h - win.h);
-      if (Math.min(d, 360 - d) <= 20) {
-        n += c.count;
-        R += c.r * c.count;
-        G += c.g * c.count;
-        B += c.b * c.count;
-      }
+    let f = families.find((x) => {
+      const dd = Math.abs(x.h - c.h);
+      return Math.min(dd, 360 - dd) <= 30;
+    });
+    if (!f) {
+      f = { h: c.h, count: 0, r: 0, g: 0, b: 0 };
+      families.push(f);
     }
-    return soften(`rgb(${Math.round(R / n)}, ${Math.round(G / n)}, ${Math.round(B / n)})`);
+    f.count += c.count;
+    f.r += c.r * c.count;
+    f.g += c.g * c.count;
+    f.b += c.b * c.count;
   }
+  families.sort((a, b) => b.count - a.count);
+  const win = families[0];
+  if (!win) return NEUTRAL;
+  const [fh, fs, fl] = rgbToHsl(win.r / win.count, win.g / win.count, win.b / win.count);
 
-  // ⑥ 没有够格的"鲜艳主色"（封面很杂 / 整体偏灰）→ 用**像素数最多的那一桶**
-  //    （这正是 ColorThief 的默认口径：面积最大的色调）。它一定代表这张封面的整体调子，
-  //    比直接给中性灰更能"跟着专辑变"。饱和度**不往上抬**，灰就保持灰。
-  const dom = palette[0];
-  if (!dom) return NEUTRAL;
-  return hslToRgb(dom.h, Math.min(dom.s, 34), Math.min(Math.max(dom.l, 48), 58));
+  // ⑤ 整张几乎没有彩色的封面（黑白 / 纯灰，如 reputation）→ 品牌蓝灰，保持海洋蓝调性
+  if (fs < 6) return NEUTRAL;
+
+  // ⑥ 压进友好区间：饱和度略提一点（×1.25，下限 22%）让光晕"看得出是这张专辑"，
+  //    但上限 46% 防止刺眼；亮度允许到 64%，浅色封面才不会都被压成同一个中间调。
+  return hslToRgb(fh, Math.min(Math.max(fs * 1.25, 22), 46), Math.min(Math.max(fl, 46), 64));
 }
 
 /**
@@ -238,27 +247,28 @@ export function blendWithBrand(rgb, amount = 0.3) {
   return hslToRgb(h, Math.min(Math.max(s, 20), 46), Math.min(Math.max(l, 46), 58));
 }
 
-/** 已取到主色就用它，否则退回哈希色 —— 统一给模板用的同步方法 */
+/** 已取到主色就用它；**取不到就用中性蓝灰**（绝不再退回随机哈希色） */
 export function accentStyleOf(album) {
   if (!album) return {};
   const key = String(album.albumId ?? album.name ?? '');
-  const ac = accentStore[key];
-  const color = ac || hashColor(key);
+  const color = accentStore[key] || NEUTRAL;
   return { '--ac': color, '--acs': toRgba(color, 0.32) };
 }
 
 /**
- * 确保某张专辑的主色已就位（先查缓存，没有就去取封面像素，失败用哈希兜底）
- * 返回 { ac, acs }，可直接绑到 CSS 变量 --ac / --acs
+ * 确保某张专辑的主色已就位（先查缓存，没有就去取封面像素）。
+ * 取不到 → **中性蓝灰**（用户口径："实在取不到的颜色就用中性"）。
+ * ⚠️ 不要再退回"按 albumId 算的随机色相"：那会让取色失败的封面凭空冒出绿 / 粉，
+ *    看起来像"颜色乱套了"（用户报过"七里香变粉、Midnights 变绿"）。
  */
 export async function ensureAlbumAccent(album) {
-  if (!album) return { ac: '#0ea5e9', acs: 'rgba(14,165,233,.32)' };
+  if (!album) return { ac: NEUTRAL, acs: toRgba(NEUTRAL, 0.32) };
   const key = String(album.albumId ?? album.name ?? '');
   if (!accentStore[key]) {
     if (!inflight.has(key)) inflight.set(key, sampleCover(album.artworkUrl));
     const c = await inflight.get(key);
     inflight.delete(key);
-    accentStore[key] = c || hashColor(album.albumId);
+    accentStore[key] = c || NEUTRAL;
   }
   const ac = accentStore[key];
   return { ac, acs: toRgba(ac, 0.32) };
