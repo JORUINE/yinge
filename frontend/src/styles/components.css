@@ -502,6 +502,110 @@ html[data-theme='dark'] .v b {
   margin-left: 6px;
   vertical-align: 2px;
 }
+
+/* ---- 模式大厅（2026-09-19）：两大模式「混战 / 对位」，游戏等待大厅式 ----
+   每一族一个色（混战=品牌蓝，对位=青），族内选中的模式跟着族色走，
+   让"这是两套玩法"一眼看得出来，而不是六个平级按钮。 */
+.lobby {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 14px;
+  margin: 22px 0 6px;
+}
+.lobbybox {
+  position: relative;
+  overflow: hidden;
+  padding: 14px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  box-shadow: var(--gsh-hi), 0 2px 8px var(--gsh);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+/* 顶部一条族色细条：像游戏大厅里每个模式入口的色带 */
+.lobbybox::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--fam, var(--brand));
+}
+.lobbybox.battle {
+  --fam: var(--brand);
+  --fam-soft: rgba(14, 165, 233, 0.14);
+}
+.lobbybox.aligned {
+  --fam: var(--teal);
+  --fam-soft: rgba(13, 148, 136, 0.14);
+}
+.lobbybox:hover,
+.lobbybox.active {
+  border-color: var(--fam, var(--brand));
+  box-shadow: var(--gsh-hi), 0 12px 28px var(--gsh);
+}
+.lobbybox.active {
+  background: linear-gradient(180deg, var(--fam-soft, rgba(14, 165, 233, 0.12)), var(--glass2) 72%);
+}
+.lb-hd {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 12px;
+}
+.lb-ico {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--fam, var(--brand));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  box-shadow: 0 6px 16px var(--fam-soft, rgba(14, 165, 233, 0.35));
+}
+.lb-tx b {
+  display: block;
+  font-size: 15.5px;
+  color: var(--text);
+}
+.lb-tx > span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text2);
+}
+.lbt {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  vertical-align: 2px;
+  font-size: 10.5px;
+  font-weight: 800;
+  background: var(--fam, var(--brand));
+  color: #fff;
+}
+.lb-modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 9px;
+}
+.lb-modes .mode {
+  padding: 11px 13px;
+}
+.lb-modes .mode b {
+  font-size: 14px;
+}
+/* 族内选中的模式跟着族色走 */
+.lobbybox.aligned .mode.on {
+  border-color: var(--teal);
+  background: rgba(13, 148, 136, 0.12);
+  box-shadow: 0 8px 22px rgba(13, 148, 136, 0.18);
+}
 .block {
   margin-top: 20px;
   padding: 18px 20px;

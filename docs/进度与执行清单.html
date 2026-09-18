@@ -159,6 +159,9 @@
         <tr><td>22</td><td><s>玻璃框架缺失（默认没阴影）</s></td><td><span class="pill ok">已修</span></td><td><b>真根因</b>：<code>--gsh</code> 变量塞了两个颜色，用在 <code>box-shadow</code> 里导致<b>整条声明非法被丢弃</b> → 所有玻璃卡/胶囊默认无阴影。拆成 <code>--gsh</code>+<code>--gsh-hi</code> 并统一补默认阴影</td></tr>
         <tr><td>23</td><td>分享图方形版重做（信息被裁 / 整体观感）</td><td><span class="pill p2">P2</span></td><td>用户明确"放到 ui 最终大改里"。本轮只解掉"封面撑破被裁"（改按高度定尺寸）</td></tr>
         <tr><td>24</td><td>全站文字类玻璃框架 + 类 iOS 液态玻璃视效</td><td><span class="pill p2">P2</span></td><td>用户点名的最终 UI 大改方向。本轮已给 chip/preset/seg/g-card 补默认阴影，属第一步</td></tr>
+        <tr><td>25</td><td><s>结果页折叠顺序 + 完整晋级图太大太长</s></td><td><span class="pill ok">已修</span></td><td>顺序定稿：<b>小组赛与复活 → 夺冠之路 → 淘汰赛·全部对局 → 完整晋级图</b>（除夺冠之路默认展开，其余收起）。并修掉真问题：晋级树<b>种子格封面无尺寸约束</b>，600×600 原图直接渲染，一列 16 个种子把树撑到 <b>2292px</b>；改横向小行 + 紧凑版（封面 16px / 卡宽 148px），实测 <b>2292px → 568px</b></td></tr>
+        <tr><td>26</td><td><s>创建页模式分不清（手动挑选 vs 指定对决）</s></td><td><span class="pill ok">已做</span></td><td>改成游戏大厅式<b>两族</b>：<b>混战模式（VS·蓝，默认首选）</b>＝多歌手混战/单歌手内战/按流派·年代/手动挑选；<b>对位模式（1v1·青）</b>＝经典对位赛（序号对序号）/指定对决。族色贯穿；底层 <code>mode</code> 与现有逻辑不变</td></tr>
+        <tr><td>27</td><td><s>排行榜缺"夺冠次数"维度</s></td><td><span class="pill ok">已做</span></td><td>新增 <code>GET /api/rank/champions</code>（按 finished 对局的冠军聚合"当过多少次冠军"）；排行榜加"最受欢迎／夺冠次数"切换，领奖台与列表口径随切换</td></tr>
         <tr><td>15</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
       </tbody>
     </table>

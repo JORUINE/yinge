@@ -89,6 +89,8 @@ export const comboApi = {
 
 export const rankApi = {
   albums: (params) => http.get('/rank/albums', { params }),
+  /** 专辑「夺冠次数」榜（2026-09-19 新增） */
+  champions: (params) => http.get('/rank/champions', { params }),
   home: () => http.get('/rank/home'),
 };
 

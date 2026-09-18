@@ -2,25 +2,43 @@
   <div class="create">
     <div class="page-head">
       <p class="eyebrow">创建对决</p>
-      <h1>先选一种比较方式</h1>
+      <h1>选个模式，开一局</h1>
       <p class="muted sub">
-        多歌手混战是默认项 —— 不同歌手的专辑放在同一个池子里比，这是音格的初衷。
+        两种玩法：<b>混战模式</b>把不同歌手的专辑丢进同一个池子随机厮杀（默认首选）；
+        <b>对位模式</b>两两一组、按规则对应着打 —— 指定对决就属于这一族。
       </p>
     </div>
 
-    <!-- 六种模式 -->
-    <div class="modes">
-      <button
-        v-for="m in MODES"
-        :key="m.value"
-        class="mode"
-        :class="{ on: mode === m.value }"
-        type="button"
-        @click="pickMode(m.value)"
+    <!-- 模式大厅（2026-09-19 用户定稿）：混战 / 对位 两大模式，像游戏等待大厅那样选。
+         ⚠️ 只重排 UI，底层 mode 值与全部现有逻辑保持不变 -->
+    <div class="lobby">
+      <section
+        v-for="g in LOBBY"
+        :key="g.key"
+        class="lobbybox"
+        :class="[g.key, { active: lobbyKeyOf(mode) === g.key }]"
       >
-        <b>{{ m.label }}<span v-if="m.badge" class="badge">{{ m.badge }}</span></b>
-        <span>{{ m.desc }}</span>
-      </button>
+        <header class="lb-hd">
+          <span class="lb-ico">{{ g.icon }}</span>
+          <div class="lb-tx">
+            <b>{{ g.name }}<span class="lbt">{{ g.tag }}</span></b>
+            <span>{{ g.intro }}</span>
+          </div>
+        </header>
+        <div class="lb-modes">
+          <button
+            v-for="m in g.modes"
+            :key="m.value"
+            class="mode"
+            :class="{ on: mode === m.value }"
+            type="button"
+            @click="pickMode(m.value)"
+          >
+            <b>{{ m.label }}<span v-if="m.badge" class="badge">{{ m.badge }}</span></b>
+            <span>{{ m.desc }}</span>
+          </button>
+        </div>
+      </section>
     </div>
 
     <!-- 对位赛说明（仅对位赛模式展开） -->
@@ -552,14 +570,54 @@ import {
   describePlan,
 } from '@/utils/tournament.js';
 
-const MODES = [
-  { value: 'artist', label: '单歌手', desc: '某位歌手的专辑互相比', cup: true },
-  { value: 'multi-artist', label: '多歌手混战', badge: '首选', desc: '几位歌手的专辑放一起比', cup: true },
-  { value: 'genre-era', label: '按流派 / 年代', desc: '如华语流行 · 2000 年代', cup: true },
-  { value: 'custom', label: '手动挑选', desc: '自己勾专辑入池', cup: true },
-  { value: 'aligned', label: '对位赛', badge: '逐张对照', desc: '第 1 张打第 1 张，第 2 张打第 2 张', cup: false },
-  { value: 'duel', label: '指定对决', badge: '自定义', desc: '自己指定谁打谁，可跨歌手', cup: false },
+/**
+ * 模式大厅（2026-09-19 用户定稿）
+ * ------------------------------------------------------------
+ * 用户原话：指定对决是对位赛的衍生玩法，别和"手动挑选"搞混；
+ * 所以分成**两大模式** ——
+ *   · 混战模式（默认首选）：多歌手混战 / 单歌手内战 / 按流派·年代 / 手动挑选，都是杯赛制、产生冠军；
+ *   · 对位模式：经典对位赛（序号对序号）/ 指定对决，都是两两一组、不淘汰出对照表。
+ * ⚠️ 这里只重排 UI：底层的 `mode` 值与全部现有逻辑（投票 / 赛程 / 结果）保持不变。
+ */
+const LOBBY = [
+  {
+    key: 'battle',
+    icon: 'VS',
+    name: '混战模式',
+    tag: '默认首选',
+    intro: '不同歌手的专辑放进同一个池子里随机厮杀，逐轮淘汰，最后决出冠军。',
+    modes: [
+      { value: 'multi-artist', label: '多歌手混战', badge: '首选', desc: '几位歌手的专辑放一起比' },
+      { value: 'artist', label: '单歌手内战', desc: '某位歌手的专辑互相比' },
+      { value: 'genre-era', label: '按流派 / 年代', desc: '如华语流行 · 2000 年代' },
+      { value: 'custom', label: '手动挑选', desc: '自己勾专辑入池' },
+    ],
+  },
+  {
+    key: 'aligned',
+    icon: '1v1',
+    name: '对位模式',
+    tag: '两两一组',
+    intro: '按规则两两配对、一一对应地打，回答"同阶段作品谁更强"；不淘汰，出对照表。',
+    modes: [
+      {
+        value: 'aligned',
+        label: '经典对位赛',
+        badge: '序号对序号',
+        desc: '第 1 张打第 1 张，第 2 张打第 2 张',
+      },
+      { value: 'duel', label: '指定对决', badge: '自定义', desc: '自己指定谁打谁，可跨歌手' },
+    ],
+  },
 ];
+
+/** 扁平注册表：currentMode / cupMode 仍从这取（cup = 杯赛制，会产生冠军） */
+const MODES = LOBBY.flatMap((g) => g.modes.map((m) => ({ ...m, cup: g.key === 'battle' })));
+
+/** 当前选中的模式属于哪一族（用来高亮对应的大厅板块） */
+function lobbyKeyOf(v) {
+  return LOBBY.find((g) => g.modes.some((m) => m.value === v))?.key || 'battle';
+}
 
 const QUICK = ['周杰伦', '林俊杰', '陈奕迅', '陶喆'];
 

@@ -1,6 +1,6 @@
 <template>
   <!-- 种子：还没打过，直接显示专辑 -->
-  <div v-if="node && node.seed" class="bnode">
+  <div v-if="node && node.seed" class="bnode" :class="{ compact }">
     <div class="bcard seed">
       <img v-if="node.album.artworkUrl" :src="node.album.artworkUrl" alt="" loading="lazy" />
       <span class="tn">{{ node.album.name }}</span>
@@ -8,10 +8,10 @@
   </div>
 
   <!-- 一场对阵：左边是产出两侧专辑的两场（递归下去），右边是本场卡片 -->
-  <div v-else-if="node && node.match" class="bnode">
+  <div v-else-if="node && node.match" class="bnode" :class="{ compact }">
     <div v-if="node.left || node.right" class="bkids">
-      <div class="w"><BracketNode :node="node.left" /></div>
-      <div class="w"><BracketNode :node="node.right" /></div>
+      <div class="w"><BracketNode :node="node.left" :compact="compact" /></div>
+      <div class="w"><BracketNode :node="node.right" :compact="compact" /></div>
     </div>
     <div class="bcard" :class="{ live: isLive, bye: node.match.isBye }">
       <span class="rnd">{{ ROUND_CN[node.match.roundName] || node.match.roundName }}</span>
@@ -58,6 +58,8 @@ import { winnerExtIdOf } from '@/utils/bracketTree.js';
 
 const props = defineProps({
   node: { type: Object, default: null },
+  /** 紧凑版（结果页折叠里用）：小封面 + 小字，整棵树矮一截（2026-09-19 用户要求） */
+  compact: { type: Boolean, default: false },
 });
 
 const isLive = computed(() => {
@@ -186,14 +188,72 @@ function sideClass(album) {
   opacity: 0.5;
 }
 /* 冠军格：金色，比普通格更显眼 */
+/* ⚠️ 种子格必须显式约束封面尺寸 —— 之前漏了这条规则，
+  iTunes 的 600×600 原图直接被塞进卡里，一列 16 个种子就把整棵树撑到 2000px+ 高
+   （这正是用户说的"现在这个太大太长了"）。改成横向小行：小封面 + 名字。 */
 .bcard.seed {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  width: 178px;
   border-color: rgba(224, 135, 0, 0.45);
   background: rgba(224, 135, 0, 0.08);
-  width: 176px;
+}
+.bcard.seed img {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex: 0 0 auto;
 }
 .bcard.seed .tn {
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   font-size: 12.5px;
   color: var(--text);
+}
+
+/* ============ 紧凑版（结果页折叠里用） ============
+   用户原话："完整晋级图就把上个版本那种只需要横向拉长……能看到小一点的专辑图和名字就行
+   现在这个太大太长了"。做法：封面 22→16px、卡宽 206→148px、字号压到 12.5px、
+   连线与留白一起收窄 —— 整棵树的高度大约降到原来的一半。 */
+.bnode.compact .bkids {
+  margin-right: 13px;
+}
+.bnode.compact .bkids > .w::after {
+  width: 13px;
+}
+.bnode.compact .bcard {
+  width: 148px;
+  padding: 4px 6px;
+  gap: 2px;
+  border-radius: 10px;
+}
+.bnode.compact .bcard .rnd {
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+}
+.bnode.compact .bcard .row {
+  gap: 5px;
+}
+.bnode.compact .bcard .row img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+.bnode.compact .bcard .tn {
+  font-size: 12.5px;
+  line-height: 1.2;
+  -webkit-line-clamp: 2;
+}
+.bnode.compact .bcard .sc {
+  font-size: 11px;
+}
+.bnode.compact .bcard.seed {
+  width: 148px;
+}
+.bnode.compact .bcard.seed img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
 }
 </style>

@@ -1,8 +1,16 @@
 <template>
   <div class="rank">
     <div class="hd" style="margin-top: 22px">
-      <b class="big">最受欢迎专辑</b>
-      <span>按有效票数排序 · 共 {{ total }} 张</span>
+      <b class="big">{{ board === 'titles' ? '专辑夺冠次数榜' : '最受欢迎专辑' }}</b>
+      <span>
+        {{ board === 'titles' ? '一张专辑当过多少次冠军 · ' : '按有效票数排序 · ' }}共 {{ total }} 张
+      </span>
+    </div>
+
+    <div class="filter">
+      <span class="lb">榜单</span>
+      <span class="pill" :class="{ on: board === 'votes' }" @click="setBoard('votes')">最受欢迎</span>
+      <span class="pill" :class="{ on: board === 'titles' }" @click="setBoard('titles')">夺冠次数</span>
     </div>
 
     <div class="filter">
@@ -38,7 +46,10 @@
             <b>{{ a.name }}</b>
             <div class="accent"></div>
             <div class="ar"><i></i>{{ a.artistName || '—' }}</div>
-            <div class="mt num">{{ year(a.releaseDate) }} · {{ a.votes }} 票</div>
+            <div class="mt num">
+              {{ year(a.releaseDate) }} ·
+              <b>{{ board === 'titles' ? `${a.titles} 次夺冠` : `${a.votes} 票` }}</b>
+            </div>
           </div>
         </div>
       </div>
@@ -53,14 +64,22 @@
             <span>{{ a.artistName || '—' }} · {{ year(a.releaseDate) }}</span>
           </div>
           <FavoriteButton :album="a" small />
-          <div class="v"><b class="num">{{ a.votes }}</b> 票</div>
+          <div class="v">
+            <b class="num">{{ board === 'titles' ? a.titles : a.votes }}</b>
+            {{ board === 'titles' ? '次夺冠' : '票' }}
+          </div>
         </div>
       </div>
 
       <p class="note">
         <b>说明：</b>前三名单独做成领奖台（唯一用金色的地方，作为冷色调里的视觉锚点）。
-        榜单口径对所有人一致：<b>被判定为异常的投票不计入统计</b>。
-        「地区 / 年代 / 周期」三重筛选需要后端补接口，暂未开放。
+        <template v-if="board === 'votes'">
+          榜单口径对所有人一致：<b>被判定为异常的投票不计入统计</b>。
+        </template>
+        <template v-else>
+          口径 = 一张专辑<b>当过多少次冠军</b>（只算已结束的对局）；并列时最近夺冠的排前面。
+          「夺冠」衡量能打，「票数」衡量受欢迎，两个榜互补。
+        </template>
       </p>
     </template>
 
@@ -83,6 +102,8 @@ const loading = ref(true);
 const limit = ref(20);
 const list = ref([]);
 const total = ref(0);
+/** 榜单口径：votes = 按有效票数（最受欢迎）｜ titles = 按夺冠次数（2026-09-19 新增） */
+const board = ref('votes');
 
 const podium = computed(() => list.value.slice(0, 3));
 const rest = computed(() => list.value.slice(3));
@@ -111,10 +132,17 @@ async function setLimit(n) {
   await reload();
 }
 
+async function setBoard(b) {
+  if (board.value === b) return;
+  board.value = b;
+  await reload();
+}
+
 async function reload() {
   loading.value = true;
   try {
-    const data = await rankApi.albums({ limit: limit.value });
+    const api = board.value === 'titles' ? rankApi.champions : rankApi.albums;
+    const data = await api({ limit: limit.value });
     list.value = (data.list || []).map((r, i) => ({ ...r, rank: r.rank ?? i + 1 }));
     total.value = data.total ?? list.value.length;
     primeAccents();

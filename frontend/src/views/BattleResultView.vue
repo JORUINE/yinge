@@ -124,11 +124,38 @@
           <div class="kpi"><b>{{ kpiTheirs }}</b><span>对手总票数</span></div>
         </div>
 
-        <!-- 小组赛与复活已移到「夺冠之路」之后（用户要求：夺冠之路在最上面，小组/复活其次） -->
+        <!-- 2026-09-19 用户定稿的折叠顺序：小组赛与复活 → 夺冠之路 → 淘汰赛 → 完整晋级图（全部可折叠） -->
+        <details v-if="groupStages.length" class="fold">
+          <summary class="foldhd">
+            <b>小组赛与复活</b>
+            <span>每张专辑从哪里出线 · 冠军走过的路会高亮（点这里展开）</span>
+            <i class="chev" aria-hidden="true"></i>
+          </summary>
+          <div class="gstage">
+            <div v-for="g in groupStages" :key="g.key" class="gsrow">
+              <div class="gshd">
+                <b>{{ g.label }}</b><span>选 {{ g.advanceCount }} 张晋级</span>
+              </div>
+              <div class="gslist">
+                <div
+                  v-for="al in g.albums"
+                  :key="al.albumId"
+                  class="gsi"
+                  :class="{ adv: g.advancedIds.includes(String(al.albumId)), champ: isChampion(al) }"
+                >
+                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+                  <span>{{ al.name }}</span>
+                  <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
+
         <details class="fold" open>
           <summary class="foldhd">
             <b>夺冠之路</b>
-            <span>每一场：谁赢了谁，各自得了多少票（含完整晋级图）</span>
+            <span>每一场：谁赢了谁，各自得了多少票</span>
             <i class="chev" aria-hidden="true"></i>
           </summary>
 
@@ -163,23 +190,16 @@
               <div class="pc" v-if="row.theirs !== null">{{ row.theirs }} 票</div>
             </div>
           </div>
-
-          <!-- 完整晋级图（树状）：像音乐世界杯那样一张图看完全程 -->
-          <details class="fold sub" open>
-            <summary class="foldhd">
-              <b>完整晋级图</b>
-              <span>一张图看完整条淘汰赛路径 · 左边是早期轮次，右边是决赛与冠军</span>
-              <i class="chev" aria-hidden="true"></i>
-            </summary>
-            <BracketTree :matches="allMatches" :champion="champion" compact />
-          </details>
         </div>
+        </details>
 
-        <!-- 全部淘汰赛对局（守则 39）：每一轮谁打了谁、谁被淘汰 —— 含冠军没参与的对局 -->
-        <template v-if="koRounds.length">
-          <div class="hd" style="margin-top: 26px">
-            <b>全部淘汰赛对局</b><span>按轮次列全部对局（含冠军未参与的）· 冠军的对局会描边高亮</span>
-          </div>
+        <!-- 淘汰赛 · 全部对局（守则 39）：每一轮谁打了谁、谁被淘汰 —— 含冠军没参与的对局 -->
+        <details v-if="koRounds.length" class="fold">
+          <summary class="foldhd">
+            <b>淘汰赛 · 全部对局</b>
+            <span>按轮次列全部对局（含冠军未参与的）· 冠军的对局会描边高亮</span>
+            <i class="chev" aria-hidden="true"></i>
+          </summary>
           <div class="ko">
             <div v-for="r in koRounds" :key="r.roundName" class="koround">
               <div class="kohd"><b>{{ r.label }}</b><span>{{ r.matches.length }} 场</span></div>
@@ -206,35 +226,16 @@
               </div>
             </div>
           </div>
-        </template>
         </details>
 
-        <!-- 小组赛与复活：二级折叠菜单（小组卡的视觉保持不变 —— 用户说"小组赛的视觉很不错 不用改"） -->
-        <details v-if="groupStages.length" class="fold">
+        <!-- 完整晋级图（紧凑版）：默认收起，点开才是"小封面 + 小字 + 横向拖动"的树，不再一屏铺满 -->
+        <details v-if="koRounds.length" class="fold">
           <summary class="foldhd">
-            <b>小组赛与复活</b>
-            <span>每张专辑从哪里出线 · 冠军走过的路会高亮（点这里展开）</span>
+            <b>完整晋级图</b>
+            <span>横向拖动看完整条淘汰赛路径 · 小封面小字</span>
             <i class="chev" aria-hidden="true"></i>
           </summary>
-          <div class="gstage">
-            <div v-for="g in groupStages" :key="g.key" class="gsrow">
-              <div class="gshd">
-                <b>{{ g.label }}</b><span>选 {{ g.advanceCount }} 张晋级</span>
-              </div>
-              <div class="gslist">
-                <div
-                  v-for="al in g.albums"
-                  :key="al.albumId"
-                  class="gsi"
-                  :class="{ adv: g.advancedIds.includes(String(al.albumId)), champ: isChampion(al) }"
-                >
-                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
-                  <span>{{ al.name }}</span>
-                  <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
-                </div>
-              </div>
-            </div>
-          </div>
+          <BracketTree :matches="allMatches" :champion="champion" compact />
         </details>
       </template>
 

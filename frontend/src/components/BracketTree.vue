@@ -1,9 +1,9 @@
 <template>
   <div v-if="tree" class="btwrap">
     <div class="btscroll">
-      <div class="btrow">
-        <BracketNode :node="tree" />
-        <div class="champcard" :class="{ empty: !champion }">
+      <div class="btrow" :class="{ compact }">
+        <BracketNode :node="tree" :compact="compact" />
+        <div class="champcard" :class="{ empty: !champion, mini: compact }">
           <span class="ct">★ 冠军 ★</span>
           <img v-if="champion" :src="champion.artworkUrl" :alt="champion.name" />
           <b class="cn">{{ champion ? champion.name : '等待决出' }}</b>
@@ -103,6 +103,21 @@ const year = (d) => (d ? String(d).slice(0, 4) : '');
 .champcard .ca {
   font-size: 12.5px;
   color: var(--text2);
+}
+/* 紧凑版：冠军格一起缩小（与树的比例保持一致） */
+.champcard.mini {
+  width: 148px;
+  margin-left: 16px;
+  padding: 10px 10px 12px;
+  gap: 6px;
+  border-radius: 14px;
+}
+.champcard.mini img {
+  width: 92px;
+  height: 92px;
+}
+.champcard.mini .cn {
+  font-size: 15px;
 }
 .bthint {
   margin: 6px 0 0;
