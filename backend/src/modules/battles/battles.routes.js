@@ -125,6 +125,8 @@ router.post(
   asyncHandler(controller.groupVote),
 );
 router.post('/:id/revival', validate(idParam, 'params'), asyncHandler(controller.revival));
+// 撤销上一步（用户："选错了没关系，可以回退"）
+router.post('/:id/undo', validate(idParam, 'params'), asyncHandler(controller.undo));
 router.get('/:id/result', validate(idParam, 'params'), asyncHandler(controller.result));
 router.delete('/:id', validate(idParam, 'params'), asyncHandler(controller.remove));
 

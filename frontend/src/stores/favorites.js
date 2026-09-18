@@ -47,12 +47,23 @@ export const useFavoritesStore = defineStore('favorites', {
       const targetId = String(item?.id ?? item?._id ?? '');
       if (!targetId) throw new Error('这个条目暂时无法收藏');
       if (this.ids.has(targetId)) {
-        await favoriteApi.remove(targetId);
+        try {
+          await favoriteApi.remove(targetId);
+        } catch (err) {
+          // 服务端其实没有这条收藏（本地状态过期）→ 当作已取消，别弹红字
+          if (err?.code !== 1002) throw err;
+        }
         this.ids.delete(targetId);
         this.loaded = true;
         return false;
       }
-      await favoriteApi.add({ targetType, targetId });
+      try {
+        await favoriteApi.add({ targetType, targetId });
+      } catch (err) {
+        // 服务端其实已经有了（本地状态没同步）→ 当作已收藏，别弹红字
+        // 3001 = 重复；后端现在已改成幂等，这里只是兜底老接口
+        if (err?.code !== 3001) throw err;
+      }
       this.ids.add(targetId);
       this.loaded = true;
       return true;

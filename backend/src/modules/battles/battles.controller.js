@@ -90,6 +90,13 @@ export async function result(req, res) {
   return ok(res, { ...data, battle: serializeBattle(data.battle) });
 }
 
+/** B-09 撤销上一步：把最后一票撤回，并把由此推进出来的场次一起退回去 */
+export async function undo(req, res) {
+  const { id } = req.validated.params;
+  const result = await battleService.undoLastStep(id, req.user._id);
+  return ok(res, result, `已撤销「${result.undone}」`);
+}
+
 export async function listMine(req, res) {
   const { list, page, pageSize, total } = await battleService.listMyBattles(req.user._id, req.validated.query);
   return ok(res, paginated(list.map(serializeBattle), total, page, pageSize));

@@ -851,6 +851,75 @@ export async function getNextMatch(battleId, userId) {
   };
 }
 
+/**
+ * 撤销上一步投票（用户要求："选错了没关系，可以回退"）
+ * ------------------------------------------------------------
+ * 单人赛制下，一次投票可能连带的动作有两类：
+ *   ① 小组 / 复活：给该组写 pickedAlbumIds + 一组票；
+ *   ② 淘汰赛：给该场加票、判胜方，并可能在"本轮全部打完"时**生成下一轮场次**。
+ * 撤销必须让赛程自洽，规则是：
+ *   · `matchOrder` 是全局递增序号（见 nextMatchOrder）→ 「这一票之后才被创建出来的场次」
+ *     就是 `matchOrder` 更大的场次，全部删掉；
+ *   · 同时删掉本人在这些场次 / 该分组上的票，并把这一场重新计票、重判胜方；
+ *   · 最后把 battle 拉回 playing（冠军清空），让 /next-step 重新按当前进度出题。
+ * 只允许撤销**自己**的最后一条投票（loadOwnedBattle 已保证对决归属）。
+ */
+export async function undoLastStep(battleId, userId) {
+  const battle = await loadOwnedBattle(battleId, userId);
+  if (battle.tournamentVersion !== 2) throw new BadRequestError('旧赛制暂不支持撤销');
+  if (battle.status === 'finished') throw new BadRequestError('对决已结束，无法再撤销');
+
+  const last = await Vote.findOne({ battleId, userId }).sort({ createdAt: -1 });
+  if (!last) throw new BadRequestError('还没有投过票，没有可撤销的步骤');
+
+  let undone = '上一步投票';
+
+  if (last.groupId) {
+    const group = await BattleGroup.findOne({ _id: last.groupId, battleId });
+    if (group) {
+      group.pickedAlbumIds = [];
+      group.pickedAt = null;
+      await group.save();
+      undone = group.roundName === 'revival' ? '遗珠复活' : `小组赛 · ${group.groupNo} 组`;
+    }
+    await Vote.deleteMany({ battleId, userId, groupId: last.groupId });
+    // 小组阶段本身不产生场次；一旦有场次（复活赛 / 淘汰赛）就说明已经推进过 → 全部撤掉
+    const later = await BattleMatch.find({ battleId }).select('_id');
+    if (later.length) {
+      await Vote.deleteMany({ battleId, userId, matchId: { $in: later.map((m) => m._id) } });
+      await BattleMatch.deleteMany({ battleId });
+    }
+  } else if (last.matchId) {
+    const match = await BattleMatch.findById(last.matchId);
+    await Vote.deleteMany({ battleId, userId, matchId: last.matchId });
+    if (match) {
+      const later = await BattleMatch.find({ battleId, matchOrder: { $gt: match.matchOrder } }).select('_id');
+      if (later.length) {
+        await Vote.deleteMany({ battleId, userId, matchId: { $in: later.map((m) => m._id) } });
+        await BattleMatch.deleteMany({ _id: { $in: later.map((m) => m._id) } });
+      }
+      // 重新计票 + 重判胜方
+      const [left, right] = await Promise.all([
+        Vote.countDocuments({ matchId: match._id, albumId: match.leftAlbumId, isInvalid: false }),
+        Vote.countDocuments({ matchId: match._id, albumId: match.rightAlbumId, isInvalid: false }),
+      ]);
+      match.leftVotes = left;
+      match.rightVotes = right;
+      match.winnerAlbumId = left || right ? await decideWinner(match, battle) : null;
+      await match.save();
+      undone = `淘汰赛 · ${match.roundName}`;
+    }
+  } else {
+    throw new BadRequestError('最后一条投票没有可撤销的归属');
+  }
+
+  battle.status = 'playing';
+  battle.championAlbumId = null;
+  await battle.save();
+
+  return { undone };
+}
+
 export async function listMyBattles(userId, query) {
   const { page, pageSize, skip, limit } = parsePagination(query);
   const filter = { userId };

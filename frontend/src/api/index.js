@@ -36,6 +36,8 @@ export const battleApi = {
     http.post(`/battles/${id}/groups/${groupId}/vote`, { pickedAlbumIds }),
   vote: (id, matchId, albumId) => http.post(`/battles/${id}/matches/${matchId}/vote`, { albumId }),
   revival: (id) => http.post(`/battles/${id}/revival`),
+  // 撤销上一步投票（把由此推进出来的场次一起退回）
+  undo: (id) => http.post(`/battles/${id}/undo`),
   result: (id) => http.get(`/battles/${id}/result`),
   listMine: (params) => http.get('/battles', { params }),
   remove: (id) => http.delete(`/battles/${id}`),

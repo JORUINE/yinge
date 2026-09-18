@@ -14,7 +14,11 @@ export async function addFavorite(userId, { targetType, targetId }) {
   } else if (!(await PersonalityType.exists({ _id: targetId }))) {
     throw new BadRequestError('人格类型不存在');
   }
-  // 唯一索引兜底重复收藏（(userId,targetType,targetId) 唯一）
+  // ⚠️ 幂等：已经收藏过就直接当成功返回。
+  //   以前直接 create，重复时会撞唯一索引，被全局错误处理成「记录已存在，请勿重复操作」红字 ——
+  //   而收藏按钮本质是"切换"，重复点/状态没同步时就会莫名报错（用户报的"刷新后又报错"）。
+  const existing = await Favorite.findOne({ userId, targetType, targetId });
+  if (existing) return { favoriteId: String(existing._id), already: true };
   const doc = await Favorite.create({ userId, targetType, targetId });
   return { favoriteId: String(doc._id) };
 }

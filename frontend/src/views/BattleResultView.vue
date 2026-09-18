@@ -106,35 +106,13 @@
           <div class="kpi"><b>{{ kpiTheirs }}</b><span>对手总票数</span></div>
         </div>
 
-        <!-- 小组赛 / 遗珠复活：每张专辑从哪里出线（守则 20/39 晋级叙事的第一段） -->
-        <template v-if="groupStages.length">
-          <div class="hd" style="margin-top: 26px">
-            <b>小组赛与复活</b><span>每张专辑从哪里出线 · 冠军走过的路会高亮</span>
-          </div>
-          <div class="gstage">
-            <div v-for="g in groupStages" :key="g.key" class="gsrow">
-              <div class="gshd">
-                <b>{{ g.label }}</b><span>选 {{ g.advanceCount }} 张晋级</span>
-              </div>
-              <div class="gslist">
-                <div
-                  v-for="al in g.albums"
-                  :key="al.albumId"
-                  class="gsi"
-                  :class="{ adv: g.advancedIds.includes(String(al.albumId)), champ: isChampion(al) }"
-                >
-                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
-                  <span>{{ al.name }}</span>
-                  <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <div class="hd" style="margin-top: 26px">
-          <b>夺冠之路</b><span>每一场：谁赢了谁，各自得了多少票</span>
-        </div>
+        <!-- 小组赛与复活已移到「夺冠之路」之后（用户要求：夺冠之路在最上面，小组/复活其次） -->
+        <details class="fold" open>
+          <summary class="foldhd">
+            <b>夺冠之路</b>
+            <span>每一场：谁赢了谁，各自得了多少票（含完整晋级图）</span>
+            <i class="chev" aria-hidden="true"></i>
+          </summary>
 
         <div class="path">
           <div v-if="!pathRows.length" class="note">这个赛制没有淘汰赛路径（对位赛 / 指定对决请看上面的对照表）。</div>
@@ -201,6 +179,35 @@
             </div>
           </div>
         </template>
+        </details>
+
+        <!-- 小组赛与复活：二级折叠菜单（小组卡的视觉保持不变 —— 用户说"小组赛的视觉很不错 不用改"） -->
+        <details v-if="groupStages.length" class="fold">
+          <summary class="foldhd">
+            <b>小组赛与复活</b>
+            <span>每张专辑从哪里出线 · 冠军走过的路会高亮（点这里展开）</span>
+            <i class="chev" aria-hidden="true"></i>
+          </summary>
+          <div class="gstage">
+            <div v-for="g in groupStages" :key="g.key" class="gsrow">
+              <div class="gshd">
+                <b>{{ g.label }}</b><span>选 {{ g.advanceCount }} 张晋级</span>
+              </div>
+              <div class="gslist">
+                <div
+                  v-for="al in g.albums"
+                  :key="al.albumId"
+                  class="gsi"
+                  :class="{ adv: g.advancedIds.includes(String(al.albumId)), champ: isChampion(al) }"
+                >
+                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+                  <span>{{ al.name }}</span>
+                  <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </details>
       </template>
 
       <!-- 杯赛但还没打完 -->
@@ -503,6 +510,70 @@ onMounted(load);
 <style scoped>
 .result {
   padding-bottom: var(--sp-7);
+}
+
+/* 折叠块（用户："完整做成一个折叠可打开查看的二级菜单那种 点击就展开看到全部"）
+   用原生 <details>/<summary>：零 JS、可键盘操作、默认展开的那块内容不会藏起来。 */
+.fold {
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--card);
+  overflow: hidden;
+  /* 两边距离约束：折叠块本身不贴边、也不无限拉长 */
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.foldhd {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 13px 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.foldhd::-webkit-details-marker {
+  display: none;
+}
+.foldhd b {
+  font-size: 15px;
+}
+.foldhd span {
+  font-size: 12.5px;
+  color: var(--text2);
+}
+.foldhd .chev {
+  margin-left: auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: rotate(45deg);
+  transition: transform 0.2s var(--ease-out);
+}
+.foldhd:hover {
+  background: var(--glass2);
+}
+.fold[open] .foldhd {
+  border-bottom: 1px solid var(--line);
+}
+.fold[open] .chev {
+  transform: rotate(-135deg);
+}
+.fold > :not(summary) {
+  min-width: 0;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+.fold > .path,
+.fold > .ko {
+  padding-bottom: 16px;
+}
+.fold > .gstage {
+  padding: 16px;
 }
 
 /* 对位赛战报卡 */

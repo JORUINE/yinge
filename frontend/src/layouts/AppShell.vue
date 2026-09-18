@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useFavoritesStore } from '@/stores/favorites';
@@ -98,6 +98,21 @@ const auth = useAuthStore();
 const fav = useFavoritesStore();
 const router = useRouter();
 const route = useRoute();
+
+/**
+ * 进入站点 / 登录状态变化时，把「我的收藏」拉一次。
+ * ------------------------------------------------------------
+ * ⚠️ 以前只靠每个收藏按钮自己 onMounted 拉，页面刚打开时按钮一律显示"未收藏"；
+ * 这时点下去会重复提交 → 后端撞唯一索引 → 弹「记录已存在，请勿重复操作」红字，
+ * 而且图标也不会变（用户报的两个现象）。这里改成进入即拉一次。
+ */
+watch(
+  () => auth.isLoggedIn,
+  (yes) => {
+    if (yes) fav.load(true);
+  },
+  { immediate: true },
+);
 
 /** 后台自带 chrome：/admin 下不渲染站点顶栏与页脚 */
 const isAdmin = computed(() => route.path.startsWith('/admin'));

@@ -26,6 +26,13 @@
         </div>
         <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
       </div>
+      <!-- 用户要求：给一次撤销机会 -->
+      <div class="undobar">
+        <button class="undobtn" type="button" :disabled="undoing" @click="undoStep">↩ 撤销上一步</button>
+        <span class="undohint">
+          选错了没关系，可以撤销上一步重选；每张卡上的「试听主打」可以听片段（不参与计票）。
+        </span>
+      </div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
 
       <div class="vstage" :style="groupStageStyle">
@@ -133,6 +140,13 @@
           <span class="meta">{{ koHint }}</span>
         </div>
         <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
+      </div>
+      <!-- 用户要求：给一次撤销机会 + 明示"下面可以切歌"（默认 100% 缩放时容易看不到播放条） -->
+      <div class="undobar">
+        <button class="undobtn" type="button" :disabled="undoing" @click="undoStep">↩ 撤销上一步</button>
+        <span class="undohint">
+          选错了没关系，可以撤销上一步重选；想多听几首就点下方播放条切歌，或点「试听清单」里的任意一首。
+        </span>
       </div>
       <div v-if="sameArtist" class="sib-tip">同室操戈 · 这场左右两张来自同一位歌手，内战也要分高下</div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
@@ -498,6 +512,22 @@ async function load() {
     ElMessage.error(err?.message || '加载失败');
   } finally {
     loading.value = false;
+  }
+}
+
+/** 撤销上一步（后端会把由此推进出来的场次一起退回，然后重新出题） */
+const undoing = ref(false);
+async function undoStep() {
+  if (undoing.value) return;
+  undoing.value = true;
+  try {
+    const r = await battleApi.undo(id);
+    ElMessage.success(r?.undone ? `已撤销「${r.undone}」` : '已撤销上一步');
+    await load();
+  } catch (err) {
+    ElMessage.error(err?.message || '撤销失败');
+  } finally {
+    undoing.value = false;
   }
 }
 
@@ -965,6 +995,39 @@ onMounted(load);
   font-size: 12px;
   color: var(--text3);
   text-align: center;
+}
+/* 撤销条 + 切歌提示（用户："给用户撤销的机会" + "默认 100% 缩放时注意不到下面能切歌"） */
+.undobar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0 6px;
+}
+.undobtn {
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-deep);
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-out), border-color 0.18s var(--ease-out);
+}
+.undobtn:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: rgba(14, 165, 233, 0.12);
+}
+.undobtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.undohint {
+  font-size: 12.5px;
+  color: var(--text2);
 }
 .sib-tip {
   text-align: center;
