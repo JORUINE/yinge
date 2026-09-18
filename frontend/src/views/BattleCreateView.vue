@@ -207,19 +207,29 @@
         </div>
 
         <h4 style="margin: 16px 0 0">
-          或从常用组合开始
-          <em>一键装好模式 · 歌手 · 规模（后期可由社区提报、后台采纳）</em>
+          或从常用组合 / 我收藏的组合开始
+          <em>系统组合由管理员在后台维护 · 你自建的组合只有你自己看得到</em>
         </h4>
         <div class="presets">
+          <span v-for="c in shownCombos" :key="c.comboId || c.label" class="combowrap">
+            <button
+              class="preset"
+              type="button"
+              :disabled="presetLoading === c.label"
+              @click="applyCombo(c)"
+            >
+              {{ presetLoading === c.label ? '装填中…' : c.label }}
+            </button>
+            <span v-if="c.mine" class="combox" title="删除这个组合" @click.stop="removeCombo(c)">×</span>
+          </span>
           <button
-            v-for="p in PRESETS"
-            :key="p.label"
-            class="preset"
+            class="preset addcombo"
             type="button"
-            :disabled="presetLoading === p.label"
-            @click="applyPreset(p)"
+            :disabled="savingCombo || picked.length < 2"
+            :title="picked.length < 2 ? '先选 2 位以上歌手' : '把当前歌手存成我的组合'"
+            @click="saveCombo"
           >
-            {{ presetLoading === p.label ? '装填中…' : p.label }}
+            {{ savingCombo ? '保存中…' : '＋ 收藏当前组合' }}
           </button>
         </div>
         <p class="hint">或快速搜单个歌手：</p>
@@ -428,8 +438,8 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
-import { musicApi, battleApi } from '@/api';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { musicApi, battleApi, comboApi } from '@/api';
 import {
   SINGER_SCALES,
   PER_ARTIST_SCALES,
@@ -459,6 +469,7 @@ onMounted(async () => {
   } catch {
     /* 忽略：流派选项拉不到不影响手输 */
   }
+  loadCombos();
 });
 
 const router = useRouter();
@@ -478,14 +489,24 @@ const pickStrategy = ref('random');
 /** 自己挑模式下勾选的专辑（albumId） */
 const selfPicked = ref([]);
 
-/** 常用组合：一键填好模式 + 歌手 + 规模。后期可扩成社区维护（用户提报、后台采纳） */
-const PRESETS = [
+/**
+ * 常用组合 / 我收藏组合
+ * ------------------------------------------------------------
+ * 由后端数据驱动（`/api/combos`）：**系统组合**由管理员在后台维护、所有人可见；
+ * **用户自建组合**存进自己账号，只有本人看得到（"我收藏组合"）。
+ * 下面这 4 个只作**后端还没有任何系统组合时的兜底**（按名字搜歌手来装填）。
+ */
+const FALLBACK_PRESETS = [
   { label: '周杰伦 vs 林俊杰', names: ['周杰伦', '林俊杰'], per: 8 },
   { label: '华语三强混战', names: ['周杰伦', '林俊杰', '陈奕迅'], per: 8 },
   { label: '欧美经典对决', names: ['Taylor Swift', 'Adele'], per: 8 },
   { label: '中外对决', names: ['周杰伦', 'Taylor Swift'], per: 8 },
 ];
 const presetLoading = ref('');
+/** 后端返回的组合（系统 + 我的） */
+const combos = ref([]);
+const savingCombo = ref(false);
+const shownCombos = computed(() => (combos.value.length ? combos.value : FALLBACK_PRESETS));
 
 // 流派 / 年代
 const genreOrEra = ref('genre');
@@ -729,29 +750,99 @@ function toggleSelfPick(albumId) {
 }
 
 /** 常用组合：按名字搜到歌手 → 一键填好模式/歌手/规模 */
-async function applyPreset(p) {
-  presetLoading.value = p.label;
+/** 拉取可用的组合（系统 + 我的）；拿不到就退回兜底，不影响使用 */
+async function loadCombos() {
+  try {
+    const data = await comboApi.list();
+    combos.value = data.list || [];
+  } catch {
+    combos.value = [];
+  }
+}
+
+/** 装填一个组合：带 artistId 的直接用（快）；只有名字的走搜索（兜底组合） */
+async function applyCombo(c) {
+  presetLoading.value = c.label;
   try {
     pickMode('multi-artist');
     pickStrategy.value = 'random';
-    perArtistScale.value = p.per;
-    const found = [];
-    for (const name of p.names) {
-      // eslint-disable-next-line no-await-in-loop
-      const data = await musicApi.searchArtists({ term: name, limit: 1 });
-      const hit = (data.artists || [])[0];
-      if (hit) found.push(hit);
+    perArtistScale.value = c.perArtist || c.per || 8;
+    let found = [];
+    if (c.artists && c.artists.length) {
+      found = c.artists.map((a) => ({ artistId: a.artistId, name: a.name }));
+    } else {
+      for (const name of c.names || []) {
+        // eslint-disable-next-line no-await-in-loop
+        const data = await musicApi.searchArtists({ term: name, limit: 1 });
+        const hit = (data.artists || [])[0];
+        if (hit) found.push(hit);
+      }
     }
     if (!found.length) {
-      ElMessage.warning('组合里的歌手没搜到，请手动搜索添加');
+      ElMessage.warning('这个组合里的歌手没搜到，请手动搜索添加');
       return;
     }
     picked.value = found;
-    ElMessage.success(`已装好「${p.label}」：${found.map((a) => a.name).join(' vs ')}`);
+    ElMessage.success(`已装好「${c.label}」：${found.map((a) => a.name).join(' vs ')}`);
   } catch (err) {
-    ElMessage.error(err?.message || '加载组合失败');
+    ElMessage.error(err?.message || '装填组合失败');
   } finally {
     presetLoading.value = '';
+  }
+}
+
+/** 把当前选好的歌手存成「我的组合」（只有本人可见） */
+async function saveCombo() {
+  if (picked.value.length < 2) {
+    ElMessage.info('先选 2 位以上歌手，才能存成组合');
+    return;
+  }
+  let label = '';
+  try {
+    const r = await ElMessageBox.prompt(
+      '给这个组合起个名字，之后在「我收藏组合」里一键装填',
+      '收藏这个组合',
+      {
+        confirmButtonText: '保存',
+        cancelButtonText: '取消',
+        inputValue: picked.value.map((a) => a.name).join(' vs ').slice(0, 40),
+        inputValidator: (v) => (v && v.trim() ? true : '名字不能为空'),
+      },
+    );
+    label = r.value.trim();
+  } catch {
+    return; // 用户取消
+  }
+  savingCombo.value = true;
+  try {
+    const combo = await comboApi.create({
+      label,
+      scopeType: 'multi-artist',
+      perArtist: perArtistScale.value,
+      artists: picked.value.map((a) => ({
+        artistId: a.artistId,
+        name: a.name,
+        albumCount: perArtistScale.value,
+      })),
+    });
+    combos.value = [combo, ...combos.value.filter((c) => c.comboId !== combo.comboId)];
+    ElMessage.success(`已收藏组合「${combo.label}」`);
+  } catch (err) {
+    ElMessage.error(err?.message || '收藏组合失败');
+  } finally {
+    savingCombo.value = false;
+  }
+}
+
+/** 删除自己的组合（系统组合没有 × 按钮） */
+async function removeCombo(c) {
+  if (!c.comboId) return;
+  try {
+    await comboApi.remove(c.comboId);
+    combos.value = combos.value.filter((x) => x.comboId !== c.comboId);
+    ElMessage.success('已删除这个组合');
+  } catch (err) {
+    ElMessage.error(err?.message || '删除失败');
   }
 }
 
@@ -1038,6 +1129,39 @@ async function onCreate() {
 .chip.on {
   border-color: var(--brand);
   background: rgba(14, 165, 233, 0.12);
+}
+
+/* 「我收藏组合」：组合按钮上的删除小叉 + 「收藏当前组合」按钮 */
+.combowrap {
+  position: relative;
+  display: inline-flex;
+}
+.combox {
+  position: absolute;
+  right: -5px;
+  top: -7px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s var(--ease-out);
+}
+.combowrap:hover .combox {
+  opacity: 1;
+}
+.addcombo {
+  border-style: dashed;
+  color: var(--brand-deep);
+}
+.addcombo:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .yearrow {

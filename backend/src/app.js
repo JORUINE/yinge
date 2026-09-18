@@ -18,6 +18,7 @@ import battleRoutes from './modules/battles/battles.routes.js';
 import personalityRoutes from './modules/personality/personality.routes.js';
 import userRoutes from './modules/users/users.routes.js';
 import favoriteRoutes, { shareCardRouter } from './modules/favorites/favorites.routes.js';
+import comboRoutes from './modules/combos/combos.routes.js';
 import rankRoutes from './modules/rankings/rankings.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 
@@ -70,6 +71,7 @@ export function createApp() {
   app.use('/api/personality', personalityRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/favorites', favoriteRoutes);
+  app.use('/api/combos', comboRoutes);
   app.use('/api/share-cards', shareCardRouter);
   app.use('/api/rank', rankRoutes);
   app.use('/api/admin', adminRoutes);

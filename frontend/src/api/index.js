@@ -62,6 +62,14 @@ export const shareCardApi = {
   list: (params) => http.get('/share-cards', { params }),
 };
 
+export const comboApi = {
+  // 我能看到的组合 = 系统组合（管理员维护）+ 我自建的
+  list: () => http.get('/combos'),
+  create: (data) => http.post('/combos', data),
+  update: (id, data) => http.put(`/combos/${id}`, data),
+  remove: (id) => http.delete(`/combos/${id}`),
+};
+
 export const rankApi = {
   albums: (params) => http.get('/rank/albums', { params }),
   home: () => http.get('/rank/home'),

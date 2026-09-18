@@ -5,6 +5,7 @@
 export { User } from './User.js';
 export { Favorite } from './Favorite.js';
 export { ShareCard } from './ShareCard.js';
+export { Combo } from './Combo.js';
 export { Artist } from './Artist.js';
 export { Album } from './Album.js';
 export { Track } from './Track.js';
