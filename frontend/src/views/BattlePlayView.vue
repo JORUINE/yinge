@@ -917,6 +917,21 @@ onMounted(load);
 .duelgrid .alb .art.albc {
   position: relative;
 }
+/* 「点亮这一张」：悬浮的那张封面加一圈**专辑色描边** + 提亮，另一张略微压暗 ——
+   只靠大光晕变化，感观上不够明确（用户："点亮这一张的感觉 目前版本根本没体现出来"）。 */
+.duelgrid .alb .art {
+  transition: box-shadow 0.28s var(--ease-out), filter 0.28s var(--ease-out), opacity 0.28s var(--ease-out);
+}
+.vstage[data-lit='l'] .duelgrid .alb[data-side='l'] .art,
+.vstage[data-lit='r'] .duelgrid .alb[data-side='r'] .art {
+  box-shadow: 0 30px 58px rgba(0, 0, 0, 0.42), 0 0 0 2px var(--ac), 0 18px 46px var(--acs);
+  filter: saturate(1.08) brightness(1.05);
+}
+.vstage[data-lit='l'] .duelgrid .alb[data-side='r'] .art,
+.vstage[data-lit='r'] .duelgrid .alb[data-side='l'] .art {
+  opacity: 0.82;
+  filter: saturate(0.9) brightness(0.97);
+}
 .duelgrid .alb .picktag {
   position: absolute;
   left: 50%;

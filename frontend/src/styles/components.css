@@ -963,13 +963,20 @@ html[data-theme='dark'] .v b {
   position: absolute;
   display: block;
   border-radius: 50%;
-  /* ⚠️ 以前是 filter: blur(74px) + will-change：460px 的大圆做 74px 模糊，
-     又被 will-change 永久提升成合成层 —— 这是 Edge 最小化闪烁 / Chrome 偶发卡顿的**第二个**源头。
-     同样改用径向渐变做柔边（零 blur 成本），并撤掉 will-change。 */
-  background-image: radial-gradient(closest-side, var(--glow, var(--brand)) 0%, var(--glow, var(--brand)) 42%, rgba(255, 255, 255, 0) 100%);
+  /* 柔边 = 多段径向渐变，模拟高斯模糊的钟形衰减（原型是 filter: blur(74px)，这里零 blur 成本）。
+     ⚠️ 不要写成「实心到 42% 再线性淡出」：那会渲成一个有硬边的圆盘，看着很假
+     （用户："效果也不自然"）。下面这几段就是一条近似的钟形曲线。 */
+  background-image: radial-gradient(
+    closest-side,
+    var(--glow, var(--brand)) 0%,
+    color-mix(in srgb, var(--glow, var(--brand)) 66%, transparent) 28%,
+    color-mix(in srgb, var(--glow, var(--brand)) 30%, transparent) 52%,
+    color-mix(in srgb, var(--glow, var(--brand)) 10%, transparent) 74%,
+    transparent 92%
+  );
   will-change: auto;
-  opacity: 0.5;
-  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  opacity: 0.42;
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vglow .gl {
   width: 460px;
@@ -985,21 +992,20 @@ html[data-theme='dark'] .v b {
   bottom: -110px;
   --glow: var(--gr, var(--brand));
 }
-/* 悬浮时只把对应一侧"亮一点、胀一点" —— 以前直接拉到 opacity:1 + scale(1.3)，
-   整块高饱和色扑满一屏，那才是"光晕很怪"的直接观感来源 */
+/* 悬浮 = 点亮这一侧：那一侧的光晕拉满并放大，另一侧压到 0.16（与原型 1 / scale(1.3) / .16 一致） */
 .vstage[data-lit='l'] .vglow .gl {
-  opacity: 0.9;
-  transform: scale(1.18);
+  opacity: 1;
+  transform: scale(1.3);
 }
 .vstage[data-lit='r'] .vglow .gr {
-  opacity: 0.9;
-  transform: scale(1.18);
+  opacity: 1;
+  transform: scale(1.3);
 }
 .vstage[data-lit='l'] .vglow .gr {
-  opacity: 0.12;
+  opacity: 0.16;
 }
 .vstage[data-lit='r'] .vglow .gl {
-  opacity: 0.12;
+  opacity: 0.16;
 }
 .vstage > * {
   position: relative;
@@ -1053,39 +1059,45 @@ html[data-theme='dark'] .v b {
   filter: blur(0.7px);
   z-index: 5;
   pointer-events: none;
-  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(0.6);
+  transition: opacity 0.55s cubic-bezier(0.4, 0, 0.2, 1), transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
+/* ⚠️ 原型把星点放在 24% / 36%（正好压在专辑封面上）—— 实测在封面上就是一颗"莫名其妙的小白点"。
+   这里统一挪到**中间那条空白带**（VS 两侧的空隙），只在悬浮对应一侧时亮起并微微放大，
+   这样读起来才是"点亮这一张"的星点，而不是封面上的脏点。 */
 .sp1 {
   width: 4px;
   height: 4px;
-  left: 24%;
-  top: 23%;
+  left: 44%;
+  top: 24%;
 }
 .sp2 {
   width: 2px;
   height: 2px;
-  left: 36%;
-  top: 59%;
+  left: 42%;
+  top: 63%;
 }
 .sp3 {
   width: 3px;
   height: 3px;
-  right: 22%;
+  right: 44%;
   top: 33%;
 }
 .sp4 {
   width: 2px;
   height: 2px;
-  right: 34%;
-  top: 62%;
+  right: 42%;
+  top: 67%;
 }
 .vstage[data-lit='l'] .sp1,
 .vstage[data-lit='l'] .sp2 {
-  opacity: 0.85;
+  opacity: 0.9;
+  transform: scale(1.25);
 }
 .vstage[data-lit='r'] .sp3,
 .vstage[data-lit='r'] .sp4 {
-  opacity: 0.85;
+  opacity: 0.9;
+  transform: scale(1.25);
 }
 
 /* 播放条 + 曲目切换 */

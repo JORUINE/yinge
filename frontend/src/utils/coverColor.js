@@ -82,14 +82,15 @@ function hslToRgb(h, s, l) {
 }
 
 /**
- * 把主色压进"不刺眼但认得出"的友好区间（饱和度 18–34%，亮度 48–58%）。
- * 区间比之前更窄：光晕是衬在海洋蓝背景上的，宁淡勿艳 —— 否则任何一张封面都可能让整页跑调。
+ * 把主色压进"不刺眼但认得出"的友好区间（饱和度 18–44%，亮度 48–58%）。
+ * 上限从 34 提到 44：光晕本身是半透明的，饱和度太低会让"光晕跟专辑不够呼应"
+ * （用户反馈）；44% 仍在大面积色块的舒适范围内。
  */
 function soften(rgb) {
   const m = rgb.match(/\d+/g);
   if (!m) return rgb;
   let [h, s, l] = rgbToHsl(+m[0], +m[1], +m[2]);
-  s = Math.min(Math.max(s, 18), 34);
+  s = Math.min(Math.max(s, 18), 44);
   l = Math.min(Math.max(l, 48), 58);
   return hslToRgb(h, s, l);
 }
