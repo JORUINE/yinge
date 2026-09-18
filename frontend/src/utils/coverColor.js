@@ -226,8 +226,10 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
   if (fs < 6) return NEUTRAL;
 
   // ⑥ 压进友好区间：饱和度略提一点（×1.25，下限 22%）让光晕"看得出是这张专辑"，
-  //    但上限 46% 防止刺眼；亮度允许到 64%，浅色封面才不会都被压成同一个中间调。
-  return hslToRgb(fh, Math.min(Math.max(fs * 1.25, 22), 46), Math.min(Math.max(fl, 46), 64));
+  //    但上限 46% 防止刺眼；亮度收到 **42–56%** ——
+  //    ⚠️ 上一版放到 46–64% 的结果是光晕变成"浅色"，衬在浅色海洋蓝背景上几乎看不见
+  //    （用户反馈的"蓝色专辑取不到蓝色"其实多数是**对比度太低**，不是取色错）。
+  return hslToRgb(fh, Math.min(Math.max(fs * 1.25, 22), 46), Math.min(Math.max(fl, 42), 56));
 }
 
 /**
