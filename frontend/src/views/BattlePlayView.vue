@@ -28,7 +28,7 @@
       </div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
 
-      <div class="vstage">
+      <div class="vstage" :style="groupStageStyle">
         <div class="vglow"><i class="gl"></i><i class="gr"></i></div>
 
         <div class="ghead">
@@ -297,7 +297,7 @@ import { computed, onMounted, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi, musicApi } from '@/api';
-import { accentStyleOf, ensureAlbumAccent, blendWithBrand } from '@/utils/coverColor.js';
+import { accentStyleOf, ensureAlbumAccent, blendWithBrand, withAlpha } from '@/utils/coverColor.js';
 import { ROUND_CN } from '@/utils/tournament.js';
 
 const route = useRoute();
@@ -418,11 +418,35 @@ async function quickPreview(al) {
   }
 }
 const stageStyle = computed(() => ({ ...accentStyle(match.value?.leftAlbum), ...glowStyle() }));
+/**
+ * 小组赛 / 复活的舞台底：也从本组专辑取色（首位专辑 → 末位专辑 做左→右渐变）。
+ * 设计稿里"背景跟着专辑变"在小组赛同样成立，之前这里漏了绑定 → 小组赛只能用品牌蓝、没有专辑色。
+ */
+const groupStageStyle = computed(() => {
+  const list = (group.value?.albums || []).map((a) => accentStyle(a)['--ac']).filter(Boolean);
+  const left = list[0] || '#0ea5e9';
+  const right = list[list.length - 1] || left;
+  return {
+    '--gl': blendWithBrand(left, 0.12),
+    '--gr': blendWithBrand(right, 0.12),
+    '--gls': withAlpha(blendWithBrand(left, 0.22), 0.42),
+    '--grs': withAlpha(blendWithBrand(right, 0.22), 0.42),
+  };
+});
 function glowStyle() {
-  // 舞台光晕往品牌海洋蓝拉一半：永远「蓝底 + 这张专辑的色调」，封面再怪也不跑调
-  const l = blendWithBrand(accentStyle(match.value?.leftAlbum)['--ac']);
-  const r = blendWithBrand(accentStyle(match.value?.rightAlbum)['--ac']);
-  return { '--gl': l, '--gr': r };
+  const acL = accentStyle(match.value?.leftAlbum)['--ac'];
+  const acR = accentStyle(match.value?.rightAlbum)['--ac'];
+  // ⚠️ 光晕只往品牌蓝拉 12%：要"看得出这是这张专辑的颜色"。
+  //    之前拉 30~50% 的后果是所有封面都变成同一片蓝灰 —— 等于把设计稿"跟着专辑变"抹掉了
+  //    （用户原话："不能为了修复 bug 把功能整没了"）。占比门槛已经在取样层挡住了小色块劫持，
+  //    这里不需要再用混色来兜底。
+  return {
+    '--gl': blendWithBrand(acL, 0.12),
+    '--gr': blendWithBrand(acR, 0.12),
+    // 渐变底：带透明度的同色，整块做"左专辑色 → 右专辑色"
+    '--gls': withAlpha(blendWithBrand(acL, 0.22), 0.42),
+    '--grs': withAlpha(blendWithBrand(acR, 0.22), 0.42),
+  };
 }
 function voteStyle(album) {
   const ac = accentStyle(album)['--ac'];

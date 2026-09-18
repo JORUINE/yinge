@@ -29,6 +29,11 @@ function toRgba(rgb, alpha) {
   return `rgba(${m[0]}, ${m[1]}, ${m[2]}, ${alpha})`;
 }
 
+/** 给 'rgb(r,g,b)' 套一层透明度 —— 舞台渐变用它（纯 CSS 加不了 alpha，交给 JS 算） */
+export function withAlpha(rgb, alpha) {
+  return toRgba(rgb, alpha);
+}
+
 /** rgb → hsl（h:0-360, s/l:0-100） */
 function rgbToHsl(R, G, B) {
   R /= 255; G /= 255; B /= 255;
@@ -146,9 +151,11 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     const R = data[i];
     const G = data[i + 1];
     const B = data[i + 2];
-    if (R > 250 && G > 250 && B > 250) continue;
+    if (R > 250 && G > 250 && B > 250) continue; // 近白（与 ColorThief 一致）
     const lum = 0.299 * R + 0.587 * G + 0.114 * B;
-    if (lum < 20 || lum > 242) continue;
+    if (lum > 245) continue; // 过曝
+    // ⚠️ 不再过滤近黑：暗色封面（如《周杰倫的床邊故事》）大半是近黑，
+    //    一过滤就只剩零星像素 → 各桶占比全不达标 → 只能退回中性灰，光晕就"没颜色"了。
     const key = ((R >> 3) << 10) | ((G >> 3) << 5) | (B >> 3);
     const bkt = buckets.get(key) || { count: 0, r: 0, g: 0, b: 0 };
     bkt.count += 1;
@@ -174,8 +181,9 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
   const maxCount = palette[0].count || 1;
 
   // ④ Vibrant 权重打分 + ⑤ 占比 / 饱和度门槛
-  const MIN_SHARE = 0.03;
-  const MIN_SAT = 30;
+  const MIN_SHARE = 0.04; // 一个色桶至少占 4% 才算"有身份"（防一小块亮色劫持整块光晕）
+  const MIN_SAT = 16; // 饱和度门槛放低：宁可收下"偏灰但确实是主色"的颜色，也不轻易退回中性
+  //                     （门槛定太高会让大量正常封面都变中性灰，光晕就整片蓝灰、像功能没了）
   const cand = [];
   for (const c of palette) {
     const share = c.count / sampled;
@@ -204,12 +212,12 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     return soften(`rgb(${Math.round(R / n)}, ${Math.round(G / n)}, ${Math.round(B / n)})`);
   }
 
-  // ⑥ 没有够格的彩色 → Muted（低饱和、以面积为主）；还是不行 → 品牌蓝灰
-  const muted = palette.find((c) => c.count / sampled >= 0.06 && c.s >= 8);
-  if (muted) {
-    return hslToRgb(muted.h, Math.min(Math.max(muted.s * 0.6, 10), 22), Math.min(Math.max(muted.l, 48), 58));
-  }
-  return NEUTRAL;
+  // ⑥ 没有够格的"鲜艳主色"（封面很杂 / 整体偏灰）→ 用**像素数最多的那一桶**
+  //    （这正是 ColorThief 的默认口径：面积最大的色调）。它一定代表这张封面的整体调子，
+  //    比直接给中性灰更能"跟着专辑变"。饱和度**不往上抬**，灰就保持灰。
+  const dom = palette[0];
+  if (!dom) return NEUTRAL;
+  return hslToRgb(dom.h, Math.min(dom.s, 34), Math.min(Math.max(dom.l, 48), 58));
 }
 
 /**
@@ -218,7 +226,7 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
  * 只要封面主色偏绿 / 偏土黄，整页立刻"跑调"（用户反复报的那类"怪色"）。
  * 往品牌蓝混 50% 后，效果恒为「蓝底 + 这张专辑的色调」，颜色再怪也不会破调性。
  */
-export function blendWithBrand(rgb, amount = 0.5) {
+export function blendWithBrand(rgb, amount = 0.3) {
   const m = String(rgb).match(/\d+/g);
   if (!m) return rgb;
   const BRAND = [14, 165, 233]; // #0EA5E9
@@ -235,7 +243,7 @@ export function accentStyleOf(album) {
   const key = String(album.albumId ?? album.name ?? '');
   const ac = accentStore[key];
   const color = ac || hashColor(key);
-  return { '--ac': color, '--acs': toRgba(color, 0.24) };
+  return { '--ac': color, '--acs': toRgba(color, 0.32) };
 }
 
 /**
@@ -243,7 +251,7 @@ export function accentStyleOf(album) {
  * 返回 { ac, acs }，可直接绑到 CSS 变量 --ac / --acs
  */
 export async function ensureAlbumAccent(album) {
-  if (!album) return { ac: '#0ea5e9', acs: 'rgba(14,165,233,.24)' };
+  if (!album) return { ac: '#0ea5e9', acs: 'rgba(14,165,233,.32)' };
   const key = String(album.albumId ?? album.name ?? '');
   if (!accentStore[key]) {
     if (!inflight.has(key)) inflight.set(key, sampleCover(album.artworkUrl));
@@ -252,5 +260,5 @@ export async function ensureAlbumAccent(album) {
     accentStore[key] = c || hashColor(album.albumId);
   }
   const ac = accentStore[key];
-  return { ac, acs: toRgba(ac, 0.24) };
+  return { ac, acs: toRgba(ac, 0.32) };
 }

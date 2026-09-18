@@ -940,6 +940,14 @@ html[data-theme='dark'] .v b {
   overflow: hidden;
   border: 1px solid var(--gbd);
   background: var(--glass);
+  /* 「跟着专辑变」的渐变底：左半用左专辑主色、右半用右专辑主色（都已往品牌蓝拉过 30%，所以不会跑调） */
+  background-image: linear-gradient(
+    118deg,
+    var(--gls, transparent) 0%,
+    transparent 46%,
+    transparent 54%,
+    var(--grs, transparent) 100%
+  );
   backdrop-filter: blur(28px) saturate(185%);
   -webkit-backdrop-filter: blur(28px) saturate(185%);
   box-shadow: 0 26px 64px var(--gsh);
@@ -958,9 +966,9 @@ html[data-theme='dark'] .v b {
   /* ⚠️ 以前是 filter: blur(74px) + will-change：460px 的大圆做 74px 模糊，
      又被 will-change 永久提升成合成层 —— 这是 Edge 最小化闪烁 / Chrome 偶发卡顿的**第二个**源头。
      同样改用径向渐变做柔边（零 blur 成本），并撤掉 will-change。 */
-  background-image: radial-gradient(closest-side, var(--glow, var(--brand)), rgba(255, 255, 255, 0) 100%);
+  background-image: radial-gradient(closest-side, var(--glow, var(--brand)) 0%, var(--glow, var(--brand)) 42%, rgba(255, 255, 255, 0) 100%);
   will-change: auto;
-  opacity: 0.3;
+  opacity: 0.5;
   transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vglow .gl {
@@ -980,12 +988,12 @@ html[data-theme='dark'] .v b {
 /* 悬浮时只把对应一侧"亮一点、胀一点" —— 以前直接拉到 opacity:1 + scale(1.3)，
    整块高饱和色扑满一屏，那才是"光晕很怪"的直接观感来源 */
 .vstage[data-lit='l'] .vglow .gl {
-  opacity: 0.58;
-  transform: scale(1.12);
+  opacity: 0.9;
+  transform: scale(1.18);
 }
 .vstage[data-lit='r'] .vglow .gr {
-  opacity: 0.58;
-  transform: scale(1.12);
+  opacity: 0.9;
+  transform: scale(1.18);
 }
 .vstage[data-lit='l'] .vglow .gr {
   opacity: 0.12;
@@ -2147,8 +2155,8 @@ html[data-theme='dark'] .v b {
   display: block;
   border-radius: 50%;
   /* 同 .vglow i：不再用 blur(74px)，改径向渐变（零合成成本） */
-  background-image: radial-gradient(closest-side, var(--glow, var(--brand)), rgba(255, 255, 255, 0) 100%);
-  opacity: 0.3;
+  background-image: radial-gradient(closest-side, var(--glow, var(--brand)) 0%, var(--glow, var(--brand)) 42%, rgba(255, 255, 255, 0) 100%);
+  opacity: 0.45;
   transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vglow .g1 {
@@ -2845,8 +2853,9 @@ html.ua-edge body {
 html.ua-edge * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  filter: none !important;
-  /* 再把"让合成器一直忙"的两件事也停掉：will-change 的常驻合成层 + 循环动画 */
+  /* 只关「让合成器一直忙」的两件事：常驻合成层、循环动画。
+     ⚠️ 不再一刀切 filter:none —— 那会把阳光特效（.sunlit/.gbeam/.spark 的小半径 blur）
+     一起抹掉。真正贵的大 blur（极光 100px、vglow 74px）已经在源头改成径向渐变了。 */
   will-change: auto !important;
   animation: none !important;
 }
