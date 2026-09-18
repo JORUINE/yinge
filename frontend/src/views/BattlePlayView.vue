@@ -297,7 +297,7 @@ import { computed, onMounted, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi, musicApi } from '@/api';
-import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
+import { accentStyleOf, ensureAlbumAccent, blendWithBrand } from '@/utils/coverColor.js';
 import { ROUND_CN } from '@/utils/tournament.js';
 
 const route = useRoute();
@@ -419,8 +419,9 @@ async function quickPreview(al) {
 }
 const stageStyle = computed(() => ({ ...accentStyle(match.value?.leftAlbum), ...glowStyle() }));
 function glowStyle() {
-  const l = accentStyle(match.value?.leftAlbum)['--ac'];
-  const r = accentStyle(match.value?.rightAlbum)['--ac'];
+  // 舞台光晕往品牌海洋蓝拉一半：永远「蓝底 + 这张专辑的色调」，封面再怪也不跑调
+  const l = blendWithBrand(accentStyle(match.value?.leftAlbum)['--ac']);
+  const r = blendWithBrand(accentStyle(match.value?.rightAlbum)['--ac']);
   return { '--gl': l, '--gr': r };
 }
 function voteStyle(album) {

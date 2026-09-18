@@ -1,13 +1,17 @@
 /**
  * 专辑主色：从封面像素里取（设计稿原意"背景跟着专辑变"）
  * ------------------------------------------------------------
- * 做法（业界管线，Spotify / ColorThief 同思路）：
- *   把封面画到 48×48 的 canvas 上 → RGB 分桶量化 →
- *   滤掉近黑/近白/低饱和像素 → 按「像素数 × 鲜艳度」选出主色桶 →
- *   同色相合并 → 压进友好区间。
- *   ⚠️ 不要用"彩色像素求平均"：平均法会把封面平均成谁也不像的颜色（已踩坑）。
- * 灰白 / 黑白封面：没有彩色身份 → 返回中性灰（绝不退回随机高饱和色）。
- * 跨域失败 / 取色失败 → 返回 null，由调用方退回 albumId 哈希色（已降饱和）。
+ * 算法（业界标准，2026-09-18 依 ColorThief / Android Palette / Vibrant.js 重写）：
+ *   ① 量化：RGB 每通道取高 5 位 → 32×32×32 = 32768 桶（ColorThief 的 MMCQ 同量级；
+ *      以前用 3 位只有 512 桶，太粗）；
+ *   ② 过滤：按 ColorThief 的做法丢掉近白像素（各通道 > 250）与近黑 / 过曝（明度 <20 或 >242）；
+ *   ③ 调色板：按像素数取前 64 桶（近似 MMCQ 的"先按面积切"）；
+ *   ④ 打分：Android Palette / Vibrant.js 的官方权重 —— 饱和度×3 + 亮度贴近 0.5×6 + 占比×1；
+ *   ⑤ ⚠️ 关键：**占比门槛**。一个色桶要占全图 ≥3%、饱和度 ≥30 才有资格当主色。
+ *      以前只按"饱和度加权"选，封面上一小块高饱和色（《黑色柳丁》的橙瞳孔、
+ *      《樂之路》的青字）就会劫持整块光晕 —— 这就是"颜色老是怪"的根因。
+ *   ⑥ 没够格彩色 → 退回 Muted（低饱和、以面积为主）；再不行 → 品牌蓝灰（保证海洋蓝调性）。
+ * 取色失败（跨域/超时）→ 返回 null，由调用方退回 albumId 哈希色（已降饱和）。
  */
 import { reactive } from 'vue';
 
@@ -16,13 +20,16 @@ export const accentStore = reactive({});
 
 const inflight = new Map();
 
+/** 品牌蓝灰：与 #0EA5E9 同色域，安静、不跟海洋蓝背景打架 */
+const NEUTRAL = 'rgb(84, 118, 138)';
+
 function toRgba(rgb, alpha) {
   const m = rgb.match(/\d+/g);
   if (!m) return rgb;
   return `rgba(${m[0]}, ${m[1]}, ${m[2]}, ${alpha})`;
 }
 
-/** rgb → hsl（h:0-360, s/l:0-100），用于把刺眼色压进友好区间 */
+/** rgb → hsl（h:0-360, s/l:0-100） */
 function rgbToHsl(R, G, B) {
   R /= 255; G /= 255; B /= 255;
   const max = Math.max(R, G, B);
@@ -69,13 +76,16 @@ function hslToRgb(h, s, l) {
   return `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
 }
 
-/** 把主色压进"不刺眼但认得出"的友好区间（饱和度 16–40%，亮度 46–62%） */
+/**
+ * 把主色压进"不刺眼但认得出"的友好区间（饱和度 18–34%，亮度 48–58%）。
+ * 区间比之前更窄：光晕是衬在海洋蓝背景上的，宁淡勿艳 —— 否则任何一张封面都可能让整页跑调。
+ */
 function soften(rgb) {
   const m = rgb.match(/\d+/g);
   if (!m) return rgb;
   let [h, s, l] = rgbToHsl(+m[0], +m[1], +m[2]);
-  s = Math.min(Math.max(s, 16), 40);
-  l = Math.min(Math.max(l, 46), 62);
+  s = Math.min(Math.max(s, 18), 34);
+  l = Math.min(Math.max(l, 48), 58);
   return hslToRgb(h, s, l);
 }
 
@@ -84,11 +94,13 @@ export function hashColor(albumId) {
   const key = String(albumId ?? '');
   let h = 0;
   for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
-  // 兜底也走友好区间：饱和度压到 30%、亮度 50%，不再用 70% 满饱和（避免灰封面变荧光色）
-  return hslToRgb(h, 30, 50);
+  return hslToRgb(h, 30, 52);
 }
 
-/** 取单张封面的主色（rgb 字符串），失败返回 null */
+/**
+ * 取单张封面的主色（rgb 字符串），失败返回 null
+ * 业界参数：5bit 量化 / 近白过滤 / Vibrant 权重(sat×3 + luma×6 + pop×1) / 占比门槛 3% / 饱和度门槛 30
+ */
 export async function sampleCover(url, { timeout = 7000 } = {}) {
   if (!url) return null;
   if (typeof document === 'undefined') return null;
@@ -109,7 +121,7 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
   }
   clearTimeout(timer);
 
-  const size = 48; // 量化需要比 24 更多的样本才稳
+  const size = 48;
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
@@ -127,73 +139,94 @@ export async function sampleCover(url, { timeout = 7000 } = {}) {
     return null; // 跨域被拦
   }
 
-  // ① 量化：RGB 每通道取高 3 位 → 8×8×8 = 512 个色桶
+  // ① 量化（5 bit/通道 = 32768 桶）+ ② 过滤近白 / 近黑
   const buckets = new Map();
-  const gray = { count: 0, r: 0, g: 0, b: 0 };
+  let sampled = 0;
   for (let i = 0; i < data.length; i += 4) {
     const R = data[i];
     const G = data[i + 1];
     const B = data[i + 2];
+    if (R > 250 && G > 250 && B > 250) continue;
     const lum = 0.299 * R + 0.587 * G + 0.114 * B;
-    if (lum < 26 || lum > 238) continue; // 近黑 / 近白：不属于封面的"身份色"
-    const sat = Math.max(R, G, B) - Math.min(R, G, B);
-    if (sat < 26) {
-      // 低饱和：进灰池（黑白封面的兜底用）
-      gray.count += 1;
-      gray.r += R;
-      gray.g += G;
-      gray.b += B;
-      continue;
-    }
-    const key = ((R >> 5) << 10) | ((G >> 5) << 5) | (B >> 5);
+    if (lum < 20 || lum > 242) continue;
+    const key = ((R >> 3) << 10) | ((G >> 3) << 5) | (B >> 3);
     const bkt = buckets.get(key) || { count: 0, r: 0, g: 0, b: 0 };
     bkt.count += 1;
     bkt.r += R;
     bkt.g += G;
     bkt.b += B;
     buckets.set(key, bkt);
+    sampled += 1;
   }
+  if (!sampled || !buckets.size) return NEUTRAL;
 
-  // ② 纯灰 / 黑白 / 大面积浅色封面：中性灰，安静不抢戏。
-  //    判据：没有彩色桶，或彩色像素不到灰像素的 6 成（浅色 / 暖白封面）→ 认作"没有彩色身份"，
-  //    不硬凑一个彩色（否则白底封面会跑出粉/紫，这正是之前"颜色怪"的来源）。
-  const coloredPixels = [...buckets.values()].reduce((sum, b) => sum + b.count, 0);
-  if (!buckets.size || coloredPixels < gray.count * 0.6) {
-    if (!gray.count) return null; // 整张都太暗 / 太亮
-    const lum = (0.299 * gray.r + 0.587 * gray.g + 0.114 * gray.b) / gray.count;
-    const l = Math.min(Math.max(Math.round((lum / 255) * 100), 46), 58);
-    // 取不到彩色 → 用「品牌同调的蓝灰」：与海洋蓝背景同一色域，安静但不跟背景打架
-    return hslToRgb(203, 13, l);
+  // ③ 调色板 = 按像素数取前 64（近似 MMCQ）
+  const palette = [...buckets.values()]
+    .map((b) => {
+      const r = b.r / b.count;
+      const g = b.g / b.count;
+      const bl = b.b / b.count;
+      const [h, s, l] = rgbToHsl(r, g, bl);
+      return { h, s, l, count: b.count, r, g, b: bl };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 64);
+  const maxCount = palette[0].count || 1;
+
+  // ④ Vibrant 权重打分 + ⑤ 占比 / 饱和度门槛
+  const MIN_SHARE = 0.03;
+  const MIN_SAT = 30;
+  const cand = [];
+  for (const c of palette) {
+    const share = c.count / sampled;
+    if (share < MIN_SHARE || c.s < MIN_SAT) continue;
+    const lumaScore = 1 - Math.abs(c.l / 100 - 0.5) * 2;
+    const popScore = c.count / maxCount;
+    cand.push({ ...c, share, score: (c.s / 100) * 3 + lumaScore * 6 + popScore });
   }
-
-  // ③ 打分：像素数 × 鲜艳度（"大面积的鲜艳色"才是这张封面的角色色）
-  const scored = [];
-  for (const bkt of buckets.values()) {
-    const r = bkt.r / bkt.count;
-    const g = bkt.g / bkt.count;
-    const b = bkt.b / bkt.count;
-    const [h, s, l] = rgbToHsl(r, g, b);
-    const score = bkt.count * (0.15 + (s / 100) * 0.85) * (1 - Math.abs(l - 52) / 150);
-    scored.push({ h, s, l, count: bkt.count, r: bkt.r, g: bkt.g, b: bkt.b, score });
-  }
-  scored.sort((a, b) => b.score - a.score);
-
-  // ④ 同色相合并（±26°）：防止冠军桶只是封面角落里一小块高饱和
-  const win = scored[0];
-  let count = 0;
-  let rSum = 0;
-  let gSum = 0;
-  let bSum = 0;
-  for (const s of scored) {
-    const d = Math.abs(s.h - win.h);
-    if (Math.min(d, 360 - d) <= 26) {
-      count += s.count;
-      rSum += s.r;
-      gSum += s.g;
-      bSum += s.b;
+  if (cand.length) {
+    cand.sort((a, b) => b.score - a.score);
+    const win = cand[0];
+    // 同色相合并（±20°），按像素数加权取平均色
+    let n = 0;
+    let R = 0;
+    let G = 0;
+    let B = 0;
+    for (const c of cand) {
+      const d = Math.abs(c.h - win.h);
+      if (Math.min(d, 360 - d) <= 20) {
+        n += c.count;
+        R += c.r * c.count;
+        G += c.g * c.count;
+        B += c.b * c.count;
+      }
     }
+    return soften(`rgb(${Math.round(R / n)}, ${Math.round(G / n)}, ${Math.round(B / n)})`);
   }
-  return soften(`rgb(${Math.round(rSum / count)}, ${Math.round(gSum / count)}, ${Math.round(bSum / count)})`);
+
+  // ⑥ 没有够格的彩色 → Muted（低饱和、以面积为主）；还是不行 → 品牌蓝灰
+  const muted = palette.find((c) => c.count / sampled >= 0.06 && c.s >= 8);
+  if (muted) {
+    return hslToRgb(muted.h, Math.min(Math.max(muted.s * 0.6, 10), 22), Math.min(Math.max(muted.l, 48), 58));
+  }
+  return NEUTRAL;
+}
+
+/**
+ * 把任意主色往品牌海洋蓝拉一把（舞台光晕专用）。
+ * 为什么必须拉：光晕是衬在海洋蓝背景上的大面积色块 —— 直接铺专辑原色时，
+ * 只要封面主色偏绿 / 偏土黄，整页立刻"跑调"（用户反复报的那类"怪色"）。
+ * 往品牌蓝混 50% 后，效果恒为「蓝底 + 这张专辑的色调」，颜色再怪也不会破调性。
+ */
+export function blendWithBrand(rgb, amount = 0.5) {
+  const m = String(rgb).match(/\d+/g);
+  if (!m) return rgb;
+  const BRAND = [14, 165, 233]; // #0EA5E9
+  const r = Math.round(+m[0] * (1 - amount) + BRAND[0] * amount);
+  const g = Math.round(+m[1] * (1 - amount) + BRAND[1] * amount);
+  const b = Math.round(+m[2] * (1 - amount) + BRAND[2] * amount);
+  const [h, s, l] = rgbToHsl(r, g, b);
+  return hslToRgb(h, Math.min(Math.max(s, 20), 46), Math.min(Math.max(l, 46), 58));
 }
 
 /** 已取到主色就用它，否则退回哈希色 —— 统一给模板用的同步方法 */
@@ -202,7 +235,7 @@ export function accentStyleOf(album) {
   const key = String(album.albumId ?? album.name ?? '');
   const ac = accentStore[key];
   const color = ac || hashColor(key);
-  return { '--ac': color, '--acs': toRgba(color, 0.34) };
+  return { '--ac': color, '--acs': toRgba(color, 0.24) };
 }
 
 /**
@@ -210,12 +243,14 @@ export function accentStyleOf(album) {
  * 返回 { ac, acs }，可直接绑到 CSS 变量 --ac / --acs
  */
 export async function ensureAlbumAccent(album) {
-  if (!album) return { ac: '#0ea5e9', acs: 'rgba(14,165,233,.34)' };
+  if (!album) return { ac: '#0ea5e9', acs: 'rgba(14,165,233,.24)' };
   const key = String(album.albumId ?? album.name ?? '');
   if (!accentStore[key]) {
-    const c = await sampleCover(album.artworkUrl);
+    if (!inflight.has(key)) inflight.set(key, sampleCover(album.artworkUrl));
+    const c = await inflight.get(key);
+    inflight.delete(key);
     accentStore[key] = c || hashColor(album.albumId);
   }
   const ac = accentStore[key];
-  return { ac, acs: toRgba(ac, 0.34) };
+  return { ac, acs: toRgba(ac, 0.24) };
 }

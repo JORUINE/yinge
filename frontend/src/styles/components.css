@@ -955,40 +955,43 @@ html[data-theme='dark'] .v b {
   position: absolute;
   display: block;
   border-radius: 50%;
-  filter: blur(74px);
-  will-change: transform, opacity;
+  /* ⚠️ 以前是 filter: blur(74px) + will-change：460px 的大圆做 74px 模糊，
+     又被 will-change 永久提升成合成层 —— 这是 Edge 最小化闪烁 / Chrome 偶发卡顿的**第二个**源头。
+     同样改用径向渐变做柔边（零 blur 成本），并撤掉 will-change。 */
+  background-image: radial-gradient(closest-side, var(--glow, var(--brand)), rgba(255, 255, 255, 0) 100%);
+  will-change: auto;
+  opacity: 0.3;
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vglow .gl {
   width: 460px;
   height: 460px;
   left: -120px;
   top: -90px;
-  background: var(--gl, var(--brand));
-  opacity: 0.4;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  --glow: var(--gl, var(--brand));
 }
 .vglow .gr {
   width: 460px;
   height: 460px;
   right: -120px;
   bottom: -110px;
-  background: var(--gr, var(--brand));
-  opacity: 0.4;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  --glow: var(--gr, var(--brand));
 }
+/* 悬浮时只把对应一侧"亮一点、胀一点" —— 以前直接拉到 opacity:1 + scale(1.3)，
+   整块高饱和色扑满一屏，那才是"光晕很怪"的直接观感来源 */
 .vstage[data-lit='l'] .vglow .gl {
-  opacity: 1;
-  transform: scale(1.3);
+  opacity: 0.58;
+  transform: scale(1.12);
 }
 .vstage[data-lit='r'] .vglow .gr {
-  opacity: 1;
-  transform: scale(1.3);
+  opacity: 0.58;
+  transform: scale(1.12);
 }
 .vstage[data-lit='l'] .vglow .gr {
-  opacity: 0.16;
+  opacity: 0.12;
 }
 .vstage[data-lit='r'] .vglow .gl {
-  opacity: 0.16;
+  opacity: 0.12;
 }
 .vstage > * {
   position: relative;
@@ -2143,30 +2146,31 @@ html[data-theme='dark'] .v b {
   position: absolute;
   display: block;
   border-radius: 50%;
-  filter: blur(74px);
-  opacity: 0.4;
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 同 .vglow i：不再用 blur(74px)，改径向渐变（零合成成本） */
+  background-image: radial-gradient(closest-side, var(--glow, var(--brand)), rgba(255, 255, 255, 0) 100%);
+  opacity: 0.3;
+  transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .vglow .g1 {
   width: 400px;
   height: 400px;
   left: -90px;
   top: -80px;
-  background: var(--g1, var(--brand));
+  --glow: var(--g1, var(--brand));
 }
 .vglow .g2 {
   width: 400px;
   height: 400px;
   left: 34%;
   top: 40%;
-  background: var(--g2, var(--brand));
+  --glow: var(--g2, var(--brand));
 }
 .vglow .g3 {
   width: 400px;
   height: 400px;
   right: -90px;
   bottom: -90px;
-  background: var(--g3, var(--brand));
+  --glow: var(--g3, var(--brand));
 }
 .recmatch {
   font-size: 11.5px;
@@ -2842,6 +2846,9 @@ html.ua-edge * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
   filter: none !important;
+  /* 再把"让合成器一直忙"的两件事也停掉：will-change 的常驻合成层 + 循环动画 */
+  will-change: auto !important;
+  animation: none !important;
 }
 html.ua-edge .vglow .g1,
 html.ua-edge .vglow .g2,
