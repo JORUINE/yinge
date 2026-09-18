@@ -34,9 +34,15 @@ const updateSchema = z.object({
 
 const idParam = z.object({ id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的标识') });
 
+const popularQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(60).optional(),
+});
+
 const router = Router();
 router.use(authenticate);
 
+// 必须排在 '/:id' 之前
+router.get('/popular', validate(popularQuery, 'query'), asyncHandler(controller.popular));
 router.get('/', asyncHandler(controller.list));
 router.post('/', validate(createSchema, 'body'), asyncHandler(controller.create));
 router.put('/:id', validate(idParam, 'params'), validate(updateSchema, 'body'), asyncHandler(controller.update));

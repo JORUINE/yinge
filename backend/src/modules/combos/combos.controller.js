@@ -8,6 +8,12 @@ export async function list(req, res) {
   return ok(res, await service.listCombos(req.user));
 }
 
+/** 后台：用户喜爱的 PK 组合榜（只看真实开过多少局） */
+export async function popular(req, res) {
+  const { limit } = req.validated.query;
+  return ok(res, await service.popularCombos({ limit }));
+}
+
 export async function create(req, res) {
   return ok(res, await service.createCombo(req.user, req.validated.body), '组合已保存');
 }

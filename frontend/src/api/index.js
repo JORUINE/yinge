@@ -24,6 +24,10 @@ export const musicApi = {
   listAlbumTracks: (albumId, params) => http.get(`/music/albums/${albumId}/tracks`, { params }),
   getAlbumPreview: (albumId) => http.get(`/music/albums/${albumId}/preview`),
   listGenres: () => http.get('/music/genres'),
+  /** 按流派去 Apple Music 找靠前的歌手（只读，不写库） */
+  discoverGenreArtists: (params) => http.get('/music/genres/discover', { params }),
+  /** 把发现的歌手同步进曲库（后端每批最多 8 位） */
+  warmGenreArtists: (data) => http.post('/music/genres/warm', data),
 };
 
 export const battleApi = {
@@ -79,6 +83,8 @@ export const comboApi = {
   create: (data) => http.post('/combos', data),
   update: (id, data) => http.put(`/combos/${id}`, data),
   remove: (id) => http.delete(`/combos/${id}`),
+  /** 后台：用户喜爱的 PK 组合榜（按真实开过的局数排） */
+  popular: (params) => http.get('/combos/popular', { params }),
 };
 
 export const rankApi = {

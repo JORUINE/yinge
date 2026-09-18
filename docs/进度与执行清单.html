@@ -93,7 +93,7 @@
       <thead><tr><th>模块</th><th style="width:150px">完成度</th><th>说明</th></tr></thead>
       <tbody>
         <tr><td>后端接口</td><td><div class="bar"><i style="width:95%"></i></div>95%</td><td>40+ 接口全部可用：对决 / 投票 / 榜单 / 人格 / 收藏 / 后台</td></tr>
-        <tr><td><b>对决玩法（v2 赛制）</b></td><td><div class="bar"><i style="width:94%"></i></div>94%</td><td>规模自选 / 抽张策略 / 小组 4选2 / 遗珠复活 / 1v1 淘汰 / 跨歌手配对 / 冠军判定 / 亚季军 / 晋级叙事 / 点封面投票 / 自选上限 100 —— 均实测跑通；剩指定对决交互与分享页布局</td></tr>
+        <tr><td><b>对决玩法（v2 赛制）</b></td><td><div class="bar"><i style="width:94%"></i></div>94%</td><td>规模自选 / 抽张策略 / 小组 4选2 / 遗珠复活 / 1v1 淘汰 / 跨歌手配对 / 冠军判定 / 亚季军 / 晋级叙事 / 点封面投票 / 自选上限 100 —— 均实测跑通；指定对决交互、分享页布局、好友同玩、流派扩充均已补上，对决线收尾完成</td></tr>
         <tr><td>前端页面还原（18 页）</td><td><div class="bar"><i style="width:80%"></i></div>80%</td><td>14 页已是设计系统 1:1（含后台登录/看板/题目）；剩后台 3 页</td></tr>
         <tr><td>人格线（玩法二）</td><td><div class="bar"><i style="width:90%"></i></div>90%</td><td>5 页 1:1 + 设计稿那套分类法 + AI 解读（无密钥时模板降级）；<b>推荐专辑池仍为空</b></td></tr>
         <tr><td>数据质量</td><td><div class="bar"><i style="width:92%"></i></div>92%</td><td>准入 8 条规则（已补卡拉OK/巡演/playlist）；490 张专辑回填歌手名；曲目改<b>逐专辑同步</b>（不再被 200 首上限截断）</td></tr>
@@ -141,16 +141,18 @@
         <tr><td>2</td><td><b>颜色问题 —— 需你对照确认</b></td><td><span class="pill p1">P1</span></td><td>封面本身<b>不叠任何彩色</b>（CSS 注释可查），"怪色"来自背景光晕取的封面主色。已让浅色 / 暖白封面走中性灰、并压低饱和度上限。若某张仍不对，把专辑名发我即可精确定位。</td></tr>
         <tr><td>3</td><td><s>游客数据迁移到正式账号</s></td><td><span class="pill ok">已做</span></td><td>已实现 A-07：注册 / 登录后<b>自动</b>把本机游客的对决 / 票 / 测评 / 收藏转进账号（真后端 E2E 通过）</td></tr>
         <tr><td>4</td><td>后台剩余 3 页（人格类型 / 音乐数据 / 用户管理）</td><td><span class="pill p1">P1</span></td><td>未还原成设计系统版式</td></tr>
-        <tr><td>5</td><td>分享页布局（100% 缩放下图片乱）</td><td><span class="pill p1">P1</span></td><td>未做</td></tr>
+        <tr><td>5</td><td><s>分享页布局（100% 缩放下图片乱）</s></td><td><span class="pill ok">已做</span></td><td>根因是 <code>.sharewrap</code> <b>压根没定义</b> → 两块退化成竖排、卡片拉满屏。已补两栏栅格（<code>420px + 1fr</code>，<code>max-width:1120px</code>，<code>margin:auto</code>）。实测：x=160 / 宽 1120 / 两栏 420+672</td></tr>
         <tr><td>6</td><td><b>歌手官方图</b>（搜索结果空白处）</td><td><span class="pill p1">P1</span></td><td>iTunes Search API 不返回歌手头像；可用"歌手封面图代位"或接 Apple Music API（需密钥）</td></tr>
         <tr><td>7</td><td>搜索过滤更严 + 已选歌手单独一排</td><td><span class="pill p1">P1</span></td><td>未做（iTunes 模糊匹配会混入无关歌手）</td></tr>
-        <tr><td>8</td><td>指定对决交互（默认全勾、取消反而进对阵表）</td><td><span class="pill p1">P1</span></td><td>未做；要按"选中 → 缩入对阵表 + 上方变灰"重做</td></tr>
+        <tr><td>8</td><td><s>指定对决交互（默认全勾、取消反而进对阵表）</s></td><td><span class="pill ok">已做</span></td><td>根因：<code>.pk .ck</code> 对勾徽章<b>默认可见</b>，而"已选"走的是 <code>.off</code>（藏勾+变灰）——语义整个反了。改为<b>只有选中才显示对勾</b>；指定对决改用 <code>pick/done</code> 三态 + 「待成组 1/2」托盘 + 可点选撤销 + 候选池<b>累积</b>（可跨歌手，修掉"全是自己打自己"）</td></tr>
         <tr><td>9</td><td><b>大逃杀模式</b>（100 张彩蛋）</td><td><span class="pill p2">P2</span></td><td>上限已提到 100 张；100 张全选的"大逃杀"玩法按你说的，<b>正式版做完再议可行性</b></td></tr>
         <tr><td>10</td><td>6 个人格类型的推荐专辑池</td><td><span class="pill p2">P2</span></td><td>后台未绑 recommendAlbumIds → 图鉴 / 人格卡"常听专辑"为空</td></tr>
         <tr><td>11</td><td>榜单「地区 / 年代 / 周期」筛选</td><td><span class="pill p2">P2</span></td><td>需后端补接口</td></tr>
         <tr><td>12</td><td>原型 p4/p5/p6 按 v2 重绘</td><td><span class="pill p2">P2</span></td><td>设计稿还是 v1 旧稿</td></tr>
         <tr><td>13</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷你对阵树 / 本地续玩</td><td><span class="pill p2">P2</span></td><td>排版动效类，按约定放收尾阶段</td></tr>
-        <tr><td>14</td><td>好友一起玩</td><td><span class="pill p2">P2</span></td><td>玩法里写了，功能未落地</td></tr>
+        <tr><td>14</td><td><s>好友一起玩</s></td><td><span class="pill ok">已做</span></td><td>同款签表：夺冠页「和好友一起玩」→ 6 位邀请码 → <code>/battle/join/&lt;code&gt;</code> 接龙页（盲盒式预览）→ <b>原样复制同一批专辑</b>开局 → 对比页（冠军是否一致 / 第几步分歧 / 逐步并排）</td></tr>
+        <tr><td>16</td><td><s>流派歌手库存不足</s></td><td><span class="pill ok">已做</span></td><td>Apple Music 抓同流派靠前歌手补进曲库（默认 30 位）。⚠️ 实测：iTunes Search API <b>没有</b>按流派筛选的参数，改用「检索词搜 → 用 <code>primaryGenreName</code> 反筛」，中文区无对应标签时降级为按相关度收录并标记</td></tr>
+        <tr><td>17</td><td><s>后台「用户喜爱的 PK 组合」</s></td><td><span class="pill ok">已做</span></td><td>按<b>真实开过的局数</b>排（不是收藏数），只统计 ≥2 位歌手的组合，歌手顺序不同自动合并；可一键采纳为系统组合</td></tr>
         <tr><td>15</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
       </tbody>
     </table>

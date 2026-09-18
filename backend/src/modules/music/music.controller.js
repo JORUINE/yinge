@@ -1,8 +1,9 @@
 /**
  * 音乐数据控制器
- * 对应接口：M-01 ~ M-07
+ * 对应接口：M-01 ~ M-09
  */
 import * as musicService from './music.service.js';
+import * as genreExpand from './genreExpand.js';
 import { ok } from '../../shared/response.js';
 
 export async function searchArtists(req, res) {
@@ -83,4 +84,24 @@ export async function getAlbumPreview(req, res) {
 export async function listGenres(req, res) {
   // 数据源 = 曲库里实际存在的流派（含歌手数），不是写死的列表
   return ok(res, { list: await musicService.listGenres() });
+}
+
+/**
+ * M-08 按流派发现歌手（只读，不写库）
+ * 用于解决"库里某流派只有几位歌手，撑不起混战"的问题。
+ */
+export async function discoverGenreArtists(req, res) {
+  const { genre } = req.validated.query;
+  const { limit } = req.validated.query;
+  const data = await genreExpand.discoverGenreArtists(genre, { limit: limit || 30 });
+  return ok(res, data);
+}
+
+/**
+ * M-09 把发现的歌手同步进曲库（前端分批调用，每批最多 8 位）
+ */
+export async function warmGenreArtists(req, res) {
+  const { genre, artistIds } = req.validated.body;
+  const data = await genreExpand.warmGenreArtists(genre, artistIds);
+  return ok(res, data, `已入库 ${data.saved} 位歌手`);
 }

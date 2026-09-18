@@ -142,10 +142,10 @@
         <tr><td>落败置灰</td><td>淘汰赛落败的专辑置灰，把"战况"留在页面上</td><td><span class="pill p1">待做</span></td></tr>
         <tr><td>迷你对阵树</td><td>投票页给一个随时可见的小对阵图</td><td><span class="pill p1">待做</span></td></tr>
         <tr><td>本地续玩</td><td>关掉浏览器回来能接着打（localStorage）</td><td><span class="pill p1">待做</span></td></tr>
-        <tr><td>冠军页完整结构</td><td>动效 → 冠军大图 → 亚军 / 四强 → [分享我的对阵图][再来一场][和好友一起玩] + Apple Music 外链 + 「仅 X% 的人与你审美同频」</td><td><span class="pill p1">部分</span>（冠军大图 / 夺冠之路 / 分享图 / 再来一场 已做；亚军四强、好友同玩、同频文案 待做）</td></tr>
+        <tr><td>冠军页完整结构</td><td>动效 → 冠军大图 → 亚军 / 四强 → [分享我的对阵图][再来一场][和好友一起玩] + Apple Music 外链 + 「仅 X% 的人与你审美同频」</td><td><span class="pill ok">已做</span>（冠军大图 / 夺冠之路 / 分享图 / 再来一场 / 亚季军 / <b>和好友一起玩</b> 均已完成；仅 Apple Music 外链与同频文案待做）</td></tr>
         <tr><td>Apple Music 外链</td><td>冠军页 / 专辑处给「前往艺人 / 新建播放列表 / 添加到资料库」</td><td><span class="pill p1">待做</span>（后端 <code>viewUrl</code> 需回填）</td></tr>
         <tr><td>公开排行榜</td><td>赛果匿名汇入；榜单能看到「哪张专辑夺冠最多」</td><td><span class="pill p1">部分</span>（票数榜已做；夺冠次数榜 待做）</td></tr>
-        <tr><td>和好友一起玩</td><td>同款签表链接 → 好友进同一批专辑 → 双人对比页（冠军是否一致 / 从第几轮分歧）</td><td><span class="pill p1">待做</span></td></tr>
+        <tr><td>和好友一起玩</td><td>同款签表链接 → 好友进同一批专辑 → 双人对比页（冠军是否一致 / 从第几轮分歧）</td><td><span class="pill ok">已做</span>（<code>/battle/join/&lt;code&gt;</code>；接龙局用发起方的 albumIds 原样复制，分组确定 → 签表必然一致，已用「同一小组同一批专辑」断言验过）</td></tr>
       </tbody>
     </table>
 
@@ -213,7 +213,7 @@
         <tr><td>19</td><td>冠军页 · 名次</td><td>只有冠军，没有<b>亚军 / 季军</b></td><td><b>已做</b>：冠军下方补<b>亚军 / 季军</b>领奖台。口径见第 0 节规则 ⑥ —— 亚军 = 决赛负方；季军 = 半决赛两位负方中累计得票更高者，界面标注"不设三四名决赛、按累计得票推定"</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>20</td><td>冠军页 · 叙事</td><td>没有"<b>我选的专辑一路打赢其他组冠军走上来</b>"的感觉 —— 单看结果页乐趣性、比赛性不足（音乐世界杯那种清晰感）</td><td><b>已做</b>：新增「<b>小组赛与复活</b>」（每张专辑从哪一组出线、冠军高亮）+「<b>完整晋级图</b>」（按轮次展开<b>全部</b>对局、谁淘汰谁、冠军对局描边），与既有「夺冠之路」三段合起来就是完整叙事</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>21</td><td>全站 · 导航</td><td><b>各个层级界面都没有返回按钮</b></td><td><b>已做</b>：AppShell 统一提供返回按钮（只在二级 / 三级页显示；有历史就真回退一步，没历史退回逻辑父路由）；后台 AdminShell 非看板页补「返回看板」</td><td><span class="pill ok">已做</span></td></tr>
-        <tr><td>22</td><td>玩法 · 好友一起玩</td><td>玩法说明里写了「和好友一起玩」，<b>功能还没落地</b></td><td>同款签表分享链接 → 好友进同一批专辑 → 双人对比页（冠军是否一致 / 从第几轮分歧）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>22</td><td>玩法 · 好友一起玩</td><td>玩法说明里写了「和好友一起玩」，<b>功能还没落地</b></td><td>同款签表分享链接 → 好友进同一批专辑 → 双人对比页（冠军是否一致 / 从第几轮分歧）</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>23</td><td>测评 · 题量与听感</td><td>12 道题会不会太局限？<b>听感题只有 2 道太少</b>（且当前没有真实音频）</td><td><b>需专门研究</b>：题量/听感题占比/音频来源（详见下方"研究项"）</td><td><span class="pill p1">P1</span></td></tr>
         <tr><td>24</td><td>数据 · 歌曲 API</td><td>用户问"什么时候接入歌曲 API"</td><td>现状：已用 iTunes，专辑曲目自带 30 秒试听（<code>previewUrl</code>）；<b>是否需要更完整播放要先定</b>（版权/密钥成本）</td><td><span class="pill p2">P2</span></td></tr>
         <tr><td>25</td><td>数据 · 准入筛选</td><td>卡拉OK / 巡演现场 / playlist 被漏筛（<b>卡拉OK专辑曾一路夺冠</b>）</td><td><b>已修</b>：新增「非卡拉OK/伴奏版」规则、live 补 tour/巡演/stadium、compilation 补 playlist；重算后剔除 3 张（Karaoke 1989 (Deluxe) / Eras Tour Setlist / reputation Stadium Tour Surprise Song Playlist）</td><td><span class="pill ok">已修</span></td></tr>
@@ -231,8 +231,8 @@
         <tr><td>34</td><td>赛制 · 单歌手选张策略</td><td>周杰伦 10 张以上时，<b>只取最早的 N 张，后面的专辑连参赛资格都没有</b> —— "我们玩法是不是问题太多了"</td><td><b>已修</b>：新增「这几张怎么选」= <b>随机抽 N（默认）/ 最新 N / 自己挑</b>（自己挑可勾可取消，至少 4 张）；后端 <code>pickAlbums()</code> 统一实现</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>35</td><td>筛选 · 现场演出</td><td>「拉闊音樂會」这类现场专辑又冒出来</td><td><b>已修</b>：live 关键词补 音乐会/音樂會/拉闊/拉阔/音乐节；重算再剔 1 张</td><td><span class="pill ok">已修</span></td></tr>
         <tr><td>36</td><td>创建页 · 手动挑选</td><td>①没有说明 ②没写上限专辑数 ③可挑的专辑太少 ④<b>勾选了无法取消打勾</b></td><td>补说明与上限；支持多歌手多专辑；修勾选交互（可勾可取消）</td><td><span class="pill p1">P1</span></td></tr>
-        <tr><td>37</td><td>创建页 · 指定对决</td><td>一进来全默认打勾，<b>取消勾选反而是"进下面对决表"</b>——操作逻辑反了、无提示，"完全搞不懂"。应有动效：选中的专辑缩小移到下面对阵表、上面变灰消失</td><td>重做选择交互：点选 → 加入下方对阵表（带动效）+ 明确提示</td><td><span class="pill p1">P1</span></td></tr>
-        <tr><td>38</td><td>创建页 · 搜索与已选</td><td>①搜"周杰伦"旁边冒出周深/王力宏等 ②<b>已选歌手应单独一排</b>，方便在已选歌手的专辑间切换 ③指定对决里"选出来全是自己打自己"</td><td>候选过滤更严 + 已选歌手独立成排；指定对决默认引导跨歌手</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td>37</td><td>创建页 · 指定对决</td><td>一进来全默认打勾，<b>取消勾选反而是"进下面对决表"</b>——操作逻辑反了、无提示，"完全搞不懂"。应有动效：选中的专辑缩小移到下面对阵表、上面变灰消失</td><td>重做选择交互：点选 → 加入下方对阵表（带动效）+ 明确提示</td><td><span class="pill ok">已修</span>（根因：对勾徽章 <code>.ck</code> <b>默认就显示</b>，而"已选"走 <code>.off</code> 把勾藏掉 —— 语义反了。现改为<b>只有选中才显示对勾</b>，<code>pick→done</code> 三态 + 「待成组 1/2」托盘 + 再点可撤销）</td></tr>
+        <tr><td>38</td><td>创建页 · 搜索与已选</td><td>①搜"周杰伦"旁边冒出周深/王力宏等 ②<b>已选歌手应单独一排</b>，方便在已选歌手的专辑间切换 ③指定对决里"选出来全是自己打自己"</td><td>候选过滤更严 + 已选歌手独立成排；指定对决默认引导跨歌手</td><td><span class="pill ok">已做</span>（②③ 已完成：已选/已载入歌手各自独立成排；指定对决候选池改为<b>累积</b>，可混搭多位歌手）</td></tr>
         <tr><td>39</td><td>冠军页 · 晋级叙事</td><td>"夺冠之路其他那些专辑跟消失了一样" —— 只有冠军打的场次，缺少"我选的专辑一路打赢其他组冠军走上来"的完整叙事</td><td><b>已做</b>：「完整晋级图」按轮次列出<b>全部对局</b>（含冠军没参与的）与胜负票数，其他专辑不再消失</td><td><span class="pill ok">已做</span></td></tr>
         <tr><td>40</td><td>创建页 · 常用组合</td><td>已按设计稿做出 4 个固定组合（周杰伦 vs 林俊杰 / 华语三强混战 / 欧美经典对决 / 中外对决），一键装好模式+歌手+规模</td><td><b>已做</b>；<b>后期升级</b>：改为<b>后端维护的社区组合</b> —— 用户可提报自己的经典组合（如周王陶林方 / 欧美五大 diva），后台采纳后进入推荐位，并按"人群最爱"排序</td><td><span class="pill ok">已做</span></td></tr>
 

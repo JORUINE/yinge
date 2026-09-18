@@ -24,6 +24,16 @@ const searchSchema = z.object({
 const artistParamSchema = z.object({ artistId: numericId });
 const albumParamSchema = z.object({ albumId: numericId });
 
+// 流派歌手扩充（M-08 / M-09）：一次最多入库 8 位 —— 每位都要打一次 iTunes 专辑接口
+const genreDiscoverSchema = z.object({
+  genre: z.string().trim().min(1, '请提供流派'),
+  limit: z.coerce.number().int().min(1).max(60).optional(),
+});
+const genreWarmSchema = z.object({
+  genre: z.string().trim().min(1, '请提供流派'),
+  artistIds: z.array(z.coerce.number().int().positive()).min(1).max(8, '每批最多 8 位歌手'),
+});
+
 const router = Router();
 
 // 注意：/artists/search 必须声明在 /artists/:artistId 之前
@@ -46,5 +56,16 @@ router.get(
   asyncHandler(controller.getAlbumPreview),
 );
 router.get('/genres', asyncHandler(controller.listGenres));
+// ⚠️ 必须排在 '/genres' 之后不影响，但要在任何 '/:xxx' 通配之前
+router.get(
+  '/genres/discover',
+  validate(genreDiscoverSchema, 'query'),
+  asyncHandler(controller.discoverGenreArtists),
+);
+router.post(
+  '/genres/warm',
+  validate(genreWarmSchema, 'body'),
+  asyncHandler(controller.warmGenreArtists),
+);
 
 export default router;

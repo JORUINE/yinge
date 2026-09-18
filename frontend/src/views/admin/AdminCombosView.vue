@@ -11,6 +11,48 @@
       <button class="mini" type="button" @click="openCreate">+ 新建系统组合</button>
     </div>
 
+    <!-- 用户喜爱的 PK 组合榜：不看"保存了什么"，只看"真开过多少局" -->
+    <div class="popwrap g-card">
+      <div class="pophd">
+        <b>用户喜爱的 PK 组合</b>
+        <span>
+          按<b>真实开过的局数</b>排（不是按收藏数）· 同一位歌手的组合已合并统计 ·
+          觉得哪个值得进「常用组合」，点右边一键采纳
+        </span>
+      </div>
+      <div v-if="popLoading" class="state muted">统计中…</div>
+      <table v-else-if="popular.length" class="tbl">
+        <thead>
+          <tr>
+            <th style="width: 46px">#</th>
+            <th>组合</th>
+            <th style="width: 92px">开了多少局</th>
+            <th style="width: 84px">多少人</th>
+            <th style="width: 92px">打完比例</th>
+            <th style="width: 120px">最近一次</th>
+            <th class="act" style="width: 128px">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(p, i) in popular" :key="p.key">
+            <td class="num">{{ i + 1 }}</td>
+            <td class="ell">{{ p.label }}</td>
+            <td class="num"><b>{{ p.battles }}</b></td>
+            <td class="num">{{ p.userCount }}</td>
+            <td class="num">{{ p.finishRate }}%</td>
+            <td class="ell muted">{{ when(p.lastAt) }}</td>
+            <td class="act">
+              <span v-if="p.adopted" class="muted">已是系统组合</span>
+              <button v-else class="mini" type="button" :disabled="adopting === p.key" @click="adopt(p)">
+                {{ adopting === p.key ? '采纳中…' : '采纳' }}
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="state muted">还没有人对战记录 —— 用户开过局之后，这里会按热度自动排出来。</p>
+    </div>
+
     <div v-if="loading" class="state muted">加载中…</div>
 
     <div v-else-if="!list.length" class="state g-card">
@@ -130,6 +172,50 @@ const term = ref('');
 const candidates = ref([]);
 const artists = ref([]);
 
+// 用户喜爱的 PK 组合榜
+const popular = ref([]);
+const popLoading = ref(true);
+const adopting = ref('');
+
+async function loadPopular() {
+  popLoading.value = true;
+  try {
+    const d = await comboApi.popular({ limit: 20 });
+    popular.value = d.list || [];
+  } catch (err) {
+    ElMessage.error(err?.message || '热度统计失败');
+  } finally {
+    popLoading.value = false;
+  }
+}
+
+/** 一键采纳：把榜单里的组合建成系统组合（成员与张数照搬） */
+async function adopt(p) {
+  adopting.value = p.key;
+  try {
+    await comboApi.create({
+      label: p.label.slice(0, 40),
+      scopeType: 'multi-artist',
+      artists: (p.artists || []).map((a) => ({ artistId: a.artistId, name: a.name })),
+      perArtist: 8,
+      isSystem: true,
+    });
+    ElMessage.success(`「${p.label}」已加入常用组合`);
+    await Promise.all([load(), loadPopular()]);
+  } catch (err) {
+    ElMessage.error(err?.message || '采纳失败');
+  } finally {
+    adopting.value = '';
+  }
+}
+
+function when(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  const day = `${dt.getMonth() + 1}月${dt.getDate()}日`;
+  return `${day} ${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+}
+
 async function load() {
   loading.value = true;
   try {
@@ -231,7 +317,10 @@ async function removeCombo(c) {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  loadPopular();
+});
 </script>
 
 <style scoped>
@@ -253,5 +342,26 @@ onMounted(load);
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+/* 用户喜爱的 PK 组合榜：内容区留两侧距离（守则 73） */
+.popwrap {
+  max-width: 1080px;
+  margin: 0 0 22px;
+  padding: 16px 18px 18px;
+}
+.pophd {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.pophd b {
+  font-size: 15px;
+}
+.pophd span {
+  font-size: 12.5px;
+  color: var(--text3);
+  line-height: 1.6;
 }
 </style>

@@ -625,6 +625,16 @@ html[data-theme='dark'] .v b {
   display: flex;
   align-items: center;
   justify-content: center;
+  /* ⚠️ 2026-09-18 修：以前这枚对勾**默认就是显示的**，而"已选中"反而走 .off
+     （把对勾藏掉 + 整张变灰）→ 用户看到的是"一进来全打勾、取消勾选反而是选中"。
+     现在反过来：**只有被选中的卡（不带 .off）才显示对勾**，未选中的干脆不显示。 */
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.pk:not(.off) .ck {
+  opacity: 1;
+  transform: scale(1);
 }
 .pk .ck svg {
   width: 12px;

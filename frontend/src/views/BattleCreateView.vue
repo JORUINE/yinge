@@ -78,22 +78,50 @@
             v-for="a in duelCandidates"
             :key="a.artistId"
             class="chip"
+            :class="{ on: duelArtists.some((x) => x.artistId === a.artistId) }"
             type="button"
             @click="loadDuelAlbums(a)"
           >
-            <b>{{ a.name }}</b><i>加载其专辑</i>
+            <b>{{ a.name }}</b>
+            <i>{{ duelArtists.some((x) => x.artistId === a.artistId) ? '已载入' : '加入候选池' }}</i>
           </button>
         </div>
 
+        <!-- 已载入歌手单独一排：指定对决要能跨歌手，不然只能"自己打自己" -->
+        <div v-if="duelArtists.length" class="pickedrow">
+          <span class="pickedlab">已载入 {{ duelArtists.length }} 位歌手的专辑</span>
+          <div class="chips">
+            <span v-for="a in duelArtists" :key="a.artistId" class="chip on">
+              <b>{{ a.name }}</b>
+              <span class="x" @click.stop="removeDuelArtist(a.artistId)">×</span>
+            </span>
+          </div>
+        </div>
+
         <template v-if="duelAlbums.length">
-          <p class="hint">{{ duelArtistName }} 的合格专辑，点两张组成一组对位：</p>
+          <p class="hint">{{ duelHint }}</p>
+
+          <!-- 待成组托盘：选了 1 张时明确告诉你"还差 1 张"，不再是点了没反应 -->
+          <div v-if="currentPair.length" class="pending">
+            <span class="pickedlab">待成组 {{ currentPair.length }} / 2</span>
+            <div class="chips">
+              <span v-for="al in currentPair" :key="al.albumId" class="chip on">
+                <img :src="al.artworkUrl" :alt="al.name" class="chipart" />
+                <b>{{ al.name }}</b>
+                <span class="x" @click.stop="unpickDuelAlbum(al)">×</span>
+              </span>
+            </div>
+            <button class="mini" type="button" @click="currentPair = []">清空</button>
+          </div>
+
           <div class="pool">
             <button
               v-for="al in duelAlbums"
               :key="al.albumId"
-              class="pk"
-              :class="{ off: isChosen(al) }"
+              class="pk duelpk"
+              :class="{ pick: isPending(al), done: isPaired(al) }"
               type="button"
+              :disabled="isPaired(al)"
               @click="addDuelAlbum(al)"
             >
               <div class="art">
@@ -108,9 +136,16 @@
         <div v-if="pairs.length" class="pairlist">
           <div v-for="(p, i) in pairs" :key="i" class="pairrow">
             <span class="k">第 {{ i + 1 }} 组</span>
-            <span class="nm">{{ p[0].name }}</span>
+            <span class="pcell">
+              <img :src="p[0].artworkUrl" :alt="p[0].name" loading="lazy" />
+              <span class="nm">{{ p[0].name }}</span>
+            </span>
             <span class="vs-mini">VS</span>
-            <span class="nm">{{ p[1].name }}</span>
+            <span class="pcell">
+              <img :src="p[1].artworkUrl" :alt="p[1].name" loading="lazy" />
+              <span class="nm">{{ p[1].name }}</span>
+            </span>
+            <em v-if="p[0].artistId === p[1].artistId" class="sibflag">同室操戈</em>
             <button class="mini-x" type="button" @click="removePair(i)">移除</button>
           </div>
         </div>
@@ -341,6 +376,50 @@
           <p class="hint">
             流派 = 曲库里已缓存歌手的 iTunes 流派标签；命中后自动按准入规则过滤，再<b>各歌手轮转抽最多 32 张</b>入池 —— 不用手动挑，专辑多也不怕。
           </p>
+
+          <!-- 流派歌手扩充：一个流派本来有几百位艺人，曲库里只有几位就撑不起混战 -->
+          <div class="grow">
+            <div class="growhd">
+              <b>流派歌手不够？从 Apple Music 补足</b>
+              <span>
+                被选中的流派：<b>{{ genre || '（还没选）' }}</b>
+                <template v-if="genreCount"> · 曲库里现有 <b>{{ genreCount }}</b> 位歌手</template>
+              </span>
+            </div>
+            <div class="growrow">
+              <button
+                class="btn ghost sm"
+                type="button"
+                :disabled="!genre.trim() || growing || discovering"
+                @click="discoverGenre"
+              >
+                {{ discovering ? '正在查找…' : '先看看有哪些歌手' }}
+              </button>
+              <button
+                v-if="discovered.length"
+                class="btn pri sm"
+                type="button"
+                :disabled="growing || !missing.length"
+                @click="warmAll"
+              >
+                {{ growing ? `入库中 ${warmDone}/${missing.length}…` : `把前 ${missing.length} 位补进曲库` }}
+              </button>
+            </div>
+
+            <p v-if="discoverNote" class="hint">{{ discoverNote }}</p>
+
+            <div v-if="discovered.length" class="glist">
+              <span
+                v-for="a in discovered"
+                :key="a.artistId"
+                class="chip"
+                :class="{ on: a.cached }"
+                :title="a.genre"
+              >
+                <b>{{ a.name }}</b><i>{{ a.cached ? '已入库' : a.genre || '—' }}</i>
+              </span>
+            </div>
+          </div>
         </div>
         <div v-else class="yearrow">
           <input v-model.number="yearStart" class="ipt year" type="number" min="1900" max="2100" />
@@ -464,6 +543,20 @@ const QUICK = ['周杰伦', '林俊杰', '陈奕迅', '陶喆'];
 
 /** 流派选项：来自曲库的真实流派（带歌手数）；拉不到就只留手输框 */
 const genreOptions = ref([]);
+
+// —— 流派歌手扩充（Apple Music 抓同流派的歌手补进曲库）——
+const discovering = ref(false);
+const growing = ref(false);
+const discovered = ref([]);
+const discoverNote = ref('');
+const warmDone = ref(0);
+/** 这个流派在曲库里现存的歌手数 */
+const genreCount = computed(
+  () => genreOptions.value.find((g) => g.genre === genre.value)?.artists || 0,
+);
+/** 还没入库的那些（只补这些，已入库的不重复拉） */
+const missing = computed(() => discovered.value.filter((a) => !a.cached));
+
 onMounted(async () => {
   try {
     const data = await musicApi.listGenres();
@@ -473,6 +566,65 @@ onMounted(async () => {
   }
   loadCombos();
 });
+
+/** ① 看看这个流派在 Apple Music 里靠前的是哪些歌手 */
+async function discoverGenre() {
+  if (!genre.value.trim()) return;
+  discovering.value = true;
+  discovered.value = [];
+  discoverNote.value = '';
+  try {
+    const d = await musicApi.discoverGenreArtists({ genre: genre.value.trim(), limit: 30 });
+    discovered.value = d?.artists || [];
+    if (!discovered.value.length) {
+      discoverNote.value = '这个流派没找到歌手，换个流派词试试（如 Mandopop / Rock / 爵士）';
+      return;
+    }
+    const name = genre.value.trim();
+    discoverNote.value = d?.loose
+      ? `Apple Music 里「${name}」在中文区没有统一流派标签，这 ${discovered.value.length} 位是按相关度收的 —— 入库前你可以先看一眼名字对不对`
+      : `Apple Music 里「${name}」靠前的 ${discovered.value.length} 位歌手，其中 ${discovered.value.length - missing.value.length} 位已在曲库`;
+  } catch (e) {
+    discoverNote.value = e?.message || '查找失败';
+  } finally {
+    discovering.value = false;
+  }
+}
+
+/** ② 分批入库（后端每批最多 8 位 —— 每位都要打一次 Apple 的专辑接口） */
+async function warmAll() {
+  const ids = missing.value.map((a) => a.artistId);
+  if (!ids.length) return;
+  growing.value = true;
+  warmDone.value = 0;
+  const CHUNK = 6;
+  let saved = 0;
+  try {
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      // eslint-disable-next-line no-await-in-loop
+      const r = await musicApi.warmGenreArtists({
+        genre: genre.value.trim(),
+        artistIds: ids.slice(i, i + CHUNK),
+      });
+      saved += r?.saved || 0;
+      warmDone.value = Math.min(i + CHUNK, ids.length);
+      // 入库完立刻刷新"已入库"标记，用户能看到一个个变绿
+      // eslint-disable-next-line no-await-in-loop
+      const done = new Set((r?.results || []).filter((x) => x.ok).map((x) => x.artistId));
+      discovered.value = discovered.value.map((a) =>
+        done.has(a.artistId) ? { ...a, cached: true } : a,
+      );
+    }
+    ElMessage.success(`已把 ${saved} 位歌手补进曲库，现在可以按「${genre.value.trim()}」开局了`);
+    // 刷新流派列表，让歌手数显示同步更新
+    const g = await musicApi.listGenres();
+    genreOptions.value = g.list || [];
+  } catch (e) {
+    ElMessage.error(e?.message || '入库失败');
+  } finally {
+    growing.value = false;
+  }
+}
 
 const router = useRouter();
 
@@ -532,6 +684,23 @@ const duelArtistName = ref('');
 const duelAlbums = ref([]);
 const currentPair = ref([]);
 const pairs = ref([]);
+/** 已载入专辑的歌手（可多位 —— 指定对决要能跨歌手，否则只能"自己打自己"） */
+const duelArtists = ref([]);
+
+/** 当前这一步该干什么 —— 以前只有一句静态提示，选了 1 张之后就没下文了 */
+const duelHint = computed(() => {
+  if (!currentPair.value.length) {
+    return duelArtists.value.length > 1
+      ? `点两张组成一组对位（上面 ${duelArtists.value.length} 位歌手的专辑可以混搭，跨歌手更精彩）`
+      : '点两张组成一组对位；想跨歌手就再搜一位歌手加入候选池';
+  }
+  const n = pairs.value.length + 1;
+  return `已选「${currentPair.value[0].name}」——再点 1 张，组成第 ${n} 组`;
+});
+/** 在"待成组"里（还没凑够 2 张） */
+const isPending = (al) => currentPair.value.some((x) => x.albumId === al.albumId);
+/** 已经进了对阵表（用掉了，不能再选） */
+const isPaired = (al) => pairs.value.some((p) => p.some((x) => x.albumId === al.albumId));
 
 // 每位歌手的专辑池缓存：artistId -> { eligible, excluded, stats }
 const artistPool = ref({});
@@ -957,31 +1126,71 @@ async function duelSearch() {
   }
 }
 
+/**
+ * 载入某位歌手的专辑 —— **累积**进候选池（以前是整池替换，导致永远只有一位歌手 →
+ * 只能"自己打自己"，守则 38③ 就是指这个）。
+ */
 async function loadDuelAlbums(artist) {
+  if (duelArtists.value.some((a) => a.artistId === artist.artistId)) {
+    ElMessage.info(`「${artist.name}」的专辑已经在候选池里了`);
+    return;
+  }
   try {
     const data = await musicApi.listArtistAlbums(artist.artistId);
+    const list = data.eligible || [];
+    if (!list.length) {
+      ElMessage.info('该歌手暂无合格专辑');
+      return;
+    }
     duelArtistName.value = artist.name;
-    duelAlbums.value = data.eligible || [];
-    if (!duelAlbums.value.length) ElMessage.info('该歌手暂无合格专辑');
+    duelArtists.value = [...duelArtists.value, { artistId: artist.artistId, name: artist.name }];
+    // 按 albumId 去重后追加
+    const seen = new Set(duelAlbums.value.map((a) => a.albumId));
+    duelAlbums.value = [...duelAlbums.value, ...list.filter((a) => !seen.has(a.albumId))];
+    ElMessage.success(`已载入「${artist.name}」${list.length} 张合格专辑`);
   } catch (err) {
     ElMessage.error(err?.message || '加载专辑失败');
   }
 }
 
-function isChosen(al) {
-  return (
-    currentPair.value.some((x) => x.albumId === al.albumId) ||
-    pairs.value.some((p) => p.some((x) => x.albumId === al.albumId))
+function removeDuelArtist(artistId) {
+  const gone = duelArtists.value.find((a) => a.artistId === artistId);
+  duelArtists.value = duelArtists.value.filter((a) => a.artistId !== artistId);
+  // 该歌手的专辑一并撤出候选池；已经排进对阵表的组**保留**（用户自己排的，不擅自删）
+  const keep = new Set(
+    pairs.value.flatMap((p) => p.map((x) => x.artistId)).filter(Boolean),
   );
+  duelAlbums.value = duelAlbums.value.filter(
+    (a) => a.artistId !== artistId || keep.has(a.artistId),
+  );
+  // 待成组里若含该歌手的专辑也一并撤掉
+  currentPair.value = currentPair.value.filter((a) => a.artistId !== artistId);
+  if (gone) ElMessage.info(`已移除「${gone.name}」`);
 }
 
+/** 从"待成组"里拿掉一张（点卡片也能取消，操作要可逆） */
+function unpickDuelAlbum(al) {
+  currentPair.value = currentPair.value.filter((x) => x.albumId !== al.albumId);
+}
+
+/** 点一张专辑：进"待成组"；凑够 2 张自动成一组落到下方对阵表 */
 function addDuelAlbum(al) {
-  if (currentPair.value.some((x) => x.albumId === al.albumId)) return;
+  if (isPaired(al)) return;
+  // 再点一次 = 取消（可逆，不会点了就下不来）
+  if (isPending(al)) {
+    unpickDuelAlbum(al);
+    return;
+  }
   currentPair.value = [...currentPair.value, al];
   if (currentPair.value.length === 2) {
-    pairs.value = [...pairs.value, [...currentPair.value]];
+    const [a, b] = currentPair.value;
+    pairs.value = [...pairs.value, [a, b]];
     currentPair.value = [];
-    ElMessage.success('已加入对阵表一组');
+    ElMessage.success(
+      a.artistId === b.artistId
+        ? `第 ${pairs.value.length} 组已排好（同室操戈 · 都是${a.artistName}）`
+        : `第 ${pairs.value.length} 组已排好`,
+    );
   }
 }
 
@@ -1073,6 +1282,9 @@ async function onCreate() {
 
 .searchrow {
   display: flex;
+  /* 不加这句，按钮会被 flex 默认 stretch 拉到和输入框一样高（48px），
+     渲染成一个圆柱形的"蓝色药丸"，看着像坏掉了 */
+  align-items: center;
   gap: var(--sp-3);
   max-width: 560px;
 }
@@ -1252,13 +1464,135 @@ async function onCreate() {
 }
 .pairrow {
   display: grid;
-  grid-template-columns: 72px 1fr auto 1fr auto;
+  /* 序号 | 左（封面+名） | VS | 右（封面+名） | 同室操戈标 | 移除 */
+  grid-template-columns: 72px minmax(0, 1fr) auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 12px;
   padding: 10px 14px;
   border: 1px solid var(--gbd);
   border-radius: var(--r-s);
   background: var(--glass2);
+}
+.pairrow .pcell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.pairrow .pcell img {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex: 0 0 auto;
+}
+.pairrow .nm {
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sibflag {
+  font-style: normal;
+  font-size: var(--fs-xs);
+  color: var(--brand-deep);
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+/* 流派歌手扩充面板 */
+.grow {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-s);
+  background: rgba(14, 165, 233, 0.05);
+}
+.growhd {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+}
+.growhd b {
+  font-size: 14px;
+}
+.growhd span {
+  color: var(--text3);
+  font-size: var(--fs-xs);
+}
+.growrow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.glist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+/* 待成组托盘：明确显示"还差几张"，选错可点 × 撤销 */
+.pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(14, 165, 233, 0.4);
+  border-radius: var(--r-s);
+  background: rgba(14, 165, 233, 0.06);
+}
+.chipart {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  object-fit: cover;
+  margin-right: 4px;
+  vertical-align: -5px;
+}
+
+/* 指定对决里专辑卡的三种状态：
+   普通 = 可选；.pick = 已在"待成组"；.done = 已排进对阵表（用掉了，缩小变灰）
+   ⚠️ 它不走 .off，所以必须单独压掉默认对勾，否则又变成"一进来全打勾" */
+.pk.duelpk .ck {
+  opacity: 0;
+  transform: scale(0.6);
+}
+.pk.duelpk.pick .ck,
+.pk.duelpk.done .ck {
+  opacity: 1;
+  transform: scale(1);
+}
+.pk.duelpk.done .ck {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: var(--line);
+}
+.pk.duelpk.done .ck svg {
+  fill: var(--text3);
+}
+.pk.pick .art {
+  box-shadow: 0 0 0 2px var(--brand), 0 14px 30px rgba(8, 58, 92, 0.3);
+}
+.pk.done {
+  cursor: not-allowed;
+}
+.pk.done .art {
+  opacity: 0.34;
+  filter: grayscale(0.75);
+  transform: scale(0.9);
+}
+.pk.done b,
+.pk.done span {
+  opacity: 0.55;
 }
 .pairrow .k {
   font-size: var(--fs-sm);
