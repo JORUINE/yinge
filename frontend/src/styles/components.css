@@ -2865,11 +2865,37 @@ html.ua-edge body {
 html.ua-edge * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
-  /* 只关「让合成器一直忙」的两件事：常驻合成层、循环动画。
-     ⚠️ 不再一刀切 filter:none —— 那会把阳光特效（.sunlit/.gbeam/.spark 的小半径 blur）
-     一起抹掉。真正贵的大 blur（极光 100px、vglow 74px）已经在源头改成径向渐变了。 */
+  /* ⚠️ mix-blend-mode 是 Chromium 合成器闪烁的**经典触发项**。
+     查到的已知缺陷（crbug 1202369 / 483220231）：backdrop-filter / mix-blend-mode 叠在
+     带裁剪的合成层上时，合成器重算采样区域会**整层丢弃** → 闪几帧空白；backdrop-filter
+     不是根因，但会把问题放大。Chrome 与 Edge 同引擎，都会中招（Firefox/Safari 不复现）。
+     所以 Edge 下把混合模式彻底关掉。 */
+  mix-blend-mode: normal !important;
+  /* 常驻合成层（will-change）与循环动画同样会让合成器一直忙，一并停掉 */
   will-change: auto !important;
   animation: none !important;
+}
+/* 阳光层本来是 mix-blend-mode: screen + blur：混合模式一关，白光束会变"实"，
+   于是同时去掉 blur 并压低透明度 —— 保留"有光"的观感，去掉让合成器出问题的组合。 */
+/* ⚠️ `*` 选不到**伪元素** —— 实测 `.sunlit::before` 的 mix-blend-mode 没被上面那条关掉，
+   所以单独兜一层（标签选择器通配不匹配 ::before/::after）。 */
+html.ua-edge *::before,
+html.ua-edge *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  mix-blend-mode: normal !important;
+  filter: none !important;
+  animation: none !important;
+}
+html.ua-edge .sunlit::before,
+html.ua-edge .gbeam {
+  filter: none !important;
+  opacity: 0.26 !important;
+}
+html.ua-edge .vstage[data-lit='l'] .gbeam,
+html.ua-edge .vstage[data-lit='r'] .gbeam,
+html.ua-edge .vstage[data-lit='c'] .gbeam {
+  opacity: 0.4 !important;
 }
 html.ua-edge .vglow .g1,
 html.ua-edge .vglow .g2,

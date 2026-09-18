@@ -198,7 +198,9 @@
           </button>
         </div>
 
-        <div v-if="picked.length" class="chips" style="margin-top: 12px">
+        <!-- 已选歌手：单独一排（与搜索结果分开），避免误点重复加入 -->
+        <div v-if="picked.length" class="pickedrow">
+          <span class="pickedlab">已选 {{ picked.length }} 位</span>
           <span v-for="a in picked" :key="a.artistId" class="chip on">
             <b>{{ a.name }}</b>
             <i v-if="cupMode">{{ scaleLabel }}</i>
@@ -856,8 +858,14 @@ async function doSearch() {
   searching.value = true;
   try {
     const data = await musicApi.searchArtists({ term: term.value.trim(), limit: 8 });
-    candidates.value = data.artists || [];
-    if (!candidates.value.length) ElMessage.info('没有找到匹配的歌手');
+    // 过滤更严：① 去掉已经选过的（列表里不再出现重复项）② 最多留 6 个，少让无关歌手堆一屏。
+    //   ⚠️ 故意**不做**"名字必须互相包含"的硬过滤 —— 搜简体「周杰伦」返回的是繁体「周杰倫」，
+    //      硬过滤会把正确答案误杀（搜索结果直接空掉，反而变成 bug）。
+    const chosen = new Set(picked.value.map((p) => p.artistId));
+    candidates.value = (data.artists || []).filter((a) => !chosen.has(a.artistId)).slice(0, 6);
+    if (!candidates.value.length) {
+      ElMessage.info('没有更多匹配的歌手了（换个说法，或试试简体 / 繁体）');
+    }
   } catch (err) {
     ElMessage.error(err?.message || '搜索失败');
   } finally {
@@ -1129,6 +1137,27 @@ async function onCreate() {
 .chip.on {
   border-color: var(--brand);
   background: rgba(14, 165, 233, 0.12);
+}
+
+/* 「已选歌手」单独一排：加一条虚线分隔 + 左侧小标签，跟下面的搜索结果区分开 */
+.pickedrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.pickedlab {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--brand-deep);
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.28);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
 
 /* 「我收藏组合」：组合按钮上的删除小叉 + 「收藏当前组合」按钮 */

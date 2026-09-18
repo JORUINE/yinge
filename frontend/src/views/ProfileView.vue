@@ -37,6 +37,7 @@
       <div :class="{ on: tab === 'battles' }" @click="setTab('battles')">我的对决</div>
       <div :class="{ on: tab === 'personality' }" @click="setTab('personality')">我的测评</div>
       <div :class="{ on: tab === 'favorites' }" @click="setTab('favorites')">我的收藏</div>
+      <div :class="{ on: tab === 'combos' }" @click="setTab('combos')">我的组合</div>
     </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
@@ -85,7 +86,7 @@
       </div>
 
       <!-- 我的收藏 -->
-      <div v-else class="list">
+      <div v-else-if="tab === 'favorites'" class="list">
         <div v-for="f in favorites" :key="f.targetId || f.albumId" class="r">
           <div class="th"><img :src="f.artworkUrl" alt="" /></div>
           <div class="m">
@@ -98,6 +99,26 @@
         </div>
         <p v-if="!favorites.length" class="note">还没有收藏的专辑。</p>
       </div>
+
+      <!-- 我的组合：用户自己收藏的歌手 PK 组合（只有本人可见） -->
+      <div v-else class="list">
+        <div v-for="c in combos" :key="c.comboId" class="r">
+          <div class="th"><span class="noart">♫</span></div>
+          <div class="m">
+            <b>{{ c.label }}</b>
+            <span>
+              {{ (c.artists || []).map((a) => a.name).join(' × ') }} · 每位 {{ c.perArtist }} 张
+            </span>
+          </div>
+          <div class="v">
+            <RouterLink to="/battle/create" class="btn ghost sm">去用</RouterLink>
+            <button class="btn ghost sm" type="button" @click="removeCombo(c)">删除</button>
+          </div>
+        </div>
+        <p v-if="!combos.length" class="note">
+          还没有自己的组合 —— 在 <RouterLink to="/battle/create">创建对决</RouterLink> 里选好歌手后点「＋ 收藏当前组合」，就会出现在这里。
+        </p>
+      </div>
     </template>
   </div>
 </template>
@@ -105,7 +126,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { authApi, battleApi, personalityApi, favoriteApi } from '@/api';
+import { authApi, battleApi, personalityApi, favoriteApi, comboApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { fmtDate } from '@/utils/labels';
 import { typeColor } from '@/utils/personality.js';
@@ -120,7 +141,9 @@ const loading = ref(false);
 const battles = ref([]);
 const results = ref([]);
 const favorites = ref([]);
-const loaded = ref({ battles: false, personality: false, favorites: false });
+const loaded = ref({ battles: false, personality: false, favorites: false, combos: false });
+/** 我收藏的歌手组合（只有本人可见） */
+const combos = ref([]);
 
 const editing = ref(false);
 const saving = ref(false);
@@ -161,6 +184,10 @@ async function setTab(t) {
     } else if (t === 'personality') {
       const d = await personalityApi.listMine({ page: 1, pageSize: 20 });
       results.value = d.list || [];
+    } else if (t === 'combos') {
+      const d = await comboApi.list();
+      // 只列"我自己建的"（系统组合在创建页里已经能点到）
+      combos.value = (d.list || []).filter((c) => c.mine);
     } else {
       const d = await favoriteApi.list({ page: 1, pageSize: 20 });
       favorites.value = d.list || [];
@@ -180,6 +207,17 @@ async function unfavorite(f) {
     ElMessage.success('已取消收藏');
   } catch (err) {
     ElMessage.error(err?.message || '操作失败');
+  }
+}
+
+/** 删除「我的组合」 */
+async function removeCombo(c) {
+  try {
+    await comboApi.remove(c.comboId);
+    combos.value = combos.value.filter((x) => x.comboId !== c.comboId);
+    ElMessage.success('已删除这个组合');
+  } catch (err) {
+    ElMessage.error(err?.message || '删除失败');
   }
 }
 
