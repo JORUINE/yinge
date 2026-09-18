@@ -1,0 +1,21 @@
+# 统一换行符（重要：防止 Windows 批处理被写成 LF 后无法运行）
+* text=auto
+
+# .bat / .cmd 必须始终以 CRLF 检出——cmd.exe 只认 CRLF，LF 会导致命令被粘连、
+# 中文乱码、"'X' 不是内部或外部命令" 等一堆假报错（2026-09-18 踩坑）。
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制文件不做换行转换
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.pdf   binary
+*.docx  binary
+*.xlsx  binary
+*.zip   binary

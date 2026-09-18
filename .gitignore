@@ -53,3 +53,7 @@ _backup/
 tools/
 docs/工具链说明.md
 docs/工具链说明.html
+
+# ---- 运行时 / 临时产物 ----
+frontend/vite.config.js.timestamp-*
+scripts/.mongod.pid

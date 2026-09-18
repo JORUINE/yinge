@@ -1,23 +1,19 @@
-ï»¿@echo off
-chcp 65001 >nul
+@echo off
 setlocal EnableExtensions
 set "Y=%~dp0"
 cd /d "%Y%"
 
-REM ---- å®šä½ node / npmï¼ˆä¸ start-dev.bat ä¸€è‡´ï¼‰----
-set "EXTRA_PATH="
-if exist "%USERPROFILE%\.workbuddy\binaries\node\versions\22.22.2-3" (
-  set "EXTRA_PATH=%USERPROFILE%\.workbuddy\binaries\node\versions\22.22.2-3"
+set "NODE_EXE=node"
+if exist "%USERPROFILE%\.workbuddy\binaries\node\versions\22.22.2-3\node.exe" (
+  set "NODE_EXE=%USERPROFILE%\.workbuddy\binaries\node\versions\22.22.2-3\node.exe"
+) else if exist "C:\Program Files\nodejs\node.exe" (
+  set "NODE_EXE=C:\Program Files\nodejs\node.exe"
 )
-if exist "C:\Program Files\nodejs" (
-  if not defined EXTRA_PATH (set "EXTRA_PATH=C:\Program Files\nodejs") else (set "EXTRA_PATH=%EXTRA_PATH%;C:\Program Files\nodejs")
-)
-if defined EXTRA_PATH set "PATH=%EXTRA_PATH%;%PATH%"
 
-echo åœæ­¢ MongoDB æ•°æ®åº“...
-node "%Y%scripts\mongo.mjs" stop
+echo Í£Ö¹ MongoDB Êı¾İ¿â...
+"%NODE_EXE%" "%Y%scripts\mongo.mjs" stop
 echo.
-echo æ¥ä¸‹æ¥è¯·æ‰‹åŠ¨å…³æ‰ã€Œyinge-backendã€å’Œã€Œyinge-frontendã€ä¸¤ä¸ªé»‘çª—å£ï¼Œåç«¯å’Œå‰ç«¯å°±åœäº†ã€‚
+echo ½Ó×ÅÇëÊÖ¶¯¹Øµô¡¸yinge-backend¡¹ºÍ¡¸yinge-frontend¡¹Á½¸öºÚ´°¿Ú£¬Ç°ºó¶Ë¾ÍÍ£ÁË¡£
 echo.
 pause
 endlocal
