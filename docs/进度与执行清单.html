@@ -151,8 +151,14 @@
         <tr><td>12</td><td>原型 p4/p5/p6 按 v2 重绘</td><td><span class="pill p2">P2</span></td><td>设计稿还是 v1 旧稿</td></tr>
         <tr><td>13</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷你对阵树 / 本地续玩</td><td><span class="pill p2">P2</span></td><td>排版动效类，按约定放收尾阶段</td></tr>
         <tr><td>14</td><td><s>好友一起玩</s></td><td><span class="pill ok">已做</span></td><td>同款签表：夺冠页「和好友一起玩」→ 6 位邀请码 → <code>/battle/join/&lt;code&gt;</code> 接龙页（盲盒式预览）→ <b>原样复制同一批专辑</b>开局 → 对比页（冠军是否一致 / 第几步分歧 / 逐步并排）</td></tr>
-        <tr><td>16</td><td><s>流派歌手库存不足</s></td><td><span class="pill ok">已做</span></td><td>Apple Music 抓同流派靠前歌手补进曲库（默认 30 位）。⚠️ 实测：iTunes Search API <b>没有</b>按流派筛选的参数，改用「检索词搜 → 用 <code>primaryGenreName</code> 反筛」，中文区无对应标签时降级为按相关度收录并标记</td></tr>
-        <tr><td>17</td><td><s>后台「用户喜爱的 PK 组合」</s></td><td><span class="pill ok">已做</span></td><td>按<b>真实开过的局数</b>排（不是收藏数），只统计 ≥2 位歌手的组合，歌手顺序不同自动合并；可一键采纳为系统组合</td></tr>
+        <tr><td>16</td><td><s>流派歌手库存不足</s></td><td><span class="pill ok">已做</span></td><td>Apple Music 抓同流派靠前歌手补进曲库（默认 30 位）。<b>第五批升级：改用流派榜单源</b> —— iTunes Search 没有流派筛选参数（实测 term=Rock 在 hk 返回 BTS/Taylor Swift），改走 <code>/{country}/rss/topalbums/genre=&lt;id&gt;/json</code>（支持流派、hk+us 两区、条目自带 artistId）。摇滚榜出 Journey/Pink Floyd/TOOL/Fleetwood Mac，Hip-Hop 同时出 Drake/Eminem 与 LMF/MastaMic；并过滤歌单伪歌手与制作人。华语流派仍走"关键词搜 + <code>primaryGenreName</code> 反筛"。<b>支持逐个点选入库</b></td></tr>
+        <tr><td>18</td><td><s>对局卡在「本轮已投完」</s></td><td><span class="pill ok">已修</span></td><td><b>真根因</b>：撤销上一步按 <code>matchOrder</code> 删"更晚的场次"，但同轮兄弟场次序号也递增 → 半决赛被删成 1 场 → 残缺轮次被误判为已投完 → 生成<b>轮空决赛</b>（无对阵可投）→ 永久卡死。修：撤销改按<b>阶段序号</b>删除 + 读状态时<b>兜底自愈</b> + 新增 <code>repair-brackets.mjs</code> 体检修复。全库 83 局查出 3 局同类损坏已修，回归 36/36</td></tr>
+        <tr><td>19</td><td><s>专辑准入太宽</s></td><td><span class="pill ok">已修</span></td><td>新增剔除：混音版、单曲/EP、再版加曲合集版（reloaded/complete confection）、多人拼盘署名（Various Artists / A,B&amp;C / feat.）、电影原声（Music From / Inspired By）、曲目数 &gt;30 的超大合辑。全库重算 1120 → 新剔 91 张</td></tr>
+        <tr><td>20</td><td><s>晋级图太窄、专辑名看不见</s></td><td><span class="pill ok">已做</span></td><td>改成 <b>树状完整晋级图</b>（<code>BracketNode</code>/<code>BracketTree</code>，左浅右深 + 冠军金格），对阵卡 206px、专辑名最多两行；40 张/31 场实测 63 节点、容器内横滚不撑破页面；结果页「夺冠之路」内嵌同一组件</td></tr>
+        <tr><td>21</td><td><s>冠军页收藏按钮大小不一 / 水印太小 / 冠军不显眼</s></td><td><span class="pill ok">已修</span></td><td>星标统一 26×26 并放大；冠军名 40px 金色带光晕、冠军块金色描边；分享图水印 13.5px/800、冠军名 26px 亮金</td></tr>
+        <tr><td>22</td><td><s>玻璃框架缺失（默认没阴影）</s></td><td><span class="pill ok">已修</span></td><td><b>真根因</b>：<code>--gsh</code> 变量塞了两个颜色，用在 <code>box-shadow</code> 里导致<b>整条声明非法被丢弃</b> → 所有玻璃卡/胶囊默认无阴影。拆成 <code>--gsh</code>+<code>--gsh-hi</code> 并统一补默认阴影</td></tr>
+        <tr><td>23</td><td>分享图方形版重做（信息被裁 / 整体观感）</td><td><span class="pill p2">P2</span></td><td>用户明确"放到 ui 最终大改里"。本轮只解掉"封面撑破被裁"（改按高度定尺寸）</td></tr>
+        <tr><td>24</td><td>全站文字类玻璃框架 + 类 iOS 液态玻璃视效</td><td><span class="pill p2">P2</span></td><td>用户点名的最终 UI 大改方向。本轮已给 chip/preset/seg/g-card 补默认阴影，属第一步</td></tr>
         <tr><td>15</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
       </tbody>
     </table>
