@@ -12,6 +12,8 @@ export const authApi = {
   logout: () => http.post('/auth/logout'),
   updateProfile: (data) => http.put('/users/me', data),
   myStats: () => http.get('/users/me/stats'),
+  // A-07 游客数据迁移：注册 / 登录后把本机游客账号的对决转进当前账号
+  claimGuest: (guestId) => http.post('/users/me/claim-guest', { guestId }),
 };
 
 export const musicApi = {

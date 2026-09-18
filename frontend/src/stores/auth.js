@@ -2,8 +2,27 @@
  * 登录态
  */
 import { defineStore } from 'pinia';
+import { ElMessage } from 'element-plus';
 import { authApi } from '@/api';
 import { getToken, setToken } from '@/api/client';
+
+/** 记住本机游客账号的标识，等用户注册 / 登录后把它的数据迁移过去（A-07） */
+const GUEST_ID_KEY = 'yinge_guest_id';
+function readGuestId() {
+  try {
+    return localStorage.getItem(GUEST_ID_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+function writeGuestId(v) {
+  try {
+    if (v) localStorage.setItem(GUEST_ID_KEY, String(v));
+    else localStorage.removeItem(GUEST_ID_KEY);
+  } catch {
+    /* 隐私模式可能不可用，忽略 */
+  }
+}
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -20,14 +39,36 @@ export const useAuthStore = defineStore('auth', {
   },
   actions: {
     async login(payload) {
+      const guestId = readGuestId();
       const data = await authApi.login(payload);
       this.applySession(data);
+      await this.migrateGuest(guestId);
       return data;
     },
     async register(payload) {
+      const guestId = readGuestId();
       const data = await authApi.register(payload);
       this.applySession(data);
+      await this.migrateGuest(guestId);
       return data;
+    },
+    /**
+     * A-07 游客数据迁移：登录 / 注册成功后，把本机游客账号的对决 / 票 / 测评 / 收藏转到当前账号。
+     * 迁移失败不影响登录本身（只静默跳过）。
+     */
+    async migrateGuest(guestId) {
+      if (!guestId) return;
+      try {
+        const r = await authApi.claimGuest(guestId);
+        if (r?.migrated) {
+          const m = r.moved || {};
+          ElMessage.success(`已把游客数据迁移到本账号（对决 ${m.battles || 0} · 票 ${m.votes || 0}）`);
+        }
+      } catch {
+        /* 迁移失败不阻塞登录 */
+      } finally {
+        writeGuestId('');
+      }
     },
     /**
      * 免注册可玩（需求文档）：没有登录态时自动领一个游客身份。
@@ -44,6 +85,8 @@ export const useAuthStore = defineStore('auth', {
       setToken(token);
       this.user = user;
       this.loaded = true;
+      // 游客身份：记下它的 id，等用户注册 / 登录时把数据迁过去（A-07）
+      if (user?.role === 'guest') writeGuestId(user.id || user.userId || user._id);
     },
     async fetchMe() {
       if (!this.token) {

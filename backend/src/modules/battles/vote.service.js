@@ -13,7 +13,12 @@ import { decideWinner, progressBattle } from './battle.service.js';
 const MINUTE = 60 * 1000;
 const DAY = 24 * 60 * MINUTE;
 
-/** 违规累计处理（设计文档 4.7）：1 次警告 → 2 次限流 48h → 3 次停权 24h → 5 次长期禁用 */
+/**
+ * 违规累计处理（设计文档 4.7）：1 次警告 → 2 次限流 48h → 3 次停权 24h → 5 次长期禁用。
+ * ⚠️ 2026-09-18 起**投票流程不再调用它**：本作是单人对决，"投得多 / 连续投同一侧"属正常游玩，
+ *    惩罚玩家（限流、封号）会直接砍掉主线玩法，用户明确要求"不能失去主要功能"。
+ *    保留该函数，供后台人工处置与未来风控使用。
+ */
 async function applyViolation(user) {
   user.violationCount = (user.violationCount || 0) + 1;
   const count = user.violationCount;
@@ -137,17 +142,19 @@ export async function castVote({ battleId, matchId, albumId, user, meta = {} }) 
   const winnerDoc = match.winnerAlbumId ? await Album.findById(match.winnerAlbumId).select('albumId') : null;
 
   if (mediumReason) {
-    const violation = await applyViolation(user);
+    // ⚠️ 只把这一票排除出排行榜统计，**不**累计违规、**不**限流/封号。
+    //    理由：本作是「单人对决」，一个人要从头投到尾；"连续投同一侧 / 投得多"是正常游玩特征，
+    //    不是作弊。用户明确要求"不能因为玩这个就失去主要功能"，所以这里绝不惩罚玩家。
     return {
       invalid: true,
       reason: mediumReason,
-      violation,
+      violation: null,
       matchId: String(match._id),
       winnerAlbumId: winnerDoc?.albumId ?? null,
       leftVotes: match.leftVotes,
       rightVotes: match.rightVotes,
       progress,
-      message: '这一票已记录，但被判为异常、不计入排行榜',
+      message: '这一票已记录（被判为异常，不计入排行榜）',
     };
   }
 
