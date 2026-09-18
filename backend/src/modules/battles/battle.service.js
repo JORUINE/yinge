@@ -130,8 +130,12 @@ export async function resolvePool(payload) {
   }
 
   if (scopeType === 'multi-artist') {
-    // 跨歌手对决：各歌手取相同张数（取所选张数的最小值）。若张数不等，
-    // 专辑多的那位歌手会有专辑找不到"不同歌手的对手"，只能缺席，因此统一取最小值。
+    // 跨歌手对决：各歌手按所选张数抽（该歌手合格专辑不够就出几张），再全局封顶 32。
+    // ⚠️ 2026-09-19 严重 bug 修复：以前在这里"取所有歌手的最小值"再统一截断 ——
+    //    只要有一位歌手只有 1 张合格专辑（例如某位歌手在店里只有一张正式专辑），
+    //    其他歌手的池子也会被拖到 1 张 → 5 位歌手只出 5 张 → 5 场就"比完了"。
+    //    用户原话："这种严重Bug马上修复吸取经验 以后绝对不能再有"。
+    //    同室操戈本来就允许（界面上有标注），没必要为了配对把整个池子砍掉。
     const lists = [];
     const metas = [];
     for (const item of payload.artists) {
@@ -147,14 +151,31 @@ export async function resolvePool(payload) {
       metas.push(meta);
     }
     if (lists.length < 2) throw new BadRequestError('多歌手混战至少需要 2 位歌手');
-    const count = Math.min(...lists.map((l) => l.length));
+
+    // 每位歌手的目标张数（合格专辑不够就出几张）
+    const targets = payload.artists.map((it, i) =>
+      Math.max(1, Math.min(Number(it?.albumCount) || bracket.DEFAULT_PER_ARTIST, lists[i].length)),
+    );
+    // 全局封顶 32：**轮转取张**（每位歌手轮流出一张），既压住规模，也不会有歌手被挤掉
+    const cursors = lists.map(() => 0);
     const picked = [];
-    const artists = [];
-    lists.forEach((list, i) => {
-      const take = list.slice(0, count);
-      picked.push(...take);
-      artists.push({ artistId: metas[i].artistId, name: metas[i].name, albumCount: take.length });
-    });
+    let progressed = true;
+    while (picked.length < bracket.MAX_POOL && progressed) {
+      progressed = false;
+      for (let i = 0; i < lists.length; i += 1) {
+        if (picked.length >= bracket.MAX_POOL) break;
+        if (cursors[i] >= targets[i]) continue; // 这位歌手的目标张数已够
+        const next = lists[i][cursors[i]];
+        cursors[i] += 1;
+        picked.push(next);
+        progressed = true;
+      }
+    }
+    const artists = metas.map((m, i) => ({
+      artistId: m.artistId,
+      name: m.name,
+      albumCount: cursors[i],
+    }));
     return { albums: picked, artists };
   }
 

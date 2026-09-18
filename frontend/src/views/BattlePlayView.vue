@@ -707,6 +707,11 @@ async function loadLegacy() {
           leftAlbum: data.left,
           rightAlbum: data.right,
         };
+    // ⚠️ 对位赛 / 指定对决是旧赛制，走的就是这条分支 —— 之前这里漏了取色，
+    //    accentStore 里没有这两张专辑 → accentStyleOf 全部退回同一个"品牌蓝灰"，
+    //    看上去就是"每张专辑的颜色采样全是一样的"（2026-09-19 用户报的对位赛取色 bug；
+    //    默认（新赛制）模式在 load() 里调了 loadAccents 所以正常）。
+    loadAccents();
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   }

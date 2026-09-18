@@ -69,6 +69,15 @@
     <footer v-if="!isAdmin" class="foot">
       <div class="container">
         音格 · 专辑对决与音乐人格测评　|　试听与封面数据来自 iTunes Search API（免登录，30 秒片段）
+        <button
+          v-if="isEdge"
+          class="edgetoggle"
+          type="button"
+          :title="lite ? '已开启稳定模式（关掉毛玻璃与动效）。点这里恢复完整视效' : 'Edge 上如果还闪屏，点这个开稳定模式（关掉毛玻璃与动效，最稳）'"
+          @click="toggleLite"
+        >
+          {{ lite ? '已开启稳定模式' : 'Edge 还闪屏？点我开稳定模式' }}
+        </button>
       </div>
     </footer>
 
@@ -179,6 +188,28 @@ async function onLogout() {
   await auth.logout();
   fav.reset();
   router.push({ name: 'home' });
+}
+
+/**
+ * Edge 稳定模式开关（2026-09-19）
+ * ------------------------------------------------------------
+ * Edge(Windows) 的闪屏问题已经修了三轮：关毛玻璃、关 mix-blend-mode、关极光层、
+ * 停动画、降 blur —— CSS 侧能关的都关了（html.ua-edge）。
+ * 用户反馈仍偶发，所以给一个**看得见的一键开关**：点一下就切到最彻底的 lite 模式
+ * （连装饰光效一起关），不用用户手动在网址后加 ?lite=1。
+ * 只在 Edge 上出现；Chrome 等其它浏览器看不到这个按钮。
+ */
+const isEdge = Boolean(document.documentElement.classList.contains('ua-edge'));
+const lite = ref(Boolean(new URLSearchParams(location.search).get('lite')) || false);
+function toggleLite() {
+  try {
+    const on = localStorage.getItem('yinge_lite') === '1';
+    if (on) localStorage.removeItem('yinge_lite');
+    else localStorage.setItem('yinge_lite', '1');
+  } catch {
+    /* 隐私模式下存不了就只对本次生效 */
+  }
+  location.reload();
 }
 </script>
 

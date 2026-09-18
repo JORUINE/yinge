@@ -162,6 +162,10 @@
         <tr><td>25</td><td><s>结果页折叠顺序 + 完整晋级图太大太长</s></td><td><span class="pill ok">已修</span></td><td>顺序定稿：<b>小组赛与复活 → 夺冠之路 → 淘汰赛·全部对局 → 完整晋级图</b>（除夺冠之路默认展开，其余收起）。并修掉真问题：晋级树<b>种子格封面无尺寸约束</b>，600×600 原图直接渲染，一列 16 个种子把树撑到 <b>2292px</b>；改横向小行 + 紧凑版（封面 16px / 卡宽 148px），实测 <b>2292px → 568px</b></td></tr>
         <tr><td>26</td><td><s>创建页模式分不清（手动挑选 vs 指定对决）</s></td><td><span class="pill ok">已做</span></td><td>改成游戏大厅式<b>两族</b>：<b>混战模式（VS·蓝，默认首选）</b>＝多歌手混战/单歌手内战/按流派·年代/手动挑选；<b>对位模式（1v1·青）</b>＝经典对位赛（序号对序号）/指定对决。族色贯穿；底层 <code>mode</code> 与现有逻辑不变</td></tr>
         <tr><td>27</td><td><s>排行榜缺"夺冠次数"维度</s></td><td><span class="pill ok">已做</span></td><td>新增 <code>GET /api/rank/champions</code>（按 finished 对局的冠军聚合"当过多少次冠军"）；排行榜加"最受欢迎／夺冠次数"切换，领奖台与列表口径随切换</td></tr>
+        <tr><td>28</td><td><s>严重 bug：5 位歌手×8 张只出 5 张、5 场打完</s></td><td><span class="pill ok">已修</span></td><td><b>根因</b>：多歌手混战取池时"取所有歌手合格专辑数的最小值"再统一截断 —— 只要有一位歌手只有 1 张合格专辑（实测 Chappell Roan 就 1 张），其他人也被拖到 1 张。改为<b>各歌手按所选张数抽、不够就出几张</b>（全局封顶 32、轮转取张不挤掉人）；前端出战数同步改为求和，并在有歌手不够张数时<b>明说"只有 N 张、按 N 张出战"</b>。回归 <code>verify-pool.mjs</code> 13/13</td></tr>
+        <tr><td>29</td><td><s>对位赛取色全一样</s></td><td><span class="pill ok">已修</span></td><td><b>根因</b>：对位赛/指定对决是旧赛制，走 <code>loadLegacy()</code>，那条分支漏调 <code>loadAccents()</code> → 取色缓存为空 → 全部退回同一个兜底蓝灰。已补；真机实测两张专辑取到两个不同颜色</td></tr>
+        <tr><td>30</td><td>Edge 闪屏（已修三轮仍偶发）</td><td><span class="pill p2">P2</span></td><td>CSS 侧已全关（毛玻璃/混合模式/极光/动画/will-change + 本轮补齐 .spark blur 与装饰层过渡）。已加<b>页脚「稳定模式」一键开关</b>（仅 Edge 显示，等同 ?lite=1）。仍闪请点它并反馈</td></tr>
+        <tr><td>31</td><td>对战页顶部徽标太小太挤 + 全站字号偏小</td><td><span class="pill p2">P2</span></td><td>用户点名"放到 UI 阶段优化"：徽标加大、往左上移、拉开间距；全站字号整体上调一档</td></tr>
         <tr><td>15</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
       </tbody>
     </table>

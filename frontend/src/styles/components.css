@@ -3070,6 +3070,38 @@ html.ua-edge .vglow .g3 {
   will-change: auto;
   opacity: 0.45;
 }
+/* ⚠️ 2026-09-19 补：上面 `*` 那条只关了 backdrop/blend/animation，**没关 filter** ——
+   .spark 的 blur(0.7px) 一直漏网；装饰层的 hover 过渡（.gbeam 的 background 0.75s）
+   也会触发整层重绘。原型里 filter:blur 是 0 处、动画是 0 处，所以原型不闪 —— 这就是差距。 */
+html.ua-edge .spark,
+html.ua-edge .aurora .ray {
+  filter: none !important;
+}
+html.ua-edge .gbeam,
+html.ua-edge .vglow .g1,
+html.ua-edge .vglow .g2,
+html.ua-edge .vglow .g3,
+html.ua-edge .spark,
+html.ua-edge .sunlit {
+  transition: none !important;
+}
+
+/* Edge 专属的「稳定模式」一键开关（只在 html.ua-edge 时由 AppShell 渲染） */
+.edgetoggle {
+  float: right;
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text2);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+.edgetoggle:hover {
+  color: var(--brand-deep);
+  border-color: var(--brand);
+}
 
 /* lite：连极光与大 blur 一并关掉（最后的兜底开关） */
 html.ua-lite .aurora {

@@ -319,6 +319,15 @@
           </button>
         </div>
 
+        <!-- 合格专辑不够所选张数时必须说清楚：只影响这一位，别人不受影响 -->
+        <p v-if="scaleShortfall.length" class="hint warnline">
+          <template v-for="(s, i) in scaleShortfall" :key="s.name">
+            <br v-if="i" />《{{ s.name }}》只有 <b>{{ s.have }}</b> 张合格专辑，
+            {{ s.have ? `将按 ${s.have} 张出战` : '没有可参赛的合格专辑（这局先别带 TA）' }}
+          </template>
+          —— 只影响这几位，其他歌手不受影响。
+        </p>
+
         <h4>
           这几张怎么选
           <em>不指定就随机抽 —— 保留开盲盒的刺激感</em>
@@ -566,6 +575,7 @@ import {
   PER_ARTIST_SCALES,
   DEFAULT_SINGER_SCALE,
   DEFAULT_PER_ARTIST,
+  MAX_POOL,
   planTournament,
   describePlan,
 } from '@/utils/tournament.js';
@@ -927,13 +937,16 @@ const totalSelected = computed(() => {
     // ⚠️ 不能因为"只选了 1 位歌手"就返回 0 —— 否则参赛池既不显示张数、也不出现盲盒虚位卡。
     //    "≥2 位才允许开局"的门槛在 canStart 里单独管，不要混进"预览计数"（2026-09-18 再修）。
     if (!picked.value.length) return 0;
-    const avail = picked.value.map((a) => {
+    // 2026-09-19 严重 bug 修复：以前"取所有歌手的最小值 × 人数" —— 只要有一位歌手只有
+    // 1 张合格专辑，其他歌手的池子也被拖到 1 张 → 5 位歌手只出 5 张、5 场就打完了。
+    // 现在：各歌手按所选张数抽，**合格专辑不够就出几张**，总数 = 各歌手出战数之和（封顶 32）。
+    let sum = 0;
+    for (const a of picked.value) {
       const pool = artistPool.value[a.artistId];
-      return pool ? Math.min(perArtistScale.value, pool.eligible.length) : 0;
-    });
-    if (avail.some((n) => n === 0)) return 0;
-    const each = Math.min(...avail); // 跨歌手取最小值（与后端一致）
-    return each * picked.value.length;
+      if (!pool) return 0;
+      sum += Math.min(perArtistScale.value, pool.eligible.length);
+    }
+    return Math.min(sum, MAX_POOL);
   }
   if (mode.value === 'custom') return customPick.value.length;
   // 对位赛：每位歌手取前 alignCount 张 → 总出战数 = 歌手数 × 对位张数
@@ -946,6 +959,22 @@ const plan = computed(() => {
   if (!cupMode.value) return null;
   if (totalSelected.value < 2) return null;
   return planTournament(totalSelected.value);
+});
+
+/**
+ * 哪些歌手"合格专辑不够所选张数"。
+ * 2026-09-19 修复后：某位歌手不够张数**只影响他自己**（出几张算几张），不再拖累别人 ——
+ * 但必须把话说清楚，否则用户会以为"改了张数怎么赛程没变"（图4/图5 那个严重 bug 的观感）。
+ */
+const scaleShortfall = computed(() => {
+  if (mode.value !== 'multi-artist') return [];
+  return picked.value
+    .map((a) => {
+      const pool = artistPool.value[a.artistId];
+      const have = pool?.eligible.length ?? 0;
+      return { name: a.name, have, want: perArtistScale.value };
+    })
+    .filter((x) => x.have < x.want);
 });
 
 const startInfo = computed(() => {
@@ -983,7 +1012,10 @@ const canStart = computed(() => {
     return !!picked.value[0] && (pickStrategy.value !== 'picked' || selfPicked.value.length >= 4);
   }
   if (mode.value === 'multi-artist') {
-    return picked.value.length >= 2 && (pickStrategy.value !== 'picked' || selfPicked.value.length >= 4);
+    if (picked.value.length < 2) return false;
+    if (pickStrategy.value === 'picked' && selfPicked.value.length < 4) return false;
+    // 某位歌手一张合格专辑都没有 → 后端会直接报错，开局按钮别亮（其余歌手不受影响）
+    return picked.value.every((a) => (artistPool.value[a.artistId]?.eligible.length ?? 0) >= 1);
   }
   return false;
 });
