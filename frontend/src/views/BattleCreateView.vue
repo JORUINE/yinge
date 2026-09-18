@@ -357,6 +357,9 @@
         <p class="hint">
           总场次 = C(歌手数, 2) × 对位张数，当前为 <b>{{ alignedTotal }}</b> 场。对位赛不产生冠军，出的是逐张对照表。
         </p>
+        <p v-if="alignedInsufficient" class="hint warnline">
+          有歌手没有可用的正式专辑，对位赛组不出来 —— 请去掉 TA 或换一位（每位歌手至少要 1 张合格专辑）。
+        </p>
       </div>
 
       <!-- 参赛池预览（规模模式：勾选态由档位决定） -->
@@ -526,6 +529,14 @@ const alignedTotal = computed(() => {
   const a = picked.value.length;
   return ((a * (a - 1)) / 2) * alignCount.value;
 });
+/** 对位赛：任一已选歌手没有可用正式专辑 → 组不出对位（后端会报"所选歌手的正式专辑不足以对位"） */
+const alignedInsufficient = computed(() => {
+  if (mode.value !== 'aligned' || !picked.value.length) return false;
+  return picked.value.some((a) => {
+    const pool = artistPool.value[a.artistId];
+    return pool && (pool.eligible || []).length < 1;
+  });
+});
 
 const artistName = computed(() => picked.value[0]?.name || '');
 
@@ -661,7 +672,7 @@ const startInfo = computed(() => {
 
 const canStart = computed(() => {
   if (mode.value === 'duel') return pairs.value.length >= 1;
-  if (mode.value === 'aligned') return picked.value.length >= 2;
+  if (mode.value === 'aligned') return picked.value.length >= 2 && !alignedInsufficient.value;
   if (mode.value === 'custom') return customPick.value.length >= 4;
   if (mode.value === 'genre-era') {
     return genreOrEra.value === 'genre' ? !!genre.value.trim() : yearStart.value <= yearEnd.value;
