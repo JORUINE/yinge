@@ -65,7 +65,7 @@
     <table>
       <tr><th>角色</th><th>是什么</th><th>启动命令</th><th>端口</th></tr>
       <tr><td>数据库 MongoDB</td><td>存所有数据的地方</td><td><code>mongod</code></td><td>27017</td></tr>
-      <tr><td>后台 / 后端</td><td>处理登录、投票、排行榜等接口的 Node 程序</td><td><code>cd backend &amp;&amp; npm start</code></td><td>3000</td></tr>
+      <tr><td>后台 / 后端</td><td>处理登录、投票、排行榜等接口的 Node 程序</td><td><code>cd backend &amp;&amp; npm run dev</code></td><td>3000</td></tr>
       <tr><td>前台 / 网页</td><td>你看到的 Vue 网站</td><td><code>cd frontend &amp;&amp; npm run dev</code></td><td>5173</td></tr>
     </table>
     <p><b>完整步骤（按顺序开三个窗口）：</b></p>
@@ -94,6 +94,14 @@ npm run dev</pre>
       <tr><td>改了代码</td><td>后端是 <code>node --watch</code> 自动重载，<b>保存即生效，什么都不用按</b>；前端本来就热更新。</td></tr>
     </table>
     <div class="note"><b>为什么你之前"重启了没效果"：</b>旧的后端窗口还开着、一直占着 3000 端口，新窗口启动直接失败，实际跑的始终是旧代码（收藏、流派这些新功能自然全不生效）。现在启动器会自动清旧进程，这个问题从根上没有了。</div>
+
+    <h3 style="margin-top:26px">数据库到底在哪打开？（你可能被"打开"这个词卡住了）</h3>
+    <p><b>结论先说：你不需要、也没有一个"双击打开数据库"的图标。</b>MongoDB 不是像 Word 那样能双击打开的软件，它是一条在后台默默跑的"服务"。我们的启动器会<b>自动把它拉起来</b>，网站连上它就能用，你完全不用管。</p>
+    <div class="ok"><b>三个你需要知道的点：</b><br>
+      ① <b>平时怎么用：</b>只要双击 <code>start-dev.bat</code>，数据库就跟着后端、前端一起起来了，不用单独去"开"它。<br>
+      ② <b>它在哪跑：</b>地址是 <code>127.0.0.1:27017</code>，数据文件在 <code>_私密资料-不上传\mongodb\data</code>（那些文件是二进制，<u>别手动点开</u>，让程序自己读写即可）。<br>
+      ③ <b>想"眼见为实"看库里有什么（可选）：</b>装一个免费图形工具 <b>MongoDB Compass</b>，新建连接填 <code>mongodb://127.0.0.1:27017</code>，就能像看表格一样浏览里面的专辑、用户、对决数据。不装也完全不影响使用。</div>
+    <div class="note"><b>如果双击 start-dev.bat 后黑窗口一闪而过、或弹出的后端/前端窗口里满屏红色报错：</b>绝大多数情况是"本机找不到 Node.js"。<b>启动器现已自动定位本机的 Node</b>（优先用托管的 Node 22，没有就退而用系统 Node 18，再没有就用系统 PATH 里已有的），正常情况下不会再出现这个问题。若仍失败，按任意键后把窗口里的报错文字发我即可。</div>
 
     <h3 style="margin-top:24px">不注册能玩吗？（游客身份）</h3>
     <p><b>能。</b>点「专辑对决」这类需要登录的页面时，系统会<b>自动发一个游客身份</b>（不需要你填任何东西），直接开玩。游客的对决数据照常记录，但<b>只保存在本机浏览器</b>——清缓存、换设备就没了。所以口径是：<b>玩 = 免注册；收藏、长期保留数据 = 注册正式账号</b>。游客登录状态下，页面右上角会显示「游客 · 注册」入口，点它就能去注册。</p>
@@ -185,7 +193,7 @@ npm run dev</pre>
     <p style="color:var(--muted)">告诉我先做哪个，或直接说"全做"。</p>
   </section>
 
-  <footer>音格 · 部署与访问指南 · 2026-09-16（纠正：docx 已同步 / 前端命令 dev·端口 5173）</footer>
+  <footer>音格 · 部署与访问指南 · 2026-09-18（更新：启动器自动定位 Node / 补充"数据库在哪打开" / 后端命令统一为 npm run dev）</footer>
 </div>
 </body>
 </html>
