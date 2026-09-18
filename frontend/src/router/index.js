@@ -35,6 +35,7 @@ const routes = [
   { path: '/admin/questions', name: 'admin-questions', component: () => import('@/views/admin/AdminQuestionsView.vue'), meta: { title: '题目管理', requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/types', name: 'admin-types', component: () => import('@/views/admin/AdminTypesView.vue'), meta: { title: '人格类型管理', requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/music', name: 'admin-music', component: () => import('@/views/admin/AdminMusicView.vue'), meta: { title: '音乐数据管理', requiresAuth: true, requiresAdmin: true } },
+  { path: '/admin/combos', name: 'admin-combos', component: () => import('@/views/admin/AdminCombosView.vue'), meta: { title: '歌手组合管理', requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/users', name: 'admin-users', component: () => import('@/views/admin/AdminUsersView.vue'), meta: { title: '用户管理', requiresAuth: true, requiresAdmin: true } },
 
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/views/NotFoundView.vue'), meta: { title: '页面不存在' } },

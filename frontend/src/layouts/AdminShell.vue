@@ -22,6 +22,7 @@
         <RouterLink to="/admin/questions" active-class="noop" exact-active-class="on">题目管理</RouterLink>
         <RouterLink to="/admin/types" active-class="noop" exact-active-class="on">人格类型</RouterLink>
         <RouterLink to="/admin/music" active-class="noop" exact-active-class="on">音乐数据</RouterLink>
+        <RouterLink to="/admin/combos" active-class="noop" exact-active-class="on">歌手组合</RouterLink>
         <div class="sep"></div>
         <div class="tt">用户</div>
         <RouterLink to="/admin/users" active-class="noop" exact-active-class="on">用户管理</RouterLink>
