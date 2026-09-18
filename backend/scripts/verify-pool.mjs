@@ -94,7 +94,7 @@ async function main() {
   const uniq = new Set(r1.albums.map((a) => String(a._id)));
   ok(uniq.size === r1.albums.length, '没有重复专辑');
 
-  // —— 场景 ②：四位歌手各 8 张合格专辑，各要 10 张 → 8 张封顶（受合格数限制）——
+  // —— 场景 ②：四位歌手各 8 张合格专辑，各要 10 张 → 4×8 = 32（受合格数限制，不再是"32 封顶"）——
   const b1 = await seedArtist(2001, '甲');
   const b2 = await seedArtist(2002, '乙');
   const b3 = await seedArtist(2003, '丙');
@@ -109,8 +109,38 @@ async function main() {
     { artistId: 2003, albumCount: 10 },
     { artistId: 2004, albumCount: 10 },
   ]);
-  ok(r2.albums.length === 32, `4 位 × 10 张 → 32 张封顶（实得 ${r2.albums.length}）`);
+  ok(r2.albums.length === 32, `4 位 × 各只有 8 张合格 → 32 张（实得 ${r2.albums.length}）`);
   ok(r2.artists.every((a) => a.albumCount === 8), '每位歌手都出到自己的上限 8 张（轮转取张，不挤掉人）');
+
+  // —— 场景 ②-b：⭐ 用户点名的玩法必须保住 —— 5 位歌手 × 每位 10 张 = 50 张、40 多场 ——
+  const divas = [];
+  for (let i = 0; i < 5; i += 1) {
+    const id = 2100 + i;
+    // eslint-disable-next-line no-await-in-loop
+    const doc = await seedArtist(id, `diva${i}`);
+    // eslint-disable-next-line no-await-in-loop
+    await seedAlbums(doc._id, id, 10, 500000 + i * 1000);
+    divas.push({ artistId: id, albumCount: 10 });
+  }
+  const r2b = await makePool(divas);
+  ok(r2b.albums.length === 50, `5 位 × 10 张 → 50 张（实得 ${r2b.albums.length}；曾被错砍到 32）`);
+  const { planTournament } = await import('../src/modules/battles/bracket.js');
+  const p50 = planTournament(50);
+  ok(p50.totalSteps === 45, `50 张 → 45 场（实得 ${p50.totalSteps}，"40 多场"的玩法回来了）`);
+  ok(r2b.artists.every((a) => a.albumCount === 10), '每位歌手都出到 10 张');
+
+  // —— 场景 ②-c：总池上限 100（与「自选最多 100 张」同口径）——
+  const many = [];
+  for (let i = 0; i < 15; i += 1) {
+    const id = 2200 + i;
+    // eslint-disable-next-line no-await-in-loop
+    const doc = await seedArtist(id, `歌手${id}`);
+    // eslint-disable-next-line no-await-in-loop
+    await seedAlbums(doc._id, id, 8, 600000 + i * 1000);
+    many.push({ artistId: id, albumCount: 8 });
+  }
+  const r2c = await makePool(many);
+  ok(r2c.albums.length === 100, `15 位 × 8 张 = 120 → 封顶 100（实得 ${r2c.albums.length}）`);
 
   // —— 场景 ③：改成 4 张 / 6 张，池子必须跟着变（用户点名的"改张数赛程不变"）——
   const r3 = await makePool([
@@ -121,9 +151,6 @@ async function main() {
   ok(r3.albums.length === 9, `每位 4 张 → 4+4+1 = 9（实得 ${r3.albums.length}，随所选张数变化）`);
 
   // —— 场景 ④：赛程规划随池子变化（5 张 → 5 场；15 张 → 更多场）——
-  const plan5 = battleService.bracket ? null : null;
-  void plan5;
-  const { planTournament } = await import('../src/modules/battles/bracket.js');
   const p5 = planTournament(5);
   const p15 = planTournament(15);
   ok(p5.totalSteps === 5, `5 张 → 5 场（实得 ${p5.totalSteps}，与用户截图一致）`);

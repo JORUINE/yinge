@@ -370,7 +370,7 @@
         </template>
 
         <p class="hint" v-if="plan">
-          赛程：<b>{{ describePlan(plan) }}</b>。规模越大越热闹，但到 32 张封顶。
+          赛程：<b>{{ describePlan(plan) }}</b>。规模越大越热闹（多歌手混战最多 100 张，单歌手档位最大 32 张）。
         </p>
         <p class="hint" v-else>先选歌手，才能算出赛程。</p>
       </div>
@@ -575,10 +575,16 @@ import {
   PER_ARTIST_SCALES,
   DEFAULT_SINGER_SCALE,
   DEFAULT_PER_ARTIST,
-  MAX_POOL,
   planTournament,
   describePlan,
 } from '@/utils/tournament.js';
+
+/**
+ * 多歌手混战的总池上限：与「自选专辑最多 100 张」同口径。
+ * ⚠️ 2026-09-19 用户点名：曾被错改成 32，把他"5 位歌手×10 张、40 多场"的玩法砍没了。
+ *    单歌手档位（最大 32）与流派/年代（32）维持不变，只有多歌手混战是 100。
+ */
+const MULTI_POOL_MAX = 100;
 
 /**
  * 模式大厅（2026-09-19 用户定稿）
@@ -939,14 +945,16 @@ const totalSelected = computed(() => {
     if (!picked.value.length) return 0;
     // 2026-09-19 严重 bug 修复：以前"取所有歌手的最小值 × 人数" —— 只要有一位歌手只有
     // 1 张合格专辑，其他歌手的池子也被拖到 1 张 → 5 位歌手只出 5 张、5 场就打完了。
-    // 现在：各歌手按所选张数抽，**合格专辑不够就出几张**，总数 = 各歌手出战数之和（封顶 32）。
+    // 现在：各歌手按所选张数抽，**合格专辑不够就出几张**，总数 = 各歌手出战数之和。
+    // 上限 100（与「自选专辑最多 100 张」同口径）—— **不是 32**：
+    // 5 位 × 10 张 = 50 张、40 多场的大场是用户一直在玩的玩法，修 bug 不许顺手改玩法。
     let sum = 0;
     for (const a of picked.value) {
       const pool = artistPool.value[a.artistId];
       if (!pool) return 0;
       sum += Math.min(perArtistScale.value, pool.eligible.length);
     }
-    return Math.min(sum, MAX_POOL);
+    return Math.min(sum, MULTI_POOL_MAX);
   }
   if (mode.value === 'custom') return customPick.value.length;
   // 对位赛：每位歌手取前 alignCount 张 → 总出战数 = 歌手数 × 对位张数

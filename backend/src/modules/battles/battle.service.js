@@ -44,6 +44,16 @@ export const isCrossArtistScope = (scopeType) => CROSS_ARTIST_SCOPES.has(scopeTy
 /** 年代模式参赛池上限：一个年代区间可能命中上百张，封顶 32 张以保证一场对决打得完 */
 export const ERA_MAX_POOL = 32;
 
+/**
+ * 多歌手混战的总池上限（2026-09-19 修正）。
+ * ⚠️ 历史教训：修「取最小值」bug 时我曾把这里写成 MAX_POOL=32 —— 那是**顺手改了玩法**，
+ *    直接把用户"5 位歌手 × 每位 10 张、40 多场"的大场砍没了（用户原话：
+ *    "修复bug不能破坏改变已经好了的玩法 这也是规则 而且你没问我"）。
+ *    多歌手模式本来就允许超 32（5×10=50 张），上限与「自选专辑最多 100 张」对齐 = 100。
+ *    单歌手档位（最大 32）与流派/年代模式（ERA_MAX_POOL=32）维持原样不动。
+ */
+export const MULTI_POOL_MAX = 100;
+
 /** 新赛制（tournamentVersion=2）淘汰赛轮次名顺序（与 BattleMatch.ROUND_NAMES 对齐） */
 export const KO_NAMES = ['r32', 'r16', 'qf', 'semi', 'final'];
 
@@ -156,14 +166,17 @@ export async function resolvePool(payload) {
     const targets = payload.artists.map((it, i) =>
       Math.max(1, Math.min(Number(it?.albumCount) || bracket.DEFAULT_PER_ARTIST, lists[i].length)),
     );
-    // 全局封顶 32：**轮转取张**（每位歌手轮流出一张），既压住规模，也不会有歌手被挤掉
+    // 总池封顶 100（与「自选专辑最多 100 张」同一口径）—— **不是 32**：
+    // 5 位歌手 × 每位 10 张 = 50 张、40 多场的大场是用户一直在玩的玩法，必须保住。
+    const total = Math.min(MULTI_POOL_MAX, targets.reduce((a, b) => a + b, 0));
+    // 轮转取张（每位歌手轮流出一张）：既不挤掉任何歌手，也不会某一位独占池子
     const cursors = lists.map(() => 0);
     const picked = [];
     let progressed = true;
-    while (picked.length < bracket.MAX_POOL && progressed) {
+    while (picked.length < total && progressed) {
       progressed = false;
       for (let i = 0; i < lists.length; i += 1) {
-        if (picked.length >= bracket.MAX_POOL) break;
+        if (picked.length >= total) break;
         if (cursors[i] >= targets[i]) continue; // 这位歌手的目标张数已够
         const next = lists[i][cursors[i]];
         cursors[i] += 1;
