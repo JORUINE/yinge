@@ -42,12 +42,20 @@ const battleSchema = new mongoose.Schema(
     stepTotal: { type: Number, default: null }, // 新赛制总步数 = 组数 + 复活轮 + 淘汰赛场次
     albumIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Album' }],
     championAlbumId: { type: mongoose.Schema.Types.ObjectId, ref: 'Album', default: null },
+    // ---- 好友一起玩（2026-09-18）----
+    // shareCode：同款签表的邀请码。发起方与所有「接龙」的局共用同一个码，
+    //            用来把同一批专辑的不同人的选择归并到一起做对比。
+    // originBattleId：本局是从哪一场复制来的（发起方为 null）。
+    shareCode: { type: String, default: null },
+    originBattleId: { type: mongoose.Schema.Types.ObjectId, ref: 'Battle', default: null },
   },
   { timestamps: true },
 );
 
 battleSchema.index({ userId: 1, createdAt: -1 });
 battleSchema.index({ status: 1 });
+// 同款签表：按邀请码把一局「同款」的所有参与者捞出来做对比
+battleSchema.index({ shareCode: 1, createdAt: 1 });
 
 export const Battle = mongoose.model('Battle', battleSchema);
 export default Battle;

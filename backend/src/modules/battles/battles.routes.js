@@ -102,8 +102,33 @@ const listQuery = z.object({
   status: z.enum(['playing', 'finished']).optional(),
 });
 
+// 好友一起玩：邀请码路径必须挂在 /:id 之前，否则会被当成 ObjectId 解析失败
+const codeParam = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(4)
+    .max(12)
+    .regex(/^[A-Za-z0-9]+$/, '邀请码格式不正确'),
+});
+const inviteParam = z.object({ id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的标识') });
+
 const router = Router();
 router.use(authenticate);
+
+// ---- 同款签表（好友一起玩）----
+router.get('/join/:code', validate(codeParam, 'params'), asyncHandler(controller.getInvite));
+router.post('/join/:code', validate(codeParam, 'params'), asyncHandler(controller.joinInvite));
+router.get(
+  '/join/:code/compare',
+  validate(codeParam, 'params'),
+  asyncHandler(controller.getInviteCompare),
+);
+router.post(
+  '/:id/invite',
+  validate(inviteParam, 'params'),
+  asyncHandler(controller.createInvite),
+);
 
 router.get('/', validate(listQuery, 'query'), asyncHandler(controller.listMine));
 router.post('/', validate(createSchema, 'body'), asyncHandler(controller.create));

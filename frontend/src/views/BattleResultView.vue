@@ -71,8 +71,26 @@
                 </svg>
                 生成夺冠之路
               </RouterLink>
+              <button class="btn ghost" type="button" :disabled="inviting" @click="makeInvite">
+                {{ inviting ? '生成中…' : '和好友一起玩' }}
+              </button>
               <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
               <FavoriteButton :album="champion" />
+            </div>
+
+            <!-- 同款签表：生成后露出邀请码与链接（好友打开即进同一批专辑） -->
+            <div v-if="invite.code" class="invitebox">
+              <div class="ibhd">
+                <b>同款签表已生成</b>
+                <span>把这串码或链接发给好友，他打开后打的是<b>完全同一批专辑</b></span>
+              </div>
+              <div class="ibrow">
+                <code class="ibcode">{{ invite.code }}</code>
+                <button class="mini" type="button" @click="copyInvite">复制链接</button>
+                <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
+                  查看对比
+                </RouterLink>
+              </div>
             </div>
           </div>
         </div>
@@ -258,6 +276,34 @@ const artistNameOf = (id) => {
 // —— 对位赛战报（此前这页只有两张表，被用户说"寒酸"） ——
 const reportEl = ref(null);
 const exporting = ref(false);
+
+// —— 和好友一起玩：同款签表 ——
+const inviting = ref(false);
+const invite = ref({ code: '' });
+
+async function makeInvite() {
+  if (invite.value.code) return;
+  inviting.value = true;
+  try {
+    const d = await battleApi.invite(id);
+    invite.value = { code: d?.shareCode || '' };
+    if (invite.value.code) ElMessage.success('已生成同款签表，把链接发给好友吧');
+  } catch (e) {
+    ElMessage.error(e?.message || '生成失败');
+  } finally {
+    inviting.value = false;
+  }
+}
+
+async function copyInvite() {
+  const url = `${location.origin}/battle/join/${invite.value.code}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    ElMessage.success('链接已复制');
+  } catch {
+    ElMessage.info(url);
+  }
+}
 
 /** 这一行的胜方在哪一侧（'left' | 'right' | null）。winnerAlbumId 与 left/right 同为外部 id，可直接比 */
 function rowWinnerSide(r) {
@@ -496,6 +542,8 @@ async function load() {
     ]);
     data.value = res;
     detail.value = det;
+    // 这局之前已经生成过同款签表就直接用，不再让用户点一次
+    if (res?.battle?.shareCode) invite.value = { code: res.battle.shareCode };
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
     data.value = null;
@@ -890,6 +938,44 @@ onMounted(load);
 }
 .kside.lose {
   opacity: 0.72;
+}
+
+/* 同款签表（和好友一起玩） */
+.invitebox {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.06);
+}
+.invitebox .ibhd {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.invitebox .ibhd b {
+  font-size: 14px;
+}
+.invitebox .ibhd span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.invitebox .ibrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ibcode {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: var(--surface-2, rgba(255, 255, 255, 0.06));
 }
 
 @media (max-width: 760px) {

@@ -180,6 +180,30 @@ onMounted(load);
   max-width: 560px;
   text-align: center;
 }
+/* ⚠️ 原来 `.sharewrap` 在全局样式里**根本没定义** —— 两个子块退化成上下堆叠，
+   分享卡被拉成整屏宽、3:4 的大块（用户："分享页面布局乱 / 拉这么长"）。
+   这里补成「左卡右设置」两栏 + 两边距离约束（守则第 73 条）。 */
+.sharewrap {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  max-width: 1120px;
+  margin: 20px auto 0;
+}
+.sharewrap .scard {
+  max-width: 420px;
+}
+@media (max-width: 900px) {
+  .sharewrap {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .sharewrap .scard {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}
 .scard.square {
   aspect-ratio: 1 / 1;
 }

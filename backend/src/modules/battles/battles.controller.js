@@ -31,8 +31,37 @@ function serializeBattle(battle) {
     knockoutSize: battle.knockoutSize || null,
     revivalNeed: battle.revivalNeed || 0,
     stepTotal: battle.stepTotal || null,
+    // 好友一起玩（2026-09-18）
+    shareCode: battle.shareCode || null,
+    originBattleId: battle.originBattleId ? String(battle.originBattleId) : null,
     createdAt: battle.createdAt,
   };
+}
+
+/** B-10 生成「同款签表」邀请码（和好友一起玩的入口） */
+export async function createInvite(req, res) {
+  const { id } = req.validated.params;
+  const data = await battleService.createInvite(req.user._id, id);
+  return ok(res, data, '邀请已生成');
+}
+
+/** B-11 查看同款签表（好友点开链接后看到的介绍） */
+export async function getInvite(req, res) {
+  const { code } = req.validated.params;
+  return ok(res, await battleService.getInvite(code));
+}
+
+/** B-12 接龙开局：用同一批专辑开一局自己的 */
+export async function joinInvite(req, res) {
+  const { code } = req.validated.params;
+  const battle = await battleService.joinInvite(req.user._id, code);
+  return ok(res, serializeBattle(battle), '同款对决已开局');
+}
+
+/** B-13 同款签表对比：冠军是否一致 / 从第几步开始分歧 */
+export async function getInviteCompare(req, res) {
+  const { code } = req.validated.params;
+  return ok(res, await battleService.getInviteCompare(code, req.user._id));
 }
 
 export async function create(req, res) {

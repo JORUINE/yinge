@@ -4,7 +4,16 @@
  * 对应接口：B-01 创建 / B-02 详情 / B-03 下一场 / B-05 复活赛 / B-06 结果 / B-07 我的对决 / B-08 删除
  * 赛制规则见《系统设计文档》第四章；本文件只做编排，赛制数学在 bracket.js。
  */
-import { Battle, BattleMatch, Album, Artist, Track, Vote, BattleGroup } from '../../models/index.js';
+import {
+  Battle,
+  BattleMatch,
+  Album,
+  Artist,
+  Track,
+  Vote,
+  BattleGroup,
+  User,
+} from '../../models/index.js';
 import config from '../../config/index.js';
 import {
   BadRequestError,
@@ -918,6 +927,337 @@ export async function undoLastStep(battleId, userId) {
   await battle.save();
 
   return { undone };
+}
+
+// ============================================================
+// 好友一起玩：同款签表（invite / join / compare）
+// ------------------------------------------------------------
+// 思路（对应《赛制升级方案》第七章）：
+//   ① 发起方打完（或打到一半）点「和好友一起玩」→ 生成一个 6 位邀请码 shareCode
+//   ② 好友点 /battle/join/<code> → 看到同一批专辑的介绍页 → 点「开始同款对决」
+//      → 后端用**发起方那一局的 albumIds 原样复制**出一局新的（不重新抽专辑），
+//        因此签表完全一致：分组、场次、对阵顺序都相同（分组是确定性的，只有抽张才随机）。
+//   ③ 两边都打完后 → 对比页：冠军是否一致 / 从第几步开始分歧 / 逐步并排对照
+// ============================================================
+
+/** 邀请码字母表：去掉了容易看错的 0/O/1/I/L/U */
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789';
+const CODE_LEN = 6;
+
+function randomCode() {
+  let s = '';
+  for (let i = 0; i < CODE_LEN; i += 1) {
+    s += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  }
+  return s;
+}
+
+/** 生成一个没被占用的邀请码（撞码概率极低，最多重试 8 次） */
+async function mintShareCode() {
+  for (let i = 0; i < 8; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const code = randomCode();
+    // eslint-disable-next-line no-await-in-loop
+    const hit = await Battle.exists({ shareCode: code, originBattleId: null });
+    if (!hit) return code;
+  }
+  throw new BadRequestError('生成邀请码失败，请重试');
+}
+
+/** 取出「发起方那一局」（同码里最早、且不是接龙出来的一局） */
+async function findSourceByCode(code) {
+  const c = String(code || '').trim().toUpperCase();
+  if (!c) throw new BadRequestError('邀请码为空');
+  const src = await Battle.findOne({ shareCode: c, originBattleId: null }).sort({ createdAt: 1 });
+  // ⚠️ NotFoundError(x) 会自动拼成「x不存在」，这里别再手写"不存在"
+  if (!src) throw new BadRequestError('这份签表不存在或已失效');
+  return src;
+}
+
+/** ① 生成 / 取回我的同款签表邀请码（只有本局主人能生成） */
+export async function createInvite(userId, battleId) {
+  const battle = await Battle.findById(battleId);
+  if (!battle) throw new NotFoundError('对决');
+  if (String(battle.userId) !== String(userId)) throw new ForbiddenError('只能分享自己的对决');
+  if (!battle.shareCode) {
+    battle.shareCode = await mintShareCode();
+    await battle.save();
+  }
+  return { shareCode: battle.shareCode, battleId: String(battle._id) };
+}
+
+/** 把专辑按给定 id 顺序还原（find() 本身不保证顺序，签表顺序必须一致） */
+async function albumsInOrder(ids) {
+  const docs = await Album.find({ _id: { $in: ids } });
+  const byId = new Map(docs.map((d) => [String(d._id), d]));
+  return ids.map((id) => byId.get(String(id))).filter(Boolean);
+}
+
+function albumBrief(a) {
+  if (!a) return null;
+  return {
+    albumId: a.albumId,
+    name: a.name,
+    artistName: a.artistName || '',
+    artworkUrl: a.artworkUrl || '',
+    releaseDate: a.releaseDate || null,
+  };
+}
+
+/**
+ * ② 查看同款签表（进人页用）。
+ * 守「盲盒原则」：只露每位歌手 1~2 张封面做示意，不把全部出战专辑摊开。
+ */
+export async function getInvite(code) {
+  const src = await findSourceByCode(code);
+  const albums = await albumsInOrder(src.albumIds);
+
+  // 每位歌手最多 2 张做预览
+  const perArtist = new Map();
+  const preview = [];
+  for (const a of albums) {
+    const k = a.artistName || '未知歌手';
+    const n = perArtist.get(k) || 0;
+    if (n < 2) {
+      perArtist.set(k, n + 1);
+      preview.push(albumBrief(a));
+    }
+  }
+
+  const inviter = await User.findById(src.userId).select('nickname account').lean();
+  const champion = src.championAlbumId
+    ? albumBrief(await Album.findById(src.championAlbumId))
+    : null;
+
+  return {
+    shareCode: src.shareCode,
+    scopeType: src.scopeType,
+    scopeKey: src.scopeKey || null,
+    artists: (src.artists || []).map((a) => ({ artistId: a.artistId, name: a.name })),
+    albumCount: albums.length,
+    tournamentVersion: src.tournamentVersion || 1,
+    stepTotal: src.stepTotal ?? src.matchTotal ?? null,
+    withRevival: Boolean(src.withRevival),
+    status: src.status,
+    inviter: inviter?.nickname || '好友',
+    champion,
+    previewAlbums: preview,
+    // 我自己有没有接过这一局（前端用来判断按钮文案）
+    joinedCount: await Battle.countDocuments({ shareCode: src.shareCode }),
+  };
+}
+
+/**
+ * ③ 接龙开局：用发起方那局的专辑原样复制一局给我。
+ *    · 新赛制（v2）→ 走 createBattleV2（分组确定性 → 签表一致）
+ *    · 旧赛制（v1，含指定对决 / 对位赛）→ 直接复制 Battle.create + 场次文档
+ */
+export async function joinInvite(userId, code) {
+  const src = await findSourceByCode(code);
+  const albums = await albumsInOrder(src.albumIds);
+  if (albums.length < 2) throw new BadRequestError('这份签表的专辑已失效，无法开局');
+
+  // 同一个人重复点「开始」不该刷出一堆局：已经有未打完的就返回那一局
+  const mine = await Battle.findOne({
+    shareCode: src.shareCode,
+    userId,
+    status: 'playing',
+  }).sort({ createdAt: -1 });
+  if (mine) return mine;
+
+  const base = {
+    userId,
+    scopeType: src.scopeType,
+    scopeKey: src.scopeKey ?? null,
+    artists: src.artists || [],
+    alignCount: src.alignCount ?? null,
+    withRevival: Boolean(src.withRevival),
+    status: 'playing',
+    groupCount: src.groupCount,
+    roundCount: src.roundCount,
+    currentRound: 1,
+    matchTotal: src.matchTotal,
+    hasBye: Boolean(src.hasBye),
+    tournamentVersion: src.tournamentVersion || 1,
+    poolTarget: src.poolTarget ?? null,
+    knockoutSize: src.knockoutSize ?? null,
+    revivalNeed: src.revivalNeed ?? null,
+    stepTotal: src.stepTotal ?? null,
+    albumIds: src.albumIds,
+    shareCode: src.shareCode,
+    originBattleId: src._id,
+  };
+
+  let battle;
+  if ((src.tournamentVersion || 1) === 2) {
+    // eslint-disable-next-line no-underscore-dangle
+    battle = await createBattleV2(
+      userId,
+      { scopeType: src.scopeType, scopeKey: src.scopeKey ?? null },
+      { albums, artists: src.artists || [] },
+    );
+    battle.shareCode = src.shareCode;
+    battle.originBattleId = src._id;
+    await battle.save();
+  } else {
+    battle = await Battle.create(base);
+    const srcMatches = await BattleMatch.find({ battleId: src._id }).sort({ matchOrder: 1 }).lean();
+    if (srcMatches.length) {
+      await BattleMatch.insertMany(
+        srcMatches.map((m) => ({
+          battleId: battle._id,
+          roundIndex: m.roundIndex,
+          roundName: m.roundName,
+          groupNo: m.groupNo ?? null,
+          matchOrder: m.matchOrder,
+          leftAlbumId: m.leftAlbumId,
+          rightAlbumId: m.rightAlbumId ?? null,
+          isBye: Boolean(m.isBye),
+          isRevival: Boolean(m.isRevival),
+        })),
+      );
+    }
+    const srcGroups = await BattleGroup.find({ battleId: src._id }).sort({ groupNo: 1 }).lean();
+    if (srcGroups.length) {
+      await BattleGroup.insertMany(
+        srcGroups.map((g) => ({
+          battleId: battle._id,
+          roundName: g.roundName,
+          groupNo: g.groupNo,
+          albumIds: g.albumIds,
+          advanceCount: g.advanceCount,
+          // 只复制「分组」本身，不复制发起方的选择 —— 好友要自己选
+          pickedAlbumIds: [],
+          pickedAt: null,
+        })),
+      );
+    }
+  }
+  return battle;
+}
+
+/** 轮次中文名（对比页用） */
+const STEP_LABEL = {
+  group: '小组赛',
+  revival: '遗珠复活',
+  r32: '32 强',
+  r16: '16 强',
+  qf: '八强',
+  semi: '半决赛',
+  final: '决赛',
+  duel: '对位',
+};
+
+/** 把一局的选择按「步」摊平：小组 → 复活 → 淘汰赛，顺序与 matchOrder 一致 */
+async function stepsOf(battleId) {
+  const groups = await BattleGroup.find({ battleId }).sort({ roundName: 1, groupNo: 1 }).lean();
+  const matches = await BattleMatch.find({ battleId }).sort({ matchOrder: 1 }).lean();
+  const steps = [];
+  for (const g of groups) {
+    if (g.roundName === 'group') {
+      steps.push({ label: `小组 ${g.groupNo + 1}`, picks: (g.pickedAlbumIds || []).map(String) });
+    }
+  }
+  const rev = groups.find((g) => g.roundName === 'revival');
+  if (rev) steps.push({ label: '遗珠复活', picks: (rev.pickedAlbumIds || []).map(String) });
+  for (const m of matches) {
+    steps.push({
+      label: STEP_LABEL[m.roundName] || m.roundName,
+      picks: m.winnerAlbumId ? [String(m.winnerAlbumId)] : [],
+    });
+  }
+  return steps;
+}
+
+const sameSet = (a, b) => {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort().join(',');
+  const sb = [...b].sort().join(',');
+  return sa === sb;
+};
+
+/**
+ * ④ 同款签表对比：我和好友在同一批专辑上的选择差在哪。
+ *    返回：参与者列表（含各自冠军）、冠军是否一致、第一个分歧点、逐步对照。
+ */
+export async function getInviteCompare(code, userId) {
+  const src = await findSourceByCode(code);
+  const all = await Battle.find({ shareCode: src.shareCode })
+    .sort({ createdAt: 1 })
+    .populate('userId', 'nickname account')
+    .lean();
+
+  const albumIds = all.flatMap((b) => (b.championAlbumId ? [b.championAlbumId] : []));
+  const albumDocs = albumIds.length ? await Album.find({ _id: { $in: albumIds } }).lean() : [];
+  const albumById = new Map(albumDocs.map((d) => [String(d._id), d]));
+
+  const participants = [];
+  for (const b of all) {
+    const champ = b.championAlbumId ? albumById.get(String(b.championAlbumId)) : null;
+    participants.push({
+      battleId: String(b._id),
+      nickname: b.userId?.nickname || (b.userId?.account === undefined ? '好友' : '好友'),
+      isMe: String(b.userId?._id ?? b.userId) === String(userId),
+      isHost: String(b._id) === String(src._id),
+      finished: b.status === 'finished',
+      champion: champ ? albumBrief(champ) : null,
+    });
+  }
+
+  const finished = participants.filter((p) => p.finished && p.champion);
+  const championAgree =
+    finished.length >= 2 &&
+    finished.every((p) => p.champion.albumId === finished[0].champion.albumId);
+
+  // 逐步对照：拿「我」和第一个打完的好友比
+  const meBattle = all.find((b) => String(b.userId?._id ?? b.userId) === String(userId));
+  const otherBattle =
+    all.find(
+      (b) => String(b.userId?._id ?? b.userId) !== String(userId) && b.status === 'finished',
+    ) || all.find((b) => String(b._id) !== String(meBattle?._id));
+
+  let steps = [];
+  let firstDiff = null;
+  if (meBattle && otherBattle) {
+    const [s1, s2] = await Promise.all([stepsOf(meBattle._id), stepsOf(otherBattle._id)]);
+    const albumIdToName = new Map();
+    const needIds = [...s1, ...s2].flatMap((s) => s.picks);
+    if (needIds.length) {
+      const docs = await Album.find({ _id: { $in: needIds } }).select('name _id').lean();
+      docs.forEach((d) => albumIdToName.set(String(d._id), d.name));
+    }
+    const n = Math.max(s1.length, s2.length);
+    for (let i = 0; i < n; i += 1) {
+      const a = s1[i] || { label: `第 ${i + 1} 步`, picks: [] };
+      const b = s2[i] || { label: a.label, picks: [] };
+      const same = a.picks.length > 0 && sameSet(a.picks, b.picks);
+      steps.push({
+        label: a.label,
+        mine: a.picks.map((id) => albumIdToName.get(id) || '—'),
+        theirs: b.picks.map((id) => albumIdToName.get(id) || '—'),
+        same,
+      });
+      if (firstDiff === null && a.picks.length > 0 && b.picks.length > 0 && !same) {
+        firstDiff = { step: i + 1, label: a.label };
+      }
+    }
+  }
+
+  return {
+    shareCode: src.shareCode,
+    albumCount: (src.albumIds || []).length,
+    participants,
+    championAgree,
+    firstDiff,
+    steps,
+    rival: otherBattle
+      ? {
+          nickname:
+            otherBattle.userId?.nickname ||
+            (String(otherBattle._id) === String(src._id) ? '发起方' : '好友'),
+        }
+      : null,
+  };
 }
 
 export async function listMyBattles(userId, query) {

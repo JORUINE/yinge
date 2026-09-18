@@ -41,6 +41,15 @@ export const battleApi = {
   result: (id) => http.get(`/battles/${id}/result`),
   listMine: (params) => http.get('/battles', { params }),
   remove: (id) => http.delete(`/battles/${id}`),
+  // ---- 好友一起玩（同款签表）----
+  /** 生成 / 取回我这局的邀请码 */
+  invite: (id) => http.post(`/battles/${id}/invite`),
+  /** 查看同款签表（好友点开链接看到的介绍） */
+  inviteInfo: (code) => http.get(`/battles/join/${code}`),
+  /** 接龙开局：用同一批专辑开一局自己的 */
+  joinInvite: (code) => http.post(`/battles/join/${code}`),
+  /** 对比：冠军是否一致 / 从第几步开始分歧 */
+  inviteCompare: (code) => http.get(`/battles/join/${code}/compare`),
 };
 
 export const personalityApi = {

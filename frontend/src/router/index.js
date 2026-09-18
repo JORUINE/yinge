@@ -14,6 +14,8 @@ const routes = [
   { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue'), meta: { title: '登录 / 注册' } },
 
   { path: '/battle/create', name: 'battle-create', component: () => import('@/views/BattleCreateView.vue'), meta: { title: '创建对决', requiresAuth: true } },
+  // 好友一起玩：同款签表接龙页（必须放在 /battle/:id 之前）
+  { path: '/battle/join/:code', name: 'battle-join', component: () => import('@/views/BattleJoinView.vue'), meta: { title: '同款签表', requiresAuth: true } },
   { path: '/battle/mine', name: 'battle-mine', component: () => import('@/views/BattleMineView.vue'), meta: { title: '我的对决', requiresAuth: true } },
   { path: '/battle/:id', name: 'battle-play', component: () => import('@/views/BattlePlayView.vue'), meta: { title: '对决进行中', requiresAuth: true } },
   { path: '/battle/:id/bracket', name: 'battle-bracket', component: () => import('@/views/BattleBracketView.vue'), meta: { title: '对决对阵表', requiresAuth: true } },
