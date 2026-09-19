@@ -759,22 +759,18 @@ html[data-theme='dark'] .v b {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* ⚠️ 2026-09-18 修：以前这枚对勾**默认就是显示的**，而"已选中"反而走 .off
-     （把对勾藏掉 + 整张变灰）→ 用户看到的是"一进来全打勾、取消勾选反而是选中"。
-     现在反过来：**只有被选中的卡（不带 .off）才显示对勾**，未选中的干脆不显示。 */
+  /* ⚠️ 对勾徽标默认隐藏，只在**可勾选池子**（.pickpool）的已选中卡上点亮。
+     2026-09-19 用户点名：其它不能勾选的网格不要有这个对勾 —— "会让用户以为可以取消"。 */
   opacity: 0;
   transform: scale(0.6);
   transition: opacity 0.18s ease, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.pk:not(.off) .ck {
-  opacity: 1;
-  transform: scale(1);
 }
 .pk .ck svg {
   width: 12px;
   height: 12px;
   fill: var(--brand-ink);
 }
+/* 未选中 = 灰 + 透明（用户认可的设计：未选中是"灰的"，选中被"点亮"） */
 .pk.off .art {
   opacity: 0.32;
   filter: grayscale(0.6);
@@ -786,14 +782,14 @@ html[data-theme='dark'] .v b {
 .pk.off .ck svg {
   display: none;
 }
-/* ⚠️ 可勾选的池子（手动挑选 / 自己挑）：未勾选**不再淡显**（2026-09-19 用户报）。
-   以前 .off = 0.32 透明 + 灰度，未选中的封面看起来像"不存在"——
-   用户读成"怎么只有 14 张"，取消勾选时整张隐身又像"界面卡死"。
-   选中态已经用蓝色对勾徽标 + 描边表达，未选中保持正常显示就够了。
-   （参赛池预览 .pool 里的淡显是「盲盒未揭晓」，属有意设计，不受影响。） */
-.pickpool .pk.off .art {
+/* ⚠️ 2026-09-19 用户定稿：**"未选中=灰+透明、选中=点亮"是设计，不是 bug** —— 保持原样。
+   （上一批我曾误把这套视觉当成 bug 改掉，用户明确纠正："我让你解决的是bug 不是我们的设计"。
+   之所以现在不会再误读成"只有 N 张"，是因为下面加了勾选工具条，已选/池里张数写得明明白白。）
+   蓝色对勾徽标只属于**可勾选**的池子（.pickpool = 手动挑选 / 自己挑）：
+   其它不能勾选的专辑网格（参赛池预览等）不出现对勾 —— "会让用户以为可以取消"。 */
+.pickpool .pk:not(.off) .ck {
   opacity: 1;
-  filter: none;
+  transform: scale(1);
 }
 .pickpool .pk:not(.off) .art {
   outline: 2px solid var(--brand);
@@ -803,25 +799,28 @@ html[data-theme='dark'] .v b {
 .pickbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-top: 12px;
-  padding: 8px 12px;
+  padding: 11px 18px;
   border-radius: 999px;
   background: var(--glass2);
   border: 1px solid var(--gbd);
+  /* 2026-09-19 用户："这两个功能加的很好 不过字体稍微明显点" */
+  font-size: 14.5px;
 }
 .pickbar b {
-  font-size: 13px;
+  font-size: 16.5px;
   color: var(--brand-deep);
 }
 .pickbar .mini {
   border: 1px solid var(--gbd);
   background: var(--glass2);
-  color: var(--text2);
+  color: var(--text);
   border-radius: 999px;
-  padding: 3px 12px;
-  font-size: 12px;
+  padding: 5px 15px;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
 }
 .pickbar .mini:hover:not(:disabled) {
