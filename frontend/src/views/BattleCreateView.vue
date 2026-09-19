@@ -191,9 +191,11 @@
             :key="a.artistId"
             class="chip"
             type="button"
+            :disabled="loadingArtistId === a.artistId"
             @click="loadCustomAlbums(a)"
           >
-            <b>{{ a.name }}</b><i>加载其专辑</i>
+            <b>{{ loadingArtistId === a.artistId ? '加载中…' : a.name }}</b>
+            <i>{{ loadingArtistId === a.artistId ? '正在拉 TA 的专辑' : '加载其专辑' }}</i>
           </button>
         </div>
         <p v-if="lastAdded" class="addedtip">✓ {{ lastAdded }}</p>
@@ -201,12 +203,31 @@
         <p class="hint warnline">
           注意：跨歌手混战会优先把不同歌手配到一起，但同一歌手的专辑仍可能在某一轮相遇（同室操戈），这属正常赛制。
         </p>
-        <div v-if="customPool.length" class="pool">
+
+        <!-- 勾选工具条：随时能看到选了几张，"卡住"也有一键清空这个出口 -->
+        <div v-if="customPool.length" class="pickbar">
+          <span>
+            已选 <b>{{ customPick.length }}</b> / {{ MAX_CUSTOM }} 张 · 池里共 {{ customPool.length }} 张
+          </span>
+          <button class="mini" type="button" :disabled="!customPick.length" @click="clearCustomPick">
+            清空选择
+          </button>
+          <button
+            class="mini"
+            type="button"
+            :disabled="customPick.length >= MAX_CUSTOM"
+            @click="selectAllCustom"
+          >
+            全选池里 {{ customPool.length }} 张
+          </button>
+        </div>
+
+        <div v-if="customPool.length" class="pool pickpool">
           <button
             v-for="al in customPool"
             :key="al.albumId"
             class="pk"
-            :class="{ off: !customPick.includes(al.albumId), just: justAdded.includes(Number(al.albumId)) }"
+            :class="{ off: !isPicked(al.albumId) }"
             type="button"
             @click="toggleCustom(al.albumId)"
           >
@@ -214,7 +235,7 @@
               <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
               <span class="ck"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg></span>
             </div>
-            <b>{{ al.name }}</b><span>{{ year(al.releaseDate) }}</span>
+            <b>{{ al.name }}</b><span>{{ al._artistName }} · {{ year(al.releaseDate) }}</span>
           </button>
         </div>
       </div>
@@ -349,7 +370,7 @@
           <p class="hint">
             点封面勾选要参赛的专辑（<b>已选 {{ selfPicked.length }} 张</b>，至少 4 张；再点一次可取消）。
           </p>
-          <div v-if="selfPickPool.length" class="pool">
+          <div v-if="selfPickPool.length" class="pool pickpool">
             <button
               v-for="al in selfPickPool"
               :key="al.albumId"
@@ -1215,6 +1236,8 @@ function removeArtist(artistId) {
 // —— 手动挑选 ——
 /** 单场对决的专辑数上限（100 张 ≈「大逃杀模式」的规模，属彩蛋方向，正式版再议） */
 const MAX_CUSTOM = 100;
+/** 正在加载专辑的歌手 id（给候选 chip 一个"加载中…"状态，避免看起来像卡死） */
+const loadingArtistId = ref(null);
 /** 刚加入的 albumId（入场动画用）+ 最近一次「已添加」提示文案 */
 const justAdded = ref([]);
 const lastAdded = ref('');
@@ -1226,11 +1249,19 @@ function flashAdded(ids) {
 }
 
 async function loadCustomAlbums(artist) {
+  // 加载反馈：拉一位没缓存过的歌手要打一次 iTunes + 准入过滤，可能要好几秒，
+  // 以前点了没任何反应，用户会以为界面卡死了（2026-09-19 用户报"无法取消勾选 界面卡死"）
+  if (loadingArtistId.value) return;
+  loadingArtistId.value = artist.artistId;
   try {
     const data = await musicApi.listArtistAlbums(artist.artistId);
-    const list = (data.eligible || []).map((al) => ({ ...al, _artistName: artist.name }));
-    const seen = new Set(customPool.value.map((a) => a.albumId));
-    const fresh = list.filter((a) => !seen.has(a.albumId));
+    const list = (data.eligible || []).map((al) => ({
+      ...al,
+      albumId: Number(al.albumId),
+      _artistName: artist.name,
+    }));
+    const seen = new Set(customPool.value.map((a) => Number(a.albumId)));
+    const fresh = list.filter((a) => !seen.has(Number(a.albumId)));
     customPool.value = [...customPool.value, ...fresh];
     if (!list.length) {
       ElMessage.info('该歌手暂无合格专辑');
@@ -1238,7 +1269,7 @@ async function loadCustomAlbums(artist) {
     }
     if (fresh.length) {
       // 明确反馈 + 入场动画：让人看到"我点的那位歌手，专辑真的加进来了"
-      lastAdded.value = `已添加 ${artist.name} 的 ${fresh.length} 张专辑`;
+      lastAdded.value = `已添加 ${artist.name} 的 ${fresh.length} 张专辑（池里共 ${customPool.value.length} 张）`;
       flashAdded(fresh.map((a) => a.albumId));
       ElMessage.success(`已添加 ${artist.name} 的 ${fresh.length} 张专辑，点封面即可勾选入池`);
     } else {
@@ -1246,17 +1277,34 @@ async function loadCustomAlbums(artist) {
     }
   } catch (err) {
     ElMessage.error(err?.message || '加载专辑失败');
+  } finally {
+    loadingArtistId.value = null;
   }
 }
 
+/** 勾选状态统一按数字比较（彻底排除字符串/数字类型不一致导致的"点不动"） */
+function isPicked(albumId) {
+  const id = Number(albumId);
+  return customPick.value.some((x) => Number(x) === id);
+}
+
 function toggleCustom(albumId) {
-  if (!customPick.value.includes(albumId) && customPick.value.length >= MAX_CUSTOM) {
+  const id = Number(albumId);
+  if (!isPicked(id) && customPick.value.length >= MAX_CUSTOM) {
     ElMessage.warning(`单场对决最多 ${MAX_CUSTOM} 张专辑`);
     return;
   }
-  customPick.value = customPick.value.includes(albumId)
-    ? customPick.value.filter((x) => x !== albumId)
-    : [...customPick.value, albumId];
+  customPick.value = isPicked(id)
+    ? customPick.value.filter((x) => Number(x) !== id)
+    : [...customPick.value, id];
+}
+
+function clearCustomPick() {
+  customPick.value = [];
+}
+
+function selectAllCustom() {
+  customPick.value = customPool.value.slice(0, MAX_CUSTOM).map((a) => Number(a.albumId));
 }
 
 // —— 指定对决 ——

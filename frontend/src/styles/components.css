@@ -786,6 +786,52 @@ html[data-theme='dark'] .v b {
 .pk.off .ck svg {
   display: none;
 }
+/* ⚠️ 可勾选的池子（手动挑选 / 自己挑）：未勾选**不再淡显**（2026-09-19 用户报）。
+   以前 .off = 0.32 透明 + 灰度，未选中的封面看起来像"不存在"——
+   用户读成"怎么只有 14 张"，取消勾选时整张隐身又像"界面卡死"。
+   选中态已经用蓝色对勾徽标 + 描边表达，未选中保持正常显示就够了。
+   （参赛池预览 .pool 里的淡显是「盲盒未揭晓」，属有意设计，不受影响。） */
+.pickpool .pk.off .art {
+  opacity: 1;
+  filter: none;
+}
+.pickpool .pk:not(.off) .art {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+/* 手动挑选的勾选工具条：随时能看到选了几张，也有一键清空的出口 */
+.pickbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+}
+.pickbar b {
+  font-size: 13px;
+  color: var(--brand-deep);
+}
+.pickbar .mini {
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text2);
+  border-radius: 999px;
+  padding: 3px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.pickbar .mini:hover:not(:disabled) {
+  color: var(--brand-deep);
+  border-color: var(--brand);
+}
+.pickbar .mini:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .pk b {
   display: block;
   font-size: 12px;
