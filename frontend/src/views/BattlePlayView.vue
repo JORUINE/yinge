@@ -32,7 +32,15 @@
       </div>
       <!-- 用户要求：给一次撤销机会 -->
       <div class="undobar">
-        <button class="undobtn" type="button" :disabled="undoing" @click="undoStep">↩ 撤销上一步</button>
+        <button
+        class="undobtn"
+        type="button"
+        :disabled="undoing"
+        title="选错了没关系，可以撤销上一步重选；想多听几首就点下方播放条切歌，或点「试听清单」里的任意一首。"
+        @click="undoStep"
+      >
+        ↩ 撤销上一步
+      </button>
         <span class="undohint">
           选错了没关系，可以撤销上一步重选；每张卡上的「试听主打」可以听片段（不参与计票）。
         </span>
@@ -1270,5 +1278,82 @@ onMounted(load);
   .pickgrid .pickcard {
     animation: none;
   }
+}
+
+/* =====================================================================
+   方案 A · 紧凑版式（2026-09-20 用户选 A）
+   ---------------------------------------------------------------------
+   用户原话："我缩放到百分之90就是我要的效果"，要的是**一进对战页就能看到
+   专辑名与试听按钮，不用往下滚**。
+   做法（只收紧竖向留白 + 让封面按视口高度自适应，不动字号下限、不动设计调性）：
+     ① 页头 / 撤销条 / 进度条 三块压紧 —— 合计少占约 70px；
+     ② 竞技场上下留白减半；
+     ③ 封面尺寸改成 min(32vh, 300px)，视口矮就自动变小，保证"封面 + 名字 + 试听"整组在一屏内；
+     ④ 卡内文字与按钮的间距压紧。
+   —— 长提示不删，收进撤销按钮的 title（鼠标悬停可见）。
+   ===================================================================== */
+.playhd {
+  padding: 12px 18px !important;
+  margin-bottom: 10px !important;
+  gap: 14px !important;
+}
+.playhd .phstage {
+  font-size: 21px !important;
+}
+.playhd .phhint {
+  font-size: 13.5px !important;
+}
+.playhd .phnum {
+  font-size: 26px !important;
+}
+.undobar {
+  padding: 6px 12px !important;
+  margin-bottom: 8px !important;
+  gap: 10px;
+}
+.undohint {
+  /* 这句话很长（两行），正是"要滚动才能看到专辑名"的元凶之一 → 收进 title */
+  display: none !important;
+}
+.progline {
+  margin: 0 0 10px !important;
+}
+.vstage {
+  padding: 16px 20px 18px !important;
+  min-height: 0 !important;
+}
+.duelgrid {
+  gap: 12px !important;
+}
+.duelgrid .alb {
+  max-width: min(32vh, 300px) !important;
+}
+.duelgrid .alb .art {
+  /* 封面跟视口高度走：屏幕矮就自动缩，保证下面的名字与试听按钮留在一屏内 */
+  width: min(32vh, 300px) !important;
+  height: min(32vh, 300px) !important;
+  margin: 0 auto;
+}
+.duelgrid .alb b {
+  margin-top: 8px !important;
+  font-size: 17.5px !important;
+  line-height: 1.25;
+}
+.duelgrid .alb .ar {
+  margin-top: 3px !important;
+}
+.duelgrid .alb .mt {
+  margin-top: 2px !important;
+}
+.duelgrid .alb .plays {
+  margin-top: 8px !important;
+}
+/* 小组赛同样收紧一点（4 张一排时也更容易整屏看全） */
+.pickgrid {
+  gap: 12px !important;
+}
+.pickcard .art img {
+  max-height: min(30vh, 260px);
+  object-fit: cover;
 }
 </style>
