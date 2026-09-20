@@ -19,4 +19,15 @@ export default defineConfig({
       },
     },
   },
+  // 生产预览（start-prod.bat）同样需要把 /api 代理到后端 —— preview 默认不继承 server.proxy，
+  // 不配的话打包产物一打开接口全 404，没法用来做 Edge 的对照实验。
+  preview: {
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
 });
