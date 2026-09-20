@@ -99,6 +99,23 @@
 
     <!-- 绑定推荐专辑 -->
     <el-dialog v-model="bindDialog" :title="`给「${bindTarget?.name || ''}」绑推荐专辑`" width="720px" align-center>
+      <div v-if="tagTop.length" class="tagtop">
+        <div class="tt-hd">
+          <b>用户投票推荐</b>
+          <span>共 {{ tagVoters }} 人参与 · 票数最高的几张，点「加入推荐」即可采纳</span>
+        </div>
+        <div class="tt-list">
+          <div v-for="a in tagTop" :key="a.id" class="tt-item">
+            <img :src="a.artworkUrl" :alt="a.name" loading="lazy" />
+            <div class="tt-tx">
+              <b>{{ a.name }}</b>
+              <span>{{ a.artistName }} · <em class="num">{{ a.votes }}</em> 票</span>
+            </div>
+            <el-button size="small" type="primary" plain @click="adoptTag(a)">加入推荐</el-button>
+          </div>
+        </div>
+      </div>
+
       <div class="srow">
         <el-input
           v-model="albumTerm"
@@ -157,7 +174,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import AdminShell from '@/layouts/AdminShell.vue';
-import { adminApi, musicApi } from '@/api';
+import { adminApi, musicApi, personalityApi } from '@/api';
 
 const DIM_KEYS = ['melody', 'rhythm', 'arrangement', 'calm'];
 const year = (d) => (d ? String(d).slice(0, 4) : '');
@@ -280,6 +297,32 @@ function openBind(t) {
   albumTerm.value = '';
   albumResults.value = [];
   bindDialog.value = true;
+  loadTagStats();
+}
+
+/* —— 用户投票汇总（闭环：用户投票 → 后台一键采纳进推荐池） —— */
+const tagTop = ref([]);
+const tagVoters = ref(0);
+async function loadTagStats() {
+  tagTop.value = [];
+  tagVoters.value = 0;
+  try {
+    const d = await personalityApi.tagStats({ limit: 6 });
+    tagVoters.value = d?.voters || 0;
+    tagTop.value = (d?.byType || {})[bindTarget.value?.code] || [];
+  } catch {
+    /* 没有投票数据就算了，不打扰绑定流程 */
+  }
+}
+
+/** 采纳：把这张用户投票选出的专辑加进当前类型的推荐（已在里面就不重复） */
+async function adoptTag(a) {
+  if (bindPicked.value.some((x) => x.id === a.id)) {
+    ElMessage.info('这张已经在推荐里了');
+    return;
+  }
+  bindPicked.value = [...bindPicked.value, { ...a }];
+  ElMessage.success(`已加入待保存：${a.name}（记得点「保存绑定」）`);
 }
 
 function pick(a) {
@@ -437,4 +480,22 @@ onMounted(load);
   font-weight: 700;
   color: var(--brand-deep);
 }
+
+/* 用户投票推荐块（闭环采纳） */
+.tagtop {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(14, 165, 233, 0.07);
+  border: 1px dashed rgba(14, 165, 233, 0.42);
+}
+.tt-hd b { font-size: 14.5px; }
+.tt-hd span { display: block; margin: 3px 0 10px; font-size: 12.5px; color: var(--text2); }
+.tt-list { display: grid; gap: 8px; }
+.tt-item { display: flex; align-items: center; gap: 10px; background: var(--glass); border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; }
+.tt-item img { width: 36px; height: 36px; border-radius: 8px; object-fit: cover; flex: 0 0 auto; }
+.tt-tx { flex: 1; min-width: 0; }
+.tt-tx b { display: block; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tt-tx span { font-size: 12.5px; color: var(--text2); }
+.tt-tx em { font-style: normal; font-weight: 700; color: var(--brand-deep); }
 </style>

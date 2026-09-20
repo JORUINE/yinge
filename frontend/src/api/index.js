@@ -66,6 +66,10 @@ export const personalityApi = {
   result: (id) => http.get(`/personality/results/${id}`),
   listMine: (params) => http.get('/personality/results', { params }),
   types: () => http.get('/personality/types'),
+  /** 专辑归类投票（众包）：下一张 / 投票 / 聚合统计 */
+  nextTagAlbum: () => http.get('/personality/album-tags/next'),
+  voteTag: (data) => http.post('/personality/album-tags', data),
+  tagStats: (params) => http.get('/personality/album-tags/stats', { params }),
   typeDetail: (code) => http.get(`/personality/types/${code}`),
   stats: () => http.get('/personality/stats'),
 };

@@ -32,6 +32,12 @@ const routes = [
   { path: '/profile', name: 'profile', component: () => import('@/views/ProfileView.vue'), meta: { title: '个人中心', requiresAuth: true } },
   { path: '/favorites', name: 'favorites', component: () => import('@/views/FavoritesView.vue'), meta: { title: '我的收藏', requiresAuth: true } },
 
+  {
+    path: '/personality/tag-albums',
+    name: 'album-tag',
+    component: () => import('@/views/AlbumTagView.vue'),
+    meta: { title: '给专辑归类' },
+  },
   { path: '/admin/login', name: 'admin-login', component: () => import('@/views/admin/AdminLoginView.vue'), meta: { title: '后台登录' } },
   { path: '/admin', name: 'admin-dashboard', component: () => import('@/views/admin/AdminDashboardView.vue'), meta: { title: '后台总览', requiresAuth: true, requiresAdmin: true } },
   { path: '/admin/questions', name: 'admin-questions', component: () => import('@/views/admin/AdminQuestionsView.vue'), meta: { title: '题目管理', requiresAuth: true, requiresAdmin: true } },

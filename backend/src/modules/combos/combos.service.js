@@ -160,6 +160,9 @@ export async function updateCombo(user, id, payload) {
   assertCanManage(user, combo);
   if (payload.label !== undefined) combo.label = String(payload.label).trim();
   if (payload.perArtist !== undefined) combo.perArtist = Number(payload.perArtist);
+  // 2026-09-20：组合要能改成「对位赛」组合（用户问"对位赛模式能创建组合吗"）
+  if (payload.scopeType !== undefined) combo.scopeType = payload.scopeType;
+  if (payload.alignCount !== undefined) combo.alignCount = Number(payload.alignCount) || null;
   // 2026-09-20 新增：后台可以直接改组合成员（用户点名要"修改功能"，不只是改名）
   if (Array.isArray(payload.artists)) {
     const artists = payload.artists.map((a) => ({

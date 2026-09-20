@@ -7,7 +7,7 @@
     @click="$emit('pick', artist)"
   >
     <span class="ava">
-      <img v-if="photo" :src="photo" :alt="artist.name" loading="lazy" />
+      <img v-if="shown" :key="shown" :src="shown" :alt="artist.name" decoding="async" />
       <i v-else>{{ initial }}</i>
     </span>
     <span class="tx">
@@ -28,7 +28,7 @@
  * 简介全部来自真实字段（流派 / 正式专辑数 / 年代跨度 / 代表作），不编"著名歌手"这类空话。
  * `taken`：已在池子里 —— 仍然显示（**不要静默过滤掉**，否则用户以为"这位大牌搜不出来"）。
  */
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 
 const props = defineProps({
   artist: { type: Object, required: true },
@@ -44,7 +44,35 @@ const props = defineProps({
 
 defineEmits(['pick']);
 
-const photo = computed(() => props.artist.photoUrl || props.artist.artworkUrl || null);
+/**
+ * 头像显示逻辑（2026-09-20 用户："搜索出歌手她会卡一下再从专辑封面变成歌手本人头像"）
+ * ------------------------------------------------------------------
+ * 原因：真图是异步补上来的，`src` 直接被替换 → 浏览器要重新解码，中间会闪一下空白/旧图，
+ *      看起来就是"卡一下"。
+ * 修法：**先把新图预载（`new Image()` + onload）**，解码完成后再换；
+ *      换的时候 `:key` 变化会让元素重建，配一个 280ms 的淡入动画 → 平滑过渡，不闪不卡。
+ * 兜底：预载失败就保持当前图（绝不显示裂图）。
+ */
+const shown = ref(null);
+const fallbackSrc = computed(() => props.artist.photoUrl || props.artist.artworkUrl || null);
+
+watch(
+  fallbackSrc,
+  (next) => {
+    if (!next || next === shown.value) return;
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => {
+      shown.value = next; // 解码完再换 → 无空白帧
+    };
+    img.onerror = () => {
+      if (!shown.value) shown.value = null; // 保持现状（显示首字母占位）
+    };
+    img.src = next;
+  },
+  { immediate: true },
+);
+
 const name = computed(() => (props.busy ? '加载中…' : props.artist.name || '未知歌手'));
 const initial = computed(() => (props.artist.name || '?').slice(0, 1));
 

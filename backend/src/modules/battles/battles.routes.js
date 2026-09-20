@@ -34,7 +34,7 @@ const createSchema = z
     artistId: z.coerce.number().int().positive().optional(),
     albumCount: z.coerce.number().int().min(1).max(50).optional(),
     artists: z.array(artistEntry).min(2).max(6).optional(),
-    alignCount: z.coerce.number().int().min(1).max(20).optional(),
+    alignCount: z.coerce.number().int().min(1).max(24).optional(),
     // 对位配对方式：同序号（默认）/ 年代就近
     alignMode: z.enum(['ordinal', 'chrono']).optional(),
     // 指定对决：逐行指定的对位组，每组 2 张专辑的外部数字标识，最少 1 组

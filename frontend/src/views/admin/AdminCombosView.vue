@@ -66,18 +66,27 @@
         <tr>
           <th style="width: 210px">组合名</th>
           <th>歌手</th>
-          <th style="width: 110px">每位张数</th>
+          <th style="width: 130px">规模</th>
           <th style="width: 100px">来源</th>
-          <th class="act" style="width: 150px">操作</th>
+          <th style="width: 100px">赛制</th>
+          <th class="act" style="width: 250px">操作</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="c in list" :key="c.comboId">
           <td class="ell">{{ c.label }}</td>
           <td class="ell">{{ (c.artists || []).map((a) => a.name).join(' × ') || '—' }}</td>
-          <td class="num">{{ c.perArtist }}</td>
+          <td class="num">
+            {{ c.scopeType === 'aligned' ? `${c.alignCount || 8} 张/位` : `${c.perArtist} 张/位` }}
+          </td>
           <td>
             <span class="tagx" :class="c.isSystem ? 'tp' : 'wn'">{{ c.isSystem ? '系统' : '用户自建' }}</span>
+          </td>
+          <td>
+            <!-- 2026-09-20：组合现在自带赛制，点一下就知道会进哪个模式 -->
+            <span class="tagx" :class="c.scopeType === 'aligned' ? 'ok' : 'tp'">
+              {{ c.scopeType === 'aligned' ? '对位赛' : '混战' }}
+            </span>
           </td>
           <td class="act">
             <!-- 2026-09-20 用户要求："后台这里应该加入修改功能" ——
@@ -137,8 +146,19 @@
           </div>
         </div>
         <div class="frow">
-          <label>每位歌手几张</label>
-          <el-input-number v-model="perArtist" :min="4" :max="50" />
+          <label>赛制</label>
+          <el-radio-group v-model="scopeType">
+            <el-radio-button label="multi-artist">混战（多歌手淘汰制）</el-radio-button>
+            <el-radio-button label="aligned">对位赛（逐张对照）</el-radio-button>
+          </el-radio-group>
+          <p class="fhint">
+            前台点这个组合时会<b>自动进入对应模式</b>：混战组合 → 多歌手混战；对位组合 → 对位赛。
+          </p>
+        </div>
+        <div class="frow">
+          <label>{{ scopeType === 'aligned' ? '对位张数（1–24）' : '每位歌手几张' }}</label>
+          <el-input-number v-if="scopeType === 'aligned'" v-model="alignCount" :min="1" :max="24" />
+          <el-input-number v-else v-model="perArtist" :min="4" :max="50" />
         </div>
       </template>
 
@@ -171,6 +191,9 @@ const dlgTitle = computed(() =>
 );
 const label = ref('');
 const perArtist = ref(8);
+/** 赛制：multi-artist 混战 / aligned 对位赛（2026-09-20 新增，组合自带赛制） */
+const scopeType = ref('multi-artist');
+const alignCount = ref(8);
 const term = ref('');
 const candidates = ref([]);
 const artists = ref([]);
@@ -237,6 +260,8 @@ function openCreate() {
   editTarget.value = null;
   label.value = '';
   perArtist.value = 8;
+  scopeType.value = 'multi-artist';
+  alignCount.value = 8;
   term.value = '';
   candidates.value = [];
   artists.value = [];
@@ -258,6 +283,8 @@ function openEdit(c) {
   editTarget.value = c;
   label.value = c.label;
   perArtist.value = c.perArtist || 8;
+  scopeType.value = c.scopeType === 'aligned' ? 'aligned' : 'multi-artist';
+  alignCount.value = c.alignCount || 8;
   artists.value = (c.artists || []).map((a) => ({ artistId: a.artistId, name: a.name }));
   term.value = '';
   candidates.value = [];
@@ -318,6 +345,8 @@ async function save() {
       }
       await comboApi.update(editTarget.value.comboId, {
         label: label.value.trim(),
+        scopeType: scopeType.value,
+        alignCount: scopeType.value === 'aligned' ? alignCount.value : undefined,
         perArtist: perArtist.value,
         artists: artists.value.map((a) => ({
           artistId: a.artistId,
@@ -335,7 +364,8 @@ async function save() {
       await comboApi.create({
         label: label.value.trim(),
         isSystem: true, // 管理员 → 系统组合
-        scopeType: 'multi-artist',
+        scopeType: scopeType.value,
+        alignCount: scopeType.value === 'aligned' ? alignCount.value : undefined,
         perArtist: perArtist.value,
         artists: artists.value.map((a) => ({
           artistId: a.artistId,
@@ -410,5 +440,11 @@ onMounted(() => {
   font-size: 12.5px;
   color: var(--text3);
   line-height: 1.6;
+}
+.fhint {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--text2);
+  line-height: 1.5;
 }
 </style>

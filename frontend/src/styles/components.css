@@ -689,6 +689,16 @@ html[data-theme='dark'] .v b {
   height: 100%;
   object-fit: cover;
   display: block;
+  /* 换图时元素会被重建（:key 变了）→ 用淡入代替硬切，避免"卡一下"的感觉 */
+  animation: avaIn 0.28s ease;
+}
+@keyframes avaIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .artistchip .ava i {
   font-style: normal;

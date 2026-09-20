@@ -2,7 +2,7 @@
  * 人格测评服务
  * 对应接口：P-01 ~ P-07
  */
-import { PersonalityQuestion, PersonalityType, PersonalityResult, Album } from '../../models/index.js';
+import { PersonalityQuestion, PersonalityType, PersonalityResult, Album, AlbumTagVote } from '../../models/index.js';
 import { BadRequestError, NotFoundError } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
@@ -151,4 +151,102 @@ export async function stats() {
   };
 }
 
-export default { getQuestions, submit, getResult, listMyResults, listTypes, getTypeByCode, stats };
+/* ============================================================
+ * 专辑归类投票（众包给「人格推荐池」喂数据）
+ * ------------------------------------------------------------
+ * 玩法：用户看一张专辑 → 判断"它更像哪一型" → 沉淀为真实用户数据；
+ *      后台按票数采纳进推荐池。这样推荐专辑就不是纯拍脑袋，而是有人投过票的。
+ * ============================================================ */
+
+/** 6 型选项（投票界面用） */
+async function tagTypeOptions() {
+  const types = await PersonalityType.find().sort({ code: 1 }).select('code name description').lean();
+  return types.map((t) => ({ code: t.code, name: t.name, description: t.description }));
+}
+
+/**
+ * 下一张待投票的专辑。
+ * 策略：先排除用户已投过的 → 随机抽 40 张 → 按**已有票数升序**取最少的那张。
+ * 这样既保证多样性（随机），又不会一直推那几张热门专辑（票少先上）。
+ */
+export async function nextTagAlbum(userId) {
+  const types = await tagTypeOptions();
+  const voted = await AlbumTagVote.find({ userId }).select('albumId').lean();
+  const votedIds = voted.map((v) => v.albumId);
+  const pool = await Album.aggregate([
+    { $match: { isEligible: true, _id: { $nin: votedIds } } },
+    { $sample: { size: 40 } },
+  ]);
+  if (!pool.length) return { album: null, types, votedCount: votedIds.length, allDone: true };
+
+  const counts = await AlbumTagVote.aggregate([
+    { $match: { albumId: { $in: pool.map((p) => p._id) } } },
+    { $group: { _id: '$albumId', n: { $sum: 1 } } },
+  ]);
+  const nById = new Map(counts.map((c) => [String(c._id), c.n]));
+  pool.sort((a, b) => (nById.get(String(a._id)) || 0) - (nById.get(String(b._id)) || 0));
+
+  return {
+    album: musicService.serializeAlbum(pool[0]),
+    types,
+    votedCount: votedIds.length,
+    allDone: false,
+  };
+}
+
+/** 投一票（同一用户对同一张专辑只留最新一票） */
+export async function voteAlbumTag(userId, albumId, typeCode) {
+  const album = await Album.findById(albumId).select('_id').lean();
+  if (!album) throw new NotFoundError('专辑');
+  const type = await PersonalityType.findOne({ code: typeCode }).select('code').lean();
+  if (!type) throw new BadRequestError('人格类型不存在');
+  await AlbumTagVote.findOneAndUpdate(
+    { userId, albumId },
+    { $set: { typeCode } },
+    { upsert: true, setDefaultsOnInsert: true },
+  );
+  const votedCount = await AlbumTagVote.countDocuments({ userId });
+  return { votedCount };
+}
+
+/** 聚合统计：每型票数最高的若干张（后台"采纳进推荐池"用） */
+export async function albumTagStats(limit = 8) {
+  const rows = await AlbumTagVote.aggregate([
+    { $group: { _id: { albumId: '$albumId', typeCode: '$typeCode' }, votes: { $sum: 1 } } },
+    { $sort: { votes: -1 } },
+  ]);
+  const albumIds = [...new Set(rows.map((r) => r._id.albumId))];
+  const albums = albumIds.length ? await Album.find({ _id: { $in: albumIds } }).select('name artistName artworkUrl').lean() : [];
+  const byId = new Map(albums.map((a) => [String(a._id), a]));
+  const byType = {};
+  for (const r of rows) {
+    const code = r._id.typeCode;
+    if (!byType[code]) byType[code] = [];
+    if (byType[code].length >= limit) continue;
+    const a = byId.get(String(r._id.albumId));
+    if (!a) continue;
+    byType[code].push({
+      id: String(a._id),
+      name: a.name,
+      artistName: a.artistName,
+      artworkUrl: a.artworkUrl,
+      votes: r.votes,
+    });
+  }
+  const total = await AlbumTagVote.estimatedDocumentCount();
+  const voters = await AlbumTagVote.distinct('userId');
+  return { total, voters: voters.length, byType };
+}
+
+export default {
+  getQuestions,
+  submit,
+  getResult,
+  listMyResults,
+  listTypes,
+  getTypeByCode,
+  stats,
+  nextTagAlbum,
+  voteAlbumTag,
+  albumTagStats,
+};

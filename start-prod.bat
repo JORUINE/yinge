@@ -19,9 +19,9 @@ echo   performance - turn OFF "Use graphics acceleration".
 echo ----------------------------------------------------------
 echo   Same page, but served from the built files - no dev
 echo   server, no HMR websocket.
-echo   * If Edge stops flickering here  -> the dev server/HMR
+echo   * If Edge stops flickering here  -^> the dev server/HMR
 echo     was involved, the page itself is fine.
-echo   * If it still flickers           -> page AND dev server
+echo   * If it still flickers           -^> page AND dev server
 echo     are both cleared; it is Edge/Windows window level
 echo     (hardware acceleration / focus).
 echo ==========================================================

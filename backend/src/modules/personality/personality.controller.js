@@ -38,3 +38,18 @@ export async function typeDetail(req, res) {
 export async function stats(req, res) {
   return ok(res, await service.stats());
 }
+
+/* —— 专辑归类投票（众包给推荐池喂数据，2026-09-20 新增） —— */
+export async function nextTagAlbum(req, res) {
+  return ok(res, await service.nextTagAlbum(req.user._id));
+}
+
+export async function voteTag(req, res) {
+  const { albumId, typeCode } = req.validated.body;
+  return ok(res, await service.voteAlbumTag(req.user._id, albumId, typeCode));
+}
+
+export async function tagStats(req, res) {
+  const limit = Math.min(Number(req.query.limit) || 8, 20);
+  return ok(res, await service.albumTagStats(limit));
+}

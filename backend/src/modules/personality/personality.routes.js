@@ -35,6 +35,16 @@ const listQuery = z.object({
 
 const router = Router();
 
+/* —— 专辑归类投票（需登录：一人一张一票，可改投） —— */
+const tagSchema = z.object({
+  albumId: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的专辑标识'),
+  typeCode: z.string().trim().min(1, '请选择一个类型'),
+});
+router.get('/album-tags/next', authenticate, asyncHandler(controller.nextTagAlbum));
+router.post('/album-tags', authenticate, validate(tagSchema, 'body'), asyncHandler(controller.voteTag));
+/** 聚合统计（后台采纳用；公开只读，不涉及个人信息） */
+router.get('/album-tags/stats', asyncHandler(controller.tagStats));
+
 router.get('/questions', asyncHandler(controller.questions));
 router.get('/types', asyncHandler(controller.types));
 router.get('/types/:code', validate(codeParam, 'params'), asyncHandler(controller.typeDetail));

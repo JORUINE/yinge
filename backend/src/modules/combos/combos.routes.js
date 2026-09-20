@@ -23,12 +23,15 @@ const createSchema = z.object({
   scopeType: z.enum(['multi-artist', 'aligned']).optional(),
   artists: z.array(artistEntry).min(2, '至少要 2 位歌手').max(6, '最多 6 位歌手'),
   perArtist: z.coerce.number().int().min(4).max(50).optional(),
-  alignCount: z.coerce.number().int().min(1).max(20).optional(),
+  alignCount: z.coerce.number().int().min(1).max(24).optional(),
   isSystem: z.boolean().optional(),
 });
 
 const updateSchema = z.object({
   label: z.string().trim().min(1).max(40).optional(),
+  /** 2026-09-20 新增：组合可改成对位赛组合（scopeType=aligned + 对位张数） */
+  scopeType: z.enum(['multi-artist', 'aligned']).optional(),
+  alignCount: z.coerce.number().int().min(1).max(24).optional(),
   perArtist: z.coerce.number().int().min(4).max(50).optional(),
   /** 2026-09-20 新增：后台可直接改组合成员 / 转为系统组合（用户点名要"修改功能"） */
   artists: z.array(artistEntry).min(2, '至少要 2 位歌手').max(6, '最多 6 位歌手').optional(),

@@ -21,6 +21,15 @@
           </RouterLink>
           <RouterLink to="/personality/types" class="btn ghost">先看看有哪些人格</RouterLink>
         </div>
+
+        <!-- 众包入口（2026-09-20 新增）：用户给专辑归类 → 票数高的进对应人格的推荐池 -->
+        <div class="tagcall">
+          <div class="tagcall-tx">
+            <b>顺手做件小事？</b>
+            <span>看一张专辑，选它更像哪一型 —— 30 秒一票。票数高的专辑会被采纳进对应人格的「常听专辑」。</span>
+          </div>
+          <RouterLink to="/personality/tag-albums" class="btn sm">去投一票</RouterLink>
+        </div>
       </div>
 
       <div class="typesprev">
@@ -97,4 +106,20 @@ onMounted(async () => {
     grid-template-columns: 1fr;
   }
 }
+
+/* 众包入口条（2026-09-20）：不抢主按钮风头，但一眼能看到 */
+.tagcall {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(14, 165, 233, 0.1), rgba(13, 148, 136, 0.1));
+  border: 1px dashed rgba(14, 165, 233, 0.45);
+}
+.tagcall-tx b { display: block; font-size: 15px; }
+.tagcall-tx span { display: block; margin-top: 3px; font-size: 13px; line-height: 1.6; color: var(--text2); max-width: 520px; }
 </style>

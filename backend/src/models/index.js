@@ -16,3 +16,4 @@ export { Vote } from './Vote.js';
 export { PersonalityQuestion } from './PersonalityQuestion.js';
 export { PersonalityType } from './PersonalityType.js';
 export { PersonalityResult } from './PersonalityResult.js';
+export { AlbumTagVote } from './AlbumTagVote.js';

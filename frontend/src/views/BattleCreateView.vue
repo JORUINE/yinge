@@ -295,6 +295,7 @@
               @click="applyCombo(c)"
             >
               <span v-if="c.mine" class="minetag">我的</span>
+              <span v-if="c.scopeType === 'aligned'" class="minetag al">对位</span>
               {{ presetLoading === c.label ? '装填中…' : c.label }}
             </button>
             <span v-if="c.mine" class="combox" title="删除这个组合" @click.stop="removeCombo(c)">×</span>
@@ -499,8 +500,21 @@
       <div v-if="mode === 'aligned'" class="block">
         <h4>对位张数与配对方式</h4>
         <div class="yearrow">
-          <input v-model.number="alignCount" class="ipt year" type="number" min="1" max="10" />
-          <span class="hint" style="margin: 0">张/位</span>
+          <!-- 2026-09-20 用户："对位赛的歌手专辑选择数量最大值拉到 24"（原来 10 太少）。
+               准入过滤之后基本不会有歌手超过 24 张，所以 24 是安全上限。 -->
+          <input v-model.number="alignCount" class="ipt year" type="number" min="1" max="24" />
+          <span class="hint" style="margin: 0">张/位（1–24）</span>
+        </div>
+        <div class="seg" style="margin-top: 10px; margin-bottom: 0">
+          <button
+            v-for="n in ALIGN_PRESETS"
+            :key="n"
+            type="button"
+            :class="{ on: alignCount === n }"
+            @click="alignCount = n"
+          >
+            {{ n }} 张
+          </button>
         </div>
         <div class="seg" style="margin-top: 12px; margin-bottom: 0">
           <button type="button" :class="{ on: alignMode === 'ordinal' }" @click="alignMode = 'ordinal'">
@@ -811,6 +825,8 @@ const yearEnd = ref(2020);
 
 // 对位赛
 const alignCount = ref(3);
+/** 对位赛常用档位（用户要求上限拉到 24：准入过滤后基本不会有歌手超过 24 张） */
+const ALIGN_PRESETS = [4, 6, 8, 12, 16, 24];
 const alignMode = ref('ordinal');
 
 // 手动挑选
@@ -1096,13 +1112,25 @@ async function loadCombos() {
   }
 }
 
-/** 装填一个组合：带 artistId 的直接用（快）；只有名字的走搜索（兜底组合） */
+/**
+ * 装填一个组合：带 artistId 的直接用（快）；只有名字的走搜索（兜底组合）
+ * ------------------------------------------------------------
+ * 2026-09-20 用户："这里的组合一点击就会跳到混战模式，那对位赛模式能创建组合吗？"
+ * → 组合现在**自带赛制归属**（`scopeType`）：混战组合 → 进多歌手混战；对位组合 → 进对位赛。
+ *   以前不管什么组合都无脑 `pickMode('multi-artist')`，对位组合也只能当混战打。
+ */
 async function applyCombo(c) {
   presetLoading.value = c.label;
   try {
-    pickMode('multi-artist');
-    pickStrategy.value = 'random';
-    perArtistScale.value = c.perArtist || c.per || 8;
+    const isAligned = c.scopeType === 'aligned';
+    pickMode(isAligned ? 'aligned' : 'multi-artist');
+    if (isAligned) {
+      alignCount.value = Number(c.alignCount) || 8;
+      alignMode.value = c.alignMode === 'chrono' ? 'chrono' : 'ordinal';
+    } else {
+      pickStrategy.value = 'random';
+      perArtistScale.value = c.perArtist || c.per || 8;
+    }
     let found = [];
     if (c.artists && c.artists.length) {
       found = c.artists.map((a) => ({ artistId: a.artistId, name: a.name }));
@@ -1119,7 +1147,9 @@ async function applyCombo(c) {
       return;
     }
     picked.value = found;
-    ElMessage.success(`已装好「${c.label}」：${found.map((a) => a.name).join(' vs ')}`);
+    ElMessage.success(
+      `已装好${isAligned ? '对位赛' : ''}「${c.label}」：${found.map((a) => a.name).join(isAligned ? ' × ' : ' vs ')}`,
+    );
   } catch (err) {
     ElMessage.error(err?.message || '装填组合失败');
   } finally {

@@ -14,7 +14,11 @@
             <span class="pillx">对位赛 · 战报</span>
           </div>
           <div class="arep-lead">
-            <template v-if="alignedLeader">
+            <template v-if="alignedLeader && alignedLeader.tie">
+              {{ alignedLeader.names.length > 2 ? '并列领先' : '双方打平' }}
+              <span class="muted"> · 各胜 {{ alignedLeader.wins }} 场</span>
+            </template>
+            <template v-else-if="alignedLeader">
               <b>{{ alignedLeader.name }}</b><span class="muted"> 领先 · 胜 {{ alignedLeader.wins }} 场</span>
             </template>
             <template v-else>暂无胜场</template>
@@ -74,12 +78,57 @@
           <div class="arep-foot">音格 · 专辑对决　|　对位赛不产生冠军，出的是逐张对照表</div>
         </div>
 
+        <!-- 简洁分享图（2026-09-20 新增）：用户说详细战报保留，但要一张"更适合分享互动"的图。
+             这里做成 720px 宽的紧凑卡：大比分 + 每组一行（小封面 + 比分），两列排布，截图/转发都清楚。 -->
+        <div class="share-block">
+          <div class="hd" style="margin: 18px 0 10px">
+            <b>分享图预览</b><span>简洁版 · 适合发群里/朋友圈，点下面按钮保存</span>
+          </div>
+          <div ref="shareEl" class="arep-mini">
+            <div class="mini-top">
+              <span class="stop">音格 · YINGE.APP</span>
+              <span class="pillx">对位赛 · 战报</span>
+            </div>
+            <div class="mini-score">
+              <span class="msn">{{ alignedSideNames[0] }}</span>
+              <b class="msv num">{{ alignedScore[0] }} : {{ alignedScore[1] }}</b>
+              <span class="msn">{{ alignedSideNames[1] }}</span>
+            </div>
+            <div class="mini-sub">
+              {{ alignedLeader?.tie ? `双方打平 · 各胜 ${alignedLeader.wins} 场` : alignedLeader ? `${alignedLeader.name} 领先 ${alignedLeader.wins} 场` : '暂无胜场' }}
+              　|　共 {{ (data.rows || []).length }} 场对位
+            </div>
+            <div class="mini-rows">
+              <div
+                v-for="(r, i) in (data.rows || []).slice(0, 12)"
+                :key="i"
+                class="mrow"
+                :class="{ l: rowWinnerSide(r) === 'left', r: rowWinnerSide(r) === 'right' }"
+              >
+                <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" />
+                <span class="mtx">{{ r.left?.name }}</span>
+                <b class="mv num">{{ r.leftVotes ?? 0 }}</b>
+                <b class="mv num">{{ r.rightVotes ?? 0 }}</b>
+                <span class="mtx rt">{{ r.right?.name }}</span>
+                <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" />
+              </div>
+            </div>
+            <p v-if="(data.rows || []).length > 12" class="mini-more">
+              还有 {{ (data.rows || []).length - 12 }} 组未列出 · 完整对照见详细战报
+            </p>
+            <div class="mini-foot">音格 · 专辑对决　|　对位赛不产生冠军　|　点封面即投票，人人可玩</div>
+          </div>
+        </div>
+
         <div class="btns" style="margin-top: 18px">
-          <button class="btn pri" type="button" :disabled="exporting" @click="exportReport">
+          <button class="btn pri" type="button" :disabled="exporting" @click="exportShare">
             <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
             </svg>
-            {{ exporting ? '正在生成…' : '保存战报图' }}
+            {{ exporting === 'share' ? '正在生成…' : '保存分享图（简洁版）' }}
+          </button>
+          <button class="btn ghost" type="button" :disabled="exporting" @click="exportReport">
+            {{ exporting === 'full' ? '正在生成…' : '保存详细战报' }}
           </button>
           <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
         </div>
@@ -316,6 +365,7 @@ const artistNameOf = (id) => {
 
 // —— 对位赛战报（此前这页只有两张表，被用户说"寒酸"） ——
 const reportEl = ref(null);
+const shareEl = ref(null);
 const exporting = ref(false);
 
 // —— 和好友一起玩：同款签表 ——
@@ -367,35 +417,55 @@ const alignedScore = computed(() => {
 
 /** 积分榜首（平手时 points[0].wins 为 0 → 不显示"领先"） */
 const alignedLeader = computed(() => {
-  const ps = [...(data.value?.points || [])];
+  const ps = [...(data.value?.points || [])].sort((a, b) => b.wins - a.wins);
   if (!ps.length || !ps[0]?.wins) return null;
   const top = ps[0];
-  return { name: artistNameOf(top.artistExternalId), wins: top.wins };
+  // ⚠️ 2026-09-20 用户截图报的 bug：总比分 5:5 平局，却写"周杰伦领先 5 场"。
+  //    并列第一必须是"打平/并列领先"，不能挑一个说领先。
+  const tied = ps.filter((p) => p.wins === top.wins);
+  if (tied.length > 1) {
+    return { tie: true, wins: top.wins, names: tied.map((p) => artistNameOf(p.artistExternalId)) };
+  }
+  return { tie: false, name: artistNameOf(top.artistExternalId), wins: top.wins };
+});
+
+/** 对位赛双方名字（简洁分享图的大比分条用）：从第一组对位里取，通常就是这场对决的两位歌手 */
+const alignedSideNames = computed(() => {
+  const rows = data.value?.rows || [];
+  if (rows.length) return [rows[0].left?.artistName || '左', rows[0].right?.artistName || '右'];
+  const ps = data.value?.points || [];
+  return [artistNameOf(ps[0]?.artistExternalId) || '左', artistNameOf(ps[1]?.artistExternalId) || '右'];
 });
 
 /** 保存战报图：html2canvas 截战报卡（对位赛此前没有任何分享出口） */
-async function exportReport() {
-  const el = reportEl.value;
+/**
+ * 导出为 PNG（详细战报 / 简洁分享图共用）
+ * ⚠️ 用**实心底色**导出：透明底发到微信/QQ 里会被压成黑底（详细战报那张尤其明显）。
+ */
+async function exportImage(el, filename, mode) {
   if (!el) return;
-  exporting.value = true;
+  exporting.value = mode;
   try {
     const { default: html2canvas } = await import('html2canvas');
     const canvas = await html2canvas(el, {
       scale: Math.max(2, 1080 / el.offsetWidth),
-      backgroundColor: null,
+      backgroundColor: '#f7fbfe',
       useCORS: true,
     });
     const a = document.createElement('a');
     a.href = canvas.toDataURL('image/png');
-    a.download = `音格对位赛战报-${id}.png`;
+    a.download = filename;
     a.click();
-    ElMessage.success('战报图已保存');
+    ElMessage.success('已保存到下载文件夹');
   } catch (err) {
     ElMessage.error(err?.message || '生成失败');
   } finally {
     exporting.value = false;
   }
 }
+
+const exportReport = () => exportImage(reportEl.value, `音格对位赛战报-${id}.png`, 'full');
+const exportShare = () => exportImage(shareEl.value, `音格对位赛分享图-${id}.png`, 'share');
 
 const isChampion = (al) => !!champion.value && String(al?.albumId) === String(champion.value.albumId);
 
@@ -1122,4 +1192,30 @@ onMounted(load);
     display: none;
   }
 }
+
+/* ===== 简洁分享图（2026-09-20 新增）：720px 紧凑卡，适合直接发群/朋友圈 ===== */
+.arep-mini {
+  width: 720px;
+  max-width: 100%;
+  padding: 20px 22px 16px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, #eaf6ff 0%, #f7fbfe 55%, #eefaf6 100%);
+  border: 1px solid var(--gbd);
+}
+.arep-mini .mini-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.arep-mini .stop { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--brand-deep); }
+.arep-mini .mini-score { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.arep-mini .msn { font-size: 17px; font-weight: 700; }
+.arep-mini .msv { font-size: 34px; font-weight: 900; letter-spacing: -1px; color: var(--brand-deep); font-variant-numeric: tabular-nums; }
+.arep-mini .mini-sub { text-align: center; font-size: 13.5px; color: var(--text2); margin: 6px 0 14px; }
+.arep-mini .mini-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.arep-mini .mrow { display: flex; align-items: center; gap: 7px; background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 6px 9px; }
+.arep-mini .mrow.l, .arep-mini .mrow.r { border-color: rgba(14, 165, 233, 0.42); background: rgba(14, 165, 233, 0.07); }
+.arep-mini .mrow img { width: 30px; height: 30px; border-radius: 7px; object-fit: cover; flex: 0 0 auto; background: #eaf1f6; }
+.arep-mini .mtx { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arep-mini .mtx.rt { text-align: right; }
+.arep-mini .mv { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--text2); font-variant-numeric: tabular-nums; }
+.arep-mini .mrow.l .mv:first-of-type, .arep-mini .mrow.r .mv:last-of-type { color: var(--brand-deep); }
+.arep-mini .mini-more { text-align: center; font-size: 12.5px; color: var(--text3); margin: 10px 0 0; }
+.arep-mini .mini-foot { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(14, 165, 233, 0.32); text-align: center; font-size: 12.5px; color: var(--text3); }
 </style>
