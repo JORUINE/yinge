@@ -2771,6 +2771,11 @@ html[data-theme='dark'] .v b {
   background: var(--glass);
   border: 1px solid var(--gbd);
   margin-top: 16px;
+  /* 2026-09-20 UI 重点优化：与 .g-card 统一材质 —— 玻璃 + 顶部内高光 + 二级阴影，
+     不然同一页里"有的卡片浮起来、有的面板是平的"，看起来像两套设计。 */
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: var(--gsh-hi), 0 10px 28px var(--gsh);
 }
 .panel h4 {
   margin: 0 0 6px;

@@ -89,6 +89,7 @@
         <tr><td>专辑卡内文字</td><td>专辑名 ≥ 15px、歌手名 ≥ 13px；<b>不要把封面当唯一主角而把文字压到看不清</b></td><td><span class="pill p1">待修</span> 投票卡专辑名/年份偏小</td></tr>
         <tr><td>对比度</td><td>正文对比 ≥ 4.5:1；浅色底上不用 #7c97a8 这类淡色承载正文</td><td><span class="pill p2">复核</span></td></tr>
         <tr><td>信息层级</td><td>一屏内主信息 1 个、次信息 2–3 个，其余收进详情</td><td><span class="pill p2">复核</span></td></tr>
+        <tr><td><b>95</b></td><td><b>UI 重点优化轮（对战页页头 / 抽卡入场 / 玻璃材质统一）</b></td><td>"开始按清单执行下一步 ui这一轮重点优化"（承接守则 85 条与清单第 13/24/31 行，都是用户点名"放到 UI 阶段"的项）</td><td><b>本轮做了三件</b>：① <b>对战页页头重做</b> —— 两处（小组赛/淘汰赛）的「轮次 + 已投 N/M」从挤在一起的小字条改成一张玻璃卡：轮次 <b>24px/800</b> 大字靠左上、提示另起一行，右侧「已投」数字 <b>30px/900</b>（分母用 19px 弱化），内边距 16/20px、间距 20px。<br>② <b>抽卡式入场动效</b>：上下场卡片 <code>cardIn</code>（淡入 + 上浮 14px + 微缩 0.985，0.42s 弹性曲线），第 2/3/4 张错峰 80ms；<b>卡名当初写错成不存在的 <code>.groupgrid .gal</code>，小组赛卡片其实没吃到动效，已改回真实类名 <code>.pickgrid .pickcard</code>（自查发现并修）</b>；并加 <code>prefers-reduced-motion: reduce</code> 降级。<br>③ <b>玻璃材质统一</b>：<code>.panel</code> 以前是"平面板"（无阴影无毛玻璃），与 <code>.g-card</code> 不是一套材质 → 现在统一为 <code>玻璃 + --gsh-hi 内高光 + 阴影</code>，同一页里不再"有的浮起来、有的是平的"。<br><b>规则：加动效必须同时给 <code>prefers-reduced-motion</code> 降级；写选择器要用页面上真实存在的类名（写完 grep 一遍），别凭印象命名</b></td><td><span class="pill ok">已做</span></td></tr>
       </tbody>
     </table>
   </div>

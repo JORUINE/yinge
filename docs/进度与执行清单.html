@@ -61,6 +61,7 @@
   <div class="new">
     <h3>本轮（9/20）新修 —— 搜索 / 歌手图 / 对位赛战报 / 后台编辑 / 字号 / Edge 排查</h3>
     <ul>
+      <li><b>UI 重点优化（本轮）</b>：对战页页头重做成玻璃卡 —— 轮次 24px 大字靠左上、「已投 N/M」30px 大字、内边距与间距拉开（用户点名的"太小太挤"已解决）；上下场卡片加<b>抽卡式入场动效</b>（错峰 + 尊重减少动效）；<code>.panel</code> 与 <code>.g-card</code> 统一成同一套玻璃材质。</li>
       <li><b>对位赛张数上限 10 → 24 · 战报打平判定 · 简洁分享图</b>：对位张数上限拉到 24（含 4/6/8/12/16/24 档位，前后端同步）；修掉「5:5 却写领先」（并列第一 → 双方打平/并列领先）；新增 720px <b>简洁分享图</b>（大比分 + 每组一行小封面+比分），与详细战报并列两个导出按钮。</li>
       <li><b>组合自带赛制（对位赛也能建组合）</b>：组合现在有 scopeType —— 后台可建「混战/对位」组合，前台点击自动进对应模式；以前不管什么组合都无脑进混战。</li>
       <li><b>新功能 · 用户给专辑归类投票</b>：<code>/personality/tag-albums</code>，30 秒一票；票数高的专辑后台可一键采纳进人格推荐池（闭环：用户投票 → 后台采纳）。</li>
@@ -172,10 +173,10 @@
         <tr><td>30</td><td>Edge 闪屏（第三轮：页面侧已证清白，窗口层已修）</td><td><span class="pill p1">待用户复验</span></td><td>用户反馈"切换视效也没啥用"→ 说明确实与页面无关（页面实测五项全 0）。已修启动器窗口层（日志窗 /min + 启动器自动退出）并检索到 Edge/WebView2 的<b>窗口焦点卡前台</b>已知缺陷（MicrosoftEdge/WebView2Feedback #3157 一类：某些窗口会卡在前台，无法切到其它窗口）。<b>待复验</b>：若仍复现，下一步按 Windows 侧排查（关 Edge 硬件加速 / 重启 Explorer / 显卡驱动）</td></tr>
         <tr><td>8</td><td><s>指定对决交互（默认全勾、取消反而进对阵表）</s></td><td><span class="pill ok">已做</span></td><td>根因：<code>.pk .ck</code> 对勾徽章<b>默认可见</b>，而"已选"走的是 <code>.off</code>（藏勾+变灰）——语义整个反了。改为<b>只有选中才显示对勾</b>；指定对决改用 <code>pick/done</code> 三态 + 「待成组 1/2」托盘 + 可点选撤销 + 候选池<b>累积</b>（可跨歌手，修掉"全是自己打自己"）</td></tr>
         <tr><td>9</td><td><b>大逃杀模式</b>（100 张彩蛋）</td><td><span class="pill p2">P2</span></td><td>上限已提到 100 张；100 张全选的"大逃杀"玩法按你说的，<b>正式版做完再议可行性</b></td></tr>
-        <tr><td>10</td><td>6 个人格类型的推荐专辑池</td><td><span class="pill p2">P2</span></td><td>后台未绑 recommendAlbumIds → 图鉴 / 人格卡"常听专辑"为空</td></tr>
+        <tr><td>10</td><td><s>6 个人格类型的推荐专辑池</s></td><td><span class="pill ok">已做</span></td><td>6 型各绑 4 张（按 Rolling Stone 500 / 金曲奖 / 豆瓣），后台绑定入口 + 用户众包投票 + 一键采纳闭环均已通</td></tr>
         <tr><td>11</td><td>榜单「地区 / 年代 / 周期」筛选</td><td><span class="pill p2">P2</span></td><td>需后端补接口</td></tr>
         <tr><td>12</td><td>原型 p4/p5/p6 按 v2 重绘</td><td><span class="pill p2">P2</span></td><td>设计稿还是 v1 旧稿</td></tr>
-        <tr><td>13</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷你对阵树 / 本地续玩</td><td><span class="pill p2">P2</span></td><td>排版动效类，按约定放收尾阶段</td></tr>
+        <tr><td>13</td><td>抽卡式入场动画 / 阶段动效 / 落败置灰 / 迷对阵树 / 本地续玩</td><td><span class="pill p1">P1</span></td><td><b>首批已做</b>：上下场卡片抽卡式入场（错峰 80ms + reduce 降级）。剩余：阶段切换动效、落败置灰细化、本地续玩</td></tr>
         <tr><td>14</td><td><s>好友一起玩</s></td><td><span class="pill ok">已做</span></td><td>同款签表：夺冠页「和好友一起玩」→ 6 位邀请码 → <code>/battle/join/&lt;code&gt;</code> 接龙页（盲盒式预览）→ <b>原样复制同一批专辑</b>开局 → 对比页（冠军是否一致 / 第几步分歧 / 逐步并排）</td></tr>
         <tr><td>16</td><td><s>流派歌手库存不足</s></td><td><span class="pill ok">已做</span></td><td>Apple Music 抓同流派靠前歌手补进曲库（默认 30 位）。<b>第五批升级：改用流派榜单源</b> —— iTunes Search 没有流派筛选参数（实测 term=Rock 在 hk 返回 BTS/Taylor Swift），改走 <code>/{country}/rss/topalbums/genre=&lt;id&gt;/json</code>（支持流派、hk+us 两区、条目自带 artistId）。摇滚榜出 Journey/Pink Floyd/TOOL/Fleetwood Mac，Hip-Hop 同时出 Drake/Eminem 与 LMF/MastaMic；并过滤歌单伪歌手与制作人。华语流派仍走"关键词搜 + <code>primaryGenreName</code> 反筛"。<b>支持逐个点选入库</b></td></tr>
         <tr><td>18</td><td><s>对局卡在「本轮已投完」</s></td><td><span class="pill ok">已修</span></td><td><b>真根因</b>：撤销上一步按 <code>matchOrder</code> 删"更晚的场次"，但同轮兄弟场次序号也递增 → 半决赛被删成 1 场 → 残缺轮次被误判为已投完 → 生成<b>轮空决赛</b>（无对阵可投）→ 永久卡死。修：撤销改按<b>阶段序号</b>删除 + 读状态时<b>兜底自愈</b> + 新增 <code>repair-brackets.mjs</code> 体检修复。全库 83 局查出 3 局同类损坏已修，回归 36/36</td></tr>
@@ -184,7 +185,7 @@
         <tr><td>21</td><td><s>冠军页收藏按钮大小不一 / 水印太小 / 冠军不显眼</s></td><td><span class="pill ok">已修</span></td><td>星标统一 26×26 并放大；冠军名 40px 金色带光晕、冠军块金色描边；分享图水印 13.5px/800、冠军名 26px 亮金</td></tr>
         <tr><td>22</td><td><s>玻璃框架缺失（默认没阴影）</s></td><td><span class="pill ok">已修</span></td><td><b>真根因</b>：<code>--gsh</code> 变量塞了两个颜色，用在 <code>box-shadow</code> 里导致<b>整条声明非法被丢弃</b> → 所有玻璃卡/胶囊默认无阴影。拆成 <code>--gsh</code>+<code>--gsh-hi</code> 并统一补默认阴影</td></tr>
         <tr><td>23</td><td>分享图方形版重做（信息被裁 / 整体观感）</td><td><span class="pill p2">P2</span></td><td>用户明确"放到 ui 最终大改里"。本轮只解掉"封面撑破被裁"（改按高度定尺寸）</td></tr>
-        <tr><td>24</td><td>全站文字类玻璃框架 + 类 iOS 液态玻璃视效</td><td><span class="pill p2">P2</span></td><td>用户点名的最终 UI 大改方向。本轮已给 chip/preset/seg/g-card 补默认阴影，属第一步</td></tr>
+        <tr><td>24</td><td>全站玻璃框架 + 类 iOS 液态玻璃视效</td><td><span class="pill p1">P1</span></td><td><b>第二步已做</b>：<code>.panel</code> 与 <code>.g-card</code> 统一材质（玻璃 + 内高光 + 阴影）。剩余：统一的 <code>--sh-1/2/3</code> 层级全面铺开与 hover 抬升</td></tr>
         <tr><td>25</td><td><s>结果页折叠顺序 + 完整晋级图太大太长</s></td><td><span class="pill ok">已修</span></td><td>顺序定稿：<b>小组赛与复活 → 夺冠之路 → 淘汰赛·全部对局 → 完整晋级图</b>（除夺冠之路默认展开，其余收起）。并修掉真问题：晋级树<b>种子格封面无尺寸约束</b>，600×600 原图直接渲染，一列 16 个种子把树撑到 <b>2292px</b>；改横向小行 + 紧凑版（封面 16px / 卡宽 148px），实测 <b>2292px → 568px</b></td></tr>
         <tr><td>26</td><td><s>创建页模式分不清（手动挑选 vs 指定对决）</s></td><td><span class="pill ok">已做</span></td><td>改成游戏大厅式<b>两族</b>：<b>混战模式（VS·蓝，默认首选）</b>＝多歌手混战/单歌手内战/按流派·年代/手动挑选；<b>对位模式（1v1·青）</b>＝经典对位赛（序号对序号）/指定对决。族色贯穿；底层 <code>mode</code> 与现有逻辑不变</td></tr>
         <tr><td>27</td><td><s>排行榜缺"夺冠次数"维度</s></td><td><span class="pill ok">已做</span></td><td>新增 <code>GET /api/rank/champions</code>（按 finished 对局的冠军聚合"当过多少次冠军"）；排行榜加"最受欢迎／夺冠次数"切换，领奖台与列表口径随切换</td></tr>
@@ -193,7 +194,7 @@
         <tr><td>33</td><td><s>手动挑选：勾选交互修复 + 设计按用户定稿恢复</s></td><td><span class="pill ok">已修</span></td><td><b>保留的设计</b>（用户："未被选中的是灰和透明的效果很好啊 选中被点亮这个设计是对的"）：未选中 = 灰+透明，选中 = 点亮（蓝色对勾 + 品牌描边）。<b>真修的 bug/体验</b>：歌手加载中显示"加载中…"、勾选状态统一按数字比较、新增<b>勾选工具条</b>（已选 N/100 · 清空 · 全选，字体已加大）。<b>对勾徽标只出现在可勾选池子</b>（参赛池预览等不再显示，避免"看起来可取消"）。<b>新硬规则（守则 87）：报 bug 先分清 bug 与设计，修 bug 不顺手动视觉</b>。回归 <code>verify-r10.mjs</code> 7/7</td></tr>
         <tr><td>29</td><td><s>对位赛取色全一样</s></td><td><span class="pill ok">已修</span></td><td><b>根因</b>：对位赛/指定对决是旧赛制，走 <code>loadLegacy()</code>，那条分支漏调 <code>loadAccents()</code> → 取色缓存为空 → 全部退回同一个兜底蓝灰。已补；真机实测两张专辑取到两个不同颜色</td></tr>
         <tr><td>30</td><td>Edge 闪屏（已修三轮仍偶发）</td><td><span class="pill p2">P2</span></td><td>CSS 侧已全关（毛玻璃/混合模式/极光/动画/will-change + 本轮补齐 .spark blur 与装饰层过渡）。已加<b>页脚「稳定模式」一键开关</b>（仅 Edge 显示，等同 ?lite=1）。仍闪请点它并反馈</td></tr>
-        <tr><td>31</td><td>对战页顶部徽标太小太挤 + 全站字号偏小</td><td><span class="pill p2">P2</span></td><td>用户点名"放到 UI 阶段优化"：徽标加大、往左上移、拉开间距；全站字号整体上调一档</td></tr>
+        <tr><td>31</td><td><s>对战页顶部徽标太小太挤 + 全站字号偏小</s></td><td><span class="pill ok">已做</span></td><td>页头改玻璃卡（轮次 24px/800、已投 30px/900、pad 16/20、gap 20）；字号已在上一轮整体上调一档（正文 15px、全站无 &lt;12px 文字）</td></tr>
         <tr><td>15</td><td>部署上云 + 演示视频 + 论文</td><td><span class="pill p2">P2</span></td><td>未开始</td></tr>
       </tbody>
     </table>

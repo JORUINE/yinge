@@ -19,12 +19,16 @@
 
     <!-- ============ 小组赛 / 遗珠复活：一次多选 K 张 ============ -->
     <template v-else-if="group">
-      <div class="arena-top">
-        <div class="left">
-          <span class="pillx">{{ groupLabel }}</span>
-          <span class="meta">{{ groupHint }}</span>
+      <div class="playhd">
+        <div class="phl">
+          <span class="phstage">{{ groupLabel }}</span>
+          <span class="phhint">{{ groupHint }}</span>
         </div>
-        <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
+        <div class="phr">
+          <span class="phlab">已投</span>
+          <b class="phnum num">{{ progress.decided }}<i>/{{ progress.total }}</i></b>
+          <span class="phunit">场</span>
+        </div>
       </div>
       <!-- 用户要求：给一次撤销机会 -->
       <div class="undobar">
@@ -134,12 +138,16 @@
 
     <!-- ============ 淘汰赛：1v1 ============ -->
     <template v-else-if="match">
-      <div class="arena-top">
-        <div class="left">
-          <span class="pillx">{{ koLabel }}</span>
-          <span class="meta">{{ koHint }}</span>
+      <div class="playhd">
+        <div class="phl">
+          <span class="phstage">{{ koLabel }}</span>
+          <span class="phhint">{{ koHint }}</span>
         </div>
-        <div class="meta2">已投 <b class="num">{{ progress.decided }} / {{ progress.total }}</b> 场</div>
+        <div class="phr">
+          <span class="phlab">已投</span>
+          <b class="phnum num">{{ progress.decided }}<i>/{{ progress.total }}</i></b>
+          <span class="phunit">场</span>
+        </div>
       </div>
       <!-- 用户要求：给一次撤销机会 + 明示"下面可以切歌"（默认 100% 缩放时容易看不到播放条） -->
       <div class="undobar">
@@ -1167,5 +1175,98 @@ onMounted(load);
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 1px 5px;
+}
+
+/* ===== 对战页页头（2026-09-20 UI 重点优化）=====
+   用户："淘汰赛按钮写的太小太近，位置应该放的更左上角一点、更大一点，已投也是一样"。
+   做法：轮次做成 24px 大字并靠左，提示另起一行；右侧「已投 N/M」数字放大到 30px，
+   两侧间距 20px、内边距 18px —— 信息条本身就是一张玻璃卡，视觉上"站起来"了。 */
+.playhd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  margin-bottom: 14px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  box-shadow: var(--shadow-2);
+}
+.playhd .phl {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.playhd .phstage {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--brand-deep);
+  line-height: 1.15;
+}
+.playhd .phhint {
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.playhd .phr {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+.playhd .phlab,
+.playhd .phunit {
+  font-size: 14px;
+  color: var(--text2);
+}
+.playhd .phnum {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--brand-deep);
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.playhd .phnum i {
+  font-style: normal;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text3);
+}
+
+/* 抽卡式入场：上下场卡片错峰淡入上浮（用户清单 13 行要的"抽卡式入场动画"）
+   尊重 prefers-reduced-motion：关掉动画只留最终状态。 */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.duelgrid .alb,
+.pickgrid .pickcard {
+  animation: cardIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.duelgrid .alb:nth-child(2),
+.pickgrid .pickcard:nth-child(2) {
+  animation-delay: 0.08s;
+}
+.pickgrid .pickcard:nth-child(3) {
+  animation-delay: 0.16s;
+}
+.pickgrid .pickcard:nth-child(4) {
+  animation-delay: 0.24s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .duelgrid .alb,
+  .pickgrid .pickcard {
+    animation: none;
+  }
 }
 </style>
