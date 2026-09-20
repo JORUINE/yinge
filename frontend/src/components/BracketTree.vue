@@ -81,7 +81,7 @@ const year = (d) => (d ? String(d).slice(0, 4) : '');
   box-shadow: none;
 }
 .champcard .ct {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 900;
   letter-spacing: 0.14em;
   color: var(--gold);
@@ -101,7 +101,7 @@ const year = (d) => (d ? String(d).slice(0, 4) : '');
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .champcard .ca {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text2);
 }
 /* 紧凑版：冠军格一起缩小（与树的比例保持一致） */
@@ -121,7 +121,7 @@ const year = (d) => (d ? String(d).slice(0, 4) : '');
 }
 .bthint {
   margin: 6px 0 0;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text3);
 }
 .bthint b {

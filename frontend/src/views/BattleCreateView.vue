@@ -92,17 +92,14 @@
         </div>
 
         <div v-if="duelCandidates.length" class="chips" style="margin-top: 12px">
-          <button
+          <ArtistChip
             v-for="a in duelCandidates"
             :key="a.artistId"
-            class="chip"
-            :class="{ on: duelArtists.some((x) => x.artistId === a.artistId) }"
-            type="button"
-            @click="loadDuelAlbums(a)"
-          >
-            <b>{{ a.name }}</b>
-            <i>{{ duelArtists.some((x) => x.artistId === a.artistId) ? '已载入' : '加入候选池' }}</i>
-          </button>
+            :artist="a"
+            :on="duelArtists.some((x) => x.artistId === a.artistId)"
+            :action="duelArtists.some((x) => x.artistId === a.artistId) ? '已载入' : '加入候选池'"
+            @pick="loadDuelAlbums"
+          />
         </div>
 
         <!-- 已载入歌手单独一排：指定对决要能跨歌手，不然只能"自己打自己" -->
@@ -186,17 +183,14 @@
           </button>
         </div>
         <div v-if="candidates.length" class="chips" style="margin-top: 12px">
-          <button
+          <ArtistChip
             v-for="a in candidates"
             :key="a.artistId"
-            class="chip"
-            type="button"
-            :disabled="loadingArtistId === a.artistId"
-            @click="loadCustomAlbums(a)"
-          >
-            <b>{{ loadingArtistId === a.artistId ? '加载中…' : a.name }}</b>
-            <i>{{ loadingArtistId === a.artistId ? '正在拉 TA 的专辑' : '加载其专辑' }}</i>
-          </button>
+            :artist="a"
+            :busy="loadingArtistId === a.artistId"
+            action="加载其专辑"
+            @pick="loadCustomAlbums"
+          />
         </div>
         <p v-if="lastAdded" class="addedtip">✓ {{ lastAdded }}</p>
         <p class="hint">点「加载其专辑」把某位歌手的专辑放进来，再点封面勾选；一局至少 4 张、<b>最多 100 张</b>。</p>
@@ -261,15 +255,14 @@
         </div>
 
         <div v-if="candidates.length" class="chips" style="margin-top: 12px">
-          <button
+          <ArtistChip
             v-for="a in candidates"
             :key="a.artistId"
-            class="chip"
-            type="button"
-            @click="addArtist(a)"
-          >
-            <b>{{ a.name }}</b><i>加入</i>
-          </button>
+            :artist="a"
+            :on="picked.some((x) => x.artistId === a.artistId)"
+            action="加入"
+            @pick="addArtist"
+          />
         </div>
 
         <!-- 已选歌手：单独一排（与搜索结果分开），避免误点重复加入 -->
@@ -591,6 +584,7 @@ import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { musicApi, battleApi, comboApi } from '@/api';
+import ArtistChip from '@/components/ArtistChip.vue';
 import {
   SINGER_SCALES,
   PER_ARTIST_SCALES,
@@ -1488,7 +1482,7 @@ async function onCreate() {
 .ipt {
   width: 100%;
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   padding: 11px 14px;
   border-radius: 12px;
   border: 1px solid var(--gbd);
@@ -1589,7 +1583,7 @@ async function onCreate() {
   box-shadow: var(--gsh-hi), 0 4px 14px rgba(224, 135, 0, 0.28);
 }
 .minetag {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.04em;
   padding: 1px 7px;
@@ -1607,7 +1601,7 @@ async function onCreate() {
   border-radius: 50%;
   background: var(--danger);
   color: #fff;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 16px;
   text-align: center;
   cursor: pointer;
@@ -1739,7 +1733,7 @@ async function onCreate() {
   font-size: var(--fs-sm);
 }
 .growhd b {
-  font-size: 14px;
+  font-size: 15px;
 }
 .growhd span {
   color: var(--text3);

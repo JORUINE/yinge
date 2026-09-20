@@ -200,7 +200,7 @@ onMounted(load);
   flex-wrap: wrap;
 }
 .meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text2);
 }
 .meta b {
@@ -220,7 +220,7 @@ onMounted(load);
   color: var(--ok);
 }
 .grow .rec {
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--text3);
   font-weight: 700;
 }

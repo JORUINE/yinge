@@ -142,8 +142,10 @@
         <tr><td>3</td><td><s>游客数据迁移到正式账号</s></td><td><span class="pill ok">已做</span></td><td>已实现 A-07：注册 / 登录后<b>自动</b>把本机游客的对决 / 票 / 测评 / 收藏转进账号（真后端 E2E 通过）</td></tr>
         <tr><td>4</td><td>后台剩余 3 页（人格类型 / 音乐数据 / 用户管理）</td><td><span class="pill p1">P1</span></td><td>未还原成设计系统版式</td></tr>
         <tr><td>5</td><td><s>分享页布局（100% 缩放下图片乱）</s></td><td><span class="pill ok">已做</span></td><td>根因是 <code>.sharewrap</code> <b>压根没定义</b> → 两块退化成竖排、卡片拉满屏。已补两栏栅格（<code>420px + 1fr</code>，<code>max-width:1120px</code>，<code>margin:auto</code>）。实测：x=160 / 宽 1120 / 两栏 420+672</td></tr>
-        <tr><td>6</td><td><b>歌手官方图</b>（搜索结果空白处）</td><td><span class="pill p1">P1</span></td><td>iTunes Search API 不返回歌手头像；可用"歌手封面图代位"或接 Apple Music API（需密钥）</td></tr>
-        <tr><td>7</td><td>搜索过滤更严 + 已选歌手单独一排</td><td><span class="pill p1">P1</span></td><td>未做（iTunes 模糊匹配会混入无关歌手）</td></tr>
+        <tr><td>6</td><td><s>歌手官方图 + 介绍（搜索结果空白处）</s></td><td><span class="pill ok">已做</span></td><td>iTunes Search API 不返回歌手头像 → 用<b>代表作封面代位</b>当头像（曲库已缓存则零成本取较新一张；未缓存则去 iTunes 查 1 次，并发 3）。候选卡改为：头像 + 姓名 + <b>流派 · 曲库 N 张正式专辑 · 年代跨度</b>（未入库则显示<b>代表作《X》· 未入库</b>）。简介只用真实字段拼，不写"著名歌手"这类空话</td></tr>
+        <tr><td>7</td><td>搜索过滤更严 + 已选歌手单独一排</td><td><span class="pill p1">P1</span></td><td>已选歌手单独一排已完成；iTunes 模糊匹配混入无关歌手（如搜"jay"出 ENHYPEN）待做</td></tr>
+        <tr><td>34</td><td><s>第一轮基础前端优化：字号</s></td><td><span class="pill ok">已做</span></td><td>字阶整体上调一档（body 14→15 / sm 13→14 / xs 12→13 / h1 30→32 / h2 22→24 / h3 17→18 / display 44→48）+ 写死的 211 处 px 一起上调。实测正文 15px、<b>全站无任何 &lt;12px 文字</b>。<b>新硬规则（守则 88）：文字不得小于 12px</b></td></tr>
+        <tr><td>30</td><td>Edge 闪屏（第三轮：窗口层根因已定位）</td><td><span class="pill ok">已修</span></td><td>页面侧用 UA 伪装 Edge 实测已在 <code>ua-edge</code> 下全 0（毛玻璃/滤镜/动画/混合/全屏固定层）。<b>真凶在窗口层</b>：<code>start-dev.bat</code> 的两个黑窗 + 启动器 <code>pause</code> 停在前台接住了焦点（UI 原型是双击 html，没有黑窗，所以从来不复现）。已修：日志窗 <code>/min</code>、启动器 5 秒自动退出。另加<b>极简模式</b>与页脚<b>GPU 自检读数</b>（全 0 变绿）便于自证</td></tr>
         <tr><td>8</td><td><s>指定对决交互（默认全勾、取消反而进对阵表）</s></td><td><span class="pill ok">已做</span></td><td>根因：<code>.pk .ck</code> 对勾徽章<b>默认可见</b>，而"已选"走的是 <code>.off</code>（藏勾+变灰）——语义整个反了。改为<b>只有选中才显示对勾</b>；指定对决改用 <code>pick/done</code> 三态 + 「待成组 1/2」托盘 + 可点选撤销 + 候选池<b>累积</b>（可跨歌手，修掉"全是自己打自己"）</td></tr>
         <tr><td>9</td><td><b>大逃杀模式</b>（100 张彩蛋）</td><td><span class="pill p2">P2</span></td><td>上限已提到 100 张；100 张全选的"大逃杀"玩法按你说的，<b>正式版做完再议可行性</b></td></tr>
         <tr><td>10</td><td>6 个人格类型的推荐专辑池</td><td><span class="pill p2">P2</span></td><td>后台未绑 recommendAlbumIds → 图鉴 / 人格卡"常听专辑"为空</td></tr>

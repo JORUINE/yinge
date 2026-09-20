@@ -233,16 +233,16 @@ onMounted(load);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 9.5px;
+  font-size: 12px;
   opacity: 0.85;
 }
 .roundline {
-  font-size: 10.5px;
+  font-size: 12px;
   opacity: 0.7;
   text-align: center;
 }
 .cap {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text3);
   text-align: center;
   margin-top: 10px;

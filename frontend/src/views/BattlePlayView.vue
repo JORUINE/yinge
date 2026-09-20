@@ -728,7 +728,7 @@ onMounted(load);
 .crumb {
   margin-top: 22px;
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
 }
 .crumb a {
   color: var(--brand-deep);
@@ -753,11 +753,11 @@ onMounted(load);
   flex-wrap: wrap;
 }
 .meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text2);
 }
 .meta2 {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text3);
 }
 .meta2 b {
@@ -779,7 +779,7 @@ onMounted(load);
   font-size: 17px;
 }
 .count {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--brand-deep);
   background: rgba(14, 165, 233, 0.12);
@@ -863,7 +863,7 @@ onMounted(load);
   color: var(--text);
 }
 .pickcard .ar {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--ac);
   font-weight: 600;
   margin-top: 4px;
@@ -879,7 +879,7 @@ onMounted(load);
   background: var(--ac);
 }
 .pickcard .mt {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text2);
   margin-top: 2px;
 }
@@ -891,7 +891,7 @@ onMounted(load);
   margin-left: 8px;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--brand-deep);
   background: rgba(14, 165, 233, 0.12);
@@ -972,7 +972,7 @@ onMounted(load);
   left: 50%;
   bottom: 10px;
   transform: translateX(-50%);
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   letter-spacing: 0.5px;
   color: #fff;
@@ -997,7 +997,7 @@ onMounted(load);
 }
 .votehint {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text3);
   text-align: center;
 }
@@ -1012,7 +1012,7 @@ onMounted(load);
 .undobtn {
   flex: 0 0 auto;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--brand-deep);
   background: var(--glass2);
@@ -1031,12 +1031,12 @@ onMounted(load);
   cursor: default;
 }
 .undohint {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text2);
 }
 .sib-tip {
   text-align: center;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--brand-deep);
   background: rgba(14, 165, 233, 0.1);
@@ -1096,11 +1096,11 @@ onMounted(load);
   margin-bottom: 12px;
 }
 .tl-head b {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
 }
 .tl-sub {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text2);
 }
 .tl-chips {
@@ -1120,7 +1120,7 @@ onMounted(load);
   border-radius: 999px;
   padding: 6px 12px;
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text);
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, transform 0.15s;
@@ -1132,7 +1132,7 @@ onMounted(load);
   border-radius: 50%;
   background: var(--brand);
   color: #fff;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -1162,7 +1162,7 @@ onMounted(load);
 }
 .tl-chip .tag {
   flex: 0 0 auto;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text3);
   border: 1px solid var(--line);
   border-radius: 6px;

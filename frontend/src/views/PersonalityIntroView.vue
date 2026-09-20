@@ -78,7 +78,7 @@ onMounted(async () => {
 }
 .hero-tag {
   display: inline-block;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 1.3px;
   color: var(--brand-deep);
   font-weight: 700;

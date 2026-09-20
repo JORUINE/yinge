@@ -83,7 +83,7 @@ async function onClick() {
   border: 1px solid var(--gbd);
   background: var(--glass2);
   color: var(--text2);
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s, background 0.2s;
@@ -109,7 +109,7 @@ async function onClick() {
   padding: 6px;
 }
 .favbtn.sm {
-  font-size: 11.5px;
+  font-size: 13px;
   padding: 4px 10px;
 }
 .favbtn.sm.icon {

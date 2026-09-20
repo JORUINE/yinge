@@ -267,8 +267,77 @@ export const GENRES = [
   'Soundtrack',
 ];
 
+/**
+ * 歌手搜索（带「头像 + 简介」，2026-09-19 P1）
+ * ------------------------------------------------------------
+ * ⚠️ 事实：iTunes Search API 的 musicArtist 结果里**没有歌手头像**
+ *    （只有 artistLinkUrl / primaryGenreName）。Apple Music API 有头像但要开发者密钥。
+ *    所以这里用**代表作封面代位**当头像，并用真实数据拼简介：
+ *      · 曲库已缓存 → 头像取较新的一张合格专辑封面；简介给"流派 · 正式专辑数 · 年代跨度"
+ *      · 未缓存 → 去 iTunes 查一次该歌手的专辑（每人最多 1 次请求，并发 3），
+ *        头像取第一张有封面的正式专辑，简介给"流派 · 代表作《X》 · 未入库"
+ *    简介里不放任何编出来的话（"著名歌手/殿堂级"这类一律不写）。
+ */
+const SEARCH_ARTIST_CONCURRENCY = 3;
+
+async function mapWithConcurrency(list, limit, fn) {
+  const out = new Array(list.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, list.length) }, async () => {
+    for (;;) {
+      const i = cursor;
+      cursor += 1;
+      if (i >= list.length) return;
+      // eslint-disable-next-line no-await-in-loop
+      out[i] = await fn(list[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+const yearOf = (d) => (d ? new Date(d).getFullYear() : null);
+
+async function enrichArtistBrief(a) {
+  const cached = await Album.find({ artistExternalId: a.artistId, isEligible: true })
+    .sort({ releaseDate: 1 })
+    .select('albumId name artworkUrl releaseDate')
+    .lean();
+  if (cached.length) {
+    const years = cached.map((x) => yearOf(x.releaseDate)).filter(Boolean);
+    const newest = cached[cached.length - 1];
+    return {
+      ...a,
+      cached: true,
+      albumCount: cached.length,
+      artworkUrl: newest.artworkUrl || cached[0].artworkUrl || null,
+      topAlbum: newest.name || null,
+      yearFrom: years.length ? Math.min(...years) : null,
+      yearTo: years.length ? Math.max(...years) : null,
+    };
+  }
+  try {
+    const { albums } = await itunes.lookupAlbums(a.artistId, 25);
+    const pick = albums.find((x) => x.artworkUrl && x.isAlbumType) || albums.find((x) => x.artworkUrl) || null;
+    return {
+      ...a,
+      cached: false,
+      albumCount: 0,
+      artworkUrl: pick?.artworkUrl || null,
+      topAlbum: pick?.name || null,
+      yearFrom: pick ? yearOf(pick.releaseDate) : null,
+      yearTo: null,
+    };
+  } catch {
+    // 外部接口挂了也要能搜（降级：没有头像就显示首字母占位）
+    return { ...a, cached: false, albumCount: 0, artworkUrl: null, topAlbum: null };
+  }
+}
+
 export async function searchArtists(term, limit = 10) {
-  return itunes.searchArtists(term, limit);
+  const { artists } = await itunes.searchArtists(term, limit);
+  const enriched = await mapWithConcurrency(artists, SEARCH_ARTIST_CONCURRENCY, enrichArtistBrief);
+  return { artists: enriched };
 }
 
 export default {

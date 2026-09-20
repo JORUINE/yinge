@@ -162,7 +162,7 @@ onMounted(async () => {
 }
 .fine {
   margin: 16px 0 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text3);
   line-height: 1.75;
 }

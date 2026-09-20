@@ -74,13 +74,16 @@
   --font-mono: ui-monospace, 'SFMono-Regular', 'JetBrains Mono', monospace;
 
   /* ===== 字阶 ===== */
-  --fs-display: 44px;
-  --fs-h1: 30px;
-  --fs-h2: 22px;
-  --fs-h3: 17px;
-  --fs-body: 14px;
-  --fs-sm: 13px;
-  --fs-xs: 12px;
+  /* 字阶（2026-09-19 第一轮基础优化：整体上调一档 —— 用户反馈"整体字都偏小"）
+     ⚠️ 配套：组件里写死的 px 也一并上调了（9.5~14px → 12~15px，见改动记录第十一批）。
+     改字阶时两处要一起改，否则同一屏里会出现两种"小字"（守则第 2 条：改一处改全部引用）。 */
+  --fs-display: 48px;
+  --fs-h1: 32px;
+  --fs-h2: 24px;
+  --fs-h3: 18px;
+  --fs-body: 15px;
+  --fs-sm: 14px;
+  --fs-xs: 13px;
 
   /* ===== 间距（8 的倍数体系）===== */
   --sp-1: 4px;

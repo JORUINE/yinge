@@ -77,7 +77,7 @@ async function logout() {
 }
 .backsite {
   margin-right: 10px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--brand-deep);
   text-decoration: none;
 }
@@ -93,7 +93,7 @@ async function logout() {
   border: 1px solid var(--gbd);
   background: var(--glass2);
   color: var(--text2);
-  font-size: 12.5px;
+  font-size: 13.5px;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
 }

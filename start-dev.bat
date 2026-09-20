@@ -47,12 +47,12 @@ echo.
 REM ---- 5) 启动后端 + 前端（各自独立窗口）----
 echo [4/5] 启动后端（http://127.0.0.1:3000）...
 if "%USE_WATCH%"=="1" (
-  start "yinge-backend" /D "%Y%backend" cmd /k ""%NODE_EXE%" --watch src/server.js"
+  start "yinge-backend" /min /D "%Y%backend" cmd /k ""%NODE_EXE%" --watch src/server.js"
 ) else (
   start "yinge-backend" /D "%Y%backend" cmd /k ""%NODE_EXE%" src/server.js"
 )
 echo [5/5] 启动前端（http://localhost:5173）...
-start "yinge-frontend" /D "%Y%frontend" cmd /k ""%NODE_EXE%" node_modules/vite/bin/vite.js"
+start "yinge-frontend" /min /D "%Y%frontend" cmd /k ""%NODE_EXE%" node_modules/vite/bin/vite.js"
 echo.
 
 echo 等 8 秒让前端就绪，然后自动打开浏览器...
@@ -70,5 +70,17 @@ echo  停数据库 = 双击同目录 stop-dev.bat
 echo  验证后端 = 浏览器打开 http://127.0.0.1:3000/health
 echo ----------------------------------------------------------
 echo.
-pause
+echo   Started. Two log windows are minimized in the taskbar:
+echo     - yinge-backend  : API server,  port 3000
+echo     - yinge-frontend : web frontend, port 5173
+echo.
+echo   This black window closes itself in 5 seconds - it does NOT stay
+echo   in the foreground any more. (A leftover foreground console was the
+echo   reason minimizing the browser felt like "keep switching windows".)
+echo.
+echo   Restart = run this script again;  Stop DB = stop-dev.bat
+echo ----------------------------------------------------------
+echo.
+timeout /t 5 /nobreak >nul
 endlocal
+exit /b 0

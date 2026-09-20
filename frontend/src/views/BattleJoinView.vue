@@ -215,7 +215,7 @@ onMounted(load);
   font-size: 16px;
 }
 .jhd span {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .jwho {
@@ -238,11 +238,11 @@ onMounted(load);
   object-fit: cover;
 }
 .jmore {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .jnote {
-  font-size: 13.5px;
+  font-size: 14.5px;
   line-height: 1.75;
   color: var(--muted);
   margin: 0 0 14px;
@@ -272,18 +272,18 @@ onMounted(load);
   border-color: var(--brand);
 }
 .p .who {
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
 }
 .p .who i {
   font-style: normal;
   font-weight: 400;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
   margin-left: 4px;
 }
 .p .st {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--muted);
 }
 .p img {
@@ -293,11 +293,11 @@ onMounted(load);
   object-fit: cover;
 }
 .p .cn {
-  font-size: 13px;
+  font-size: 14px;
 }
 .agree {
   margin: 0 0 10px;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
 }
 .agree.diff {
@@ -313,7 +313,7 @@ onMounted(load);
   align-items: baseline;
   gap: 10px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14.5px;
   color: var(--muted);
 }
 .foldhd b {
@@ -330,7 +330,7 @@ onMounted(load);
   grid-template-columns: 84px minmax(0, 1fr) 28px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
-  font-size: 13px;
+  font-size: 14px;
   padding: 6px 8px;
   border-radius: 8px;
 }
@@ -346,10 +346,10 @@ onMounted(load);
 .step .svs {
   text-align: center;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .note {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.7;
 }
 </style>

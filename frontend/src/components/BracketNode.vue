@@ -144,7 +144,7 @@ function sideClass(album) {
   box-shadow: var(--gsh-hi), 0 0 0 2px rgba(14, 165, 233, 0.28);
 }
 .bcard .rnd {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.06em;
   color: var(--text3);
@@ -165,7 +165,7 @@ function sideClass(album) {
 .bcard .tn {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   /* 专辑名最多两行 —— 用户要的就是"字能展现出来"（以前只给一行、全被省略成…） */
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -175,7 +175,7 @@ function sideClass(album) {
 }
 .bcard .sc {
   flex: 0 0 auto;
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
   color: var(--text2);
 }
@@ -208,7 +208,7 @@ function sideClass(album) {
 }
 .bcard.seed .tn {
   -webkit-line-clamp: 2;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text);
 }
 
@@ -229,7 +229,7 @@ function sideClass(album) {
   border-radius: 10px;
 }
 .bnode.compact .bcard .rnd {
-  font-size: 9.5px;
+  font-size: 12px;
   letter-spacing: 0.04em;
 }
 .bnode.compact .bcard .row {
@@ -241,12 +241,12 @@ function sideClass(album) {
   border-radius: 4px;
 }
 .bnode.compact .bcard .tn {
-  font-size: 12.5px;
+  font-size: 13.5px;
   line-height: 1.2;
   -webkit-line-clamp: 2;
 }
 .bnode.compact .bcard .sc {
-  font-size: 11px;
+  font-size: 12.5px;
 }
 .bnode.compact .bcard.seed {
   width: 148px;

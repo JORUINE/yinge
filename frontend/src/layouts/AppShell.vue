@@ -69,15 +69,20 @@
     <footer v-if="!isAdmin" class="foot">
       <div class="container">
         音格 · 专辑对决与音乐人格测评　|　试听与封面数据来自 iTunes Search API（免登录，30 秒片段）
-        <button
-          v-if="isEdge"
-          class="edgetoggle"
-          type="button"
-          :title="lite ? '已开启稳定模式（关掉毛玻璃与动效）。点这里恢复完整视效' : 'Edge 上如果还闪屏，点这个开稳定模式（关掉毛玻璃与动效，最稳）'"
-          @click="toggleLite"
-        >
-          {{ lite ? '已开启稳定模式' : 'Edge 还闪屏？点我开稳定模式' }}
-        </button>
+        <span v-if="isEdge" class="edgecompat">
+          <button
+            class="edgetoggle"
+            type="button"
+            :title="'Edge 上如果还闪屏，就往下切一档：完整 → 稳定（关毛玻璃/模糊/极光）→ 极简（连阴影动效一起关）'"
+            @click="cycleCompat"
+          >
+            视效：{{ compatLabel }} · 点击切换
+          </button>
+          <em class="edgediag" :class="{ clean: diagClean }" :title="diag.bigFixedWho">
+            GPU 自检：毛玻璃 {{ diag.glass }} · 滤镜 {{ diag.blur }} · 动画 {{ diag.anim }} · 混合
+            {{ diag.blend }} · 全屏固定层 {{ diag.bigFixed }}
+          </em>
+        </span>
       </div>
     </footer>
 
@@ -191,26 +196,71 @@ async function onLogout() {
 }
 
 /**
- * Edge 稳定模式开关（2026-09-19）
+ * Edge 兼容档位 + GPU 自检（2026-09-19 第三轮）
  * ------------------------------------------------------------
- * Edge(Windows) 的闪屏问题已经修了三轮：关毛玻璃、关 mix-blend-mode、关极光层、
- * 停动画、降 blur —— CSS 侧能关的都关了（html.ua-edge）。
- * 用户反馈仍偶发，所以给一个**看得见的一键开关**：点一下就切到最彻底的 lite 模式
- * （连装饰光效一起关），不用用户手动在网址后加 ?lite=1。
- * 只在 Edge 上出现；Chrome 等其它浏览器看不到这个按钮。
+ * 三档：完整（auto）→ 稳定（lite：极光不渲染 + 毛玻璃/滤镜全关）
+ *       → 极简（safe：连阴影/过渡/装饰覆盖层都关，只剩纯静态版式）
+ * 一键切换、存 localStorage、刷新生效。只在 Edge 显示，Chrome 等看不到。
+ * 旁边的自检读数会数出**当前页面还有多少元素在吃 GPU**：
+ *   毛玻璃 / 滤镜 / 动画 / 混合模式 / 固定层 —— 全 0 就说明页面侧已经彻底安静，
+ *   这时若还闪，问题就不在页面上（窗口层或显卡驱动层）。
+ * 另外 Windows 上启动器留下的黑窗停在前台会"接住"焦点（已改 start-dev.bat：
+ *   两个日志窗 /min、启动器 5 秒后自动退出）。
  */
 const isEdge = Boolean(document.documentElement.classList.contains('ua-edge'));
-const lite = ref(Boolean(new URLSearchParams(location.search).get('lite')) || false);
-function toggleLite() {
+const compat = ref(document.documentElement.dataset.compat || 'auto');
+const diag = ref({ glass: 0, blur: 0, anim: 0, blend: 0, bigFixed: 0, bigFixedWho: '' });
+const COMPAT_LABEL = { auto: '完整', glass: '强制完整', lite: '稳定', safe: '极简' };
+const compatLabel = computed(() => COMPAT_LABEL[compat.value] || '完整');
+const diagClean = computed(
+  () =>
+    diag.value.glass + diag.value.blur + diag.value.anim + diag.value.blend + diag.value.bigFixed === 0,
+);
+
+function cycleCompat() {
+  const order = ['auto', 'lite', 'safe'];
+  const next = order[(order.indexOf(compat.value) + 1) % order.length];
   try {
-    const on = localStorage.getItem('yinge_lite') === '1';
-    if (on) localStorage.removeItem('yinge_lite');
-    else localStorage.setItem('yinge_lite', '1');
+    localStorage.setItem('yinge_compat', next);
   } catch {
-    /* 隐私模式下存不了就只对本次生效 */
+    /* 隐私模式忽略 */
   }
   location.reload();
 }
+
+/** 逐项数一遍"还有多少元素在吃 GPU"（只在 Edge 上、进页面 1.5 秒后跑一次）
+ *  ⚠️ 固定层只数**大面积**的（≥40% 视口）：Chromium 合成器的老毛病（crbug 483220231）
+ *  是"铺满视口的合成层"被整层丢弃，一个小 toast 的 fixed 不影响；把 toast 也算进去
+ *  会让读数永远不为 0，反而看不出真问题。
+ */
+function runCompatDiag() {
+  let glass = 0;
+  let blur = 0;
+  let anim = 0;
+  let blend = 0;
+  let bigFixed = 0;
+  let bigFixedWho = '';
+  const vp = window.innerWidth * window.innerHeight || 1;
+  for (const el of document.querySelectorAll('*')) {
+    const cs = getComputedStyle(el);
+    if (cs.backdropFilter && cs.backdropFilter !== 'none') glass += 1;
+    if (cs.filter && cs.filter !== 'none') blur += 1;
+    if (cs.animationName && cs.animationName !== 'none') anim += 1;
+    if (cs.mixBlendMode && cs.mixBlendMode !== 'normal') blend += 1;
+    if (cs.position === 'fixed' && cs.display !== 'none' && cs.visibility !== 'hidden') {
+      const r = el.getBoundingClientRect();
+      if ((r.width * r.height) / vp >= 0.4) {
+        bigFixed += 1;
+        bigFixedWho = `${el.tagName.toLowerCase()}.${String(el.className || '').slice(0, 30)}`;
+      }
+    }
+  }
+  diag.value = { glass, blur, anim, blend, bigFixed, bigFixedWho };
+}
+
+onMounted(() => {
+  if (isEdge) window.setTimeout(runCompatDiag, 1500);
+});
 </script>
 
 <style scoped>
@@ -250,7 +300,7 @@ function toggleLite() {
   border: 1px solid var(--gbd);
   background: var(--glass2);
   color: var(--text2);
-  font-size: 12.5px;
+  font-size: 13.5px;
   cursor: pointer;
   transition: color 0.2s, border-color 0.2s;
 }
@@ -286,7 +336,7 @@ function toggleLite() {
 }
 
 .nav-inline a {
-  font-size: 13.5px;
+  font-size: 14.5px;
   color: var(--text2);
   text-decoration: none;
   cursor: pointer;
@@ -314,7 +364,7 @@ function toggleLite() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--brand-ink);
   background: var(--brand);
@@ -322,7 +372,7 @@ function toggleLite() {
 }
 
 .quit {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text2);
   cursor: pointer;
   transition: color 0.2s;
@@ -333,7 +383,7 @@ function toggleLite() {
 
 /* 游客身份标识：点去注册（需求口径——玩可以免注册，收藏/长期保留要注册） */
 .guest-tag {
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--brand-deep);
   background: rgba(14, 165, 233, 0.12);
@@ -362,7 +412,7 @@ function toggleLite() {
 }
 .guestbar .gt {
   flex: 0 0 auto;
-  font-size: 11.5px;
+  font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.5px;
   color: var(--brand-ink, #04263c);
@@ -373,7 +423,7 @@ function toggleLite() {
 .guestbar .gm {
   flex: 1;
   min-width: 220px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text2);
 }
 .guestbar .gm b {

@@ -179,7 +179,7 @@ onMounted(reload);
 }
 .nobadge {
   display: inline-block;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 700;
   padding: 3px 12px;
   border-radius: 999px;

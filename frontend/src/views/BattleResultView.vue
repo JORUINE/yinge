@@ -602,7 +602,7 @@ onMounted(load);
   font-size: 15px;
 }
 .foldhd span {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text2);
 }
 .foldhd .chev {
@@ -646,7 +646,7 @@ onMounted(load);
   padding: 10px 14px;
 }
 .fold.sub .foldhd b {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 /* 对位赛战报卡 */
@@ -667,7 +667,7 @@ onMounted(load);
   letter-spacing: -0.3px;
 }
 .ahead-sub {
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: var(--text3);
 }
 .awin {
@@ -675,12 +675,12 @@ onMounted(load);
 }
 .asub {
   display: block;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text3);
 }
 .abadge {
   flex: 0 0 auto;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 800;
   color: #04263c;
   background: var(--brand);
@@ -740,13 +740,13 @@ onMounted(load);
   gap: 2px;
 }
 .podium .pd .tx b {
-  font-size: 14px;
+  font-size: 15px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .podium .pd .tx span:last-child {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -754,7 +754,7 @@ onMounted(load);
 }
 .rk {
   align-self: flex-start;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0.5px;
   padding: 2px 9px;
@@ -773,7 +773,7 @@ onMounted(load);
 .note {
   flex-basis: 100%;
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text3);
 }
 
@@ -801,10 +801,10 @@ onMounted(load);
   margin-bottom: 10px;
 }
 .gshd b {
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 .gshd span {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text3);
 }
 .gslist {
@@ -829,7 +829,7 @@ onMounted(load);
 .gsi span {
   display: block;
   margin-top: 4px;
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text3);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -840,7 +840,7 @@ onMounted(load);
   right: 3px;
   top: 3px;
   font-style: normal;
-  font-size: 9.5px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--brand-ink);
   background: var(--brand);
@@ -875,10 +875,10 @@ onMounted(load);
   margin-bottom: 10px;
 }
 .kohd b {
-  font-size: 13.5px;
+  font-size: 14.5px;
 }
 .kohd span {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--text3);
 }
 .kom {
@@ -895,7 +895,7 @@ onMounted(load);
 }
 .kvs {
   text-align: center;
-  font-size: 11px;
+  font-size: 12.5px;
   font-weight: 800;
   color: var(--text3);
 }
@@ -924,25 +924,25 @@ onMounted(load);
 }
 .kside .tx b {
   display: block;
-  font-size: 12.5px;
+  font-size: 13.5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .kside .tx span {
   display: block;
-  font-size: 11px;
+  font-size: 12.5px;
   color: var(--text3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .kside .vt {
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
 }
 .kside .bdg {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   padding: 2px 7px;
   border-radius: 999px;
@@ -981,10 +981,10 @@ onMounted(load);
   margin-bottom: 8px;
 }
 .invitebox .ibhd b {
-  font-size: 14px;
+  font-size: 15px;
 }
 .invitebox .ibhd span {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 .invitebox .ibrow {
