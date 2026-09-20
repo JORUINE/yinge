@@ -243,6 +243,8 @@
                   <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
                   <span>{{ al.name }}</span>
                   <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
+                  <!-- 落选的也标出来：以前只有晋级的有角标，落选的"灰着但没说为什么" -->
+                  <i v-else class="out">淘汰</i>
                 </div>
               </div>
             </div>
@@ -290,6 +292,8 @@
                    会让人以为"这场没打完/没人投"。所以输方 0 票改成一句弱化的说明；只有真得了票才显示数字。 -->
               <div class="pc num" v-if="row.theirs">{{ row.theirs }} 票</div>
               <div class="pc zero" v-else>未得一票</div>
+              <!-- 落败方补一枚「淘汰」标：以前只有胜方有「胜」，两边不对等 -->
+              <span class="bw out">淘汰</span>
             </div>
           </div>
         </div>
@@ -369,6 +373,8 @@ import { battleApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
 import FavoriteButton from '@/components/FavoriteButton.vue';
 import BracketTree from '@/components/BracketTree.vue';
+// 打完了 → 清掉「本地续玩」记录（否则首页会一直挂着一条"你还有一局没打完"）
+import { clearResumeIf } from '@/utils/resume.js';
 
 const route = useRoute();
 const id = route.params.id;
@@ -687,7 +693,10 @@ async function load() {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  clearResumeIf(route.params.id);
+  load();
+});
 </script>
 
 <style scoped>
@@ -1025,8 +1034,9 @@ onMounted(load);
   object-fit: cover;
   border-radius: 8px;
   display: block;
-  opacity: 0.5;
-  filter: grayscale(0.7);
+  /* 统一置灰口径（落选 = 被淘汰，与淘汰赛 / 夺冠之路 / 晋级树同一套） */
+  opacity: var(--out-opacity);
+  filter: var(--out-filter);
 }
 .gsi span {
   display: block;
@@ -1048,6 +1058,12 @@ onMounted(load);
   background: var(--brand);
   border-radius: 999px;
   padding: 1px 6px;
+}
+/* 「淘汰」角标：中性灰，不跟「晋级」抢 */
+.gsi i.out {
+  color: var(--text3);
+  background: rgba(120, 140, 160, 0.22);
+  border: 1px solid var(--line);
 }
 .gsi.adv img {
   opacity: 1;
@@ -1159,12 +1175,22 @@ onMounted(load);
   border-color: var(--brand);
 }
 .kside.lose .bdg {
-  color: var(--danger);
-  background: rgba(220, 38, 38, 0.12);
-  border-color: rgba(220, 38, 38, 0.3);
+  color: var(--text3);
+  background: var(--glass2);
+  border-color: var(--line);
 }
-.kside.lose {
-  opacity: 0.72;
+/* ⚠️ 以前是「整块 opacity:.72」—— 连名字带票数一起糊，"被淘汰的那张是谁"反而看不清。
+   改成跟其它页面同一套：只灰封面 + 文字退到 --text3。 */
+.kside.lose .art img {
+  filter: var(--out-filter);
+  opacity: var(--out-opacity);
+}
+.kside.lose .tx b {
+  color: var(--text3);
+  font-weight: 500;
+}
+.kside.lose .tx span {
+  color: var(--text3);
 }
 
 /* 同款签表（和好友一起玩） */

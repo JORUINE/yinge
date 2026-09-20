@@ -3,6 +3,16 @@
     <!-- 全局音频元素：小组赛试听与淘汰赛 1v1 共用（放根级，避免某阶段里 audioEl 是空导致播不出来） -->
     <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
 
+    <!-- 阶段切换过场（小组赛 → 遗珠复活 → 淘汰赛某轮）
+         只在**阶段真的变了**时闪一下，同阶段换下一组不打扰（否则每组都弹一次很烦） -->
+    <div v-if="cut" :key="cut.key" class="stagecut">
+      <div class="scin">
+        <span class="sck">{{ cut.kicker }}</span>
+        <b class="sct">{{ cut.title }}</b>
+        <span class="scs">{{ cut.sub }}</span>
+      </div>
+    </div>
+
     <!-- 加载 -->
     <div v-if="loading" class="state muted">正在加载下一场…</div>
 
@@ -349,12 +359,14 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, nextTick } from 'vue';
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi, musicApi } from '@/api';
 import { accentStyleOf, ensureAlbumAccent, blendWithBrand, withAlpha } from '@/utils/coverColor.js';
 import { ROUND_CN } from '@/utils/tournament.js';
+// 本地续玩：把"我正在打哪一局"记在本地，下次进来能一键接着打
+import { saveResume, clearResumeIf } from '@/utils/resume.js';
 
 /**
  * pk-only：只显示对战台（单场 PK）那一块
@@ -430,6 +442,51 @@ const sameArtist = computed(
     !!match.value?.leftAlbum?.artistName &&
     match.value.leftAlbum.artistName === match.value.rightAlbum?.artistName,
 );
+/* ============ 阶段切换过场（清单第 13 项 · 2026-09-21）============
+ * 用户点名要"阶段切换动效"。做法：只在**阶段类别真的变了**时过场一次 ——
+ * 小组赛 → 遗珠复活 → 淘汰赛（换轮次也算，16 强 → 8 强 → 半决赛 → 决赛）。
+ * 同阶段里换下一组**不弹**（每组都弹一次会变成骚扰）。
+ * ⚠️ 这是覆盖层（position: fixed），不占文档流 —— 不会把对战台往下推；
+ *    也必须在 prefers-reduced-motion 下降级（守则 95：加动效就要给降级）。 */
+const cut = ref(null);
+let cutKey = ''; // 上一次的阶段
+let cutTimer = null;
+let firstLoad = true;
+
+/** 阶段键：只区分"阶段"，不区分第几组 */
+function stageKeyOf(data) {
+  if (!data) return '';
+  if (data.finished) return 'done';
+  if (data.legacy) return 'legacy';
+  if (data.group) return data.group.roundName === 'revival' ? 'revival' : 'group';
+  if (data.match) return `ko:${data.match.roundName || ''}`;
+  return '';
+}
+
+function showCut(key, data) {
+  const map = {
+    group: { kicker: '第 1 阶段', title: '小组赛', sub: '每组 4 张，一次选 2 张晋级' },
+    revival: {
+      kicker: '补名额',
+      title: '遗珠复活',
+      sub: `从落选专辑里捞回 ${data?.group?.advanceCount || ''} 张，凑齐淘汰赛名额`,
+    },
+  };
+  if (key === 'done') return; // 打完了直接进结果态，不再过场
+  const koRound = key.startsWith('ko:') ? key.slice(3) : '';
+  const cn = ROUND_CN[koRound] || koRound || '淘汰赛';
+  const item = map[key] || {
+    kicker: '淘汰赛',
+    title: cn === '决赛' ? '决赛' : `${cn}`,
+    sub: cn === '决赛' ? '最后一场 —— 冠军就在这两张里' : '1v1 单败：输了就回家',
+  };
+  cut.value = { key: `${key}-${Date.now()}`, ...item };
+  clearTimeout(cutTimer);
+  cutTimer = setTimeout(() => {
+    cut.value = null;
+  }, 1900);
+}
+
 const gridStyle = computed(() => {
   const n = group.value?.albums?.length || 4;
   // 宽屏最多 5 列；minmax(0,1fr) 防止长专辑名把列撑宽（否则封面会大小不一）
@@ -549,6 +606,8 @@ async function load() {
     const data = await battleApi.nextStep(id);
     if (data?.legacy) {
       legacy.value = true;
+      cutKey = 'legacy';
+      firstLoad = false;
       await loadLegacy();
       return;
     }
@@ -559,6 +618,19 @@ async function load() {
     match.value = data?.match || null;
     picked.value = [];
     lit.value = 'c';
+    // 阶段切换过场：**首次进入不弹**（一进门就弹是骚扰），之后只在阶段真的变了才弹
+    const key = stageKeyOf(data);
+    if (!firstLoad && key && key !== cutKey) showCut(key, data);
+    cutKey = key;
+    firstLoad = false;
+    // 本地续玩：没打完就记住这一局（下次进首页/创建页会提示"接着打"），打完立刻清掉
+    if (finished.value) {
+      clearResumeIf(id);
+    } else {
+      const cover =
+        data?.group?.albums?.[0]?.artworkUrl || data?.match?.leftAlbum?.artworkUrl || '';
+      saveResume({ id, cover });
+    }
     // 封面主色是异步取的：先把哈希色渲染出来，取到真色后自动更新
     loadAccents();
   } catch (err) {
@@ -771,6 +843,9 @@ async function loadLegacy() {
 }
 
 onMounted(load);
+
+// 过场是定时器控制的：组件销毁时一定要清掉，否则会在别的页面上冒出来
+onUnmounted(() => clearTimeout(cutTimer));
 </script>
 
 <style scoped>
@@ -1488,5 +1563,70 @@ onMounted(load);
 .submitrow .undomin .ico {
   width: 14px;
   height: 14px;
+}
+
+/* =====================================================================
+   阶段切换过场（2026-09-21 · 清单第 13 项）
+   ---------------------------------------------------------------------
+   ⚠️ 必须是**覆盖层**（position: fixed + pointer-events: none）：
+      一旦占文档流，过场出现时对战台会被往下推、消失时又弹回来 —— 那比没有动效更难受。
+   ⚠️ 必须给 prefers-reduced-motion 降级（守则 95）。
+   ===================================================================== */
+.stagecut {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 78px;
+  z-index: 60;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.stagecut .scin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 30px;
+  border-radius: 16px;
+  border: 1px solid var(--gbd);
+  background: var(--glass);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: var(--shadow-3);
+  animation: cutIn 0.42s var(--ease-out) both;
+}
+.stagecut .sck {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--brand-deep);
+}
+.stagecut .sct {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  line-height: 1.15;
+}
+.stagecut .scs {
+  font-size: 13.5px;
+  color: var(--text2);
+}
+@keyframes cutIn {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+/* 降级：不飞、只淡入（无头浏览器 / 系统开了减少动效时都走这条） */
+@media (prefers-reduced-motion: reduce) {
+  .stagecut .scin {
+    animation: none;
+  }
 }
 </style>

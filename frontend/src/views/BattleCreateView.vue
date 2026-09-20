@@ -9,6 +9,9 @@
       </p>
     </div>
 
+    <!-- 本地续玩：进来就想开新局的人，先告诉他"你还有一局没打完" -->
+    <ResumeBar />
+
     <!-- 模式大厅（2026-09-19 用户定稿）：混战 / 对位 两大模式，像游戏等待大厅那样选。
          ⚠️ 只重排 UI，底层 mode 值与全部现有逻辑保持不变 -->
     <div class="lobby">
@@ -605,6 +608,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { musicApi, battleApi, comboApi } from '@/api';
 import ArtistChip from '@/components/ArtistChip.vue';
+import ResumeBar from '@/components/ResumeBar.vue';
 import {
   SINGER_SCALES,
   PER_ARTIST_SCALES,

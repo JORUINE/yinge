@@ -396,7 +396,7 @@ html[data-theme='dark'] .v b {
   border-radius: var(--r-s);
   overflow: hidden;
   margin-bottom: 10px;
-  box-shadow: 0 14px 32px rgba(8, 58, 92, 0.26);
+  box-shadow: var(--shadow-2);
 }
 .pd .art img {
   width: 100%;
@@ -473,8 +473,17 @@ html[data-theme='dark'] .v b {
   transition: all 0.2s;
   text-align: left;
 }
-.mode:hover {
+/* hover 抬升：与 .lift / .pk / .tile 同一手感（清单第 24 项）
+   ⚠️ 位移只在未选中时出现 —— 选中态已经用"点亮 + 品牌底色"表达了，再抬一次会晃 */
+.mode:hover:not(.on) {
   border-color: var(--brand);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode:hover:not(.on) {
+    transform: none;
+  }
 }
 .mode.on {
   border-color: var(--brand);
@@ -682,7 +691,7 @@ html[data-theme='dark'] .v b {
   display: grid;
   place-items: center;
   background: linear-gradient(160deg, #38bdf8, #0d9488);
-  box-shadow: 0 4px 12px rgba(8, 58, 92, 0.22);
+  box-shadow: var(--shadow-1);
 }
 .artistchip .ava img {
   width: 100%;
@@ -812,7 +821,7 @@ html[data-theme='dark'] .v b {
   aspect-ratio: 1;
   border-radius: var(--r-s);
   overflow: hidden;
-  box-shadow: 0 10px 24px rgba(8, 58, 92, 0.22);
+  box-shadow: var(--shadow-2);
   transition: box-shadow 0.2s;
 }
 .pk .art img {
@@ -822,7 +831,7 @@ html[data-theme='dark'] .v b {
   display: block;
 }
 .pk:hover .art {
-  box-shadow: 0 16px 34px rgba(8, 58, 92, 0.32);
+  box-shadow: var(--shadow-3);
 }
 .pk .ck {
   position: absolute;
@@ -1532,7 +1541,7 @@ html[data-theme='dark'] .v b {
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 6px;
-  box-shadow: 0 8px 18px rgba(8, 58, 92, 0.2);
+  box-shadow: var(--shadow-2);
 }
 .grow .art img {
   width: 100%;
@@ -1647,7 +1656,7 @@ html[data-theme='dark'] .v b {
   border-radius: var(--r-s);
   overflow: hidden;
   flex: 0 0 auto;
-  box-shadow: 0 20px 48px rgba(8, 58, 92, 0.32);
+  box-shadow: var(--shadow-3);
 }
 .crown-wrap .art img {
   width: 100%;
@@ -1764,7 +1773,7 @@ html[data-theme='dark'] .v b {
   position: relative;
   background: linear-gradient(160deg, #0b3a5c, #04263c 62%, #021a29);
   color: #e6f2fa;
-  box-shadow: 0 24px 60px rgba(8, 58, 92, 0.4);
+  box-shadow: var(--shadow-3);
   padding: 22px 20px;
   display: flex;
   flex-direction: column;
@@ -1969,9 +1978,17 @@ html[data-theme='dark'] .v b {
   color: var(--text3);
   opacity: 0.85;
 }
-.pside.lose .art {
-  filter: grayscale(0.55);
-  opacity: 0.7;
+/* 落败/淘汰：统一置灰口径（--out-filter / --out-opacity，见 tokens.css）
+   ⚠️ 只作用在封面 img 上 —— 以前写在 .art 容器上，容器里还有别的层时会一起被灰掉 */
+.pside.lose .art img {
+  filter: var(--out-filter);
+  opacity: var(--out-opacity);
+}
+/* 统一「淘汰」小标：与「胜」同尺寸同圆角，只是走中性灰，不抢胜方的视觉 */
+.bw.out {
+  background: var(--glass2);
+  color: var(--text3);
+  border: 1px solid var(--line);
 }
 .bw {
   font-size: 12.5px;
@@ -3302,4 +3319,44 @@ html.ua-safe {
 html.ua-safe[data-theme='dark'] {
   --glass: #0b1e2e;
   --glass2: #0d2434;
+}
+
+/* =====================================================================
+   统一悬浮抬升（清单第 24 项 · 2026-09-21）
+   ---------------------------------------------------------------------
+   规则：凡"能点"的卡 / 砖 / 封面，hover 时抬 2px 并把阴影升一档 —— 全站一个手感。
+   ⚠️ 位移必须给 prefers-reduced-motion 降级（守则 95）。
+   ⚠️ 只作用于"真的能点"的元素；纯展示块（说明卡、表格行）不要加，否则满屏都在跳。
+   ===================================================================== */
+.lift {
+  transition: transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+}
+/* 专辑卡（创建页手动挑选 / 各处封面砖） */
+.pk,
+.cv,
+.tile {
+  transition: transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.pk:hover,
+.cv:hover,
+.tile:hover {
+  transform: translateY(-2px);
+}
+.cv:hover,
+.tile:hover {
+  box-shadow: var(--shadow-2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lift:hover,
+  .pk:hover,
+  .cv:hover,
+  .tile:hover {
+    transform: none;
+  }
 }

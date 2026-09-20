@@ -24,6 +24,9 @@
       </div>
     </div>
 
+    <!-- 本地续玩：手上还有一局没打完时，直接在这里接着打，避免又开一局重复的 -->
+    <ResumeBar />
+
     <div class="duo">
       <RouterLink to="/battle/create" class="tile sea">
         <div class="ring"></div>
@@ -115,6 +118,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { rankApi } from '@/api';
+import ResumeBar from '@/components/ResumeBar.vue';
 
 const top = ref([]);
 const heroAlbum = computed(() => top.value[0] || null);

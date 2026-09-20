@@ -101,14 +101,26 @@
   --radius-lg: 20px;
   --radius-full: 999px;
 
-  /* ===== 阴影 ===== */
-  --shadow-1: 0 2px 8px rgba(15, 42, 63, 0.06);
-  --shadow-2: 0 8px 24px rgba(15, 42, 63, 0.08);
-  --shadow-3: 0 24px 48px rgba(15, 42, 63, 0.12);
+  /* ===== 阴影：三级层级（清单第 24 项 · 2026-09-21 定稿）=====
+     sh-1 静止的小件（头像 / 小封面 / chip） · sh-2 卡片与常规面板 · sh-3 大浮层（弹窗 / 冠军 / 分享卡）
+     ⚠️ 以前全站 51 处 box-shadow 大部分是各写各的 rgba(8,58,92, .2~.4)，
+        同一个"卡片投影"在不同页面深浅不一。现在统一收敛到这三条。
+     ⚠️ 品牌光晕（蓝 / 青 / 金）**不并入** —— 那是配色不是层级，混进来会把设计意图抹掉。 */
+  --shadow-1: 0 2px 8px rgba(15, 42, 63, 0.07);
+  --shadow-2: 0 10px 26px rgba(8, 58, 92, 0.2);
+  --shadow-3: 0 24px 52px rgba(8, 58, 92, 0.3);
 
   /* 封面投影（参考 Apple Music：封面本体是主角，弱边框、强投影） */
   --cover-shadow: 0 12px 28px rgba(8, 58, 92, 0.22);
   --cover-shadow-hover: 0 20px 40px rgba(8, 58, 92, 0.32);
+
+  /* ===== 统一「淘汰 / 落败」置灰口径（清单第 13 项 · 2026-09-21 定稿）=====
+     以前各处各写各的（.pside.lose 用的 .55/.7、.kside.lose 整块 .72、晋级树行 .5、
+     小组赛落选格 .7），同一个"被淘汰"在不同页面灰得不一样。
+     定死一条：封面 grayscale(.8) + 微压亮度 + 透明度 .58，文字退到 --text3、字重 500。
+     ⚠️ 只灰封面与文字，**不要把整个块一起 opacity**（连名字带票数一起糊，等于看不见）。 */
+  --out-filter: grayscale(0.8) brightness(0.96);
+  --out-opacity: 0.58;
 
   /* ===== 动效 ===== */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -155,8 +167,12 @@ html[data-theme='dark'] {
   --danger: #fca5a5;
 
   --shadow-1: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
-  --shadow-3: 0 24px 48px rgba(0, 0, 0, 0.55);
+  --shadow-2: 0 10px 26px rgba(0, 0, 0, 0.48);
+  --shadow-3: 0 24px 52px rgba(0, 0, 0, 0.58);
   --cover-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
   --cover-shadow-hover: 0 20px 40px rgba(0, 0, 0, 0.55);
+
+  /* 暗底上"置灰"要更狠一点才看得出被淘汰，但别把亮度压到发黑 */
+  --out-filter: grayscale(0.85) brightness(0.9);
+  --out-opacity: 0.5;
 }

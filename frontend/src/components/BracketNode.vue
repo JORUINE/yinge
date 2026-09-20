@@ -184,8 +184,17 @@ function sideClass(album) {
   color: var(--brand-deep);
   font-weight: 800;
 }
-.bcard .row.lose {
-  opacity: 0.5;
+/* 落败方：统一置灰口径（--out-filter / --out-opacity）
+   以前只有 opacity:.5，整行一起淡（名字也看不清）；现在封面真置灰、文字退到 --text3。 */
+.bcard .row.lose img {
+  filter: var(--out-filter);
+  opacity: var(--out-opacity);
+}
+.bcard .row.lose .tn,
+.bcard .row.lose .sc {
+  color: var(--text3);
+  font-weight: 500;
+  opacity: 0.85;
 }
 /* 冠军格：金色，比普通格更显眼 */
 /* ⚠️ 种子格必须显式约束封面尺寸 —— 之前漏了这条规则，
