@@ -6,6 +6,17 @@ cd /d "%Y%"
 echo ==========================================================
 echo   YINGE - production preview (for the Edge minimize test)
 echo ----------------------------------------------------------
+echo   EDGE minimize still flickering? Two 10-second tests:
+echo     1) Close this tab, then open a NEW Edge window and type
+echo        http://localhost:5173 yourself (do not let this script
+echo        open it) - if it stops flickering, the launcher was
+echo        stealing focus.
+echo     2) Open http://localhost:5173 in an InPrivate window
+echo        (Ctrl+Shift+N) - extensions are disabled there. If it
+echo        is fine in InPrivate, an extension is the cause.
+echo   Still flickering? Edge menu - Settings - System and
+echo   performance - turn OFF "Use graphics acceleration".
+echo ----------------------------------------------------------
 echo   Same page, but served from the built files - no dev
 echo   server, no HMR websocket.
 echo   * If Edge stops flickering here  -> the dev server/HMR

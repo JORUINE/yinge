@@ -1,53 +1,66 @@
 <template>
-  <div class="container admin">
-    <section class="head">
+  <AdminShell>
+    <div class="admhd">
       <div>
-        <p class="eyebrow">后台管理</p>
-        <h1>用户管理</h1>
-        <p class="muted">查看注册用户，必要时禁用或恢复。禁用后会向前台推送原因提示。</p>
+        <h3>用户管理</h3>
+        <p>查看注册用户，必要时禁用或恢复。禁用后会向前台推送原因提示。</p>
       </div>
-    </section>
+      <button class="mini" type="button" :disabled="loading" @click="reload">
+        {{ loading ? '加载中…' : '刷新' }}
+      </button>
+    </div>
 
-    <section class="card filter">
-      <el-input v-model="keyword" placeholder="账号 / 昵称搜索" style="width: 220px" @keyup.enter="reload" />
-      <el-select v-model="statusFilter" style="width: 130px" @change="reload">
-        <el-option label="全部" value="" />
-        <el-option label="正常" value="active" />
-        <el-option label="已禁用" value="banned" />
-      </el-select>
-      <el-button @click="reload">查询</el-button>
-    </section>
+    <div class="kpi4">
+      <div class="k4"><b class="num">{{ total }}</b><span>用户总数</span></div>
+      <div class="k4"><b class="num">{{ activeCount }}</b><span>正常</span></div>
+      <div class="k4"><b class="num">{{ bannedCount }}</b><span>已禁用</span></div>
+      <div class="k4"><b class="num">{{ adminCount }}</b><span>管理员</span></div>
+    </div>
 
-    <div v-if="loading" class="state muted">加载中…</div>
+    <div class="panel">
+      <h4>筛选</h4>
+      <div class="searchrow">
+        <input v-model="keyword" class="ipt" placeholder="账号 / 昵称搜索" @keyup.enter="reload" />
+        <select v-model="statusFilter" class="ipt selx" @change="reload">
+          <option value="">全部状态</option>
+          <option value="active">正常</option>
+          <option value="banned">已禁用</option>
+        </select>
+        <button class="mini pri" type="button" :disabled="loading" @click="reload">查询</button>
+      </div>
+    </div>
 
-    <div v-else class="card table-wrap">
-      <table class="tbl">
+    <div class="panel">
+      <h4>用户列表</h4>
+      <p class="ps">共 {{ total }} 位 · 违规次数高的一般是触发过风控的账号</p>
+      <div v-if="loading" class="state muted">加载中…</div>
+      <table v-else class="tbl">
         <thead>
           <tr>
             <th>昵称</th>
-            <th>账号</th>
-            <th>角色</th>
-            <th>状态</th>
-            <th>违规次数</th>
-            <th>注册时间</th>
-            <th class="op">操作</th>
+            <th style="width:140px">账号</th>
+            <th style="width:100px">角色</th>
+            <th style="width:110px">状态</th>
+            <th style="width:100px">违规次数</th>
+            <th style="width:150px">注册时间</th>
+            <th class="act" style="width:100px">操作</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="u in list" :key="u.id">
             <td>{{ u.nickname }}</td>
-            <td class="muted small">{{ u.account }}</td>
-            <td><el-tag size="small" :type="u.role === 'admin' ? 'danger' : 'info'" effect="plain">{{ u.role === 'admin' ? '管理员' : '用户' }}</el-tag></td>
+            <td class="muted">{{ u.account }}</td>
+            <td><span class="tagx" :class="u.role === 'admin' ? 'er' : 'tp'">{{ u.role === 'admin' ? '管理员' : '用户' }}</span></td>
             <td>
-              <el-tag size="small" :type="u.status === 'banned' ? 'danger' : 'success'" effect="light">
+              <span class="tagx" :class="u.status === 'banned' ? 'er' : 'ok'">
                 {{ u.status === 'banned' ? '已禁用' : '正常' }}
-              </el-tag>
+              </span>
             </td>
             <td class="num">{{ u.violationCount }}</td>
-            <td class="muted small">{{ fmtDate(u.createdAt) }}</td>
-            <td class="op">
-              <el-button v-if="u.status !== 'banned'" text type="danger" @click="ban(u)">禁用</el-button>
-              <el-button v-else text type="success" @click="unban(u)">恢复</el-button>
+            <td class="muted">{{ fmtDate(u.createdAt) }}</td>
+            <td class="act">
+              <button v-if="u.status !== 'banned'" class="mini" type="button" @click="ban(u)">禁用</button>
+              <button v-else class="mini" type="button" @click="unban(u)">恢复</button>
             </td>
           </tr>
           <tr v-if="!list.length">
@@ -73,14 +86,22 @@
         <el-button type="danger" :loading="saving" @click="confirmBan">确认禁用</el-button>
       </template>
     </el-dialog>
-  </div>
+  </AdminShell>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import AdminShell from '@/layouts/AdminShell.vue';
 import { adminApi } from '@/api';
 import { fmtDate } from '@/utils/labels';
+
+/** 当前页总数（接口给 total；没给就按当前页算） */
+const total = ref(0);
+/** 概览小卡：正常 / 禁用 / 管理员 */
+const activeCount = computed(() => list.value.filter((u) => u.status !== 'banned').length);
+const bannedCount = computed(() => list.value.filter((u) => u.status === 'banned').length);
+const adminCount = computed(() => list.value.filter((u) => u.role === 'admin').length);
 
 const loading = ref(true);
 const list = ref([]);
@@ -111,6 +132,7 @@ async function reload() {
     if (statusFilter.value) params.status = statusFilter.value;
     const data = await adminApi.listUsers(params);
     list.value = data.list || [];
+    total.value = Number(data.total) || list.value.length;
     bannedReasons.value = data.bannedReasons || [];
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
@@ -215,5 +237,10 @@ onMounted(reload);
 .state {
   padding: var(--sp-5);
   text-align: center;
+}
+/* 2026-09-20 统一版式时新增：筛选区的下拉要与 .ipt 同高同宽 */
+.ipt.selx {
+  width: 160px;
+  padding-right: 8px;
 }
 </style>

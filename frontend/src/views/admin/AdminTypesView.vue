@@ -1,35 +1,74 @@
 <template>
-  <div class="container admin">
-    <section class="head">
+  <AdminShell>
+    <div class="admhd">
       <div>
-        <p class="eyebrow">后台管理</p>
-        <h1>人格类型管理</h1>
-        <p class="muted">人格类型的库。维度分用 JSON 表示，例如 {"energy":2,"mood":-1}。</p>
+        <h3>人格类型</h3>
+        <p>
+          六种人格的文案与<b>维度分</b>；每型可绑定 <b>3–5 张推荐专辑</b> ——
+          前台人格卡的「常听专辑」就是这里绑的（只绑<b>曲库里已有的合格专辑</b>）。
+        </p>
       </div>
-      <el-button type="primary" @click="openCreate">新建类型</el-button>
-    </section>
+      <div class="hdops">
+        <button class="mini" type="button" @click="reload">刷新</button>
+        <button class="mini pri" type="button" @click="openCreate">+ 新建类型</button>
+      </div>
+    </div>
 
     <div v-if="loading" class="state muted">加载中…</div>
 
-    <div v-else-if="!list.length" class="state card empty">
-      <p class="big">类型库为空</p>
-      <p class="muted">先建几种人格类型，前台图鉴与测评才有内容。</p>
-    </div>
+    <template v-else>
+      <!-- 六型概览：一眼看出哪一型还没绑推荐专辑 -->
+      <div class="kpi4">
+        <div class="k4"><b class="num">{{ list.length }}</b><span>人格类型</span><div class="dl">设计稿那套六型分类法</div></div>
+        <div class="k4"><b class="num">{{ boundCount }}</b><span>已绑推荐专辑</span><div class="dl">还差 {{ Math.max(0, list.length - boundCount) }} 型</div></div>
+        <div class="k4"><b class="num">{{ totalAlbums }}</b><span>推荐专辑总数</span><div class="dl">每型建议 3–5 张</div></div>
+        <div class="k4"><b class="num">{{ list.length ? Math.round((boundCount / list.length) * 100) : 0 }}%</b><span>绑定完成度</span><div class="dl">人格线最后一个功能洞</div></div>
+      </div>
 
-    <div v-else class="grid">
-      <article v-for="t in list" :key="t._id" class="card item">
-        <div class="top">
-          <span class="code">{{ t.code }}</span>
-          <div class="op">
-            <el-button text type="primary" @click="openEdit(t)">编辑</el-button>
-            <el-button text type="danger" @click="remove(t)">删除</el-button>
-          </div>
-        </div>
-        <h3>{{ t.name }}</h3>
-        <p class="muted small desc">{{ t.description }}</p>
-      </article>
-    </div>
+      <div class="panel">
+        <h4>类型列表</h4>
+        <p class="ps">维度键固定为 <code>melody / rhythm / arrangement / calm</code>（设计稿口径），值可为负</p>
+        <table class="tbl">
+          <thead>
+            <tr>
+              <th style="width:78px">类型码</th>
+              <th style="width:120px">名称</th>
+              <th>描述</th>
+              <th style="width:230px">维度分</th>
+              <th style="width:150px">推荐专辑</th>
+              <th class="act" style="width:190px">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="t in list" :key="t._id">
+              <td><span class="tagx tp">{{ t.code }}</span></td>
+              <td><b>{{ t.name }}</b></td>
+              <td class="ell muted">{{ t.description }}</td>
+              <td class="ell">
+                <span v-for="(v, k) in t.dims || {}" :key="k" class="dimtag">{{ k }} {{ v > 0 ? '+' : '' }}{{ v }}</span>
+                <span v-if="!t.dims || !Object.keys(t.dims).length" class="muted">—</span>
+              </td>
+              <td>
+                <span v-if="(t.recommendAlbums || t.recommendAlbumIds || []).length" class="tagx ok">
+                  已绑 {{ (t.recommendAlbums || t.recommendAlbumIds || []).length }} 张
+                </span>
+                <span v-else class="tagx wn">未绑定</span>
+              </td>
+              <td class="act">
+                <button class="mini" type="button" @click="openBind(t)">绑定专辑</button>
+                <button class="mini" type="button" @click="openEdit(t)">编辑</button>
+                <button class="mini" type="button" @click="remove(t)">删除</button>
+              </td>
+            </tr>
+            <tr v-if="!list.length">
+              <td colspan="6" class="muted center">类型库为空 —— 先建几种人格类型，前台图鉴与测评才有内容。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
 
+    <!-- 新建 / 编辑 -->
     <el-dialog v-model="dialog" :title="editing ? '编辑类型' : '新建类型'" width="560px" align-center @closed="resetForm">
       <el-form :model="form" label-position="top">
         <div class="row2">
@@ -43,8 +82,13 @@
         <el-form-item label="描述" required>
           <el-input v-model="form.description" type="textarea" :rows="3" placeholder="一句话描述这个人格" />
         </el-form-item>
-        <el-form-item label="维度分（JSON）">
-          <el-input v-model="form.dimsText" type="textarea" :rows="3" placeholder='{"energy":2,"mood":-1}' />
+        <el-form-item label="维度分（四个键，值可正可负）">
+          <div class="dimgrid">
+            <label v-for="k in DIM_KEYS" :key="k" class="dimrow">
+              <span>{{ k }}</span>
+              <el-input-number v-model="form.dims[k]" :min="-5" :max="5" size="small" />
+            </label>
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -52,13 +96,71 @@
         <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
-  </div>
+
+    <!-- 绑定推荐专辑 -->
+    <el-dialog v-model="bindDialog" :title="`给「${bindTarget?.name || ''}」绑推荐专辑`" width="720px" align-center>
+      <div class="srow">
+        <el-input
+          v-model="albumTerm"
+          placeholder="搜专辑名或歌手名（只搜曲库里已有的合格专辑），回车搜索"
+          @keyup.enter="searchAlbums"
+        />
+        <el-button type="primary" :loading="searchingAlbums" @click="searchAlbums">搜索</el-button>
+      </div>
+
+      <p class="bindhint">
+        已选 <b>{{ bindPicked.length }}</b> 张（建议 3–5 张）。前台人格卡按这里的顺序展示「常听专辑」。
+      </p>
+      <div v-if="bindPicked.length" class="picks">
+        <el-tag v-for="(a, i) in bindPicked" :key="a.id" closable type="success" @close="unpick(i)">
+          {{ a.name }}
+        </el-tag>
+      </div>
+
+      <div v-if="albumResults.length" class="albgrid">
+        <button
+          v-for="a in albumResults"
+          :key="a.id"
+          class="albpick"
+          :class="{ on: bindPicked.some((x) => x.id === a.id) }"
+          type="button"
+          @click="pick(a)"
+        >
+          <img :src="a.artworkUrl" :alt="a.name" loading="lazy" />
+          <b>{{ a.name }}</b>
+          <span>{{ a.artistName }} · {{ year(a.releaseDate) }}</span>
+        </button>
+      </div>
+      <p v-else class="muted bindhint">
+        {{ albumTerm ? '没有搜到（换个关键词，或先在「音乐数据」里把这位歌手的专辑拉进曲库）' : '输入关键词开始搜索' }}
+      </p>
+
+      <template #footer>
+        <el-button @click="bindDialog = false">取消</el-button>
+        <el-button type="primary" :loading="savingBind" @click="saveBind">保存绑定</el-button>
+      </template>
+    </el-dialog>
+  </AdminShell>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue';
+/**
+ * 后台 · 人格类型管理（2026-09-20 重做）
+ * ------------------------------------------------------------------
+ * 本轮两件事：
+ *  ① 版式统一到设计系统（AdminShell + admhd + kpi4 + panel + tbl），与看板/组合/题目页一致；
+ *  ② 新增**推荐专辑绑定** —— 前台人格卡的「常听专辑」一直空着，就是因为后台没法绑。
+ *     绑的必须是**本地曲库里的合格专辑**（前台按本地 ObjectId 取），所以搜的是
+ *     新接口 GET /music/albums/search（只查本地库、毫秒级、不打扰 iTunes）。
+ * 维度键固定为设计稿那套 melody / rhythm / arrangement / calm，改成可视化输入，不再让管理员手写 JSON。
+ */
+import { computed, onMounted, reactive, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { adminApi } from '@/api';
+import AdminShell from '@/layouts/AdminShell.vue';
+import { adminApi, musicApi } from '@/api';
+
+const DIM_KEYS = ['melody', 'rhythm', 'arrangement', 'calm'];
+const year = (d) => (d ? String(d).slice(0, 4) : '');
 
 const loading = ref(true);
 const list = ref([]);
@@ -66,63 +168,78 @@ const dialog = ref(false);
 const editing = ref(null);
 const saving = ref(false);
 
-const form = reactive({ code: '', name: '', description: '', dimsText: '{}' });
+const form = reactive({
+  code: '',
+  name: '',
+  description: '',
+  dims: { melody: 0, rhythm: 0, arrangement: 0, calm: 0 },
+});
+
+const boundCount = computed(
+  () => list.value.filter((t) => (t.recommendAlbums || t.recommendAlbumIds || []).length).length,
+);
+const totalAlbums = computed(() =>
+  list.value.reduce((n, t) => n + (t.recommendAlbums || t.recommendAlbumIds || []).length, 0),
+);
 
 function resetForm() {
   editing.value = null;
   form.code = '';
   form.name = '';
   form.description = '';
-  form.dimsText = '{}';
+  DIM_KEYS.forEach((k) => {
+    form.dims[k] = 0;
+  });
 }
+
 function openCreate() {
   resetForm();
   dialog.value = true;
 }
+
 function openEdit(t) {
   editing.value = t._id;
   form.code = t.code;
   form.name = t.name;
   form.description = t.description;
-  form.dimsText = t.dims ? JSON.stringify(t.dims) : '{}';
+  DIM_KEYS.forEach((k) => {
+    form.dims[k] = Number(t.dims?.[k]) || 0;
+  });
   dialog.value = true;
 }
 
-function parseDims() {
-  const txt = form.dimsText.trim() || '{}';
+async function load() {
+  loading.value = true;
   try {
-    const obj = JSON.parse(txt);
-    if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) throw new Error('必须是对象');
-    for (const k of Object.keys(obj)) {
-      if (typeof obj[k] !== 'number') throw new Error(`维度 ${k} 的值必须是数字`);
-    }
-    return obj;
-  } catch (e) {
-    throw new Error('维度分 JSON 格式不正确：' + e.message);
+    const data = await adminApi.listTypes();
+    list.value = data.list || data.types || [];
+  } catch (err) {
+    ElMessage.error(err?.message || '加载失败');
+  } finally {
+    loading.value = false;
   }
 }
+const reload = load;
 
 async function save() {
-  if (!form.code.trim() || !form.name.trim() || !form.description.trim())
-    return ElMessage.warning('请填写完整');
-  let dims;
-  try {
-    dims = parseDims();
-  } catch (e) {
-    return ElMessage.error(e.message);
+  if (!form.code.trim() || !form.name.trim()) {
+    ElMessage.info('类型码与名称都要填');
+    return;
   }
   saving.value = true;
   try {
-    const payload = { code: form.code.trim(), name: form.name.trim(), description: form.description.trim(), dims };
-    if (editing.value) {
-      await adminApi.updateType(editing.value, payload);
-      ElMessage.success('已更新');
-    } else {
-      await adminApi.createType(payload);
-      ElMessage.success('已创建');
-    }
+    const payload = {
+      code: form.code.trim(),
+      name: form.name.trim(),
+      description: form.description.trim(),
+      // 只提交非零维度，库里的 dims 保持干净
+      dims: Object.fromEntries(DIM_KEYS.filter((k) => Number(form.dims[k]) !== 0).map((k) => [k, Number(form.dims[k])])),
+    };
+    if (editing.value) await adminApi.updateType(editing.value, payload);
+    else await adminApi.createType(payload);
+    ElMessage.success(editing.value ? '已保存' : '已新建');
     dialog.value = false;
-    await reload();
+    await load();
   } catch (err) {
     ElMessage.error(err?.message || '保存失败');
   } finally {
@@ -132,110 +249,192 @@ async function save() {
 
 async function remove(t) {
   try {
-    await ElMessageBox.confirm(`删除类型「${t.name}」？`, '删除类型', { type: 'warning' });
+    await ElMessageBox.confirm(`确定删除「${t.name}」？` + (t.recommendAlbumIds?.length ? '绑定的推荐专辑会一起解绑。' : ''), '删除类型', {
+      type: 'warning',
+    });
   } catch {
     return;
   }
   try {
     await adminApi.deleteType(t._id);
     ElMessage.success('已删除');
-    await reload();
+    await load();
   } catch (err) {
     ElMessage.error(err?.message || '删除失败');
   }
 }
 
-async function reload() {
-  loading.value = true;
+// —— 绑定推荐专辑 ——
+const bindDialog = ref(false);
+const bindTarget = ref(null);
+const bindPicked = ref([]); // [{ id, albumId, name, artistName, artworkUrl, releaseDate }]
+const albumTerm = ref('');
+const albumResults = ref([]);
+const searchingAlbums = ref(false);
+const savingBind = ref(false);
+
+function openBind(t) {
+  bindTarget.value = t;
+  // 回填已绑的专辑：接口可能返回完整对象（recommendAlbums）或只有 id 列表
+  bindPicked.value = (t.recommendAlbums || []).map((a) => ({ ...a })) || [];
+  albumTerm.value = '';
+  albumResults.value = [];
+  bindDialog.value = true;
+}
+
+function pick(a) {
+  if (bindPicked.value.some((x) => x.id === a.id)) return unpick(bindPicked.value.findIndex((x) => x.id === a.id));
+  if (bindPicked.value.length >= 8) {
+    ElMessage.warning('最多绑 8 张，建议 3–5 张');
+    return;
+  }
+  bindPicked.value = [...bindPicked.value, a];
+}
+
+function unpick(i) {
+  bindPicked.value = bindPicked.value.filter((_, idx) => idx !== i);
+}
+
+async function searchAlbums() {
+  if (!albumTerm.value.trim()) return;
+  searchingAlbums.value = true;
   try {
-    const data = await adminApi.listTypes();
-    list.value = data.list || [];
+    const data = await musicApi.searchAlbums({ term: albumTerm.value.trim(), limit: 18 });
+    albumResults.value = data.list || [];
+    if (!albumResults.value.length) ElMessage.info('曲库里没有匹配的专辑');
   } catch (err) {
-    ElMessage.error(err?.message || '加载失败');
+    ElMessage.error(err?.message || '搜索失败');
   } finally {
-    loading.value = false;
+    searchingAlbums.value = false;
   }
 }
 
-onMounted(reload);
+async function saveBind() {
+  savingBind.value = true;
+  try {
+    await adminApi.updateType(bindTarget.value._id, { recommendAlbumIds: bindPicked.value.map((a) => a.id) });
+    ElMessage.success(`「${bindTarget.value.name}」已绑 ${bindPicked.value.length} 张推荐专辑`);
+    bindDialog.value = false;
+    await load();
+  } catch (err) {
+    ElMessage.error(err?.message || '保存失败');
+  } finally {
+    savingBind.value = false;
+  }
+}
+
+onMounted(load);
 </script>
 
 <style scoped>
-.admin {
-  padding-top: var(--sp-6);
-  padding-bottom: var(--sp-8);
-}
-.eyebrow {
-  font-family: var(--font-display);
-  font-size: var(--fs-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand);
-}
-.head {
+.hdops {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--sp-4);
+  gap: 10px;
+  align-items: center;
 }
-.head h1 {
-  font-size: var(--fs-h1);
-  margin-top: var(--sp-2);
+.admhd .mini.pri {
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-color: var(--brand);
 }
-.head .muted {
-  margin-top: var(--sp-2);
-  max-width: 560px;
-}
-.state {
-  padding: var(--sp-6);
-  text-align: center;
-}
-.empty {
-  max-width: 460px;
-  margin: var(--sp-5) auto;
-}
-.empty .big {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--sp-2);
-}
-.grid {
+.dimgrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--sp-4);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
 }
-.item {
-  padding: var(--sp-4) var(--sp-5);
-}
-.top {
+.dimrow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--sp-2);
+  gap: 12px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--glass2);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
 }
-.code {
-  font-family: var(--font-mono);
-  font-size: var(--fs-sm);
-  color: var(--text-3);
+.dimtag {
+  display: inline-block;
+  margin: 2px 6px 2px 0;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  color: var(--text2);
+  white-space: nowrap;
 }
-.op {
+.srow {
   display: flex;
-  gap: var(--sp-1);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
 }
-.item h3 {
-  font-size: var(--fs-h3);
+.bindhint {
+  font-size: 13.5px;
+  color: var(--text2);
+  margin: 6px 0 10px;
 }
-.small {
-  font-size: var(--fs-sm);
+.picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
-.desc {
-  margin-top: var(--sp-1);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+.albgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 12px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.albpick {
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  border-radius: 12px;
+  padding: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.albpick img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+  background: var(--glass);
+}
+.albpick b {
+  margin-top: 7px;
+  font-size: 13.5px;
+  line-height: 1.25;
   overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
-.row2 {
-  display: flex;
-  gap: var(--sp-4);
+.albpick span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.albpick.on {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.22);
+}
+.albpick.on::after {
+  content: '✓ 已选';
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-deep);
 }
 </style>

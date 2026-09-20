@@ -46,6 +46,8 @@ router.get(
   validate(artistParamSchema, 'params'),
   asyncHandler(controller.listArtistAlbums),
 );
+// ⚠️ 必须排在 '/albums/:albumId' 之前，否则 'search' 会被当成 albumId
+router.get('/albums/search', asyncHandler(controller.searchAlbums));
 router.get('/albums/:albumId', validate(albumParamSchema, 'params'), asyncHandler(controller.getAlbum));
 router.get(
   '/albums/:albumId/tracks',

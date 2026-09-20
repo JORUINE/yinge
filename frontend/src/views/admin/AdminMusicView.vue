@@ -1,41 +1,62 @@
 <template>
-  <div class="container admin">
-    <section class="head">
+  <AdminShell>
+    <div class="admhd">
       <div>
-        <p class="eyebrow">后台管理</p>
-        <h1>音乐数据管理</h1>
-        <p class="muted">歌手与专辑来自 iTunes Search API，本地做缓存。可按歌手名搜索并拉取，或刷新已缓存歌手。</p>
+        <h3>音乐数据</h3>
+        <p>
+          歌手与专辑来自 iTunes Search API，本地做缓存。可按歌手名搜索并拉取，或刷新已缓存歌手
+          —— 刷新会把该歌手的专辑按准入规则重算一遍。
+        </p>
       </div>
-    </section>
+      <button class="mini" type="button" :disabled="loading" @click="load">
+        {{ loading ? '加载中…' : '刷新列表' }}
+      </button>
+    </div>
 
-    <section class="card search">
-      <el-input v-model="term" placeholder="输入歌手名搜索（例如 周杰伦）" @keyup.enter="search">
-        <template #append>
-          <el-button :loading="searching" @click="search">搜索</el-button>
-        </template>
-      </el-input>
-      <div v-if="results.length" class="results">
-        <div v-for="r in results" :key="r.artistId" class="res">
-          <span>{{ r.name }} <em class="muted small">#{{ r.artistId }}</em></span>
-          <el-button size="small" type="primary" :loading="refreshing === r.artistId" @click="refresh(r.artistId)">
-            拉取 / 刷新
-          </el-button>
+    <div class="kpi4">
+      <div class="k4"><b class="num">{{ list.length }}</b><span>已缓存歌手</span></div>
+      <div class="k4"><b class="num">{{ totalAlbums }}</b><span>缓存专辑数</span></div>
+      <div class="k4"><b class="num">{{ staleCount }}</b><span>需要刷新</span><div class="dl">超过保鲜期</div></div>
+      <div class="k4"><b class="num">{{ lastCached }}</b><span>最近缓存</span></div>
+    </div>
+
+    <div class="panel">
+      <h4>按歌手名拉取 / 刷新</h4>
+      <p class="ps">搜到后点「拉取」把 TA 的专辑同步进曲库（会按准入规则过滤）</p>
+      <div class="searchrow">
+        <input
+          v-model="term"
+          class="ipt"
+          placeholder="输入歌手名搜索（例如 周杰伦）"
+          @keyup.enter="search"
+        />
+        <button class="mini pri" type="button" :disabled="searching" @click="search">
+          {{ searching ? '搜索中…' : '搜索' }}
+        </button>
+      </div>
+      <div v-if="results.length" class="reslist">
+        <div v-for="r in results" :key="r.artistId" class="resrow">
+          <span class="rn">{{ r.name }} <em class="muted">#{{ r.artistId }}</em></span>
+          <button class="mini" type="button" :disabled="refreshing === r.artistId" @click="refresh(r.artistId)">
+            {{ refreshing === r.artistId ? '拉取中…' : '拉取 / 刷新' }}
+          </button>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="card table-wrap">
-      <h2>已缓存歌手</h2>
+    <div class="panel">
+      <h4>已缓存歌手</h4>
+      <p class="ps">共 {{ list.length }} 位 · 按缓存时间倒序</p>
       <div v-if="loading" class="state muted">加载中…</div>
       <table v-else class="tbl">
         <thead>
           <tr>
             <th>歌手</th>
-            <th>地区</th>
-            <th>专辑数</th>
-            <th>缓存状态</th>
-            <th>缓存时间</th>
-            <th class="op">操作</th>
+            <th style="width:90px">地区</th>
+            <th style="width:100px">专辑数</th>
+            <th style="width:120px">缓存状态</th>
+            <th style="width:150px">缓存时间</th>
+            <th class="act" style="width:110px">操作</th>
           </tr>
         </thead>
         <tbody>
@@ -43,24 +64,29 @@
             <td>{{ a.name }}</td>
             <td class="muted">{{ a.region || '—' }}</td>
             <td class="num">{{ a.albumCount }}</td>
-            <td><el-tag size="small" :type="freshType(a.freshness)" effect="light">{{ freshLabel(a.freshness) }}</el-tag></td>
-            <td class="muted small">{{ fmtDate(a.cachedAt) }}</td>
-            <td class="op">
-              <el-button text type="primary" :loading="refreshing === a.artistId" @click="refresh(a.artistId)">刷新</el-button>
+            <td>
+              <span class="tagx" :class="freshType(a.freshness)">{{ freshLabel(a.freshness) }}</span>
+            </td>
+            <td class="muted">{{ fmtDate(a.cachedAt) }}</td>
+            <td class="act">
+              <button class="mini" type="button" :disabled="refreshing === a.artistId" @click="refresh(a.artistId)">
+                {{ refreshing === a.artistId ? '刷新中…' : '刷新' }}
+              </button>
             </td>
           </tr>
           <tr v-if="!list.length">
-            <td colspan="6" class="muted center">暂无缓存</td>
+            <td colspan="6" class="muted center">暂无缓存 —— 在上面搜一位歌手拉取试试。</td>
           </tr>
         </tbody>
       </table>
-    </section>
-  </div>
+    </div>
+  </AdminShell>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
+import AdminShell from '@/layouts/AdminShell.vue';
 import { adminApi, musicApi } from '@/api';
 import { fmtDate } from '@/utils/labels';
 
@@ -72,16 +98,26 @@ const results = ref([]);
 const refreshing = ref(null);
 
 const FRESH = {
-  fresh: { label: '新鲜', type: 'success' },
-  stale: { label: '将过期', type: 'warning' },
-  expired: { label: '已过期', type: 'danger' },
+  fresh: { label: '新鲜', type: 'ok' },
+  stale: { label: '将过期', type: 'wn' },
+  expired: { label: '已过期', type: 'er' },
 };
 function freshLabel(f) {
   return (FRESH[f] || { label: f || '—' }).label;
 }
 function freshType(f) {
-  return (FRESH[f] || { type: 'info' }).type;
+  // 返回设计系统的 tagx 变体类名（以前返回的是 el-tag 的 type，换成 .tagx 后要跟着改）
+  return (FRESH[f] || { type: 'tp' }).type;
 }
+
+// —— 概览（2026-09-20 统一版式时补的 KPI）——
+const totalAlbums = computed(() => list.value.reduce((n, a) => n + (a.albumCount || 0), 0));
+const staleCount = computed(() => list.value.filter((a) => a.freshness && a.freshness !== 'fresh').length);
+const lastCached = computed(() => {
+  const times = list.value.map((a) => new Date(a.cachedAt).getTime()).filter((t) => t);
+  if (!times.length) return '—';
+  return fmtDate(new Date(Math.max(...times)));
+});
 
 async function search() {
   const t = term.value.trim();
@@ -202,5 +238,25 @@ onMounted(reload);
 .state {
   padding: var(--sp-5);
   text-align: center;
+}
+/* 2026-09-20 统一版式时新增：可拉取歌手的结果行 */
+.reslist {
+  margin-top: 14px;
+  border-top: 1px dashed var(--line);
+}
+.resrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px dashed var(--line);
+}
+.resrow .rn {
+  font-size: 14px;
+}
+.resrow .rn em {
+  font-style: normal;
+  font-size: 12.5px;
 }
 </style>

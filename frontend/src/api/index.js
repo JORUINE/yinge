@@ -28,6 +28,8 @@ export const musicApi = {
   listGenres: () => http.get('/music/genres'),
   /** 按流派去 Apple Music 找靠前的歌手（只读，不写库） */
   discoverGenreArtists: (params) => http.get('/music/genres/discover', { params }),
+  /** 本地曲库搜专辑（后台绑「人格推荐专辑」用，只查本地库、毫秒级） */
+  searchAlbums: (params) => http.get('/music/albums/search', { params }),
   /** 把发现的歌手同步进曲库（后端每批最多 8 位） */
   warmGenreArtists: (data) => http.post('/music/genres/warm', data),
 };

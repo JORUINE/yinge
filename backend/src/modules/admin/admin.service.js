@@ -123,7 +123,29 @@ export async function deleteQuestion(id) {
 
 // ---- 人格类型管理 ----
 export async function listTypes() {
-  return PersonalityType.find().sort({ code: 1 });
+  const types = await PersonalityType.find().sort({ code: 1 }).lean();
+  // 2026-09-20：顺手把已绑的推荐专辑取出来（后台"绑定推荐专辑"要回填名称与封面）。
+  // 前端人格卡一直空着「常听专辑」，就是因为后台以前没有绑定入口。
+  const ids = types.flatMap((t) => t.recommendAlbumIds || []);
+  const albums = ids.length ? await Album.find({ _id: { $in: ids } }).lean() : [];
+  const byId = new Map(albums.map((a) => [String(a._id), a]));
+  return types.map((t) => ({
+    ...t,
+    recommendAlbums: (t.recommendAlbumIds || [])
+      .map((id) => {
+        const a = byId.get(String(id));
+        if (!a) return null;
+        return {
+          id: String(a._id),
+          albumId: a.albumId,
+          name: a.name,
+          artistName: a.artistName || '',
+          artworkUrl: a.artworkUrl,
+          releaseDate: a.releaseDate,
+        };
+      })
+      .filter(Boolean),
+  }));
 }
 
 export async function createType(data) {

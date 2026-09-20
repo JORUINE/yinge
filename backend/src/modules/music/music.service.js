@@ -378,6 +378,49 @@ export async function artistPhotos(ids = []) {
   return out;
 }
 
+/**
+ * 本地曲库搜专辑（2026-09-20 新增）
+ * ------------------------------------------------------------
+ * 用途：后台给「人格类型」绑推荐专辑 —— 绑的必须是**已经在曲库里的合格专辑**
+ * （前台人格卡按本地 ObjectId 取，搜外部 iTunes 会拿到库里没有的专辑）。
+ * 所以这里**只查本地库**：不发任何外部请求，毫秒级返回，也不受 iTunes 限流影响。
+ */
+export async function searchAlbums({ term = '', limit = 12 } = {}) {
+  const q = String(term).trim();
+  if (!q) return [];
+  const size = Math.min(Number(limit) || 12, 30);
+  // 转义正则元字符：用户搜 "(What's the Story)?" 这类名字不能把查询打爆
+  const safe = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(safe, 'i');
+  const serial = (docs) => docs.map((d) => ({ ...serializeAlbum(d), genre: d.genre || null }));
+
+  // ① 本地直搜（专辑名 or 歌手名）
+  const direct = await Album.find({ isEligible: true, $or: [{ name: re }, { artistName: re }] })
+    .sort({ releaseDate: -1 })
+    .limit(size)
+    .lean();
+  if (direct.length) return serial(direct);
+
+  /**
+   * ② 直搜为空时的兜底（2026-09-20 实测踩到）：
+   *    曲库里的歌手名常是**繁体**（iTunes hk 区返回「周杰倫」），而管理员手输的是简体「周杰伦」
+   *    → 正则直接对不上，看起来像"曲库里没有"。这里借 iTunes 的歌手搜索（它自己处理简繁/译名）
+   *    确认身份，再把该歌手在**本地库里**的专辑拿出来 —— 依然是"只返回本地已有专辑"的口径。
+   */
+  try {
+    const { artists } = await itunes.searchArtists(q, 3);
+    const ids = artists.map((a) => Number(a.artistId)).filter(Boolean);
+    if (!ids.length) return [];
+    const byArtist = await Album.find({ artistExternalId: { $in: ids }, isEligible: true })
+      .sort({ releaseDate: -1 })
+      .limit(size)
+      .lean();
+    return serial(byArtist);
+  } catch {
+    return [];
+  }
+}
+
 export async function searchArtists(term, limit = 10) {
   const { artists } = await itunes.searchArtists(term, limit);
   const enriched = await mapWithConcurrency(artists, SEARCH_ARTIST_CONCURRENCY, enrichArtistBrief);
@@ -390,6 +433,7 @@ export default {
   getAlbumTracks,
   getAlbumPreview,
   searchArtists,
+  searchAlbums,
   artistPhotos,
   syncArtist,
   freshness,

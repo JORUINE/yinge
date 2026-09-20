@@ -21,6 +21,13 @@ export async function artistPhotos(req, res) {
   return ok(res, { photos: await musicService.artistPhotos(ids) });
 }
 
+/** 本地曲库搜专辑（后台给「人格类型」绑推荐专辑用） */
+export async function searchAlbums(req, res) {
+  const term = String(req.query.term || '');
+  const limit = Number(req.query.limit) || 12;
+  return ok(res, { list: await musicService.searchAlbums({ term, limit }) });
+}
+
 export async function getArtist(req, res) {
   const { artistId } = req.validated.params;
   const { artist } = await musicService.getArtistAlbums(artistId);
