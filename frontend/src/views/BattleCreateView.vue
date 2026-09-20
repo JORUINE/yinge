@@ -277,38 +277,42 @@
           </span>
         </div>
 
-        <h4 style="margin: 16px 0 0">
-          或从常用组合 / 我收藏的组合开始
-          <em>我收藏的组合排在前面、用金色框区分 · 系统组合由管理员在后台维护</em>
-        </h4>
-        <div class="presets">
-          <span
-            v-for="c in shownCombos"
-            :key="c.comboId || c.label"
-            class="combowrap"
-            :class="{ mine: c.mine }"
-          >
-            <button
-              class="preset"
-              type="button"
-              :disabled="presetLoading === c.label"
-              @click="applyCombo(c)"
+        <div class="combopanel">
+          <h4>
+            常用组合 / 我收藏的组合
+            <em>金色框是我的 · 左边细色条＝赛制（蓝＝混战、青＝对位）</em>
+          </h4>
+          <div class="presets">
+            <span
+              v-for="c in shownCombos"
+              :key="c.comboId || c.label"
+              class="combowrap"
+              :class="{ mine: c.mine }"
             >
-              <span v-if="c.mine" class="minetag">我的</span>
-              <span class="minetag" :class="c.scopeType === 'aligned' ? 'al' : ''">{{ c.scopeType === 'aligned' ? '对位' : '混战' }}</span>
-              {{ presetLoading === c.label ? '装填中…' : c.label }}
+              <button
+                class="preset"
+                :class="{ 'sc-aligned': c.scopeType === 'aligned' }"
+                type="button"
+                :disabled="presetLoading === c.label"
+                @click="applyCombo(c)"
+              >
+                <span class="minetag" :class="{ al: c.scopeType === 'aligned' }">{{
+                  c.scopeType === 'aligned' ? '对位' : '混战'
+                }}</span>
+                {{ presetLoading === c.label ? '装填中…' : c.label }}
+              </button>
+              <span v-if="c.mine" class="combox" title="删除这个组合" @click.stop="removeCombo(c)">×</span>
+            </span>
+            <button
+              class="preset addcombo"
+              type="button"
+              :disabled="savingCombo || picked.length < 2"
+              :title="picked.length < 2 ? '先选 2 位以上歌手' : '把当前歌手存成我的组合'"
+              @click="saveCombo"
+            >
+              {{ savingCombo ? '保存中…' : '＋ 收藏当前组合' }}
             </button>
-            <span v-if="c.mine" class="combox" title="删除这个组合" @click.stop="removeCombo(c)">×</span>
-          </span>
-          <button
-            class="preset addcombo"
-            type="button"
-            :disabled="savingCombo || picked.length < 2"
-            :title="picked.length < 2 ? '先选 2 位以上歌手' : '把当前歌手存成我的组合'"
-            @click="saveCombo"
-          >
-            {{ savingCombo ? '保存中…' : '＋ 收藏当前组合' }}
-          </button>
+          </div>
         </div>
         <p class="hint">或快速搜单个歌手：</p>
         <div class="presets">
@@ -1575,7 +1579,7 @@ async function onCreate() {
     } else {
       ElMessage.success('对决已创建');
     }
-    router.push({ name: 'battle-play', params: { id: battle.battleId } });
+    router.push({ name: 'battle-pk', params: { id: battle.battleId } });
   } catch (err) {
     ElMessage.error(err?.message || '创建失败');
   } finally {
@@ -1743,6 +1747,87 @@ async function onCreate() {
 .addcombo:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* =====================================================================
+   组合区视觉整改（2026-09-21 用户："混战感觉不好看"）
+   ---------------------------------------------------------------------
+   原来每个组合 chip 上挂了**两枚**奖章样的小彩标（「我的」金标 + 「混战/对位」铜标），
+   13 个 chip 并排 = 26 枚彩标，整片像贴满了勋章，颜色还很杂（金 + 蓝 + 混战橙）。
+
+   ⚠️ 关键事实：`.preset` 是**全站共用**类（首页/其它页的胶囊也用它），
+      所以下面所有规则都带 `.combowrap` / `.combopanel` 前缀，绝不外溢。
+
+   改法（只重排信息、不改赛制语义）：
+     ① 赛制标移到 chip 最左当"细色条"（混战=蓝 / 对位=青），不再是一枚奖章；
+     ② 「我的」不再单独挂标 —— 我的组合整条 chip 已经是金框，重复；
+     ③ chip 之间留白加宽、内容区分组，标题句改短；
+     ④ 整块加一个浅面板容器，让它和上面的「已选歌手」拉开层次。
+   ===================================================================== */
+.combopanel {
+  margin-top: 14px;
+  padding: 14px 16px 16px;
+  border-radius: var(--r-s);
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+}
+.combopanel > h4 {
+  margin: 0;
+  font-size: 15px;
+}
+.combopanel .presets {
+  margin-top: 12px;
+  gap: 11px;
+}
+/* chip：左边一条 3px 赛制色条（用 ::before 做，避免多包一层 DOM） */
+.combowrap .preset {
+  position: relative;
+  gap: 10px;
+  padding: 8px 15px 8px 16px;
+  overflow: hidden;
+  font-weight: 600;
+}
+.combowrap .preset::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--brand);
+}
+.combowrap .preset.sc-aligned::before {
+  background: #14b8a6; /* 对位 = 青，与模式大厅的族色一致 */
+}
+/* 我的组合：金色描边 + 极淡金底（比原来的金底金字克制，文字仍保持可读的深色） */
+.combowrap.mine .preset {
+  border-color: rgba(224, 135, 0, 0.5);
+  background: rgba(224, 135, 0, 0.07);
+  color: var(--text);
+}
+.combowrap.mine .preset:hover {
+  border-color: var(--gold);
+  box-shadow: var(--gsh-hi), 0 4px 14px rgba(224, 135, 0, 0.22);
+}
+/* 赛制标：细长小签，不再是奖章 */
+.combowrap .minetag {
+  background: transparent;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--brand-deep);
+  border-radius: 0;
+}
+.combowrap .minetag.al {
+  color: #0d9488;
+}
+.combox {
+  opacity: 0;
+  transition: opacity 0.18s var(--ease-out);
+}
+.combowrap:hover .combox {
+  opacity: 1;
 }
 
 .yearrow {

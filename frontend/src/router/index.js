@@ -18,6 +18,10 @@ const routes = [
   { path: '/battle/join/:code', name: 'battle-join', component: () => import('@/views/BattleJoinView.vue'), meta: { title: '同款签表', requiresAuth: true } },
   { path: '/battle/mine', name: 'battle-mine', component: () => import('@/views/BattleMineView.vue'), meta: { title: '我的对决', requiresAuth: true } },
   { path: '/battle/:id', name: 'battle-play', component: () => import('@/views/BattlePlayView.vue'), meta: { title: '对决进行中', requiresAuth: true } },
+  // 单独的对决页（只有对战台，没有上面那些说明块）
+  // ⚠️ 2026-09-21 用户要求："能不能 pk 专辑时进来直接就是页面划过的这个位置"
+  //    —— 原来「进对决」落在带一大堆说明的创建页，要往下滚才看到对战台。现在直接进对战台。
+  { path: '/battle/:id/pk', name: 'battle-pk', component: () => import('@/views/BattlePkView.vue'), meta: { title: '对决进行中', requiresAuth: true } },
   { path: '/battle/:id/bracket', name: 'battle-bracket', component: () => import('@/views/BattleBracketView.vue'), meta: { title: '对决对阵表', requiresAuth: true } },
   { path: '/battle/:id/result', name: 'battle-result', component: () => import('@/views/BattleResultView.vue'), meta: { title: '对决结果与夺冠之路', requiresAuth: true } },
   { path: '/battle/:id/share', name: 'battle-share', component: () => import('@/views/BattleShareView.vue'), meta: { title: '夺冠之路分享图', requiresAuth: true } },

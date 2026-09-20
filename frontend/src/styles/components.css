@@ -1959,6 +1959,16 @@ html[data-theme='dark'] .v b {
   color: var(--text3);
   font-size: 15px;
 }
+/* 2026-09-21 用户："本来就是二选一胜利，这个对手得票数为 0 真的 ok 吗？"
+   1v1 输方几乎必然是 0 票 —— 把「0 票」印成和胜方同等分量的数字，会让人误以为这场没投完。
+   0 票统一降级成一句浅色说明（不加粗、不占数字位）。 */
+.pside .pc.zero,
+.kside .vt.zero {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text3);
+  opacity: 0.85;
+}
 .pside.lose .art {
   filter: grayscale(0.55);
   opacity: 0.7;

@@ -74,7 +74,7 @@
     <div v-else class="state g-card">
       <h2>冠军还没决出</h2>
       <p class="muted">先把对决投完，才能生成夺冠之路分享图。</p>
-      <RouterLink :to="{ name: 'battle-play', params: { id } }" class="btn pri">继续投票</RouterLink>
+      <RouterLink :to="{ name: 'battle-pk', params: { id } }" class="btn pri">继续投票</RouterLink>
     </div>
   </div>
 </template>

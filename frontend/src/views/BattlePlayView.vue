@@ -1,5 +1,5 @@
 <template>
-  <div class="play">
+  <div class="play" :class="{ 'pk-only': pkOnly }">
     <!-- 全局音频元素：小组赛试听与淘汰赛 1v1 共用（放根级，避免某阶段里 audioEl 是空导致播不出来） -->
     <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
 
@@ -108,6 +108,19 @@
           </button>
           <button v-if="picked.length" class="btn ghost" type="button" @click="picked = []">
             清空重选
+          </button>
+          <!-- PK 版（pk-only）里页头被隐藏了，撤销按钮挪到这一行，功能不能丢 -->
+          <button
+            class="undomin"
+            type="button"
+            :disabled="undoing"
+            title="选错了没关系，可以撤销上一步重选；每张卡上的「试听主打」可以听片段（不参与计票）。"
+            @click="undoStep"
+          >
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+            </svg>
+            撤销上一步
           </button>
         </div>
       </div>
@@ -228,6 +241,19 @@
 
         <div class="voterow">
           <p class="votehint">点击任意专辑封面即可投票 · 也可用下方按钮</p>
+          <!-- PK 版（pk-only）里页头被隐藏了，撤销按钮挪到这一行，功能不能丢 -->
+          <button
+            class="undomin"
+            type="button"
+            :disabled="undoing"
+            title="选错了没关系，可以撤销上一步重选；想多听几首就点下方播放条切歌，或点「试听清单」里的任意一首。"
+            @click="undoStep"
+          >
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M9 14L4 9l5-5" /><path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+            </svg>
+            撤销上一步
+          </button>
           <div class="vbtns">
             <button
               class="btn vote-btn"
@@ -316,7 +342,7 @@
       </div>
     </template>
 
-    <div v-if="!loading" class="crumb">
+    <div v-if="!loading && !pkOnly" class="crumb">
       <RouterLink :to="{ name: 'battle-bracket', params: { id } }">查看对阵表 →</RouterLink>
     </div>
   </div>
@@ -329,6 +355,17 @@ import { ElMessage } from 'element-plus';
 import { battleApi, musicApi } from '@/api';
 import { accentStyleOf, ensureAlbumAccent, blendWithBrand, withAlpha } from '@/utils/coverColor.js';
 import { ROUND_CN } from '@/utils/tournament.js';
+
+/**
+ * pk-only：只显示对战台（单场 PK）那一块
+ * ------------------------------------------------------------
+ * 2026-09-21 用户要求："能不能 pk 专辑时进来直接就是页面划过的这个位置"
+ * —— 进来就应该是"两张专辑 + 投票按钮"，而不是先看到页头/进度条/阶段说明再往下滚。
+ * `BattlePkView`（路由 /battle/:id/pk）用这个属性包一层；其余入口仍用完整版。
+ */
+const props = defineProps({
+  pkOnly: { type: Boolean, default: false },
+});
 
 const route = useRoute();
 const id = route.params.id;
@@ -1355,5 +1392,101 @@ onMounted(load);
 .pickcard .art img {
   max-height: min(30vh, 260px);
   object-fit: cover;
+}
+
+/* =====================================================================
+   单场 PK 版式（2026-09-21 用户要求："pk 专辑时进来直接就是页面划过的这个位置"）
+   ---------------------------------------------------------------------
+   路由 /battle/:id/pk → BattlePkView → <BattlePlayView pk-only />。
+   目标：进门**第一眼**就是「两张专辑 + 投票按钮 + 播放条」，不必往下滚。
+   做法：把对战台之外的所有块（页头 / 撤销条 / 进度条 / 阶段说明 / 底部"查看对阵表"）
+        隐藏掉，只留中间这一块；因为少了一大截，封面可以给得更大方。
+   ===================================================================== */
+.play.pk-only {
+  padding-top: 4px;
+}
+/* 这一页没有页头/进度条，把内容区顶部内边距也吃掉（贴顶再近一点） */
+.pk-only .vstage {
+  margin-top: -2px;
+}
+/* 页头（轮次 + 已投场次）、撤销条、进度条、阶段说明、底部链接：PK 版一律不显示 */
+.pk-only .playhd,
+.pk-only .undobar,
+.pk-only .progline,
+.pk-only .sib-tip,
+.pk-only > .crumb,
+.pk-only .vstage > .note {
+  display: none !important;
+}
+/* 对战台独占首屏：上留白压到最小，视觉上"进门就是它" */
+.pk-only .vstage {
+  padding: 10px 20px 14px !important;
+}
+/* 少了上面几块之后有富余空间，封面放大一档（仍保证整组在一屏内） */
+.pk-only .duelgrid .alb {
+  max-width: min(40vh, 340px) !important;
+}
+.pk-only .duelgrid .alb .art {
+  width: min(40vh, 340px) !important;
+  height: min(40vh, 340px) !important;
+  margin: 0 auto;
+}
+/* 投票按钮更醒目（首屏最该被点到的就是它） */
+.pk-only .voterow {
+  /* ⚠️ 折成两行：提示 + 撤销一行，两个投票按钮一行。
+     原来 .voterow 是 column 居中，撤销按钮插进来会独占一行、把按钮再往下推 40px。 */
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 12px !important;
+}
+.pk-only .voterow .votehint {
+  font-size: 13.5px !important;
+  margin: 0 auto 0 0;
+  text-align: left;
+}
+.pk-only .voterow .vbtns {
+  gap: 10px;
+}
+/* 播放条紧贴对战台，别被推到屏幕外 */
+.pk-only .nowbar {
+  margin-top: 10px !important;
+}
+/* PK 版里撤销仍然要有 —— 页头那种大条不显示，改成投票行 / 提交行右侧一个小按钮，
+   默认隐藏、只在 PK 版出现（用户上一轮明确要求"必须能撤销"，这里不能丢） */
+.voterow .undomin,
+.submitrow .undomin {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text2);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.pk-only .voterow .undomin,
+.pk-only .submitrow .undomin {
+  display: inline-flex;
+}
+.voterow .undomin:hover:not(:disabled),
+.submitrow .undomin:hover:not(:disabled) {
+  color: var(--brand-deep);
+  border-color: var(--brand);
+}
+.voterow .undomin:disabled,
+.submitrow .undomin:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.voterow .undomin .ico,
+.submitrow .undomin .ico {
+  width: 14px;
+  height: 14px;
 }
 </style>

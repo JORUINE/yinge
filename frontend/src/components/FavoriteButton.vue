@@ -43,20 +43,34 @@ const route = useRoute();
 const busy = ref(false);
 
 const targetId = computed(() => String(props.album?.id ?? props.album?._id ?? ''));
+/** 有些接口（对位赛战报行等）只给外部 albumId —— 收藏时先换成本地 id，见 store.toggle */
+const externalId = computed(() => props.album?.albumId ?? '');
 const active = computed(() => fav.has(targetId.value));
 
 onMounted(() => {
+  // 游客也要能收藏 → 有令牌（含游客令牌）就拉一次收藏列表
   if (auth.isLoggedIn) fav.load();
 });
 
 async function onClick() {
-  // 需求口径：不注册能玩，但「收藏 / 长期保留」需要正式注册 —— 游客身份在这里拦下
-  if (!auth.isLoggedIn || auth.user?.role === 'guest') {
-    ElMessage.info('收藏需要正式注册 —— 游客身份的数据只保存在本机浏览器');
-    router.push({ name: 'login', query: { redirect: route.fullPath } });
-    return;
+  /**
+   * ⚠️ 2026-09-21 用户报："对位赛收藏还是不行"（第二次）
+   * 原来这里把**游客**也拦下来了（游客≠正式注册 → 弹提示 + 跳登录页）。
+   * 但项目硬规则是「**不注册也要能玩全部主线**」，而"收藏专辑"就是主线的一环 ——
+   * 游客号本身就是真实账号（role=guest）+ 正式 JWT，后端 favorites 完全认它，
+   * 所以这里不再拦游客，让游客也能收藏（数据在他本机这个游客号上，注册时自动迁移过去）。
+   * 真正没登录（连游客身份都没有）时才去领一个游客身份或跳登录。
+   */
+  if (!auth.isLoggedIn) {
+    try {
+      await auth.ensureGuest();
+    } catch {
+      ElMessage.info('先登录一下才能收藏');
+      router.push({ name: 'login', query: { redirect: route.fullPath } });
+      return;
+    }
   }
-  if (!targetId.value) {
+  if (!targetId.value && !externalId.value) {
     ElMessage.error('这个条目暂时无法收藏');
     return;
   }

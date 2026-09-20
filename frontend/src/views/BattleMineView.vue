@@ -44,7 +44,7 @@
           </p>
         </div>
         <div class="actions">
-          <RouterLink v-if="b.status === 'playing'" :to="{ name: 'battle-play', params: { id: b.battleId } }">
+          <RouterLink v-if="b.status === 'playing'" :to="{ name: 'battle-pk', params: { id: b.battleId } }">
             <el-button type="primary">继续投票</el-button>
           </RouterLink>
           <RouterLink :to="{ name: 'battle-result', params: { id: b.battleId } }">

@@ -16,7 +16,7 @@
             <b>已投 {{ decided }} / {{ battle.stepTotal || 0 }}</b>
           </span>
         </div>
-        <RouterLink :to="{ name: 'battle-play', params: { id } }" class="btn pri sm">
+        <RouterLink :to="isFinished ? { name: 'battle-result', params: { id } } : { name: 'battle-pk', params: { id } }" class="btn pri sm">
           {{ isFinished ? '看结果' : '继续投票' }}
         </RouterLink>
       </div>

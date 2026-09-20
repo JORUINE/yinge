@@ -60,7 +60,7 @@
           </div>
           <div class="v">
             <RouterLink
-              :to="{ name: b.status === 'finished' ? 'battle-result' : 'battle-play', params: { id: b.battleId } }"
+              :to="{ name: b.status === 'finished' ? 'battle-result' : 'battle-pk', params: { id: b.battleId } }"
               class="btn ghost sm"
             >
               {{ b.status === 'finished' ? '回看' : '继续' }}

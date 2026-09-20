@@ -73,7 +73,9 @@
                 <b>{{ r.left?.name || '—' }}</b>
                 <span>{{ year(r.left?.releaseDate) }} · {{ r.left?.trackCount ?? '—' }} 首</span>
               </div>
-              <div class="pc num" v-if="r.leftVotes != null">{{ r.leftVotes }}</div>
+              <div class="pc num" v-if="r.leftVotes">{{ r.leftVotes }}</div>
+              <div class="pc zero" v-else>未得一票</div>
+              <FavoriteButton v-if="r.left" :album="r.left" icon-only small />
               <span v-if="rowWinnerSide(r) === 'left'" class="bw">胜</span>
             </div>
             <div class="pside" :class="rowWinnerSide(r) === 'right' ? 'win' : 'lose'">
@@ -84,7 +86,9 @@
                 <b>{{ r.right?.name || '—' }}</b>
                 <span>{{ year(r.right?.releaseDate) }} · {{ r.right?.trackCount ?? '—' }} 首</span>
               </div>
-              <div class="pc num" v-if="r.rightVotes != null">{{ r.rightVotes }}</div>
+              <div class="pc num" v-if="r.rightVotes">{{ r.rightVotes }}</div>
+              <div class="pc zero" v-else>未得一票</div>
+              <FavoriteButton v-if="r.right" :album="r.right" icon-only small />
               <span v-if="rowWinnerSide(r) === 'right'" class="bw">胜</span>
             </div>
           </div>
@@ -270,7 +274,8 @@
                 <b>{{ champion.name }}</b>
                 <span>{{ champion.artistName }} · {{ year(champion.releaseDate) }}</span>
               </div>
-              <div class="pc" v-if="row.mine !== null">{{ row.mine }} 票</div>
+              <div class="pc" v-if="row.mine">{{ row.mine }} 票</div>
+              <div class="pc zero" v-else>未得一票</div>
               <span class="bw">胜</span>
             </div>
 
@@ -280,7 +285,11 @@
                 <b>{{ row.opponent.name }}</b>
                 <span>{{ row.opponent.artistName }} · {{ year(row.opponent.releaseDate) }}</span>
               </div>
-              <div class="pc" v-if="row.theirs !== null">{{ row.theirs }} 票</div>
+              <!-- ⚠️ 2026-09-21 用户指出："本来就是二选一胜利，这个对手得票数为 0 真的 ok 吗？"
+                   一轮 1v1 里输方本来就（几乎）必然是 0 票 —— 把「0 票」印成和胜方「1 票」同等分量的数字，
+                   会让人以为"这场没打完/没人投"。所以输方 0 票改成一句弱化的说明；只有真得了票才显示数字。 -->
+              <div class="pc num" v-if="row.theirs">{{ row.theirs }} 票</div>
+              <div class="pc zero" v-else>未得一票</div>
             </div>
           </div>
         </div>
@@ -303,7 +312,7 @@
                     <b>{{ m.leftAlbum?.name || '—' }}</b>
                     <span>{{ m.leftAlbum?.artistName || '' }}</span>
                   </div>
-                  <div class="vt num">{{ m.leftVotes ?? 0 }}</div>
+                  <div class="vt num" :class="{ zero: !m.leftVotes }">{{ m.leftVotes || 0 }} 票</div>
                   <span class="bdg">{{ bdgOf(m, m.leftAlbum) }}</span>
                 </div>
                 <div class="kvs">VS</div>
@@ -313,7 +322,7 @@
                     <b>{{ m.rightAlbum?.name || '—' }}</b>
                     <span>{{ m.rightAlbum?.artistName || '' }}</span>
                   </div>
-                  <div class="vt num">{{ m.rightVotes ?? 0 }}</div>
+                  <div class="vt num" :class="{ zero: !m.rightVotes }">{{ m.rightVotes || 0 }} 票</div>
                   <span class="bdg">{{ bdgOf(m, m.rightAlbum) }}</span>
                 </div>
               </div>
@@ -338,7 +347,7 @@
           <h2>对决还没结束</h2>
           <p class="muted">冠军还没决出来，先把剩下的场次投完。</p>
           <div class="btns">
-            <RouterLink :to="{ name: 'battle-play', params: { id } }" class="btn pri">继续投票</RouterLink>
+            <RouterLink :to="{ name: 'battle-pk', params: { id } }" class="btn pri">继续投票</RouterLink>
             <RouterLink :to="{ name: 'battle-bracket', params: { id } }" class="btn ghost">看对阵表</RouterLink>
           </div>
         </div>

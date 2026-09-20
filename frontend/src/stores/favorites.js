@@ -8,7 +8,7 @@
  * 注意：收藏必须登录（后端 favorites 路由挂了 authenticate）。
  */
 import { defineStore } from 'pinia';
-import { favoriteApi } from '@/api';
+import { favoriteApi, musicApi } from '@/api';
 import { useAuthStore } from './auth';
 
 export const useFavoritesStore = defineStore('favorites', {
@@ -45,26 +45,45 @@ export const useFavoritesStore = defineStore('favorites', {
     /** 切换收藏；返回 true = 已收藏，false = 已取消 */
     async toggle(item, targetType = 'album') {
       const targetId = String(item?.id ?? item?._id ?? '');
-      if (!targetId) throw new Error('这个条目暂时无法收藏');
-      if (this.ids.has(targetId)) {
+      /**
+       * ⚠️ 2026-09-21 用户报："对位赛收藏还是不行"
+       * 根因：只认 `id` / `_id`（本地 ObjectId）。对位赛战报行左边这些接口返回的对象
+       * 里带的是**外部 albumId**（数字串），本地 id 字段没进来 → targetId 为空 →
+       * 直接抛「这个条目暂时无法收藏」，按钮看着能点、点了就报错。
+       * 兜底：拿不到本地 id 但拿得到外部 albumId 时，先去后端换成本地 id 再收藏。
+       */
+      let localId = targetId;
+      if (!localId) {
+        const externalId = item?.albumId;
+        if (externalId == null) throw new Error('这个条目暂时无法收藏');
         try {
-          await favoriteApi.remove(targetId);
+          const res = await musicApi.getAlbum(externalId);
+          // getAlbum 直接把 serializeAlbum 的结果当 data 返回，本地 id 就在 `id`
+          localId = String(res?.id ?? res?._id ?? '');
+        } catch {
+          localId = '';
+        }
+        if (!localId) throw new Error('这张专辑还没进曲库，暂时无法收藏');
+      }
+      if (this.ids.has(localId)) {
+        try {
+          await favoriteApi.remove(localId);
         } catch (err) {
           // 服务端其实没有这条收藏（本地状态过期）→ 当作已取消，别弹红字
           if (err?.code !== 1002) throw err;
         }
-        this.ids.delete(targetId);
+        this.ids.delete(localId);
         this.loaded = true;
         return false;
       }
       try {
-        await favoriteApi.add({ targetType, targetId });
+        await favoriteApi.add({ targetType, targetId: localId });
       } catch (err) {
         // 服务端其实已经有了（本地状态没同步）→ 当作已收藏，别弹红字
         // 3001 = 重复；后端现在已改成幂等，这里只是兜底老接口
         if (err?.code !== 3001) throw err;
       }
-      this.ids.add(targetId);
+      this.ids.add(localId);
       this.loaded = true;
       return true;
     },

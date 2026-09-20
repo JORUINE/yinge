@@ -145,6 +145,7 @@ const avatarChar = computed(() => (auth.nickname || '音').slice(0, 1));
  */
 const BACK_FALLBACK = {
   'battle-play': { name: 'battle-mine' },
+  'battle-pk': { name: 'battle-create' },
   'battle-bracket': { name: 'battle-mine' },
   'battle-result': { name: 'battle-mine' },
   'battle-share': { name: 'battle-mine' },

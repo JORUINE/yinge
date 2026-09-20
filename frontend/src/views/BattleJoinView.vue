@@ -156,13 +156,13 @@ async function load() {
 
 async function start() {
   if (myBattleId.value) {
-    router.push({ name: 'battle-play', params: { id: myBattleId.value } });
+    router.push({ name: 'battle-pk', params: { id: myBattleId.value } });
     return;
   }
   starting.value = true;
   try {
     const d = await battleApi.joinInvite(code.value);
-    router.push({ name: 'battle-play', params: { id: d.battleId } });
+    router.push({ name: 'battle-pk', params: { id: d.battleId } });
   } catch (e) {
     ElMessage.error(e?.message || '开局失败');
   } finally {
