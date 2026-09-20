@@ -946,7 +946,37 @@ export async function getNextMatch(battleId, userId) {
  */
 export async function undoLastStep(battleId, userId) {
   const battle = await loadOwnedBattle(battleId, userId);
-  if (battle.tournamentVersion !== 2) throw new BadRequestError('旧赛制暂不支持撤销');
+
+  /**
+   * 对位赛 / 指定对决（旧赛制，tournamentVersion=1）也要能撤销 —— 2026-09-20 用户：
+   * "这个所谓旧赛制没法撤销 我在对位赛里 必须改进"。
+   * 对位赛与混战最大的不同：**每场独立**（不产生冠军、场次之间没有晋级依赖，
+   * roundIndex 就是第几组对位），所以撤销不需要像 v2 那样重算赛程：
+   * 把我最近投的那一场退回"未决"即可，其它场次完全不受影响。
+   */
+  if (battle.tournamentVersion !== 2) {
+    if (battle.scopeType !== 'aligned' && battle.scopeType !== 'duel') {
+      throw new BadRequestError('这个赛制暂不支持撤销');
+    }
+    const lastVote = await Vote.findOne({ battleId, userId }).sort({ createdAt: -1 });
+    if (!lastVote) throw new BadRequestError('还没有投过票，没有可撤销的步骤');
+    const m = lastVote.matchId ? await BattleMatch.findById(lastVote.matchId) : null;
+    if (!m) throw new BadRequestError('找不到要撤销的场次');
+    await Vote.deleteMany({ battleId, userId, matchId: m._id });
+    // ⚠️ leftVotes/rightVotes 在 BattleMatch 里是 required 的 Number → 归零而不是 null，
+    //    否则 save() 会抛「Path leftVotes is required」。winnerAlbumId 置空即代表「本场未决」。
+    m.leftVotes = 0;
+    m.rightVotes = 0;
+    m.winnerAlbumId = null;
+    await m.save();
+    // 如果这局刚因为"投完"被判结束，退回进行中，否则前端会卡在结果页
+    if (battle.status === 'finished') {
+      battle.status = 'playing';
+      await battle.save();
+    }
+    return { undone: `第 ${m.roundIndex} 组对位`, legacy: true };
+  }
+
   if (battle.status === 'finished') throw new BadRequestError('对决已结束，无法再撤销');
 
   const last = await Vote.findOne({ battleId, userId }).sort({ createdAt: -1 });

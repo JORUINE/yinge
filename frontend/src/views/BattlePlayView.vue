@@ -1241,8 +1241,10 @@ onMounted(load);
    尊重 prefers-reduced-motion：关掉动画只留最终状态。 */
 @keyframes cardIn {
   from {
+    /* 2026-09-20 加强：原来 14px/0.985 太含蓄，用户"没感觉到" → 位移与缩放都放大，
+       并加一点透视旋转，做出"牌被抽出来落到桌上"的感觉。 */
     opacity: 0;
-    transform: translateY(14px) scale(0.985);
+    transform: translateY(26px) scale(0.94) rotateX(8deg);
   }
   to {
     opacity: 1;
@@ -1251,17 +1253,17 @@ onMounted(load);
 }
 .duelgrid .alb,
 .pickgrid .pickcard {
-  animation: cardIn 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: cardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .duelgrid .alb:nth-child(2),
 .pickgrid .pickcard:nth-child(2) {
-  animation-delay: 0.08s;
+  animation-delay: 0.1s;
 }
 .pickgrid .pickcard:nth-child(3) {
-  animation-delay: 0.16s;
+  animation-delay: 0.22s;
 }
 .pickgrid .pickcard:nth-child(4) {
-  animation-delay: 0.24s;
+  animation-delay: 0.34s;
 }
 @media (prefers-reduced-motion: reduce) {
   .duelgrid .alb,

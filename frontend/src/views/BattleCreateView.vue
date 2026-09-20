@@ -295,7 +295,7 @@
               @click="applyCombo(c)"
             >
               <span v-if="c.mine" class="minetag">我的</span>
-              <span v-if="c.scopeType === 'aligned'" class="minetag al">对位</span>
+              <span class="minetag" :class="c.scopeType === 'aligned' ? 'al' : ''">{{ c.scopeType === 'aligned' ? '对位' : '混战' }}</span>
               {{ presetLoading === c.label ? '装填中…' : c.label }}
             </button>
             <span v-if="c.mine" class="combox" title="删除这个组合" @click.stop="removeCombo(c)">×</span>
@@ -815,7 +815,20 @@ const presetLoading = ref('');
 /** 后端返回的组合（系统 + 我的） */
 const combos = ref([]);
 const savingCombo = ref(false);
-const shownCombos = computed(() => (combos.value.length ? combos.value : FALLBACK_PRESETS));
+/**
+ * 组合按「与当前模式是否匹配」排序 + 标出赛制
+ * 用户 2026-09-20：“对位赛创建的组合没有和经典模式区分开” ——
+ * 以前 chip 不标赛制、也不按模式排，对位赛里混着一堆混战组合，点哪个都像碰运气。
+ */
+const shownCombos = computed(() => {
+  const list = combos.value.length ? combos.value : FALLBACK_PRESETS;
+  const want = mode.value === 'aligned' ? 'aligned' : 'multi-artist';
+  return [...list].sort((a, b) => {
+    const am = (a.scopeType || 'multi-artist') === want ? 0 : 1;
+    const bm = (b.scopeType || 'multi-artist') === want ? 0 : 1;
+    return am - bm;
+  });
+});
 
 // 流派 / 年代
 const genreOrEra = ref('genre');

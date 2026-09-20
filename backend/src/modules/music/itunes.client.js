@@ -105,10 +105,39 @@ export async function artistPhoto(artistId) {
       redirect: 'follow',
     });
     if (!res.ok) return null;
-    const html = await res.text();
-    const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
-    if (!m || !/mzstatic\.com/.test(m[1])) return null; // 通用 logo = 没有歌手图
-    return m[1].replace(/\/\d+x\d+cw\.(png|jpg|jpeg)$/i, '/600x600bb.jpg');
+    /**
+     * ⚠️ 2026-09-20 性能优化（用户："为什么歌手搜索出来的图片总要等一会儿才加载"）：
+     * 艺术家页整页有 **1.5MB 左右**，而我们要的 `og:image` 就在 <head> 里（前几十 KB）。
+     * 以前 `await res.text()` 会把 1.5MB 全下完才解析 → 白等一大截。
+     * 现在**流式读，命中 og:image 立刻中断**（reader.cancel），通常几 KB 就拿到。
+     */
+    const reader = res.body?.getReader();
+    let html = '';
+    let found = null;
+    if (reader) {
+      const dec = new TextDecoder('utf-8');
+      let total = 0;
+      for (;;) {
+        // eslint-disable-next-line no-await-in-loop
+        const { done, value } = await reader.read();
+        if (done) break;
+        total += value.length;
+        html += dec.decode(value, { stream: true });
+        const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+        if (m) {
+          found = m[1];
+          break;
+        }
+        if (total > 262144) break; // 兜底：最多读 256KB，别把整页拖回来
+      }
+      reader.cancel().catch(() => {});
+    } else {
+      html = await res.text();
+      const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+      found = m?.[1] || null;
+    }
+    if (!found || !/mzstatic\.com/.test(found)) return null; // 通用 logo = 没有歌手图
+    return found.replace(/\/\d+x\d+cw\.(png|jpg|jpeg)$/i, '/600x600bb.jpg');
   } catch {
     return null;
   }

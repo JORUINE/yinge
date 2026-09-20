@@ -45,7 +45,7 @@
       </div>
 
       <div class="hd" style="margin-top: 26px">
-        <b>为你推荐的 3 张专辑</b><span>依据人格类型与维度得分匹配</span>
+        <b>为你推荐的专辑</b><span>依据人格类型与维度得分匹配</span>
       </div>
 
       <div v-if="albums.length" class="recs">

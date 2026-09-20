@@ -8,23 +8,46 @@
            而且导出的战报…整个功能全部参考混战模式重做"。改法：每行不再是一行纯文字，
            而是与混战战报同款的「两张专辑（封面 + 名称 + 票数），胜方高亮」结构。 -->
       <template v-if="data.type === 'aligned'">
+        <div class="reportwrap">
+          <!-- 分享按钮放在被导出元素**外面**（只视觉上叠在卡片右上角），这样不会被截进战报图里
+               —— 用户："对位赛的分享功能不应该放到最下面"。 -->
+          <RouterLink :to="{ name: 'battle-share', params: { id } }" class="sharefloat">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+            </svg>
+            分享 好友一起玩
+          </RouterLink>
+
         <div ref="reportEl" class="aligned-report">
           <div class="arep-top">
             <span class="stop">音格 · YINGE.APP</span>
             <span class="pillx">对位赛 · 战报</span>
           </div>
-          <div class="arep-lead">
-            <template v-if="alignedLeader && alignedLeader.tie">
-              {{ alignedLeader.names.length > 2 ? '并列领先' : '双方打平' }}
-              <span class="muted"> · 各胜 {{ alignedLeader.wins }} 场</span>
-            </template>
-            <template v-else-if="alignedLeader">
-              <b>{{ alignedLeader.name }}</b><span class="muted"> 领先 · 胜 {{ alignedLeader.wins }} 场</span>
-            </template>
-            <template v-else>暂无胜场</template>
+
+          <!-- 大比分：谁比谁一眼看清（用户："比如 11 比 8 谁比谁，字体要清楚够大"） -->
+          <div class="arep-score">
+            <span class="asn">{{ alignedSideNames[0] }}</span>
+            <b class="asv num">{{ alignedScore[0] }}</b>
+            <i class="ascol">:</i>
+            <b class="asv num">{{ alignedScore[1] }}</b>
+            <span class="asn">{{ alignedSideNames[1] }}</span>
           </div>
-          <div class="arep-sub num">
-            共 {{ (data.rows || []).length }} 场对位 · 总比分 {{ alignedScore[0] }} : {{ alignedScore[1] }}
+
+          <div class="arep-vs">
+            <template v-if="alignedLeader && alignedLeader.tie">
+              {{ alignedLeader.names.length > 2 ? '并列领先' : '双方打平' }} · 各胜 {{ alignedLeader.wins }} 场
+            </template>
+            <template v-else-if="alignedLeader">{{ alignedLeader.name }} 领先 {{ alignedLeader.wins }} 场</template>
+            <template v-else>暂无胜场</template>
+            <span class="sep">|</span>共 {{ (data.rows || []).length }} 场对位
+          </div>
+
+          <!-- 歌手对比积分：只在顶部展示这一次（下面不再重复） -->
+          <div v-if="(data.points || []).length" class="arep-pts">
+            <span v-for="(p, i) in data.points || []" :key="i" class="aptchip">
+              {{ artistNameOf(p.artistExternalId) }} <b class="num">{{ p.wins }}</b> 胜
+            </span>
           </div>
 
           <div class="hd" style="margin-top: 18px">
@@ -66,16 +89,8 @@
             </div>
           </div>
 
-          <div class="hd" style="margin-top: 20px">
-            <b>歌手积分</b><span>按胜场累计 · 不产生冠军</span>
-          </div>
-          <div class="prow" v-for="(p, i) in data.points || []" :key="i">
-            <b>{{ artistNameOf(p.artistExternalId) }}</b>
-            <span class="muted">胜 {{ p.wins }} 场</span>
-            <span class="pv num">{{ p.wins }}</span>
-          </div>
-
           <div class="arep-foot">音格 · 专辑对决　|　对位赛不产生冠军，出的是逐张对照表</div>
+        </div>
         </div>
 
         <!-- 简洁分享图（2026-09-20 新增）：用户说详细战报保留，但要一张"更适合分享互动"的图。
@@ -99,18 +114,18 @@
               　|　共 {{ (data.rows || []).length }} 场对位
             </div>
             <div class="mini-rows">
-              <div
-                v-for="(r, i) in (data.rows || []).slice(0, 12)"
-                :key="i"
-                class="mrow"
-                :class="{ l: rowWinnerSide(r) === 'left', r: rowWinnerSide(r) === 'right' }"
-              >
-                <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" />
-                <span class="mtx">{{ r.left?.name }}</span>
-                <b class="mv num">{{ r.leftVotes ?? 0 }}</b>
-                <b class="mv num">{{ r.rightVotes ?? 0 }}</b>
-                <span class="mtx rt">{{ r.right?.name }}</span>
-                <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" />
+              <div v-for="(r, i) in (data.rows || []).slice(0, 12)" :key="i" class="mrow">
+                <div class="mhalf" :class="{ win: rowWinnerSide(r) === 'left' }">
+                  <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" />
+                  <span class="mtx">{{ r.left?.name }}</span>
+                  <b class="mv num">{{ r.leftVotes ?? 0 }}</b>
+                </div>
+                <span class="mdiv"></span>
+                <div class="mhalf rt" :class="{ win: rowWinnerSide(r) === 'right' }">
+                  <b class="mv num">{{ r.rightVotes ?? 0 }}</b>
+                  <span class="mtx">{{ r.right?.name }}</span>
+                  <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" />
+                </div>
               </div>
             </div>
             <p v-if="(data.rows || []).length > 12" class="mini-more">
@@ -1218,4 +1233,48 @@ onMounted(load);
 .arep-mini .mrow.l .mv:first-of-type, .arep-mini .mrow.r .mv:last-of-type { color: var(--brand-deep); }
 .arep-mini .mini-more { text-align: center; font-size: 12.5px; color: var(--text3); margin: 10px 0 0; }
 .arep-mini .mini-foot { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(14, 165, 233, 0.32); text-align: center; font-size: 12.5px; color: var(--text3); }
+
+/* ===== 战报顶部改造（2026-09-20）===== */
+.reportwrap { position: relative; }
+.sharefloat {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  background: var(--brand);
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.35);
+  text-decoration: none;
+}
+.sharefloat .ico { width: 16px; height: 16px; }
+.sharefloat:hover { filter: brightness(1.06); }
+.arep-score {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 6px 0 4px;
+}
+.arep-score .asn { font-size: 20px; font-weight: 700; }
+.arep-score .asv { font-size: 42px; font-weight: 900; letter-spacing: -1.5px; color: var(--brand-deep); font-variant-numeric: tabular-nums; }
+.arep-score .ascol { font-style: normal; font-size: 30px; font-weight: 700; color: var(--text3); }
+.arep-vs { text-align: center; font-size: 14.5px; color: var(--text2); margin-bottom: 10px; }
+.arep-vs .sep { margin: 0 8px; color: var(--text3); }
+.arep-pts { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.aptchip { font-size: 13.5px; padding: 4px 12px; border-radius: 999px; background: var(--glass2); border: 1px solid var(--gbd); color: var(--text2); }
+.aptchip b { color: var(--brand-deep); font-size: 15px; }
+/* 分享图：每组左右对称（左封面+左名+左分 ｜ 右分+右名+右封面），长名字不会再把封面挤变形 */
+.arep-mini .mrow .mhalf { display: flex; align-items: center; gap: 7px; flex: 1 1 0; min-width: 0; }
+.arep-mini .mrow .mhalf.rt { justify-content: flex-end; }
+.arep-mini .mrow .mhalf.win .mtx { font-weight: 700; color: var(--brand-deep); }
+.arep-mini .mrow .mhalf.win .mv { color: var(--brand-deep); }
+.arep-mini .mrow .mdiv { flex: 0 0 auto; width: 1px; height: 18px; background: var(--line); }
 </style>
