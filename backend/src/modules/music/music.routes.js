@@ -36,8 +36,10 @@ const genreWarmSchema = z.object({
 
 const router = Router();
 
-// 注意：/artists/search 必须声明在 /artists/:artistId 之前
+// 注意：/artists/search 与 /artists/photos 必须声明在 /artists/:artistId 之前
 router.get('/artists/search', validate(searchSchema, 'query'), asyncHandler(controller.searchArtists));
+/** 批量补歌手本人照片（前端拿到搜索结果后再调，避免拖慢搜索） */
+router.get('/artists/photos', asyncHandler(controller.artistPhotos));
 router.get('/artists/:artistId', validate(artistParamSchema, 'params'), asyncHandler(controller.getArtist));
 router.get(
   '/artists/:artistId/albums',

@@ -1,20 +1,20 @@
 <template>
   <button
     class="chip artistchip"
-    :class="{ on, busy }"
+    :class="{ on, busy, taken }"
     type="button"
-    :disabled="busy"
+    :disabled="busy || taken"
     @click="$emit('pick', artist)"
   >
     <span class="ava">
-      <img v-if="artist.artworkUrl" :src="artist.artworkUrl" :alt="artist.name" loading="lazy" />
+      <img v-if="photo" :src="photo" :alt="artist.name" loading="lazy" />
       <i v-else>{{ initial }}</i>
     </span>
     <span class="tx">
       <b>{{ name }}</b>
       <em>{{ brief }}</em>
     </span>
-    <span v-if="action" class="act">{{ busy ? '请稍候…' : action }}</span>
+    <span v-if="taken || action" class="act">{{ taken ? '已加入' : busy ? '请稍候…' : action }}</span>
   </button>
 </template>
 
@@ -22,10 +22,11 @@
 /**
  * 歌手候选卡（带头像 + 简介）
  * ------------------------------------------------------------
- * 用户 P1 需求："搜索结果这里空着"，要歌手图片与介绍。
- * iTunes Search API 不返回歌手头像，后端用「代表作封面代位」补上了 artworkUrl，
- * 这里只负责展示；简介全部来自真实字段（流派 / 正式专辑数 / 年代跨度 / 代表作），
- * 不编任何"著名歌手"之类的空话。
+ * 头像优先级：① Apple Music 艺术家页拿到的**歌手本人照片**（photoUrl）
+ *            ② 退化为代表作专辑封面（后端补的 artworkUrl）
+ *            ③ 都没有 → 首字母占位（不显示裂图）
+ * 简介全部来自真实字段（流派 / 正式专辑数 / 年代跨度 / 代表作），不编"著名歌手"这类空话。
+ * `taken`：已在池子里 —— 仍然显示（**不要静默过滤掉**，否则用户以为"这位大牌搜不出来"）。
  */
 import { computed } from 'vue';
 
@@ -33,6 +34,8 @@ const props = defineProps({
   artist: { type: Object, required: true },
   /** 已加入（高亮） */
   on: { type: Boolean, default: false },
+  /** 已在池子里（不可再点） */
+  taken: { type: Boolean, default: false },
   /** 正在加载其专辑 */
   busy: { type: Boolean, default: false },
   /** 右侧动作文案，如"加入" */
@@ -41,6 +44,7 @@ const props = defineProps({
 
 defineEmits(['pick']);
 
+const photo = computed(() => props.artist.photoUrl || props.artist.artworkUrl || null);
 const name = computed(() => (props.busy ? '加载中…' : props.artist.name || '未知歌手'));
 const initial = computed(() => (props.artist.name || '?').slice(0, 1));
 

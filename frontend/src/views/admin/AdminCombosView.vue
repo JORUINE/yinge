@@ -80,23 +80,20 @@
             <span class="tagx" :class="c.isSystem ? 'tp' : 'wn'">{{ c.isSystem ? '系统' : '用户自建' }}</span>
           </td>
           <td class="act">
-            <template v-if="c.isSystem">
-              <button class="mini" type="button" @click="openRename(c)">改名</button>
-              <button class="mini" type="button" @click="removeCombo(c)">删除</button>
-            </template>
-            <span v-else class="muted">（只读）</span>
+            <!-- 2026-09-20 用户要求："后台这里应该加入修改功能" ——
+                 以前用户自建的是（只读），现在管理员可以维护**任意**组合：
+                 改名 / 编辑（成员与张数）/ 删除，用户自建的还能一键转为系统组合。 -->
+            <button class="mini" type="button" @click="openRename(c)">改名</button>
+            <button class="mini" type="button" @click="openEdit(c)">编辑</button>
+            <button class="mini" type="button" @click="removeCombo(c)">删除</button>
+            <button v-if="!c.isSystem" class="mini" type="button" @click="makeSystem(c)">转为系统</button>
           </td>
         </tr>
       </tbody>
     </table>
 
-    <el-dialog
-      v-model="dialog"
-      :title="editing ? '给组合改名' : '新建系统组合'"
-      width="560px"
-      align-center
-    >
-      <div v-if="editing" class="frow">
+    <el-dialog v-model="dialog" :title="dlgTitle" width="560px" align-center>
+      <div v-if="dlgMode === 'rename'" class="frow">
         <label>组合名</label>
         <el-input v-model="label" maxlength="40" show-word-limit />
       </div>
@@ -154,7 +151,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import AdminShell from '@/layouts/AdminShell.vue';
 import { comboApi, musicApi } from '@/api';
@@ -165,7 +162,13 @@ const searching = ref(false);
 const list = ref([]);
 
 const dialog = ref(false);
-const editing = ref(null); // 非空 = 改名模式
+/** 弹窗模式：create 新建系统组合 ｜ rename 只改名 ｜ edit 改成员与张数 */
+const dlgMode = ref('create');
+const editing = ref(null); // rename 模式的目标
+const editTarget = ref(null); // edit 模式的目标
+const dlgTitle = computed(() =>
+  dlgMode.value === 'rename' ? '给组合改名' : dlgMode.value === 'edit' ? `编辑「${editTarget.value?.label || ''}」` : '新建系统组合',
+);
 const label = ref('');
 const perArtist = ref(8);
 const term = ref('');
@@ -229,7 +232,9 @@ async function load() {
 }
 
 function openCreate() {
+  dlgMode.value = 'create';
   editing.value = null;
+  editTarget.value = null;
   label.value = '';
   perArtist.value = 8;
   term.value = '';
@@ -239,9 +244,35 @@ function openCreate() {
 }
 
 function openRename(c) {
+  dlgMode.value = 'rename';
   editing.value = c;
+  editTarget.value = null;
   label.value = c.label;
   dialog.value = true;
+}
+
+/** 编辑组合成员与张数（管理员可改任意组合，含用户自建的） */
+function openEdit(c) {
+  dlgMode.value = 'edit';
+  editing.value = null;
+  editTarget.value = c;
+  label.value = c.label;
+  perArtist.value = c.perArtist || 8;
+  artists.value = (c.artists || []).map((a) => ({ artistId: a.artistId, name: a.name }));
+  term.value = '';
+  candidates.value = [];
+  dialog.value = true;
+}
+
+/** 把用户自建的组合采纳为系统组合 */
+async function makeSystem(c) {
+  try {
+    await comboApi.update(c.comboId, { isSystem: true });
+    ElMessage.success(`「${c.label}」已转为系统组合`);
+    await load();
+  } catch (err) {
+    ElMessage.error(err?.message || '转换失败');
+  }
 }
 
 async function search() {
@@ -276,9 +307,25 @@ async function save() {
   }
   saving.value = true;
   try {
-    if (editing.value) {
+    if (dlgMode.value === 'rename') {
       await comboApi.update(editing.value.comboId, { label: label.value.trim() });
       ElMessage.success('已改名');
+    } else if (dlgMode.value === 'edit') {
+      if (artists.value.length < 2) {
+        ElMessage.info('至少加入 2 位歌手');
+        saving.value = false;
+        return;
+      }
+      await comboApi.update(editTarget.value.comboId, {
+        label: label.value.trim(),
+        perArtist: perArtist.value,
+        artists: artists.value.map((a) => ({
+          artistId: a.artistId,
+          name: a.name,
+          albumCount: perArtist.value,
+        })),
+      });
+      ElMessage.success('已保存修改');
     } else {
       if (artists.value.length < 2) {
         ElMessage.info('至少加入 2 位歌手');

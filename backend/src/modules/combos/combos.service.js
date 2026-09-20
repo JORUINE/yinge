@@ -124,7 +124,12 @@ export async function popularCombos({ limit = 20 } = {}) {
 function assertCanManage(user, combo) {
   const isOwner = combo.ownerId && String(combo.ownerId) === String(user._id);
   const isSystemAdmin = combo.isSystem && user.role === 'admin';
-  if (!isOwner && !isSystemAdmin) throw new ForbiddenError('只能维护自己的组合（系统组合仅管理员可改）');
+  // 2026-09-20 用户要求："后台这里应该加入修改功能" —— 后台组合表里用户自建的组合以前是（只读）。
+  // 管理员是平台维护者，允许维护**任意**组合（含用户自建）。
+  const isAdmin = user.role === 'admin';
+  if (!isOwner && !isSystemAdmin && !isAdmin) {
+    throw new ForbiddenError('只能维护自己的组合（系统组合仅管理员可改）');
+  }
 }
 
 export async function createCombo(user, payload) {
@@ -155,6 +160,22 @@ export async function updateCombo(user, id, payload) {
   assertCanManage(user, combo);
   if (payload.label !== undefined) combo.label = String(payload.label).trim();
   if (payload.perArtist !== undefined) combo.perArtist = Number(payload.perArtist);
+  // 2026-09-20 新增：后台可以直接改组合成员（用户点名要"修改功能"，不只是改名）
+  if (Array.isArray(payload.artists)) {
+    const artists = payload.artists.map((a) => ({
+      artistId: Number(a.artistId),
+      name: a.name || String(a.artistId),
+      albumCount: Number(a.albumCount) || Number(payload.perArtist) || combo.perArtist || 8,
+    }));
+    if (artists.length < 2) throw new BadRequestError('一个组合至少要 2 位歌手');
+    combo.artists = artists;
+  }
+  // 把用户自建的组合"转为系统组合"（采纳进常用组合），仅管理员
+  if (payload.isSystem === true) {
+    if (user.role !== 'admin') throw new ForbiddenError('只有管理员能维护系统组合');
+    combo.isSystem = true;
+    combo.ownerId = null;
+  }
   await combo.save();
   return serialize(combo);
 }

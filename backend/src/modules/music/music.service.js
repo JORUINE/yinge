@@ -297,18 +297,47 @@ async function mapWithConcurrency(list, limit, fn) {
 }
 
 const yearOf = (d) => (d ? new Date(d).getFullYear() : null);
+/** 歌手图缓存的保鲜期：30 天内不重复抓 Apple Music 页（没抓到也记时间，避免每次重试） */
+const ARTIST_IMAGE_TTL_MS = 30 * 86400000;
+
+/**
+ * 歌手本人照片：先查库（Artist.imageUrl），没有再去 Apple Music 艺术家页取一次并落库。
+ * 抓不到返回 null → 前端退化为代表作封面代位。
+ */
+async function ensureArtistPhoto(a) {
+  const doc = await Artist.findOne({ artistId: a.artistId }).select('imageUrl imageFetchedAt').lean();
+  if (doc?.imageUrl) return doc.imageUrl;
+  const fresh = doc?.imageFetchedAt && Date.now() - new Date(doc.imageFetchedAt).getTime() < ARTIST_IMAGE_TTL_MS;
+  if (fresh) return null; // 30 天内查过且没有图 → 不再打扰 Apple
+  const url = await itunes.artistPhoto(a.artistId);
+  Artist.updateOne(
+    { artistId: a.artistId },
+    { $set: { imageUrl: url || null, imageFetchedAt: new Date() } },
+    { upsert: false },
+  ).catch(() => {});
+  return url;
+}
 
 async function enrichArtistBrief(a) {
-  const cached = await Album.find({ artistExternalId: a.artistId, isEligible: true })
-    .sort({ releaseDate: 1 })
-    .select('albumId name artworkUrl releaseDate')
-    .lean();
+  // ⚠️ 2026-09-20 性能修正：这里**不再**顺手去抓 Apple Music 页（一次要 1–2 秒 × 12 位歌手，
+  //    把搜索拖成十几秒，第一次搜直接超时 → 用户以为"搜不出这位歌手"）。
+  //    现在搜索只做"零成本的活"：查库拿专辑数/封面/已缓存的歌手图；
+  //    真图由前端拿到结果后再调 /music/artists/photos 异步补（见 artistPhotos）。
+  const [cached, doc] = await Promise.all([
+    Album.find({ artistExternalId: a.artistId, isEligible: true })
+      .sort({ releaseDate: 1 })
+      .select('albumId name artworkUrl releaseDate')
+      .lean(),
+    Artist.findOne({ artistId: a.artistId }).select('imageUrl').lean(),
+  ]);
+  const photoUrl = doc?.imageUrl || null;
   if (cached.length) {
     const years = cached.map((x) => yearOf(x.releaseDate)).filter(Boolean);
     const newest = cached[cached.length - 1];
     return {
       ...a,
       cached: true,
+      photoUrl,
       albumCount: cached.length,
       artworkUrl: newest.artworkUrl || cached[0].artworkUrl || null,
       topAlbum: newest.name || null,
@@ -322,6 +351,7 @@ async function enrichArtistBrief(a) {
     return {
       ...a,
       cached: false,
+      photoUrl,
       albumCount: 0,
       artworkUrl: pick?.artworkUrl || null,
       topAlbum: pick?.name || null,
@@ -330,8 +360,22 @@ async function enrichArtistBrief(a) {
     };
   } catch {
     // 外部接口挂了也要能搜（降级：没有头像就显示首字母占位）
-    return { ...a, cached: false, albumCount: 0, artworkUrl: null, topAlbum: null };
+    return { ...a, cached: false, photoUrl, albumCount: 0, artworkUrl: null, topAlbum: null };
   }
+}
+
+/**
+ * 批量补歌手本人照片（前端拿到搜索结果后再调用，避免拖慢搜索）
+ * 返回 { [artistId]: url }，取不到的就不出现在结果里（前端保持专辑封面代位）。
+ */
+export async function artistPhotos(ids = []) {
+  const list = [...new Set(ids.map(Number).filter(Boolean))].slice(0, 12);
+  const out = {};
+  await mapWithConcurrency(list, 3, async (id) => {
+    const url = await ensureArtistPhoto({ artistId: id }).catch(() => null);
+    if (url) out[id] = url;
+  });
+  return out;
 }
 
 export async function searchArtists(term, limit = 10) {
@@ -346,6 +390,7 @@ export default {
   getAlbumTracks,
   getAlbumPreview,
   searchArtists,
+  artistPhotos,
   syncArtist,
   freshness,
   serializeAlbum,

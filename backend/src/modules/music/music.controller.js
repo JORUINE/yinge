@@ -12,6 +12,15 @@ export async function searchArtists(req, res) {
   return ok(res, result);
 }
 
+/** 批量歌手照片：?ids=1,2,3（最多 12 位） */
+export async function artistPhotos(req, res) {
+  const ids = String(req.query.ids || '')
+    .split(',')
+    .map((x) => Number(x.trim()))
+    .filter(Boolean);
+  return ok(res, { photos: await musicService.artistPhotos(ids) });
+}
+
 export async function getArtist(req, res) {
   const { artistId } = req.validated.params;
   const { artist } = await musicService.getArtistAlbums(artistId);

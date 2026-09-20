@@ -97,6 +97,7 @@
             :key="a.artistId"
             :artist="a"
             :on="duelArtists.some((x) => x.artistId === a.artistId)"
+            :taken="a.taken"
             :action="duelArtists.some((x) => x.artistId === a.artistId) ? '已载入' : '加入候选池'"
             @pick="loadDuelAlbums"
           />
@@ -188,10 +189,10 @@
             :key="a.artistId"
             :artist="a"
             :busy="loadingArtistId === a.artistId"
+            :taken="a.taken"
             action="加载其专辑"
             @pick="loadCustomAlbums"
-          />
-        </div>
+          />        </div>
         <p v-if="lastAdded" class="addedtip">✓ {{ lastAdded }}</p>
         <p class="hint">点「加载其专辑」把某位歌手的专辑放进来，再点封面勾选；一局至少 4 张、<b>最多 100 张</b>。</p>
         <p class="hint warnline">
@@ -260,6 +261,7 @@
             :key="a.artistId"
             :artist="a"
             :on="picked.some((x) => x.artistId === a.artistId)"
+            :taken="a.taken"
             action="加入"
             @pick="addArtist"
           />
@@ -1189,20 +1191,86 @@ async function doSearch() {
   if (!term.value.trim()) return;
   searching.value = true;
   try {
-    const data = await musicApi.searchArtists({ term: term.value.trim(), limit: 8 });
-    // 过滤更严：① 去掉已经选过的（列表里不再出现重复项）② 最多留 6 个，少让无关歌手堆一屏。
-    //   ⚠️ 故意**不做**"名字必须互相包含"的硬过滤 —— 搜简体「周杰伦」返回的是繁体「周杰倫」，
-    //      硬过滤会把正确答案误杀（搜索结果直接空掉，反而变成 bug）。
-    const chosen = new Set(picked.value.map((p) => p.artistId));
-    candidates.value = (data.artists || []).filter((a) => !chosen.has(a.artistId)).slice(0, 6);
-    if (!candidates.value.length) {
-      ElMessage.info('没有更多匹配的歌手了（换个说法，或试试简体 / 繁体）');
-    }
+    const data = await musicApi.searchArtists({ term: term.value.trim(), limit: 12 });
+    // ⚠️ 2026-09-20 修（用户报"搜不出 Adele / Travis Scott 这种大牌"）：
+    //   旧逻辑把**已选歌手直接 filter 掉**，也不排序 —— 结果用户搜一位已经在池子里的歌手，
+    //   他本人从列表里消失，屏幕上只剩一堆无关的人（搜 "travis scoot" 出 SZA / The Chainsmokers），
+    //   看起来就是"大牌搜不出来"。现在改成：
+    //     ① **已选歌手照样显示**，只是标成「已加入」不可点（用户能看到"他已经在了"）
+    //     ② 按"和搜索词的相似度"排序，最像的排最前（iTunes 自己的相关度会把手滑漏字母的查询排乱）
+    //     ③ 不再硬截 6 个，给 8 个位置
+    candidates.value = rankArtistMatches(data.artists || [], term.value.trim(), picked.value).slice(0, 8);
+    if (!candidates.value.length) ElMessage.info('没有找到匹配的歌手，换个说法试试');
+    else loadArtistPhotos();
   } catch (err) {
     ElMessage.error(err?.message || '搜索失败');
   } finally {
     searching.value = false;
   }
+}
+
+/**
+ * 搜索结果先秒回，歌手本人照片再异步补上
+ * ------------------------------------------------------------
+ * ⚠️ 2026-09-20：一开始把"抓 Apple Music 页取歌手图"塞进了搜索接口里 ——
+ *  12 位歌手 × 1~2 秒 = 搜索要十几秒，第一次搜直接超时（用户报"搜不出这位歌手"）。
+ *  改成两段式：搜索只查库（毫秒级）→ 结果先渲染（头像先用代表作封面代位）→
+ *  真图到了再原地替换，用户几乎无感。
+ */
+async function loadArtistPhotos() {
+  const ids = candidates.value.map((a) => a.artistId);
+  if (!ids.length) return;
+  try {
+    const d = await musicApi.artistPhotos(ids);
+    const photos = d?.photos || {};
+    if (!Object.keys(photos).length) return;
+    candidates.value = candidates.value.map((a) =>
+      photos[a.artistId] ? { ...a, photoUrl: photos[a.artistId] } : a,
+    );
+  } catch {
+    /* 补图失败不影响搜索本身 */
+  }
+}
+
+/** 归一化：小写、去重音、去空格与标点（"Adéle" → "adele"） */
+const normName = (s) =>
+  String(s || '')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s\-_.·&'’,，。]/g, '');
+
+/** 名字相似度打分：越像分越高（0 = 完全不像） */
+function matchScore(name, term) {
+  const n = normName(name);
+  const t = normName(term);
+  if (!n || !t) return 0;
+  if (n === t) return 1000;
+  if (n.startsWith(t)) return 900 - Math.min(n.length, 60);
+  if (t.startsWith(n)) return 800 - Math.min(n.length, 60);
+  if (n.includes(t) || t.includes(n)) return 600;
+  // 公共前缀比例：容忍"手滑漏一个字母"（travisscoot ≈ travisscott → 9/11）
+  let i = 0;
+  while (i < n.length && i < t.length && n[i] === t[i]) i += 1;
+  return Math.round((i / Math.max(n.length, t.length)) * 500);
+}
+
+/**
+ * 给搜索结果排序并标注「是否已在池子里」。
+ * ⚠️ 同名不同 id 也算已加入 —— iTunes 同一位歌手常有多条记录（分地区），
+ *    只比 id 会漏判 → 出现"看着像重复项"的困惑。
+ */
+function rankArtistMatches(list, term, chosen) {
+  const chosenIds = new Set(chosen.map((p) => p.artistId));
+  const chosenNames = new Set(chosen.map((p) => normName(p.name)));
+  return list
+    .map((a, i) => ({
+      ...a,
+      _score: matchScore(a.name, term),
+      _index: i,
+      taken: chosenIds.has(a.artistId) || chosenNames.has(normName(a.name)),
+    }))
+    .sort((x, y) => y._score - x._score || x._index - y._index);
 }
 
 function quickSearch(name) {
@@ -1306,9 +1374,23 @@ async function duelSearch() {
   if (!duelTerm.value.trim()) return;
   duelSearching.value = true;
   try {
-    const data = await musicApi.searchArtists({ term: duelTerm.value.trim(), limit: 8 });
-    duelCandidates.value = data.artists || [];
+    const data = await musicApi.searchArtists({ term: duelTerm.value.trim(), limit: 12 });
+    // 与主搜索同一套：按相似度排序 + 已载入的标出来（不静默过滤）
+    duelCandidates.value = rankArtistMatches(data.artists || [], duelTerm.value.trim(), duelArtists.value).slice(0, 8);
     if (!duelCandidates.value.length) ElMessage.info('没有找到匹配的歌手');
+    else {
+      const ids = duelCandidates.value.map((a) => a.artistId);
+      musicApi
+        .artistPhotos(ids)
+        .then((d) => {
+          const photos = d?.photos || {};
+          if (!Object.keys(photos).length) return;
+          duelCandidates.value = duelCandidates.value.map((a) =>
+            photos[a.artistId] ? { ...a, photoUrl: photos[a.artistId] } : a,
+          );
+        })
+        .catch(() => {});
+    }
   } catch (err) {
     ElMessage.error(err?.message || '搜索失败');
   } finally {

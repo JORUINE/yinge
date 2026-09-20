@@ -30,6 +30,9 @@ const createSchema = z.object({
 const updateSchema = z.object({
   label: z.string().trim().min(1).max(40).optional(),
   perArtist: z.coerce.number().int().min(4).max(50).optional(),
+  /** 2026-09-20 新增：后台可直接改组合成员 / 转为系统组合（用户点名要"修改功能"） */
+  artists: z.array(artistEntry).min(2, '至少要 2 位歌手').max(6, '最多 6 位歌手').optional(),
+  isSystem: z.boolean().optional(),
 });
 
 const idParam = z.object({ id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的标识') });

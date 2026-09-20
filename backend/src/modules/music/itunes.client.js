@@ -76,8 +76,42 @@ export async function searchArtists(term, limit = 10) {
       name: r.artistName,
       genre: r.primaryGenreName || null,
       region: country,
+      link: r.artistLinkUrl || null,
     }));
   return { country, artists };
+}
+
+/**
+ * 歌手本人照片 —— 从 Apple Music 艺术家页的 og:image 取（2026-09-20 新增）
+ * ------------------------------------------------------------------
+ * 用户问："Apple Music 打开不就有歌手最新图片吗" —— 是的，而且**不需要开发者密钥**：
+ * 艺术家页 HTML 的 og:image 就是歌手本人照片。
+ * ⚠️ 实测（2026-09-20，Adele 262836961 / Taylor Swift 159260351 逐一试过）：
+ *    **只有 cn 商店front 的页面带真图**，us / gb / hk / tw / jp 返回的都是通用 logo
+ *    （music.apple.com/assets/meta/apple-music.png）→ 所以固定打 cn 站，拿到通用 logo 就当"没有图"。
+ * 返回**方形** 600x600（mzstatic 支持换尺寸段：/1200x630cw.png → /600x600bb.jpg，实测 200）。
+ * 抓不到就返回 null，调用方退化为"代表作封面代位"（绝不显示裂图）。
+ */
+const BROWSER_UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
+
+export async function artistPhoto(artistId) {
+  const id = Number(artistId);
+  if (!id) return null;
+  try {
+    const res = await fetch(`https://music.apple.com/cn/artist/x/${id}`, {
+      headers: { 'User-Agent': BROWSER_UA, 'Accept-Language': 'zh-CN,zh;q=0.9' },
+      signal: AbortSignal.timeout(9000),
+      redirect: 'follow',
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const m = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+    if (!m || !/mzstatic\.com/.test(m[1])) return null; // 通用 logo = 没有歌手图
+    return m[1].replace(/\/\d+x\d+cw\.(png|jpg|jpeg)$/i, '/600x600bb.jpg');
+  } catch {
+    return null;
+  }
 }
 
 export async function lookupAlbums(artistId, limit = 200) {
@@ -194,4 +228,4 @@ export async function topAlbumsByGenre(genreId, { country = 'us', limit = 100, e
   }
 }
 
-export default { searchArtists, lookupAlbums, lookupSongs, topAlbumsByGenre, upscaleArtwork };
+export default { searchArtists, lookupAlbums, lookupSongs, topAlbumsByGenre, upscaleArtwork, artistPhoto };

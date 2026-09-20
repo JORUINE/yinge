@@ -18,6 +18,8 @@ export const authApi = {
 
 export const musicApi = {
   searchArtists: (params) => http.get('/music/artists/search', { params }),
+  /** 批量补歌手本人照片（搜索结果先秒回，真图随后异步补上） */
+  artistPhotos: (ids) => http.get('/music/artists/photos', { params: { ids: ids.join(',') } }),
   getArtist: (artistId) => http.get(`/music/artists/${artistId}`),
   listArtistAlbums: (artistId, params) => http.get(`/music/artists/${artistId}/albums`, { params }),
   getAlbum: (albumId) => http.get(`/music/albums/${albumId}`),

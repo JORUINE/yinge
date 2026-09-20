@@ -3,54 +3,83 @@
     <div v-if="loading" class="state muted">正在加载结果…</div>
 
     <template v-else-if="data">
-      <!-- 对位赛 / 指定对决：没有冠军，直接给逐行对照表（此前会误显示"还没结束"死循环） -->
+      <!-- 对位赛 / 指定对决：没有冠军，给逐行对照战报
+           ⚠️ 2026-09-20 用户点名重做："对位赛的结算图也要参考混战模式，要有专辑图片、要有设计美感，
+           而且导出的战报…整个功能全部参考混战模式重做"。改法：每行不再是一行纯文字，
+           而是与混战战报同款的「两张专辑（封面 + 名称 + 票数），胜方高亮」结构。 -->
       <template v-if="data.type === 'aligned'">
-        <!-- 战报头：此前这页只有两张表，被用户说"寒酸" —— 先给一张能直接截图/保存的战报卡 -->
         <div ref="reportEl" class="aligned-report">
-          <div class="arep-head">
+          <div class="arep-top">
+            <span class="stop">音格 · YINGE.APP</span>
             <span class="pillx">对位赛 · 战报</span>
-            <div class="ahead-main">
-              <template v-if="alignedLeader">
-                <b>{{ alignedLeader.name }}</b> 领先<span class="muted"> · 胜 {{ alignedLeader.wins }} 场</span>
-              </template>
-              <template v-else>暂无胜场</template>
-            </div>
-            <div class="ahead-sub num">
-              共 {{ (data.rows || []).length }} 场对位 · 总比分 {{ alignedScore[0] }} : {{ alignedScore[1] }}
-            </div>
+          </div>
+          <div class="arep-lead">
+            <template v-if="alignedLeader">
+              <b>{{ alignedLeader.name }}</b><span class="muted"> 领先 · 胜 {{ alignedLeader.wins }} 场</span>
+            </template>
+            <template v-else>暂无胜场</template>
+          </div>
+          <div class="arep-sub num">
+            共 {{ (data.rows || []).length }} 场对位 · 总比分 {{ alignedScore[0] }} : {{ alignedScore[1] }}
           </div>
 
           <div class="hd" style="margin-top: 18px">
             <b>逐行对照表</b><span>每行一组对位 · 高亮为该行胜方</span>
           </div>
-          <div class="list">
-            <div v-for="(r, i) in data.rows || []" :key="i" class="r">
-              <span class="nw num">{{ r.alignIndex }}</span>
-              <div class="m">
-                <b :class="{ awin: rowWinnerSide(r) === 'left' }">{{ r.left?.name }}</b>
-                <span class="muted">vs</span>
-                <b :class="{ awin: rowWinnerSide(r) === 'right' }">{{ r.right?.name }}</b>
-                <span class="asub">{{ r.left?.artistName || '—' }} / {{ r.right?.artistName || '—' }}</span>
+
+          <div class="amres" v-for="(r, i) in data.rows || []" :key="i">
+            <div class="mhd">
+              <span class="rd">第 {{ r.alignIndex }} 组</span>
+              <span class="say">
+                <template v-if="rowWinnerSide(r)">
+                  <b>《{{ rowWinnerSide(r) === 'left' ? r.left?.name : r.right?.name }}》</b> 胜出
+                </template>
+                <template v-else>本场未投票</template>
+                <em class="muted"> · {{ r.left?.artistName || '—' }} vs {{ r.right?.artistName || '—' }}</em>
+              </span>
+            </div>
+            <div class="pside" :class="rowWinnerSide(r) === 'left' ? 'win' : 'lose'">
+              <div class="art">
+                <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" />
               </div>
-              <span v-if="rowWinnerSide(r)" class="abadge">{{ rowWinnerSide(r) === 'left' ? '左侧' : '右侧' }}胜</span>
-              <span class="v num"><b>{{ r.leftVotes ?? 0 }} : {{ r.rightVotes ?? 0 }}</b></span>
+              <div class="tx">
+                <b>{{ r.left?.name || '—' }}</b>
+                <span>{{ year(r.left?.releaseDate) }} · {{ r.left?.trackCount ?? '—' }} 首</span>
+              </div>
+              <div class="pc num" v-if="r.leftVotes != null">{{ r.leftVotes }}</div>
+              <span v-if="rowWinnerSide(r) === 'left'" class="bw">胜</span>
+            </div>
+            <div class="pside" :class="rowWinnerSide(r) === 'right' ? 'win' : 'lose'">
+              <div class="art">
+                <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" />
+              </div>
+              <div class="tx">
+                <b>{{ r.right?.name || '—' }}</b>
+                <span>{{ year(r.right?.releaseDate) }} · {{ r.right?.trackCount ?? '—' }} 首</span>
+              </div>
+              <div class="pc num" v-if="r.rightVotes != null">{{ r.rightVotes }}</div>
+              <span v-if="rowWinnerSide(r) === 'right'" class="bw">胜</span>
             </div>
           </div>
 
           <div class="hd" style="margin-top: 20px">
             <b>歌手积分</b><span>按胜场累计 · 不产生冠军</span>
           </div>
-          <div class="list">
-            <div v-for="(p, i) in data.points || []" :key="i" class="r">
-              <div class="m"><b>{{ artistNameOf(p.artistExternalId) }}</b><span>胜 {{ p.wins }} 场</span></div>
-              <span class="v num"><b>{{ p.wins }}</b></span>
-            </div>
+          <div class="prow" v-for="(p, i) in data.points || []" :key="i">
+            <b>{{ artistNameOf(p.artistExternalId) }}</b>
+            <span class="muted">胜 {{ p.wins }} 场</span>
+            <span class="pv num">{{ p.wins }}</span>
           </div>
+
+          <div class="arep-foot">音格 · 专辑对决　|　对位赛不产生冠军，出的是逐张对照表</div>
         </div>
 
         <div class="btns" style="margin-top: 18px">
           <button class="btn pri" type="button" :disabled="exporting" @click="exportReport">
-            {{ exporting ? '生成中…' : '保存战报图' }}
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
+            </svg>
+            {{ exporting ? '正在生成…' : '保存战报图' }}
           </button>
           <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
         </div>
@@ -651,10 +680,89 @@ onMounted(load);
 
 /* 对位赛战报卡 */
 .aligned-report {
-  padding: 18px 20px;
+  padding: 20px 22px 16px;
   border-radius: var(--r-s);
   background: var(--glass);
   border: 1px solid var(--gbd);
+  /* 导出的战报图要有底：透明底在聊天软件里会糊成黑的（混战分享卡同样处理） */
+  box-shadow: 0 18px 46px rgba(8, 58, 92, 0.14);
+}
+/* 战报头（参考混战分享卡的头部：水印一行 + 领先者大字 + 口径小字） */
+.arep-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.arep-top .stop {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--brand-deep);
+}
+.arep-lead {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+.arep-lead b {
+  color: var(--brand-deep);
+}
+.arep-lead .muted {
+  font-size: 15px;
+  font-weight: 600;
+}
+.arep-sub {
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text3);
+}
+/* 每一组对位：沿用混战战报的「场次标题 + 两条 pside」结构，左边留一个组号 */
+.amres {
+  padding: 12px 14px 10px;
+  border-radius: var(--r-s);
+  background: var(--glass2);
+  border: 1px solid var(--line);
+  margin-bottom: 10px;
+}
+.amres .mhd {
+  margin-bottom: 9px;
+}
+.amres .mhd .say em {
+  font-style: normal;
+}
+.prow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 13px;
+  background: var(--glass2);
+  border: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+.prow b {
+  font-size: 15px;
+}
+.prow .muted {
+  font-size: 13.5px;
+  color: var(--text2);
+}
+.prow .pv {
+  margin-left: auto;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--brand-deep);
+}
+.arep-foot {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+  font-size: 13px;
+  color: var(--text3);
+  text-align: center;
 }
 .arep-head {
   display: flex;
