@@ -67,6 +67,22 @@
         这个类型暂时没有配置推荐专辑池（后台 `recommendAlbumIds` 为空）—— 管理员在「人格类型管理」里补上即可。
       </p>
 
+      <!-- 共建推荐池：让用户参与选出"这个人格该听什么"（2026-09-21 用户点名：
+           "让用户参与进来选出所对应人格推荐的专辑这个功能还没做"）
+           功能后端与页面早就通了（/personality/tag-albums），缺的是**用户找得到入口** ——
+           以前只在人格测评的介绍页有个小按钮，测完拿到人格卡的人反而看不到。
+           所以把入口放到这里：刚看完推荐的人，正是最想吐槽/补充推荐的人。 -->
+      <div class="joinpool">
+        <div class="jptx">
+          <b>帮我们选出「{{ result.typeName }}」该听什么</b>
+          <span>
+            上面那几推荐是系统按榜单挑的。你觉得哪张专辑最像这个人格？投一票就行 ——
+            <b>票数高的会被采纳进推荐池</b>，下一个人测完看到的就是你们选出来的。
+          </span>
+        </div>
+        <RouterLink to="/personality/tag-albums" class="btn pri">去投一票</RouterLink>
+      </div>
+
       <p class="note">
         <b>说明：</b>整张卡的配色跟着人格类型走；四根维度条把"为什么是这个类型"摊开给用户看；
         AI 解读标明来源；推荐专辑来自该类型的推荐池，并按你得分最高的维度排序。
@@ -182,5 +198,35 @@ onMounted(async () => {
   .pthd {
     grid-template-columns: 1fr;
   }
+}
+
+/* 共建推荐池 CTA：一张醒目的玻璃条，看完推荐就能顺手投一票 */
+.joinpool {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 20px 0 4px;
+  padding: 16px 20px;
+  border-radius: var(--r);
+  border: 1px solid rgba(14, 165, 233, 0.34);
+  background: linear-gradient(100deg, rgba(14, 165, 233, 0.13), var(--glass2) 62%);
+  box-shadow: var(--shadow-2);
+}
+.joinpool .jptx {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.joinpool .jptx b {
+  display: block;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+.joinpool .jptx span {
+  display: block;
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text2);
 }
 </style>

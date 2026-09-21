@@ -11,13 +11,17 @@
         <div class="reportwrap">
           <!-- 分享按钮放在被导出元素**外面**（只视觉上叠在卡片右上角），这样不会被截进战报图里
                —— 用户："对位赛的分享功能不应该放到最下面"。 -->
-          <RouterLink :to="{ name: 'battle-share', params: { id } }" class="sharefloat">
+          <!-- ⚠️ 2026-09-21 用户报：「对位赛里点这个按钮跳到『冠军还没决出』」。
+               根因是它以前指向 /battle/:id/share —— 而那个页面只做「夺冠之路（冠军）」，
+               对位赛本来就不产生冠军，于是必然落进空态，看着像坏了。
+               → 对位赛的分享出口就是**本页的战报图**，这里改成直接触发生成（不再跳页）。 -->
+          <button class="sharefloat" type="button" :disabled="exporting" @click="exportShare">
             <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
               <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
               <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
             </svg>
-            分享 好友一起玩
-          </RouterLink>
+            {{ exporting === 'share' ? '正在生成…' : '分享 好友一起玩' }}
+          </button>
 
         <div ref="reportEl" class="aligned-report">
           <div class="arep-top">
@@ -103,39 +107,13 @@
           <div class="hd" style="margin: 18px 0 10px">
             <b>分享图预览</b><span>简洁版 · 适合发群里/朋友圈，点下面按钮保存</span>
           </div>
-          <div ref="shareEl" class="arep-mini">
-            <div class="mini-top">
-              <span class="stop">音格 · YINGE.APP</span>
-              <span class="pillx">对位赛 · 战报</span>
-            </div>
-            <div class="mini-score">
-              <span class="msn">{{ alignedSideNames[0] }}</span>
-              <b class="msv num">{{ alignedScore[0] }} : {{ alignedScore[1] }}</b>
-              <span class="msn">{{ alignedSideNames[1] }}</span>
-            </div>
-            <div class="mini-sub">
-              {{ alignedLeader?.tie ? `双方打平 · 各胜 ${alignedLeader.wins} 场` : alignedLeader ? `${alignedLeader.name} 领先 ${alignedLeader.wins} 场` : '暂无胜场' }}
-              　|　共 {{ (data.rows || []).length }} 场对位
-            </div>
-            <div class="mini-rows">
-              <div v-for="(r, i) in (data.rows || []).slice(0, 12)" :key="i" class="mrow">
-                <div class="mhalf" :class="{ win: rowWinnerSide(r) === 'left' }">
-                  <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" />
-                  <span class="mtx">{{ r.left?.name }}</span>
-                  <b class="mv num">{{ r.leftVotes ?? 0 }}</b>
-                </div>
-                <span class="mdiv"></span>
-                <div class="mhalf rt" :class="{ win: rowWinnerSide(r) === 'right' }">
-                  <b class="mv num">{{ r.rightVotes ?? 0 }}</b>
-                  <span class="mtx">{{ r.right?.name }}</span>
-                  <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" />
-                </div>
-              </div>
-            </div>
-            <p v-if="(data.rows || []).length > 12" class="mini-more">
-              还有 {{ (data.rows || []).length - 12 }} 组未列出 · 完整对照见详细战报
-            </p>
-            <div class="mini-foot">音格 · 专辑对决　|　对位赛不产生冠军　|　点封面即投票，人人可玩</div>
+          <div ref="shareEl">
+            <AlignedMiniCard
+              :names="alignedSideNames"
+              :score="alignedScore"
+              :leader-text="miniLeaderText"
+              :rows="data.rows || []"
+            />
           </div>
         </div>
 
@@ -373,6 +351,8 @@ import { battleApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
 import FavoriteButton from '@/components/FavoriteButton.vue';
 import BracketTree from '@/components/BracketTree.vue';
+// 对位赛「简洁分享卡」抽成组件：结果页与分享页共用（否则分享页拿不到对位赛的图）
+import AlignedMiniCard from '@/components/AlignedMiniCard.vue';
 // 打完了 → 清掉「本地续玩」记录（否则首页会一直挂着一条"你还有一局没打完"）
 import { clearResumeIf } from '@/utils/resume.js';
 
@@ -465,6 +445,14 @@ const alignedSideNames = computed(() => {
   if (rows.length) return [rows[0].left?.artistName || '左', rows[0].right?.artistName || '右'];
   const ps = data.value?.points || [];
   return [artistNameOf(ps[0]?.artistExternalId) || '左', artistNameOf(ps[1]?.artistExternalId) || '右'];
+});
+
+/** 简洁分享卡上那句「谁领先几场」（并列时说"打平"，不能写成某方领先） */
+const miniLeaderText = computed(() => {
+  const l = alignedLeader.value;
+  if (!l) return '暂无胜场';
+  if (l.tie) return l.names.length > 2 ? '并列领先' : '双方打平';
+  return `${l.name} 领先 ${l.wins} 场`;
 });
 
 /** 保存战报图：html2canvas 截战报卡（对位赛此前没有任何分享出口） */
@@ -1243,31 +1231,9 @@ onMounted(() => {
   }
 }
 
-/* ===== 简洁分享图（2026-09-20 新增）：720px 紧凑卡，适合直接发群/朋友圈 ===== */
-.arep-mini {
-  width: 720px;
-  max-width: 100%;
-  padding: 20px 22px 16px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, #eaf6ff 0%, #f7fbfe 55%, #eefaf6 100%);
-  border: 1px solid var(--gbd);
-}
-.arep-mini .mini-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.arep-mini .stop { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--brand-deep); }
-.arep-mini .mini-score { display: flex; align-items: center; justify-content: center; gap: 18px; }
-.arep-mini .msn { font-size: 17px; font-weight: 700; }
-.arep-mini .msv { font-size: 34px; font-weight: 900; letter-spacing: -1px; color: var(--brand-deep); font-variant-numeric: tabular-nums; }
-.arep-mini .mini-sub { text-align: center; font-size: 13.5px; color: var(--text2); margin: 6px 0 14px; }
-.arep-mini .mini-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.arep-mini .mrow { display: flex; align-items: center; gap: 7px; background: #fff; border: 1px solid var(--line); border-radius: 11px; padding: 6px 9px; }
-.arep-mini .mrow.l, .arep-mini .mrow.r { border-color: rgba(14, 165, 233, 0.42); background: rgba(14, 165, 233, 0.07); }
-.arep-mini .mrow img { width: 30px; height: 30px; border-radius: 7px; object-fit: cover; flex: 0 0 auto; background: #eaf1f6; }
-.arep-mini .mtx { flex: 1; min-width: 0; font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.arep-mini .mtx.rt { text-align: right; }
-.arep-mini .mv { flex: 0 0 auto; font-size: 13px; font-weight: 800; color: var(--text2); font-variant-numeric: tabular-nums; }
-.arep-mini .mrow.l .mv:first-of-type, .arep-mini .mrow.r .mv:last-of-type { color: var(--brand-deep); }
-.arep-mini .mini-more { text-align: center; font-size: 12.5px; color: var(--text3); margin: 10px 0 0; }
-.arep-mini .mini-foot { margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(14, 165, 233, 0.32); text-align: center; font-size: 12.5px; color: var(--text3); }
+/* ===== 简洁分享图 =====
+   ⚠️ 2026-09-21 已抽成组件 `components/AlignedMiniCard.vue`（结果页与分享页共用），
+      原来的 30 行样式搬去组件里了 —— 这里不要重复定义，否则改一处漏一处的老毛病又来了。 */
 
 /* ===== 战报顶部改造（2026-09-20）===== */
 .reportwrap { position: relative; }
@@ -1306,10 +1272,5 @@ onMounted(() => {
 .arep-pts { display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
 .aptchip { font-size: 13.5px; padding: 4px 12px; border-radius: 999px; background: var(--glass2); border: 1px solid var(--gbd); color: var(--text2); }
 .aptchip b { color: var(--brand-deep); font-size: 15px; }
-/* 分享图：每组左右对称（左封面+左名+左分 ｜ 右分+右名+右封面），长名字不会再把封面挤变形 */
-.arep-mini .mrow .mhalf { display: flex; align-items: center; gap: 7px; flex: 1 1 0; min-width: 0; }
-.arep-mini .mrow .mhalf.rt { justify-content: flex-end; }
-.arep-mini .mrow .mhalf.win .mtx { font-weight: 700; color: var(--brand-deep); }
-.arep-mini .mrow .mhalf.win .mv { color: var(--brand-deep); }
-.arep-mini .mrow .mdiv { flex: 0 0 auto; width: 1px; height: 18px; background: var(--line); }
+/* 分享图：每组左右对称的样式已随组件搬走（见 AlignedMiniCard.vue） */
 </style>

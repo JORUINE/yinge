@@ -57,7 +57,7 @@
       </div>
       <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
 
-      <div class="vstage" :style="groupStageStyle">
+      <div class="vstage poolstage" :style="groupStageStyle">
         <div class="vglow"><i class="gl"></i><i class="gr"></i></div>
 
         <div class="ghead">
@@ -80,7 +80,7 @@
             @click="togglePick(al)"
           >
             <div class="art albc">
-              <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+              <img :src="al.artworkUrl" :alt="al.name" loading="lazy" @load="markCoverFit" />
               <span class="ck">
                 <svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z" /></svg>
               </span>
@@ -207,7 +207,7 @@
             @click="onCoverVote(match.leftAlbum)"
           >
             <div class="art albc">
-              <img :src="match.leftAlbum?.artworkUrl" :alt="match.leftAlbum?.name" />
+              <img :src="match.leftAlbum?.artworkUrl" :alt="match.leftAlbum?.name" @load="markCoverFit" />
               <span class="picktag">点击投票</span>
             </div>
             <b>{{ match.leftAlbum?.name }}</b>
@@ -233,7 +233,7 @@
             @click="onCoverVote(match.rightAlbum)"
           >
             <div class="art albc">
-              <img :src="match.rightAlbum?.artworkUrl" :alt="match.rightAlbum?.name" />
+              <img :src="match.rightAlbum?.artworkUrl" :alt="match.rightAlbum?.name" @load="markCoverFit" />
               <span class="picktag">点击投票</span>
             </div>
             <b>{{ match.rightAlbum?.name }}</b>
@@ -495,6 +495,26 @@ const gridStyle = computed(() => {
 });
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
+
+/**
+ * 封面比例自适应（2026-09-21 用户："这两张明显专辑封面都没展示全，你可以加一个算法，
+ * 遇到比例不同的专辑让他们可以自适应，但总的还是居中、可读性和视觉效果符合整体设计"）
+ * ------------------------------------------------------------
+ * 规则（阈值 6%）：
+ *   · |宽高比 − 1| ≤ 0.06 → 当方形看，维持 `object-fit: cover`（**完全不动原观感**，
+ *     iTunes 里绝大多数专辑都是 1:1，这条覆盖 95% 以上）；
+ *   · 明显不方（老专辑 / EP / 现场盘常见 1.5:1、1:1.5）→ 挂 `.fit`，
+ *     改成 `contain`：整张完整装进方框、永不裁边，留白用这张专辑的主色淡染
+ *     （看起来像刻意做的相框，而不是"漏了底"）。
+ * ⚠️ 为什么不用"一律 contain"：那会让所有方形封面多一层合成，
+ *    且在个别浏览器上出现 1px 的亚像素缝；按比例分流代价更小、也更符合"自适应"的本意。
+ */
+function markCoverFit(e) {
+  const img = e?.target;
+  if (!img || !img.naturalWidth || !img.naturalHeight) return;
+  const ratio = img.naturalWidth / img.naturalHeight;
+  img.classList.toggle('fit', Math.abs(ratio - 1) > 0.06);
+}
 
 /** 专辑主色：优先从封面像素取（ensureAlbumAccent 会写入缓存），取不到再退回哈希色 */
 function accentStyle(album) {
@@ -936,7 +956,8 @@ onUnmounted(() => clearTimeout(cutTimer));
   --ac: var(--brand);
   --acs: rgba(14, 165, 233, 0.3);
   border-radius: 14px;
-  transition: transform 0.2s var(--ease-out);
+  /* 与 1v1 的 .alb 同一套"跳起来"手感（2026-09-21 用户要求专辑卡 hover 要有跳起动画） */
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .pickcard .art {
   position: relative;
@@ -973,9 +994,10 @@ onUnmounted(() => clearTimeout(cutTimer));
 .pickcard.on {
   transform: translateY(-4px);
 }
-/* 设计语言一致性：专辑类卡片统一 hover 上浮 + 色晕加深 */
+/* 设计语言一致性：专辑类卡片统一 hover 上浮 + 色晕加深
+   ⚠️ 位移从 -6px 提到 -10px 并与 .alb 统一（用户："专辑鼠标划过要跳起来那种感觉"） */
 .pickcard:hover {
-  transform: translateY(-6px);
+  transform: translateY(-10px);
 }
 .pickcard:hover .art {
   box-shadow: 0 26px 52px rgba(0, 0, 0, 0.4), 0 14px 40px var(--acs);
@@ -1072,10 +1094,16 @@ onUnmounted(() => clearTimeout(cutTimer));
   margin: 0 auto;
   cursor: pointer;
   position: relative;
-  transition: transform 0.2s var(--ease-out);
+  /* 2026-09-21 用户："鼠标划过时候专辑要加上那种跳起来感觉的动画，我记得之前上个版本还是哪个版本都有"。
+     回溯确认：afc25a4 那版写的是 `.alb:hover{transform:translateY(-6px)}` + `0.22s cubic-bezier(0.22,1,0.36,1)`，
+     后来在紧凑版式里被压到 -5px、曲线也换成通用 --ease-out —— 位移变小 + 没有回弹，
+     手感就从"跳起来"变成了"轻轻挪一下"。
+     现在恢复并加强成明确的"跳"：位移 -10px（紧凑版式里也有富余空间）、
+     曲线用带回弹的 cubic-bezier(0.34, 1.56, 0.64, 1)（超过 1 的那段就是"跳过头再落回来"）。 */
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .duelgrid .alb:hover {
-  transform: translateY(-5px);
+  transform: translateY(-10px);
 }
 .duelgrid .alb .art.albc {
   position: relative;
@@ -1373,7 +1401,16 @@ onUnmounted(() => clearTimeout(cutTimer));
 }
 .duelgrid .alb,
 .pickgrid .pickcard {
-  animation: cardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* ⚠️ 2026-09-21 抓到一条真 bug：这里原来是 `both`。
+     `both` = 动画结束后**永久保留最后一帧**（transform: none）—— 而"动画产生的值"
+     在 CSS 层叠里优先级高于普通声明，于是它把 `.alb:hover { transform: translateY(-10px) }`
+     **整条盖掉**，卡片划过时纹丝不动。
+     用户说的"我记得之前上个版本有跳起来的动画、现在没了"就是这个：
+     入场动效是后加的，加的那天把 hover 跳起顺手压死了。
+     改成 `backwards`：只在延迟期间预置第一帧（保证错峰时不闪出来），
+     动画一结束就交还给普通样式 → hover 恢复。因为最后一帧本来就是 translateY(0) scale(1)，
+     交接时不会出现位移跳变。 */
+  animation: cardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 .duelgrid .alb:nth-child(2),
 .pickgrid .pickcard:nth-child(2) {
@@ -1465,7 +1502,9 @@ onUnmounted(() => clearTimeout(cutTimer));
   gap: 12px !important;
 }
 .pickcard .art img {
-  max-height: min(30vh, 260px);
+  /* 2026-09-21 用户："专辑们可以比例再大一点，下面还有那么多空白，整体板块放大居中一点"
+     → 封面高度上限 260 → 320px（视口矮时仍按 34vh 自适应，不会顶出一屏） */
+  max-height: min(34vh, 320px);
   object-fit: cover;
 }
 
@@ -1485,13 +1524,21 @@ onUnmounted(() => clearTimeout(cutTimer));
   margin-top: -2px;
 }
 /* 页头（轮次 + 已投场次）、撤销条、进度条、阶段说明、底部链接：PK 版一律不显示 */
+/* ⚠️ 2026-09-21 用户："你把同室操戈文案删了干嘛？同歌手专辑出现对决，保留之前的设计。"
+   真凶就在这一条：PK 版为了"进门即见对战台"把页头那一整片都隐藏了，
+   而 .sib-tip 正好排在页头下面 → 一起被藏掉。
+   同室操戈是**赛制提示**（同一位歌手的专辑打起来了），不是页头装饰，属于对战台该有的信息，
+   所以从隐藏清单里拿掉；文字本身一直健在（见模板里的 v-if="sameArtist"）。 */
 .pk-only .playhd,
 .pk-only .undobar,
 .pk-only .progline,
-.pk-only .sib-tip,
 .pk-only > .crumb,
 .pk-only .vstage > .note {
   display: none !important;
+}
+/* PK 版里对战台本来就贴顶，这条提示得给点自己的留白，不然会贴着头 */
+.pk-only .sib-tip {
+  margin: 2px auto 10px;
 }
 /* 对战台独占首屏：上留白压到最小，视觉上"进门就是它" */
 .pk-only .vstage {
@@ -1628,5 +1675,46 @@ onUnmounted(() => clearTimeout(cutTimer));
   .stagecut .scin {
     animation: none;
   }
+}
+
+/* =====================================================================
+   小组赛池子：板块放大居中 + 封面比例自适应（2026-09-21 用户两项要求）
+   ---------------------------------------------------------------------
+   ① 用户："专辑们可以比例再大一点，下面还有那么多空白，整体板块放大居中一点"
+      → 封面高度上限提到 320px（见上面 .pickcard .art img），
+        单卡限宽 420px 并整体居中 —— 池子只有 2 张时不再拉成两个巨型长条。
+   ② 用户："这两张明显专辑封面都没展示全，加一个算法，遇到比例不同的专辑让他们自适应"
+      → 见脚本里的 markCoverFit()：方形封面（iTunes 绝大多数）维持 cover 不变，
+        比例明显不方的才切到 .fit（contain + 专辑主色淡染底），不裁掉任何一边。
+   ===================================================================== */
+.vstage.poolstage {
+  padding-bottom: 22px;
+}
+.poolstage .pickgrid {
+  justify-items: center;
+  place-content: center;
+}
+.poolstage .pickcard {
+  width: 100%;
+  max-width: 420px;
+}
+/* 统一封面框：池子里每张卡都是同尺寸的正方形相框，比例自适应发生在框内。
+   为什么必须固定框：不固定的话封面高度跟着原图比例走（1:1 / 4:3 / 3:4 各不同），
+   同一行的卡片高度不齐、名字与按钮参差不齐 —— 用户要的是"总的还是居中、符合整体设计"。 */
+.poolstage .pickcard .art {
+  width: min(100%, 320px, 36vh);
+  aspect-ratio: 1;
+  margin: 0 auto;
+}
+.poolstage .pickcard .art img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+}
+/* 比例不方的封面：完整装进方框，留白用这张专辑的主色淡染（看起来像刻意相框，不是漏底） */
+.pickcard .art img.fit,
+.duelgrid .alb .art img.fit {
+  object-fit: contain;
+  background: linear-gradient(160deg, var(--acs, rgba(14, 165, 233, 0.22)), rgba(4, 20, 32, 0.16));
 }
 </style>

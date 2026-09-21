@@ -42,6 +42,18 @@
       </RouterLink>
     </div>
 
+    <!-- 共建推荐池：人格推荐专辑的用户众包投票入口
+         （2026-09-21 用户："让用户参与进来选出所对应人格推荐的专辑这个功能还没做"——
+          功能一直在，但入口只藏在测评介绍页里，等于没有。首页给一条最短的路。） -->
+    <RouterLink to="/personality/tag-albums" class="poolbar">
+      <span class="pbk">共建</span>
+      <span class="pbt">
+        <b>这张专辑，更像哪一型？</b>
+        <span>给「人格推荐专辑」投一票 · 票数高的会被采纳进对应人格的推荐池</span>
+      </span>
+      <span class="pba">去投一票 →</span>
+    </RouterLink>
+
     <div class="shelf" v-if="top.length">
       <div class="hd">
         <b>正在被投票的专辑</b>
@@ -163,6 +175,62 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+}
+/* 共建推荐池入口条 */
+.poolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px 0 6px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(13, 148, 136, 0.36);
+  background: linear-gradient(100deg, rgba(13, 148, 136, 0.13), var(--glass2) 62%);
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.poolbar:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-2);
+  border-color: rgba(13, 148, 136, 0.6);
+}
+.poolbar .pbk {
+  flex: 0 0 auto;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: #042f2a;
+  background: var(--teal);
+}
+.poolbar .pbt {
+  flex: 1;
+  min-width: 0;
+}
+.poolbar .pbt b {
+  display: block;
+  font-size: 15.5px;
+  letter-spacing: -0.2px;
+}
+.poolbar .pbt span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.poolbar .pba {
+  flex: 0 0 auto;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0d9488;
+}
+@media (prefers-reduced-motion: reduce) {
+  .poolbar:hover {
+    transform: none;
+  }
 }
 .fine {
   margin: 16px 0 0;

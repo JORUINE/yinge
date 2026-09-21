@@ -1771,12 +1771,44 @@ html[data-theme='dark'] .v b {
   border-radius: 20px;
   overflow: hidden;
   position: relative;
-  background: linear-gradient(160deg, #0b3a5c, #04263c 62%, #021a29);
   color: #e6f2fa;
-  box-shadow: var(--shadow-3);
   padding: 22px 20px;
   display: flex;
   flex-direction: column;
+  /* ===== 液态玻璃 + 冠军专辑取色（2026-09-21 用户要求）=====
+     用户原话："把背景颜色做成和我们对决里一样的液态玻璃质感，背景透明色取冠军专辑然后做渐变效果，
+     不能影响可读性"。三层叠出来：
+       ① 左上：冠军专辑主色柔光（--sa-58）
+       ② 右下：同色系补光（--sa-38，让渐变有"玻璃在动"的方向感）
+       ③ 斜向淡染（--sa-20）
+       ④ 深底：兜住对比度 —— 文字恒为 #e6f2fa，对最亮处也有 ≥7:1
+     ⚠️ 取不到颜色时 --sa-* 退回品牌青蓝，不会变成透明块。
+     ⚠️ 不能真用 backdrop-filter：html2canvas 不渲染它，导出会整层丢掉。
+     ⚠️ font-family 必须显式写死中文可命名字体：全站字体栈以 -apple-system 打头，
+        Windows 上不存在 → canvas 解析这段 font 字符串会失败并退回默认字体，
+        导出的字和页面上的不是一个（用户报"分享图文字有问题"就是这个）。 */
+  background:
+    /* 0) 顶部压暗兜底：不管取到什么颜色，品牌行/标题所在的这一带永远是深底浅字。
+          这是"取色不能影响可读性"的最后一道闸 —— 取色已经压深过（deepenRgb），
+          这里再叠一层，双保险。 */
+    linear-gradient(180deg, rgba(2, 12, 20, 0.55) 0%, rgba(2, 12, 20, 0.05) 32%, rgba(2, 12, 20, 0) 50%),
+    radial-gradient(122% 78% at 12% -10%, var(--sa-58, rgba(14, 165, 233, 0.58)) 0%, transparent 60%),
+    radial-gradient(112% 82% at 104% 104%, var(--sa-38, rgba(13, 148, 136, 0.38)) 0%, transparent 56%),
+    linear-gradient(202deg, var(--sa-20, rgba(14, 165, 233, 0.2)) 0%, transparent 42%),
+    linear-gradient(160deg, #0d3a5c 0%, #062130 55%, #031420 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow-3);
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC',
+    'Source Han Sans SC', 'Segoe UI', Arial, sans-serif;
+}
+/* 玻璃的"高光边"：一圈内亮线 + 顶部斜向柔光（全部用 CSS 画，html2canvas 认得） */
+.scard.glassy::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  pointer-events: none;
+  background: linear-gradient(203deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 34%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 .scard .stop {
   /* 「音格 · YINGE.APP」水印：用户要求"水印也可以做大一点，字体也是" */
@@ -1811,6 +1843,14 @@ html[data-theme='dark'] .v b {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+/* 冠军封面：比例不方的专辑不裁切（contain），留白用冠军主色淡染 —— 
+   看起来像"刻意的相框"，而不是漏底。方形封面走 contain 与 cover 完全一致，不影响原观感。 */
+.scard.glassy .smain .art {
+  background: linear-gradient(160deg, var(--sa-58, rgba(14, 165, 233, 0.58)), rgba(4, 20, 32, 0.66));
+}
+.scard.glassy .smain .art img {
+  object-fit: contain;
 }
 .scard .crown {
   font-size: 14px;

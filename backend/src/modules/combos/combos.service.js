@@ -20,7 +20,9 @@ function serialize(c) {
       albumCount: a.albumCount,
     })),
     perArtist: c.perArtist,
-    alignCount: c.alignCount,
+    alignCount: c.alignCount ?? null,
+    // 2026-09-21 补：对位组合的配对方式必须回传，否则前端装填后一律退回「同序号」。
+    alignMode: c.alignMode || 'ordinal',
     isSystem: Boolean(c.isSystem),
     mine: Boolean(c.ownerId),
   };
@@ -148,6 +150,7 @@ export async function createCombo(user, payload) {
     artists,
     perArtist: Number(payload.perArtist) || 8,
     alignCount: payload.alignCount ?? null,
+    alignMode: payload.alignMode === 'chrono' ? 'chrono' : 'ordinal',
     ownerId: wantSystem ? null : user._id,
     isSystem: wantSystem,
   });
@@ -163,6 +166,7 @@ export async function updateCombo(user, id, payload) {
   // 2026-09-20：组合要能改成「对位赛」组合（用户问"对位赛模式能创建组合吗"）
   if (payload.scopeType !== undefined) combo.scopeType = payload.scopeType;
   if (payload.alignCount !== undefined) combo.alignCount = Number(payload.alignCount) || null;
+  if (payload.alignMode !== undefined) combo.alignMode = payload.alignMode === 'chrono' ? 'chrono' : 'ordinal';
   // 2026-09-20 新增：后台可以直接改组合成员（用户点名要"修改功能"，不只是改名）
   if (Array.isArray(payload.artists)) {
     const artists = payload.artists.map((a) => ({

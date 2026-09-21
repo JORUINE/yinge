@@ -290,33 +290,48 @@ onMounted(() => {
   gap: var(--sp-5);
 }
 
-/* 全站返回按钮（守则 21）：只在二级 / 三级页出现 */
+/* 全站返回按钮（守则 21）：只在二级 / 三级页出现
+   2026-09-21 用户："返回按钮整体往左拉长做大一点" —— 原来 13.5px 的小胶囊太不起眼，
+   现在加高加宽（字号 15px、图标 17px、min-width 96px、内边距拉开），
+   并把"往左"做实：它是导航栏第一个元素，加大后视觉锚点自然落在最左侧。 */
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  gap: 6px;
   flex: 0 0 auto;
-  padding: 5px 11px 5px 7px;
+  min-width: 96px;
+  padding: 9px 18px 9px 14px;
   border-radius: 999px;
   border: 1px solid var(--gbd);
   background: var(--glass2);
-  color: var(--text2);
-  font-size: 13.5px;
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color 0.2s, border-color 0.2s, transform 0.18s var(--ease-out), box-shadow 0.18s;
 }
 .back:hover {
   color: var(--brand-deep);
   border-color: var(--brand);
+  transform: translateX(-2px);
+  box-shadow: var(--shadow-2);
 }
 .back svg {
-  width: 15px;
-  height: 15px;
+  width: 17px;
+  height: 17px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2.2;
+  stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+@media (prefers-reduced-motion: reduce) {
+  .back:hover {
+    transform: none;
+  }
 }
 
 /* 与设计稿 .nav 一致：左 logo + 链接，右头像 */

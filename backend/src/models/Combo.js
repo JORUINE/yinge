@@ -24,6 +24,17 @@ const comboSchema = new mongoose.Schema(
     artists: { type: [comboArtistSchema], default: [] },
     perArtist: { type: Number, default: 8 },
     alignCount: { type: Number, default: null },
+    /**
+     * 2026-09-21 新增：对位赛组合要连「配对方式」一起记住。
+     * 之前只存了 alignCount（张数），配对方式（同序号 ordinal / 年代就近 chrono）没落库，
+     * 前端 applyCombo 读 c.alignMode 恒为 undefined → 装填后一律退回默认的「同序号」，
+     * 用户选的「年代就近」白选。模型补字段 + 路由补 schema + serialize 补回传，三处一起改。
+     */
+    alignMode: {
+      type: String,
+      enum: ['ordinal', 'chrono'],
+      default: 'ordinal',
+    },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     isSystem: { type: Boolean, default: false },
   },

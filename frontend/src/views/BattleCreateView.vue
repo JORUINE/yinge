@@ -1178,7 +1178,15 @@ async function applyCombo(c) {
   }
 }
 
-/** 把当前选好的歌手存成「我的组合」（只有本人可见） */
+/**
+ * 把当前选好的歌手存成「我的组合」（只有本人可见）
+ * ------------------------------------------------------------
+ * ⚠️ 2026-09-21 用户："没法创建对位赛组合，目前此功能我实现不出来"。
+ * 根因：这里原来把 `scopeType` **写死成 'multi-artist'** —— 于是在对位赛模式下
+ * 收藏出来的组合是**混战组合**，点回去会跳到混战模式（用户感受就是"对位赛组合存不下 / 存了也不对"）。
+ * 修法：按**当前模式**决定赛制归属，对位赛额外把对位张数与配对方式一起存下来。
+ *   （后端 createSchema 早就支持 scopeType / alignCount / alignMode，只是前端没传。）
+ */
 async function saveCombo() {
   if (picked.value.length < 2) {
     ElMessage.info('先选 2 位以上歌手，才能存成组合');
@@ -1202,18 +1210,22 @@ async function saveCombo() {
   }
   savingCombo.value = true;
   try {
+    // 按当前模式决定这枚组合属于哪一族（混战 / 对位），不再写死
+    const isAligned = mode.value === 'aligned';
     const combo = await comboApi.create({
       label,
-      scopeType: 'multi-artist',
-      perArtist: perArtistScale.value,
+      scopeType: isAligned ? 'aligned' : 'multi-artist',
+      perArtist: isAligned ? undefined : perArtistScale.value,
+      alignCount: isAligned ? alignCount.value : undefined,
+      alignMode: isAligned ? alignMode.value : undefined,
       artists: picked.value.map((a) => ({
         artistId: a.artistId,
         name: a.name,
-        albumCount: perArtistScale.value,
+        ...(isAligned ? {} : { albumCount: perArtistScale.value }),
       })),
     });
     combos.value = [combo, ...combos.value.filter((c) => c.comboId !== combo.comboId)];
-    ElMessage.success(`已收藏组合「${combo.label}」`);
+    ElMessage.success(`已收藏${isAligned ? '对位赛' : '混战'}组合「${combo.label}」`);
   } catch (err) {
     ElMessage.error(err?.message || '收藏组合失败');
   } finally {

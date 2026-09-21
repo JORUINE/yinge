@@ -24,6 +24,8 @@ const createSchema = z.object({
   artists: z.array(artistEntry).min(2, '至少要 2 位歌手').max(6, '最多 6 位歌手'),
   perArtist: z.coerce.number().int().min(4).max(50).optional(),
   alignCount: z.coerce.number().int().min(1).max(24).optional(),
+  /** 2026-09-21 新增：对位赛组合记住「同序号 / 年代就近」配对方式（模型同日补字段） */
+  alignMode: z.enum(['ordinal', 'chrono']).optional(),
   isSystem: z.boolean().optional(),
 });
 
@@ -32,6 +34,7 @@ const updateSchema = z.object({
   /** 2026-09-20 新增：组合可改成对位赛组合（scopeType=aligned + 对位张数） */
   scopeType: z.enum(['multi-artist', 'aligned']).optional(),
   alignCount: z.coerce.number().int().min(1).max(24).optional(),
+  alignMode: z.enum(['ordinal', 'chrono']).optional(),
   perArtist: z.coerce.number().int().min(4).max(50).optional(),
   /** 2026-09-20 新增：后台可直接改组合成员 / 转为系统组合（用户点名要"修改功能"） */
   artists: z.array(artistEntry).min(2, '至少要 2 位歌手').max(6, '最多 6 位歌手').optional(),

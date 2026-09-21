@@ -275,3 +275,24 @@ export async function ensureAlbumAccent(album) {
   const ac = accentStore[key];
   return { ac, acs: toRgba(ac, 0.32) };
 }
+
+/**
+ * 把主色"压深"成可安全铺在浅色文字下面的版本（2026-09-21）
+ * ------------------------------------------------------------
+ * 起因：分享卡要"取冠军专辑的主色做渐变"，但取到的色如果是浅色（白裙、浅蓝封面），
+ * 铺上去就把卡片左上角染亮 —— 品牌行 / 标题是浅色字，直接糊成一片（可读性事故）。
+ * 做法：转到 HSL，把明度钳到 [26, 42]、饱和度钳到 [26, 52]，再换回 rgb。
+ *   · 明度上限 42% 保证"任何色都压得住浅色字"；
+ *   · 下限 26% 保证深色封面不会把渐变压成一片纯黑、失去"跟着专辑变色"的意义；
+ *   · 饱和度给一个下限，避免灰调封面（黑白/水泥）出来的渐变像脏灰。
+ * ⚠️ 只用于**大面积底色**；页面上的小面积光晕/描边不改，那是另一套尺度。
+ */
+export function deepenRgb(rgb, { sMin = 26, sMax = 52, lMin = 26, lMax = 42 } = {}) {
+  const m = String(rgb).match(/\d+/g);
+  if (!m) return rgb;
+  const [h, s, l] = rgbToHsl(+m[0], +m[1], +m[2]);
+  const nh = h;
+  const ns = Math.min(Math.max(s, sMin), sMax);
+  const nl = Math.min(Math.max(l, lMin), lMax);
+  return hslToRgb(nh, ns, nl);
+}
