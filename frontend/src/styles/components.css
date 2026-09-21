@@ -1775,30 +1775,64 @@ html[data-theme='dark'] .v b {
   padding: 22px 20px;
   display: flex;
   flex-direction: column;
-  /* ===== 液态玻璃 + 冠军专辑取色（2026-09-21 用户要求）=====
+  /* ===== 液态玻璃 + 冠军专辑取色 + 虚化封面（2026-09-21 用户要求）=====
      用户原话："把背景颜色做成和我们对决里一样的液态玻璃质感，背景透明色取冠军专辑然后做渐变效果，
-     不能影响可读性"。三层叠出来：
-       ① 左上：冠军专辑主色柔光（--sa-58）
-       ② 右下：同色系补光（--sa-38，让渐变有"玻璃在动"的方向感）
-       ③ 斜向淡染（--sa-20）
-       ④ 深底：兜住对比度 —— 文字恒为 #e6f2fa，对最亮处也有 ≥7:1
-     ⚠️ 取不到颜色时 --sa-* 退回品牌青蓝，不会变成透明块。
-     ⚠️ 不能真用 backdrop-filter：html2canvas 不渲染它，导出会整层丢掉。
-     ⚠️ font-family 必须显式写死中文可命名字体：全站字体栈以 -apple-system 打头，
-        Windows 上不存在 → canvas 解析这段 font 字符串会失败并退回默认字体，
-        导出的字和页面上的不是一个（用户报"分享图文字有问题"就是这个）。 */
-  background:
-    /* 0) 顶部压暗兜底：不管取到什么颜色，品牌行/标题所在的这一带永远是深底浅字。
-          这是"取色不能影响可读性"的最后一道闸 —— 取色已经压深过（deepenRgb），
-          这里再叠一层，双保险。 */
-    linear-gradient(180deg, rgba(2, 12, 20, 0.55) 0%, rgba(2, 12, 20, 0.05) 32%, rgba(2, 12, 20, 0) 50%),
-    radial-gradient(122% 78% at 12% -10%, var(--sa-58, rgba(14, 165, 233, 0.58)) 0%, transparent 60%),
-    radial-gradient(112% 82% at 104% 104%, var(--sa-38, rgba(13, 148, 136, 0.38)) 0%, transparent 56%),
-    linear-gradient(202deg, var(--sa-20, rgba(14, 165, 233, 0.2)) 0%, transparent 42%),
-    linear-gradient(160deg, #0d3a5c 0%, #062130 55%, #031420 100%);
+     不能影响可读性"，以及第二轮"这背景取色和模糊效果还是没做出来啊"。
+     现在的层次（从下往上）：
+       ⓪ 深底实色（取不到封面时的兜底）
+       ① .sbg   —— 封面缩到 56px 再放大铺满 = 天然虚化的"封面底"（图片，导出工具认得）
+       ② ::before —— 顶部压暗兜底 + 冠军色三层柔光（保证浅色字永远压得住）
+       ③ 内容
+       ④ ::after —— 玻璃高光边 + 顶部斜向柔光
+     ⚠️ 柔光必须在 .sbg **之上**（否则被模糊封面盖住，取色就"看不见"了）——
+        所以它放在 ::before 里，而不是 .scard 的 background 里。
+     ⚠️ 不能真用 backdrop-filter / filter: blur()：html2canvas 不渲染，导出会整层丢。 */
+  background: #0a2438;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow-3);
   font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC',
     'Source Han Sans SC', 'Segoe UI', Arial, sans-serif;
+}
+.scard.glassy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    /* 顶部压暗：不管取到什么颜色，品牌行/标题那一带永远是深底浅字 */
+    linear-gradient(180deg, rgba(2, 12, 20, 0.62) 0%, rgba(2, 12, 20, 0.12) 32%, rgba(2, 12, 20, 0) 50%),
+    radial-gradient(122% 78% at 12% -10%, var(--sa-58, rgba(14, 165, 233, 0.58)) 0%, transparent 60%),
+    radial-gradient(112% 82% at 104% 104%, var(--sa-38, rgba(13, 148, 136, 0.38)) 0%, transparent 56%),
+    linear-gradient(202deg, var(--sa-20, rgba(14, 165, 233, 0.2)) 0%, transparent 42%),
+    /* 深色纱幕：压在虚化封面之上。**不能全不透明**（那就看不到模糊底了），
+       也不能太薄（白色封面会把浅色字糊掉）。
+       0.6 → 0.8 的梯度是按"最坏情况＝纯白封面"反推的：
+       即使是白封面，纱幕之后最亮处与 #e6f2fa 的对比度仍 ≥ 6:1（自检里有这条闸门）。 */
+    linear-gradient(
+      160deg,
+      rgba(9, 40, 64, 0.6) 0%,
+      rgba(4, 22, 34, 0.72) 55%,
+      rgba(2, 14, 22, 0.8) 100%
+    );
+}
+/* 模糊底图：56px 的封面放大铺满整张卡 —— "封面虚化成底"就靠它（导出工具也认得图片）。
+   ⚠️ 不能用 CSS filter: blur()，html2canvas 不渲染 filter，导出会整层丢掉。 */
+.scard .sbg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* 稍微放大会把"小图放大"的插值痕迹推出可视区，边缘更干净 */
+  transform: scale(1.16);
+  z-index: 0;
+  pointer-events: none;
+}
+/* 卡片里真正的内容压在模糊层之上 */
+.scard > *:not(.sbg) {
+  position: relative;
+  z-index: 2;
 }
 /* 玻璃的"高光边"：一圈内亮线 + 顶部斜向柔光（全部用 CSS 画，html2canvas 认得） */
 .scard.glassy::after {
@@ -1807,6 +1841,7 @@ html[data-theme='dark'] .v b {
   inset: 0;
   border-radius: 20px;
   pointer-events: none;
+  z-index: 3;
   background: linear-gradient(203deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 34%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }

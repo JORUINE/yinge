@@ -55,7 +55,16 @@
           选错了没关系，可以撤销上一步重选；每张卡上的「试听主打」可以听片段（不参与计票）。
         </span>
       </div>
-      <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
+      <!-- 进度：一条细进度条 + 阶段名 + 已投场次。
+           ⚠️ 2026-09-21 用户："怎么进度条也没了？这是混战经典模式，你不能每次修东西把已经做好的优化掉。"
+              —— PK 版当初为"进门即见对战台"把它整条隐藏了，这是**过度精简**：
+                 进度条本身就是一行细线，占不了几十像素，却是"还剩多少场"的唯一信息来源。
+              现在 PK 版恢复进度条，并把原来页头那张大卡里的信息压成同一行文字（阶段名 + 已投 N/M）。 -->
+      <div class="progrow">
+        <span class="progstage">{{ groupLabel }}</span>
+        <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
+        <span class="progtx num">已投 {{ progress.decided }} / {{ progress.total }} 场</span>
+      </div>
 
       <div class="vstage poolstage" :style="groupStageStyle">
         <div class="vglow"><i class="gl"></i><i class="gr"></i></div>
@@ -188,7 +197,11 @@
         </span>
       </div>
       <div v-if="sameArtist" class="sib-tip">同室操戈 · 这场左右两张来自同一位歌手，内战也要分高下</div>
-      <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
+      <div class="progrow">
+        <span class="progstage">{{ koLabel }}</span>
+        <div class="progline"><i :style="{ width: pct + '%' }"></i></div>
+        <span class="progtx num">已投 {{ progress.decided }} / {{ progress.total }} 场</span>
+      </div>
 
       <div class="vstage" :data-lit="lit" :style="stageStyle">
         <div class="vglow"><i class="gl"></i><i class="gr"></i></div>
@@ -1467,6 +1480,46 @@ onUnmounted(() => clearTimeout(cutTimer));
 .progline {
   margin: 0 0 10px !important;
 }
+/* 进度行：默认只有一条细进度条（完整版把阶段名/场次放在页头大卡里，重复了就藏起来）；
+   PK 版页头被隐藏 → 这两段文字在这里补回来，一行放完不占高度。 */
+.progrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.progrow .progline {
+  flex: 1;
+  margin: 0 !important;
+  /* 轨道加粗一点、给底色：以前一条 7px 的浅色线在浅背景上几乎看不见，
+     用户第一反应就是"进度条没了"。现在即使进度是 0% 也能一眼看到"这里有个进度条"。 */
+  height: 9px;
+  background: rgba(128, 160, 185, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(120, 150, 175, 0.18);
+}
+.progstage,
+.progtx {
+  display: none;
+  white-space: nowrap;
+  font-size: 13.5px;
+  color: var(--text2);
+}
+.progtx {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.pk-only .progstage,
+.pk-only .progtx {
+  display: inline;
+}
+.pk-only .progstage {
+  font-weight: 700;
+  color: var(--text);
+}
+/* PK 版进度行贴顶一点点，别把对战台又推下去 */
+.pk-only .progrow {
+  margin: 2px 0 10px;
+}
 .vstage {
   padding: 16px 20px 18px !important;
   min-height: 0 !important;
@@ -1523,15 +1576,13 @@ onUnmounted(() => clearTimeout(cutTimer));
 .pk-only .vstage {
   margin-top: -2px;
 }
-/* 页头（轮次 + 已投场次）、撤销条、进度条、阶段说明、底部链接：PK 版一律不显示 */
-/* ⚠️ 2026-09-21 用户："你把同室操戈文案删了干嘛？同歌手专辑出现对决，保留之前的设计。"
-   真凶就在这一条：PK 版为了"进门即见对战台"把页头那一整片都隐藏了，
-   而 .sib-tip 正好排在页头下面 → 一起被藏掉。
-   同室操戈是**赛制提示**（同一位歌手的专辑打起来了），不是页头装饰，属于对战台该有的信息，
-   所以从隐藏清单里拿掉；文字本身一直健在（见模板里的 v-if="sameArtist"）。 */
+/* 页头（轮次 + 已投场次）、撤销条、底部链接：PK 版不显示
+   ⚠️ 2026-09-21 用户："怎么进度条也没了？这是混战经典模式，你不能每次修东西把已经做好的优化掉。"
+      → **进度条已从隐藏清单里拿掉**（`.progline` 不再隐藏；它本身只是一条 7px 细线，
+        却是"还剩多少场"的唯一信息来源）。原来页头大卡里的信息压缩成同一行文字（见 .progrow）。
+   ⚠️ 同室操戈 `.sib-tip` 也在这条清单上踩过一次 —— 见下面单独说明。 */
 .pk-only .playhd,
 .pk-only .undobar,
-.pk-only .progline,
 .pk-only > .crumb,
 .pk-only .vstage > .note {
   display: none !important;

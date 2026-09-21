@@ -127,7 +127,27 @@
           <button class="btn ghost" type="button" :disabled="exporting" @click="exportReport">
             {{ exporting === 'full' ? '正在生成…' : '保存详细战报' }}
           </button>
+          <!-- 2026-09-21 用户："分享和好友一起玩功能没实现，每个模式都要加上这个功能" ——
+               对位赛以前只有"存图"，没有"和好友一起玩（同款签表）"。这里与混战模式补齐到同一套。 -->
+          <button class="btn ghost" type="button" :disabled="inviting" @click="makeInvite">
+            {{ inviting ? '生成中…' : '和好友一起玩' }}
+          </button>
           <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
+        </div>
+
+        <!-- 同款签表：生成后露出邀请码与链接（与混战模式同一套交互） -->
+        <div v-if="invite.code" class="invitebox">
+          <div class="ibhd">
+            <b>同款签表已生成</b>
+            <span>把这串码或链接发给好友，他打开后打的是<b>完全同一批专辑、同一套对位</b></span>
+          </div>
+          <div class="ibrow">
+            <code class="ibcode">{{ invite.code }}</code>
+            <button class="mini" type="button" @click="copyInvite">复制链接</button>
+            <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
+              查看对比
+            </RouterLink>
+          </div>
         </div>
       </template>
 

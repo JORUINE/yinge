@@ -74,6 +74,8 @@
             :class="{ square: shape === 'square' }"
             :style="cardStyle"
           >
+            <!-- 模糊底：封面缩到 56px 再放大铺满 → 天然的"虚化封面"，导出也在 -->
+            <img v-if="bgUrl" class="sbg" :src="bgUrl" alt="" aria-hidden="true" />
             <div>
               <div class="stop">音格 · YINGE.APP</div>
               <div class="stitle">我的专辑对决</div>
@@ -219,8 +221,6 @@ const outSize = computed(() => (shape.value === 'square' ? '1080 × 1080' : '108
  * 冠军卡取色：把冠军专辑的封面主色做成配色变量。
  * ⚠️ 必须先 `deepenRgb` 压深再用 —— 取到的色可能是浅色（白裙 / 浅蓝封面），
  *    直接铺会把卡片左上角染亮，而品牌行与标题是浅色字 → 可读性事故。
- *    压深后明度封顶 42%，任何专辑都不会把浅字压不住（自检里有一条专门守这个：
- *    取色 + 深底叠出来的最亮处，与 #e6f2fa 的对比度必须 ≥ 4.5:1）。
  */
 const cardStyle = computed(() => {
   const s = accentStyleOf(champion.value);
@@ -234,12 +234,60 @@ const cardStyle = computed(() => {
   };
 });
 
+/**
+ * 模糊底图（2026-09-21 用户："这背景取色和模糊效果还是没做出来啊"）
+ * ------------------------------------------------------------
+ * 想要的是"封面放大、虚化成底"的液态玻璃质感。三个不能用的做法：
+ *   ❌ CSS `filter: blur()` —— html2canvas **不渲染 filter**，导出会整层丢掉；
+ *   ❌ `backdrop-filter` —— 同样不渲染；
+ *   ❌ 只靠径向渐变 —— 那是"色晕"不是"模糊"，用户一眼就看出来没做。
+ * 能同时满足"页面里好看 + 导出也在"的唯一做法：
+ *   把封面先画到一张**很小的 canvas**（56×56），再让 CSS 把它**放大铺满整张卡** ——
+ *   双线性插值放大本身就是模糊，而且是像素运算，导出工具完全认得（它就是画一张图）。
+ * 56px 的小图 dataURL 只有 ~2KB，几乎不增加导出耗时。
+ */
+const bgUrl = ref('');
+
+async function buildBlurBg() {
+  const url = champion.value?.artworkUrl;
+  if (!url) return;
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('load'));
+      img.src = url;
+    });
+    const S = 56;
+    const c = document.createElement('canvas');
+    c.width = S;
+    c.height = S;
+    const ctx = c.getContext('2d');
+    // 先铺一层黑底：有些封面带透明通道，直接画会出现"透出卡片深底"的脏边
+    ctx.fillStyle = '#04121d';
+    ctx.fillRect(0, 0, S, S);
+    // cover 语义：按短边裁切后铺满（等比，不留白）
+    const scale = Math.max(S / img.naturalWidth, S / img.naturalHeight);
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+    ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
+    bgUrl.value = c.toDataURL('image/jpeg', 0.82);
+  } catch {
+    // 取不到（CORS / 网络）就退回纯色渐变底 —— 卡片依然可读，只是少了模糊层
+    bgUrl.value = '';
+  }
+}
+
 async function load() {
   loading.value = true;
   try {
     data.value = await battleApi.result(id);
-    // 取色是异步的：先把卡片渲出来，取到真色后自动更新背景渐变
-    if (champion.value) ensureAlbumAccent(champion.value);
+    // 取色与模糊底都是异步的：先把卡片渲出来，好了自动更新
+    if (champion.value) {
+      ensureAlbumAccent(champion.value);
+      buildBlurBg();
+    }
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
     data.value = null;
@@ -387,6 +435,7 @@ onMounted(load);
 }
 /* 导出瞬间临时挂上的类：去掉圆角，让渐变铺满画布（否则成图会套一圈浅色边框） */
 .flat-export,
+.flat-export::before,
 .flat-export::after {
   border-radius: 0 !important;
 }

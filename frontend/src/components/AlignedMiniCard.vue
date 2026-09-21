@@ -23,7 +23,7 @@
         <span class="mdiv"></span>
         <div class="mhalf rt" :class="{ win: sideOf(r) === 'right' }">
           <b class="mv num">{{ r.rightVotes ?? 0 }}</b>
-          <span class="mtx">{{ short(r.right?.name) }}</span>
+          <span class="mtx rt">{{ short(r.right?.name) }}</span>
           <img :src="r.right?.artworkUrl" :alt="r.right?.name" />
         </div>
       </div>
@@ -168,6 +168,13 @@ function short(name) {
 }
 .arep-mini .mrow .mhalf.rt {
   justify-content: flex-end;
+}
+/* ⚠️ 2026-09-21 用户："对战报设计旁边那么多空白啥意思优化掉"。
+   真因：右半边的专辑名当时**没有右对齐**（漏了 .rt 类），于是名字紧贴中间的分隔线，
+   而封面对齐在最右边 —— 名字和封面之间就空出一大块。
+   加上 .rt 之后：两边都变成「名靠封面、分靠中间」，左右完全对称，空白自然消失。 */
+.arep-mini .mtx.rt {
+  text-align: right;
 }
 .arep-mini .mrow .mhalf.win .mtx,
 .arep-mini .mrow .mhalf.win .mv {
