@@ -22,6 +22,12 @@ const questionSchema = new mongoose.Schema(
     type: { type: String, enum: ['choice', 'audio'], required: true, default: 'choice' },
     title: { type: String, required: true },
     audioRef: { type: String, default: null },
+    /**
+     * 主维度（2026-09-22 新增）
+     * 抽题时按它配平：每次抽 20 道里，每个维度各占固定名额，
+     * 这样"随机"只影响抽到哪几道，不会让某一维度的题整体偏多 → 分数才可比。
+     */
+    primary: { type: String, default: null },
     dims: { type: [String], required: true, default: [] },
     options: { type: [optionSchema], required: true, default: [] },
   },

@@ -9,6 +9,16 @@
 
     <template v-else>
       <div class="quizwrap">
+        <!-- 2026-09-22：题库扩到 50 道、每次随机抽 20 道 —— 这件事必须告诉用户，
+             否则"上次明明有 12 题这次怎么变了"会被当成 bug。 -->
+        <div class="poolnote">
+          <b>本次 {{ questions.length }} 题</b>
+          <span>
+            题库共 {{ poolSize }} 道，<b>每次随机抽题</b>，所以你和朋友测到的不会完全一样；
+            其中 {{ audioCount }} 道是听感题（放 30 秒片段，凭第一反应答）。
+          </span>
+        </div>
+
         <div class="qbar">
           <div class="dots">
             <i
@@ -37,7 +47,7 @@
             </button>
             <span class="tx3">
               <b>测试片段 · 30 秒</b>
-              <span>{{ audioSrc ? '听完再选择你的第一感觉' : '本题为听感题（音频源待后台配置）' }}</span>
+              <span>{{ audioSrc ? '听完再选择你的第一感觉 · 片段来自我们曲库，不告诉你是哪首' : '这段暂时取不到音频，凭题干直觉答也可以' }}</span>
             </span>
             <span class="wave"><i></i><i></i><i></i><i></i><i></i></span>
           </div>
@@ -87,6 +97,9 @@ const auth = useAuthStore();
 const loading = ref(true);
 const submitting = ref(false);
 const questions = ref([]);
+/** 题库元信息（总题量 / 听感题数）—— 接口里带回来的，用于上面那条说明 */
+const poolSize = ref(0);
+const audioCount = ref(0);
 const answers = reactive({});
 const idx = ref(0);
 
@@ -171,6 +184,8 @@ onMounted(async () => {
   try {
     const data = await personalityApi.questions();
     questions.value = data.list || [];
+    poolSize.value = data.meta?.poolSize || questions.value.length;
+    audioCount.value = data.meta?.audio || questions.value.filter((q) => q.type === 'audio').length;
     if (questions.value.length) audioSrc.value = questions.value[0].type === 'audio' ? audioOf(questions.value[0]) : '';
   } catch (err) {
     ElMessage.error(err?.message || '题目加载失败');
@@ -189,5 +204,26 @@ onMounted(async () => {
   padding: var(--sp-6);
   max-width: 520px;
   text-align: center;
+}
+
+/* 题库说明条：告诉用户"本次多少题、是随机抽的" */
+.poolnote {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 auto 14px;
+  padding: 10px 16px;
+  max-width: 720px;
+  border-radius: 12px;
+  background: var(--glass2);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text2);
+}
+.poolnote b {
+  color: var(--text);
+  white-space: nowrap;
 }
 </style>

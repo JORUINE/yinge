@@ -37,6 +37,8 @@ const questionSchema = z.object({
   type: z.enum(['choice', 'audio']).default('choice'),
   title: z.string().trim().min(1, '题干不能为空'),
   audioRef: z.string().optional().nullable(),
+  /** 主维度（2026-09-22）：抽题按此配平，保证每次抽的题在 6 个维度上数量固定 */
+  primary: z.enum(['melody', 'rhythm', 'lyric', 'texture', 'novelty', 'calm']).optional().nullable(),
   dims: z.array(z.string().min(1)).min(1),
   options: z.array(optionSchema).min(2, '至少两个选项'),
 });
@@ -47,6 +49,10 @@ const typeSchema = z.object({
   name: z.string().trim().min(1, '类型名不能为空'),
   description: z.string().min(1, '描述不能为空'),
   dims: z.record(z.number()),
+  /** 2026-09-22 新增：文献依据 / 听众画像 / 推荐专辑的挑选原则（答辩要讲得出来源） */
+  theory: z.string().optional().nullable(),
+  listeningProfile: z.string().optional().nullable(),
+  albumHints: z.array(z.string()).optional(),
   recommendAlbumIds: z.array(objectId).optional(),
 });
 const typeUpdateSchema = typeSchema.partial();

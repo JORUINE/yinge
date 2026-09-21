@@ -235,18 +235,55 @@ const cardStyle = computed(() => {
 });
 
 /**
- * 模糊底图（2026-09-21 用户："这背景取色和模糊效果还是没做出来啊"）
+ * 虚化底图（2026-09-21 用户："这背景取色和模糊效果还是没做出来" → 2026-09-22 二次修正：
+ * "为什么后面是马赛克？不应该是马赛克，应该是那种渐变模糊，整体是 iOS 的液态玻璃质感"）
  * ------------------------------------------------------------
- * 想要的是"封面放大、虚化成底"的液态玻璃质感。三个不能用的做法：
+ * 第一版做错了什么：我把封面缩到 **56×56** 再放大铺满 —— 放大倍数太大，
+ * 双线性插值会把像素边缘拉成方块，看着就是**马赛克**，不是"模糊"。
+ *
+ * 三个不能用的做法：
  *   ❌ CSS `filter: blur()` —— html2canvas **不渲染 filter**，导出会整层丢掉；
  *   ❌ `backdrop-filter` —— 同样不渲染；
- *   ❌ 只靠径向渐变 —— 那是"色晕"不是"模糊"，用户一眼就看出来没做。
- * 能同时满足"页面里好看 + 导出也在"的唯一做法：
- *   把封面先画到一张**很小的 canvas**（56×56），再让 CSS 把它**放大铺满整张卡** ——
- *   双线性插值放大本身就是模糊，而且是像素运算，导出工具完全认得（它就是画一张图）。
- * 56px 的小图 dataURL 只有 ~2KB，几乎不增加导出耗时。
+ *   ❌ 只靠径向渐变 —— 那是"色晕"不是"模糊"。
+ *
+ * 正确做法：**在 canvas 里真的做一次高斯模糊，再把结果当作一张图片用**。
+ *   · 采样 320×320（足够大，放大倍数只有 ~1.3 倍，不会有像素块）；
+ *   · 用 canvas 自己的滤镜 `ctx.filter = 'blur(Npx)'` —— 注意这是 **Canvas2D 的滤镜**，
+ *     不是 CSS 滤镜，它作用在绘制结果上，产出的是**已经糊掉的位图**，
+ *     所以导出时 html2canvas 只是在画一张普通图片，完全认得；
+ *   · 兜底：个别浏览器不支持 `ctx.filter`（赋值后读回为空）→ 退回"多次降采样再升采样"
+ *     的乒乓法（每级 1/2 缩小再放大，等效低通），也不会出马赛克。
  */
 const bgUrl = ref('');
+
+/** 不支持 ctx.filter 时的兜底：乒乓降采样（逐级 1/2 缩小到 1/16，再逐级放大回来） */
+function blurByPingPong(ctx, img, S, cover) {
+  let cur = document.createElement('canvas');
+  cur.width = S;
+  cur.height = S;
+  const c0 = cur.getContext('2d');
+  c0.drawImage(img, (S - cover.w) / 2, (S - cover.h) / 2, cover.w, cover.h);
+  const steps = [];
+  let size = S;
+  while (size > 8) {
+    size = Math.max(8, Math.round(size / 2));
+    const next = document.createElement('canvas');
+    next.width = size;
+    next.height = size;
+    next.getContext('2d').drawImage(cur, 0, 0, size, size);
+    steps.push(next);
+    cur = next;
+  }
+  // 从最小的一级逐级放大回去（每级都用双线性插值 → 累积成柔和渐变）
+  for (let i = steps.length - 2; i >= 0; i -= 1) {
+    const target = steps[i];
+    const tctx = target.getContext('2d');
+    tctx.clearRect(0, 0, target.width, target.height);
+    tctx.drawImage(cur, 0, 0, target.width, target.height);
+    cur = target;
+  }
+  ctx.drawImage(cur, 0, 0, S, S);
+}
 
 async function buildBlurBg() {
   const url = champion.value?.artworkUrl;
@@ -259,22 +296,34 @@ async function buildBlurBg() {
       img.onerror = () => reject(new Error('load'));
       img.src = url;
     });
-    const S = 56;
+    // 采样尺寸要够大：太小（56）放大后就是马赛克
+    const S = 320;
     const c = document.createElement('canvas');
     c.width = S;
     c.height = S;
     const ctx = c.getContext('2d');
-    // 先铺一层黑底：有些封面带透明通道，直接画会出现"透出卡片深底"的脏边
-    ctx.fillStyle = '#04121d';
-    ctx.fillRect(0, 0, S, S);
     // cover 语义：按短边裁切后铺满（等比，不留白）
     const scale = Math.max(S / img.naturalWidth, S / img.naturalHeight);
-    const w = img.naturalWidth * scale;
-    const h = img.naturalHeight * scale;
-    ctx.drawImage(img, (S - w) / 2, (S - h) / 2, w, h);
-    bgUrl.value = c.toDataURL('image/jpeg', 0.82);
+    const cover = { w: img.naturalWidth * scale, h: img.naturalHeight * scale };
+    // ① 优先用 canvas 滤镜做真高斯模糊
+    // ⚠️ 过扫（overscan）：模糊会把边缘采样到画布外变成透明，
+    //    所以先按 1.18 倍画大一圈，让"虚掉的边"落在画布之外，成图上就不会有渐隐白边。
+    const OS = 1.18;
+    const bw = cover.w * OS;
+    const bh = cover.h * OS;
+    ctx.filter = `blur(${Math.round(S / 9)}px)`;
+    const supported = typeof ctx.filter === 'string' && ctx.filter !== 'none';
+    if (supported) {
+      ctx.drawImage(img, (S - bw) / 2, (S - bh) / 2, bw, bh);
+      ctx.filter = 'none';
+    } else {
+      // ② 兜底：乒乓降采样
+      ctx.filter = 'none';
+      blurByPingPong(ctx, img, S, cover);
+    }
+    bgUrl.value = c.toDataURL('image/jpeg', 0.86);
   } catch {
-    // 取不到（CORS / 网络）就退回纯色渐变底 —— 卡片依然可读，只是少了模糊层
+    // 取不到（CORS / 网络）就退回纯色渐变底 —— 卡片依然可读，只是少了虚化层
     bgUrl.value = '';
   }
 }
@@ -393,24 +442,79 @@ onMounted(load);
   aspect-ratio: 1 / 1;
 }
 /**
- * 方形图的硬伤兜底（2026-09-18）：封面原来是"按卡宽 58%"定尺寸的，
- * 换成 1:1 方卡后这个宽度对应的封面高度超出了可用高度，被 `overflow:hidden` 硬裁掉半张 ——
- * 用户的原话是"你这方形图就纯粹裁剪一下，把信息都搞没了"。
- * 这里改成**按高度定尺寸**（height:38% + aspect-ratio 自动出宽），封面就完整了。
+ * 方形图的版式（2026-09-22 按用户给的草图重排）
+ * ------------------------------------------------------------
+ * 用户原话："方形图你应该参考我这个图里这样把冠军做大方中间，然后其他专辑在下面"，
+ * 草图红框分上下两块：上半＝★冠军★ + 封面 + 名称 + 艺人·年份（居中做大），
+ * 下半＝其他专辑缩略图一排 + 轮次路径。
+ * ⚠️ 之前方形版只是"把竖版压扁 + 缩小封面"，冠军不够大、对手缩略图也太小，
+ *    看起来就是"竖版缩了一下"，而不是为方形单独设计的版式。
+ * 好在 DOM 顺序本来就是 冠军 → 对手 → 统计，所以这里**只调尺寸与间距**，不动结构。
  */
-.scard.square .smain .art {
-  width: auto;
-  height: 38%;
+.scard.square {
+  padding: 14px 18px 12px;
+}
+.scard.square .stop {
+  font-size: 12px;
+  letter-spacing: 1.2px;
+}
+.scard.square .stitle {
+  font-size: 12.5px;
+  margin-top: 1px;
 }
 .scard.square .smain {
-  gap: 8px;
+  gap: 4px;
+  /* 内容万一算多了，宁可裁掉最后一行也不要撑破卡片（卡片本身 overflow:hidden） */
+  overflow: hidden;
+}
+/* ⚠️ 2026-09-22 实测发现：方形卡里内容比可用高度**多出 16px**，
+   结果 `.roundline`（「半决赛 → 决赛」那一行）被 `.smain` 的 overflow:hidden 裁掉了 ——
+   量出来 smain 可见高 319、内容高 335，轮次行落在 357 之外，用户看到的就是"轮次路径不见了"。
+   修法：把方卡里的几处尺寸各收一点（合计约 21px），让整块真的放得下。
+   为什么不靠"再裁一点"兜底：轮次路径是这张图的信息之一，不能靠裁掉它来"看起来没问题"。 */
+.scard.square .crown {
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin: 0;
+}
+/* 冠军封面：**按宽度定尺寸**（width + 基类的 aspect-ratio:1 自动出高）。
+   为什么不用 height:46%：百分比高度要相对 .smain 的定高来解析，
+   而 .smain 是 flex:1 —— 高度不定，浏览器会退回 auto，量出来的占比只有 28%，
+   用户要的"冠军做大"根本没生效。改成定宽度就完全确定了：
+   smain 宽 384 → 46% = 177px，占 420 高的方形卡 42%。 */
+.scard.square .smain .art {
+  width: 46%;
+  height: auto;
+  /* ⚠️ 必须关掉 flex 收缩：.smain 是列向 flex，内容一多就会把封面**压缩**，
+     压到量出来只有卡高的 34%（用户要的"冠军做大"就没生效）。
+     关掉收缩后由布局自己让位，封面尺寸完全由 width 决定。 */
+  flex: 0 0 auto;
 }
 .scard.square .cname {
-  font-size: 22px;
+  font-size: 23px;
+  line-height: 1.15;
+  margin-top: 0;
+}
+.scard.square .cartist {
+  font-size: 12.5px;
+  margin-top: 0;
+}
+/* 其他专辑：一排缩略图，做成"小相框"更好认 */
+.scard.square .spath {
+  gap: 7px;
 }
 .scard.square .spath div {
-  width: 26px;
-  height: 26px;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+}
+.scard.square .roundline {
+  font-size: 12px;
+}
+.scard.square .sfoot {
+  font-size: 12px;
+  margin-top: 4px;
+  padding-top: 6px;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。

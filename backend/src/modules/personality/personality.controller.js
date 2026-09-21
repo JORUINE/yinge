@@ -6,7 +6,8 @@ import * as service from './personality.service.js';
 import { ok, paginated } from '../../shared/response.js';
 
 export async function questions(req, res) {
-  return ok(res, { list: await service.getQuestions() });
+  // getQuestions() 现在直接返回 { list, meta }（meta 里带题库总量与抽题规则），别再包一层
+  return ok(res, await service.getQuestions());
 }
 
 export async function submit(req, res) {

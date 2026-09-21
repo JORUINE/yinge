@@ -100,7 +100,49 @@ export const DEFAULT_KEYWORDS = {
   multiArtist: ['群星', '合辑', '合輯', '、', ' vs ', ' VS '],
   // karaoke：卡拉OK / 伴奏 / 纯伴奏版——不是正式专辑（2026-09-17 新增：
   //   「Taylor Swift Karaoke: 1989 (Deluxe)」曾一路夺冠，属于严重漏筛）
-  karaoke: ['karaoke', '卡拉ok', '伴唱', '伴奏', 'instrumental', 'instrumentals'],
+  /**
+   * 2026-09-22 补：实测曲库里混进了「petal – the a cappellas」「petal – the instrumentals」
+   * 这类**非正式专辑**（前者漏了关键词，后者本来就有 instrumentals 但那是缓存早于规则）。
+   * 一并补上"纯人声 / 纯伴奏 / 清唱"的各种写法。
+   */
+  karaoke: [
+    'karaoke',
+    '卡拉ok',
+    '伴唱',
+    '伴奏',
+    'instrumental',
+    'instrumentals',
+    'a cappella',
+    'a cappellas',
+    'acappella',
+    'acapella',
+    '清唱',
+    '純人聲',
+    '纯人声',
+    '純伴奏',
+    '纯伴奏',
+  ],
+  /**
+   * 2026-09-22 新增：**幕后 / 制作特辑 / 口述**类，不是专辑作品本身。
+   * 实测漏筛：「petal - making a song with ari and ilya」（幕后创作纪录）。
+   * 这类条目曲目数与正式专辑一样（13 首），体量规则拦不住，只能靠名称。
+   */
+  documentary: [
+    'making a song',
+    'making of',
+    'the making',
+    'behind the scenes',
+    'documentary',
+    'commentary',
+    'interview',
+    'interview disc',
+    '口述',
+    '幕后',
+    '紀錄片',
+    '纪录片',
+    '创作纪录',
+    '創作紀錄',
+  ],
   // reissue（原名 deluxe）：再版 / 加曲版 / 周年版。
   // ⚠️ 这些**不做硬性剔除**，而是靠规则 7「同名去重」在本体与再版之间保留最早那张
   //    （若某歌手只有再版没有本体，硬剔会把整张专辑弄丢，例如 Rihanna 的 ANTI 只出过 Deluxe）。
@@ -177,7 +219,8 @@ export const RULE_LABELS = {
   NOT_SOUNDTRACK: '非影视原声',
   NOT_COMPILATION: '非精选集',
   NOT_MULTI_ARTIST: '非合辑拼盘',
-  NOT_KARAOKE: '非卡拉OK / 伴奏版',
+  NOT_KARAOKE: '非卡拉OK / 伴奏版（含纯人声、纯伴奏）',
+  NOT_DOCUMENTARY: '非幕后 / 制作特辑',
   NOT_REMIX: '非混音版',
   NOT_SINGLE: '非单曲 / EP',
   NOT_REISSUE: '非再版 / 加曲版',
@@ -258,9 +301,13 @@ export function evaluateAlbum(album, { artistExternalId, keywords = DEFAULT_KEYW
   if (hitKeyword(album.name, keywords.multiArtist)) {
     return { isEligible: false, excludeReason: RULE_LABELS.NOT_MULTI_ARTIST };
   }
-  // 规则 6.5：卡拉OK / 伴奏版（不是正式专辑）
+  // 规则 6.5：卡拉OK / 伴奏 / 纯人声版（不是正式专辑）
   if (hitKeyword(album.name, keywords.karaoke)) {
     return { isEligible: false, excludeReason: RULE_LABELS.NOT_KARAOKE };
+  }
+  // 规则 6.55：幕后 / 制作特辑 / 口述（2026-09-22 新增）
+  if (hitKeyword(album.name, keywords.documentary)) {
+    return { isEligible: false, excludeReason: RULE_LABELS.NOT_DOCUMENTARY };
   }
   // 规则 6.6：混音版（2026-09-18 新增）
   if (hitKeyword(album.name, keywords.remix)) {
