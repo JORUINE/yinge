@@ -8,20 +8,53 @@
            而且导出的战报…整个功能全部参考混战模式重做"。改法：每行不再是一行纯文字，
            而是与混战战报同款的「两张专辑（封面 + 名称 + 票数），胜方高亮」结构。 -->
       <template v-if="data.type === 'aligned'">
+        <!-- ══════════ 顶部操作条（2026-09-22 用户要求）══════════
+             用户："这种重要功能请你放在上面而不是最底下" ——
+             以前「分享 / 保存战报 / 和好友一起玩」挤在整页最下面，
+             要看完 9 组对照表滚到底才能分享。现在统一提到战报**上方**。 -->
+        <div class="actbar">
+          <div class="abtx">
+            <b>这一局打完了</b>
+            <span>存图 / 发给好友接着打，都在这一排；下面是逐组对照战报</span>
+          </div>
+          <div class="abbtns">
+            <button class="btn pri" type="button" :disabled="exporting" @click="exportShare">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
+              </svg>
+              {{ exporting === 'share' ? '正在生成…' : '保存分享图' }}
+            </button>
+            <button class="btn ghost" type="button" :disabled="exporting" @click="exportReport">
+              {{ exporting === 'full' ? '正在生成…' : '保存详细战报' }}
+            </button>
+            <!-- 2026-09-21 用户："每个模式都要加上这个功能" —— 对位赛以前只有"存图"，没有邀请码 -->
+            <button class="btn ghost" type="button" :disabled="inviting" @click="makeInvite">
+              {{ inviting ? '生成中…' : '和好友一起玩' }}
+            </button>
+            <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
+          </div>
+        </div>
+
+        <!-- 同款签表：生成后直接露在操作条下面，不用再往下找 -->
+        <div v-if="invite.code" class="invitebox">
+          <div class="ibhd">
+            <b>同款签表已生成</b>
+            <span>把这串码或链接发给好友，他打开后打的是<b>完全同一批专辑、同一套对位</b></span>
+          </div>
+          <div class="ibrow">
+            <code class="ibcode">{{ invite.code }}</code>
+            <button class="mini" type="button" @click="copyInvite">复制链接</button>
+            <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
+              查看对比
+            </RouterLink>
+          </div>
+        </div>
+
         <div class="reportwrap">
-          <!-- 分享按钮放在被导出元素**外面**（只视觉上叠在卡片右上角），这样不会被截进战报图里
-               —— 用户："对位赛的分享功能不应该放到最下面"。 -->
-          <!-- ⚠️ 2026-09-21 用户报：「对位赛里点这个按钮跳到『冠军还没决出』」。
-               根因是它以前指向 /battle/:id/share —— 而那个页面只做「夺冠之路（冠军）」，
-               对位赛本来就不产生冠军，于是必然落进空态，看着像坏了。
-               → 对位赛的分享出口就是**本页的战报图**，这里改成直接触发生成（不再跳页）。 -->
-          <button class="sharefloat" type="button" :disabled="exporting" @click="exportShare">
-            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-              <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
-            </svg>
-            {{ exporting === 'share' ? '正在生成…' : '分享 好友一起玩' }}
-          </button>
+          <!-- ⚠️ 2026-09-22：原来这里有个浮动「分享 好友一起玩」按钮（当时是为了"别放最下面"）。
+               现在操作条已经整体提到战报**上方**（.actbar），它就是同一个动作的重复入口 ——
+               守则 103 的"逐条判去留"：**去掉**，理由＝与新操作条完全重复，留着会出现两个一模一样的按钮。
+               （要恢复就把这段按钮 markup 放回来，`.sharefloat` 的样式还在。） -->
 
         <div ref="reportEl" class="aligned-report">
           <div class="arep-top">
@@ -101,54 +134,26 @@
         </div>
         </div>
 
-        <!-- 简洁分享图（2026-09-20 新增）：用户说详细战报保留，但要一张"更适合分享互动"的图。
-             这里做成 720px 宽的紧凑卡：大比分 + 每组一行（小封面 + 比分），两列排布，截图/转发都清楚。 -->
-        <div class="share-block">
-          <div class="hd" style="margin: 18px 0 10px">
-            <b>分享图预览</b><span>简洁版 · 适合发群里/朋友圈，点下面按钮保存</span>
+        <!-- 分享图预览 + 详细战报的导出入口已全部上移到战报**上方**（见 .actbar）；
+             这里只留一个折叠入口，需要时再展开看效果 —— 
+             用户："这种重要功能请你放在上面而不是最底下，分享图预览做成子菜单那种形式"。 -->
+        <details class="sharefold">
+          <summary class="sffhd">
+            <b>分享图预览</b>
+            <span>简洁版 · 大比分 + 每组一行，适合直接发群里 / 朋友圈</span>
+            <i class="sfarrow">展开</i>
+          </summary>
+          <div class="sfbody">
+            <div ref="shareEl">
+              <AlignedMiniCard
+                :names="alignedSideNames"
+                :score="alignedScore"
+                :leader-text="miniLeaderText"
+                :rows="data.rows || []"
+              />
+            </div>
           </div>
-          <div ref="shareEl">
-            <AlignedMiniCard
-              :names="alignedSideNames"
-              :score="alignedScore"
-              :leader-text="miniLeaderText"
-              :rows="data.rows || []"
-            />
-          </div>
-        </div>
-
-        <div class="btns" style="margin-top: 18px">
-          <button class="btn pri" type="button" :disabled="exporting" @click="exportShare">
-            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
-            </svg>
-            {{ exporting === 'share' ? '正在生成…' : '保存分享图（简洁版）' }}
-          </button>
-          <button class="btn ghost" type="button" :disabled="exporting" @click="exportReport">
-            {{ exporting === 'full' ? '正在生成…' : '保存详细战报' }}
-          </button>
-          <!-- 2026-09-21 用户："分享和好友一起玩功能没实现，每个模式都要加上这个功能" ——
-               对位赛以前只有"存图"，没有"和好友一起玩（同款签表）"。这里与混战模式补齐到同一套。 -->
-          <button class="btn ghost" type="button" :disabled="inviting" @click="makeInvite">
-            {{ inviting ? '生成中…' : '和好友一起玩' }}
-          </button>
-          <RouterLink :to="{ name: 'battle-create' }" class="btn ghost">再玩一次</RouterLink>
-        </div>
-
-        <!-- 同款签表：生成后露出邀请码与链接（与混战模式同一套交互） -->
-        <div v-if="invite.code" class="invitebox">
-          <div class="ibhd">
-            <b>同款签表已生成</b>
-            <span>把这串码或链接发给好友，他打开后打的是<b>完全同一批专辑、同一套对位</b></span>
-          </div>
-          <div class="ibrow">
-            <code class="ibcode">{{ invite.code }}</code>
-            <button class="mini" type="button" @click="copyInvite">复制链接</button>
-            <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
-              查看对比
-            </RouterLink>
-          </div>
-        </div>
+        </details>
       </template>
 
       <!-- 冠军 -->
@@ -1293,4 +1298,93 @@ onMounted(() => {
 .aptchip { font-size: 13.5px; padding: 4px 12px; border-radius: 999px; background: var(--glass2); border: 1px solid var(--gbd); color: var(--text2); }
 .aptchip b { color: var(--brand-deep); font-size: 15px; }
 /* 分享图：每组左右对称的样式已随组件搬走（见 AlignedMiniCard.vue） */
+
+/* =====================================================================
+   顶部操作条 + 分享图折叠预览（2026-09-22 用户要求）
+   ---------------------------------------------------------------------
+   用户原话："这种重要功能请你放在上面而不是最底下，分享图预览做成子菜单那种形式"。
+   以前：战报（对位赛可能有 9+ 组）→ 分享图预览 → 按钮组 → 邀请码，全堆在页尾，
+        要分享得先滚到底。现在操作条上移到战报之上，预览收进折叠块。
+   ===================================================================== */
+.actbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 4px 0 16px;
+  padding: 16px 20px;
+  border-radius: var(--r);
+  border: 1px solid rgba(14, 165, 233, 0.34);
+  background: linear-gradient(100deg, rgba(14, 165, 233, 0.12), var(--glass2) 62%);
+  box-shadow: var(--shadow-2);
+}
+.actbar .abtx {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+.actbar .abtx b {
+  display: block;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+}
+.actbar .abtx span {
+  display: block;
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text2);
+}
+.actbar .abbtns {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* 分享图预览：折叠子菜单 */
+.sharefold {
+  margin: 18px 0 4px;
+  border: 1px solid var(--gbd);
+  border-radius: var(--r);
+  background: var(--glass2);
+  overflow: hidden;
+}
+.sharefold .sffhd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.sharefold .sffhd::-webkit-details-marker {
+  display: none;
+}
+.sharefold .sffhd b {
+  font-size: 15.5px;
+  flex: 0 0 auto;
+}
+.sharefold .sffhd span {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  color: var(--text2);
+}
+.sharefold .sfarrow {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--brand-deep);
+}
+.sharefold[open] .sfarrow {
+  color: var(--text3);
+}
+.sharefold .sfbody {
+  padding: 0 18px 18px;
+}
+.sharefold .sffhd:hover {
+  background: rgba(14, 165, 233, 0.06);
+}
 </style>

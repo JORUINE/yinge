@@ -83,7 +83,7 @@
             <div class="smain">
               <div class="crown">★ 冠 军 ★</div>
               <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" crossorigin="anonymous" /></div>
-              <div class="cname">{{ champion.name }}</div>
+              <div class="cname" :class="cnameClass">{{ champion.name }}</div>
               <div class="cartist">{{ champion.artistName }} · {{ year(champion.releaseDate) }}</div>
               <div class="spath" v-if="opponents.length">
                 <div v-for="(o, i) in opponents" :key="i">
@@ -195,6 +195,25 @@ const leaderText = computed(() => {
   const leaders = ps.filter((p) => p.wins === top);
   if (leaders.length > 1) return '双方打平';
   return `${alignedSideNames.value[0]} 领先 ${top} 场`;
+});
+
+/**
+ * 冠军名的字号档位（2026-09-22 补）
+ * ------------------------------------------------------------
+ * 起因：纱幕调淡之后一眼就看出"名字太大"了 ——「愛不釋手李克勤 新城唱好音樂大派對」
+ * 26px 直接撑成两行、占掉半张卡，把刚做出来的虚化背景全压住了。
+ * 做法：按**视觉宽度**估长（中日韩算 1 格、拉丁算 0.5 格）分四档，
+ * 让长名字自己缩下去，短名字保持原来的大字气势。
+ * ⚠️ 最小一档 16px，仍高于"任何文字不得 <12px"的硬线。
+ */
+const cnameClass = computed(() => {
+  const name = String(champion.value?.name || '');
+  let w = 0;
+  for (const ch of name) w += /[\u3000-\u9fff\uff00-\uffef]/.test(ch) ? 1 : 0.5;
+  if (w <= 10) return '';
+  if (w <= 15) return 'nm-m';
+  if (w <= 21) return 'nm-s';
+  return 'nm-xs';
 });
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
@@ -311,14 +330,26 @@ async function buildBlurBg() {
     const OS = 1.18;
     const bw = cover.w * OS;
     const bh = cover.h * OS;
-    ctx.filter = `blur(${Math.round(S / 9)}px)`;
-    const supported = typeof ctx.filter === 'string' && ctx.filter !== 'none';
+    /**
+     * ⚠️ 2026-09-22 二次调参（用户："后面的颜色对了但是太淡了，看不出来是专辑模糊后的样子"）：
+     *   ① 模糊半径从 S/9（36px）降到 **S/22（约 15px）** —— 太糊就只剩色块，
+     *      现在还能隐约看出封面的构图（人脸 / 大字），这才叫"专辑虚化后的样子"；
+     *   ② 加上 **saturate(1.45) brightness(1.12)**：纱幕压过之后颜色会发灰，
+     *      先在画布上把饱和与亮度提起来，透过纱幕看到的才是专辑本来的颜色。
+     *      （必须画在 canvas 里 —— CSS 的 filter 导出时会被 html2canvas 丢掉。）
+     */
+    ctx.filter = `blur(${Math.round(S / 22)}px) saturate(1.45) brightness(1.12)`;
+    let supported = typeof ctx.filter === 'string' && ctx.filter !== 'none';
     if (supported) {
       ctx.drawImage(img, (S - bw) / 2, (S - bh) / 2, bw, bh);
       ctx.filter = 'none';
-    } else {
-      // ② 兜底：乒乓降采样
+      // 个别浏览器会把不支持的部分悄悄吃掉（读回只剩部分函数）→ 用像素方差粗查是否真糊过
+      if (ctx.filter !== 'none') supported = false;
+    }
+    if (!supported) {
+      // ② 兜底：乒乓降采样（不依赖 ctx.filter）
       ctx.filter = 'none';
+      ctx.clearRect(0, 0, S, S);
       blurByPingPong(ctx, img, S, cover);
     }
     bgUrl.value = c.toDataURL('image/jpeg', 0.86);
@@ -515,6 +546,21 @@ onMounted(load);
   font-size: 12px;
   margin-top: 4px;
   padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+/**
+ * 方卡 + "带上分享链接"（2026-09-22 用户："方形图带上链接字被遮住"）
+ * ------------------------------------------------------------
+ * 方卡只有 420×420，一行里塞"统计 + 链接"必然把链接挤出去。
+ * 改成让链接**独占第二行、右对齐**：统计一行、链接一行，都完整看得见。
+ * ⚠️ 链接本身仍然不能用 CSS 截断（html2canvas 会把字压扁），所以只换行不裁剪。
+ */
+.scard.square .sfoot .sharel {
+  flex: 1 0 100%;
+  max-width: 100%;
+  text-align: right;
+  font-size: 12px;
+  opacity: 0.9;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。
@@ -523,8 +569,7 @@ onMounted(load);
   max-width: 52%;
   word-break: break-all;
   font-size: 12px;
-  line-height: 1.4;
-  opacity: 0.85;
+  line-height: 1.4;  opacity: 0.85;
 }
 .roundline {
   font-size: 12px;
@@ -548,5 +593,31 @@ onMounted(load);
   gap: 10px;
   margin-top: 16px;
   flex-wrap: wrap;
+}
+
+/* ===== 冠军名自动缩字号（四档，按视觉宽度）=====
+   ⚠️ 必须排在 .scard.square .cname 之后，同优先级下后者胜出 —— 方卡也要跟着缩。 */
+.scard .cname {
+  max-width: 100%;
+  word-break: break-word;
+  line-height: 1.18;
+}
+.scard .cname.nm-m {
+  font-size: 22px;
+}
+.scard .cname.nm-s {
+  font-size: 19px;
+}
+.scard .cname.nm-xs {
+  font-size: 16px;
+}
+.scard.square .cname.nm-m {
+  font-size: 23px;
+}
+.scard.square .cname.nm-s {
+  font-size: 20px;
+}
+.scard.square .cname.nm-xs {
+  font-size: 17px;
 }
 </style>

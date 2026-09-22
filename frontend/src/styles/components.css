@@ -1805,15 +1805,19 @@ html[data-theme='dark'] .v b {
     radial-gradient(122% 78% at 12% -10%, var(--sa-58, rgba(14, 165, 233, 0.58)) 0%, transparent 60%),
     radial-gradient(112% 82% at 104% 104%, var(--sa-38, rgba(13, 148, 136, 0.38)) 0%, transparent 56%),
     linear-gradient(202deg, var(--sa-20, rgba(14, 165, 233, 0.2)) 0%, transparent 42%),
-    /* 深色纱幕：压在虚化封面之上。**不能全不透明**（那就看不到模糊底了），
-       也不能太薄（白色封面会把浅色字糊掉）。
-       0.6 → 0.8 的梯度是按"最坏情况＝纯白封面"反推的：
-       即使是白封面，纱幕之后最亮处与 #e6f2fa 的对比度仍 ≥ 6:1（自检里有这条闸门）。 */
+    /* 深色纱幕：压在虚化封面之上。
+       ⚠️ 2026-09-22 二次调参（用户："颜色对了但是太淡了，看不出来是专辑模糊后的样子"）：
+         原来是 0.6 → 0.8，压得太狠 —— 虚化层等于被埋掉，只剩一片深蓝。
+         现在降到 **0.34 → 0.56**，虚化的封面能透出来了。
+       ⚠️ 那文字还压得住吗？**靠中央那块"玻璃板"**（见下面 .smain::before）：
+         真正要保证对比度的是"文字所在的中心区"，不是整张卡。
+         把压暗集中到中心、把四周让给虚化层 —— 既看得见模糊，又读得清字。
+         自检里那条闸门就是按"纯白封面 + 中央玻璃板"算的（实测仍 ≥ 9:1）。 */
     linear-gradient(
       160deg,
-      rgba(9, 40, 64, 0.6) 0%,
-      rgba(4, 22, 34, 0.72) 55%,
-      rgba(2, 14, 22, 0.8) 100%
+      rgba(9, 40, 64, 0.34) 0%,
+      rgba(4, 22, 34, 0.46) 55%,
+      rgba(2, 14, 22, 0.56) 100%
     );
 }
 /* 模糊底图：56px 的封面放大铺满整张卡 —— "封面虚化成底"就靠它（导出工具也认得图片）。
@@ -1834,7 +1838,47 @@ html[data-theme='dark'] .v b {
   position: relative;
   z-index: 2;
 }
-/* 玻璃的"高光边"：一圈内亮线 + 顶部斜向柔光（全部用 CSS 画，html2canvas 认得） */
+/**
+ * 中央「玻璃板」—— 把压暗集中到文字所在的中心区
+ * ------------------------------------------------------------
+ * 用户要"看得出是专辑模糊后的样子"，就必须把整卡的纱幕调淡；
+ * 但调淡会把白色封面的卡变成浅色底，浅色正文（#e6f2fa / 金色名字）直接糊掉。
+ * 解法不是二选一，而是**分区**：
+ *   · 中心一块柔边玻璃板负责"浅字压得住"（越靠中心越暗）；
+ *   · 四周让给虚化封面，模糊与取色都透得出来。
+ * 观感上也更像 iOS 的液态玻璃：一块玻璃浮在虚化的封面上。
+ */
+.scard .smain {
+  position: relative;
+}
+.scard.glassy .smain::before {
+  content: '';
+  position: absolute;
+  inset: -16px -12px;
+  border-radius: 26px;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    84% 76% at 50% 52%,
+    rgba(2, 14, 22, 0.82) 0%,
+    rgba(2, 14, 22, 0.6) 46%,
+    rgba(2, 14, 22, 0.24) 76%,
+    rgba(2, 14, 22, 0) 100%
+  );
+}
+.scard.glassy .smain > * {
+  position: relative;
+  z-index: 1;
+}
+/**
+ * 玻璃的"质感层"（全部用 CSS 画，html2canvas 认得）
+ * ------------------------------------------------------------
+ * 2026-09-22 用户："液态玻璃质感更有质感做的" —— 一层斜向柔光不够，
+ * 现在叠三样东西做出"厚玻璃"的感觉：
+ *   ① 左上斜向反光带（主高光，要有边界感，不能糊成一片）
+ *   ② 底部内侧微光（玻璃下缘的二次反射，最容易被忽略但最提质感）
+ *   ③ 双内描边：外面一圈 1px 白线 + 里面一圈更暗的线 —— 玻璃厚度就是靠这两条线读出来的
+ */
 .scard.glassy::after {
   content: '';
   position: absolute;
@@ -1842,8 +1886,18 @@ html[data-theme='dark'] .v b {
   border-radius: 20px;
   pointer-events: none;
   z-index: 3;
-  background: linear-gradient(203deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 34%);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(
+      203deg,
+      rgba(255, 255, 255, 0.26) 0%,
+      rgba(255, 255, 255, 0.06) 22%,
+      rgba(255, 255, 255, 0) 36%
+    ),
+    radial-gradient(120% 46% at 50% 104%, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 62%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 .scard .stop {
   /* 「音格 · YINGE.APP」水印：用户要求"水印也可以做大一点，字体也是" */
@@ -1929,6 +1983,12 @@ html[data-theme='dark'] .v b {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* ⚠️ 2026-09-22 用户："方形图带上链接字被遮住"。
+     真因：`.sfoot` 是 nowrap 的一行（统计在左、链接在右），
+     方卡本来就矮、宽度也就 420，链接一长就被挤出可视区。
+     改成允许换行 —— 方卡下链接会自己掉到第二行（见 .scard.square .sfoot .sharel）。 */
+  flex-wrap: wrap;
+  gap: 2px 10px;
   font-size: 12px;
   opacity: 0.72;
   margin-top: 12px;
