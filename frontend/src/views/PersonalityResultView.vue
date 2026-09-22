@@ -44,6 +44,14 @@
         </div>
       </div>
 
+      <!-- 娱乐声明（2026-09-22 用户要求"人格测试那里也要加上一个告示，娱乐为主，不要当真"）
+           结果页比测试页更需要它 —— 用户此刻最可能把结论当真。 -->
+      <p class="funnote">
+        <b>这是一份娱乐向结果，别当真。</b>
+        它反映的是你这次答题时的偏好倾向，不是心理诊断，也不能定义你是什么人。
+        音乐与情绪本来就多变 —— 隔几天再测，结果不一样是正常的。
+      </p>
+
       <div class="hd" style="margin-top: 26px">
         <b>为你推荐的专辑</b><span>依据人格类型与维度得分匹配</span>
       </div>
@@ -228,5 +236,23 @@ onMounted(async () => {
   font-size: 13.5px;
   line-height: 1.7;
   color: var(--text2);
+}
+
+/* 娱乐声明（结果页） */
+.funnote {
+  margin: 18px 0 0;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  background: linear-gradient(100deg, rgba(245, 158, 11, 0.09), var(--glass2) 62%);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text2);
+}
+.funnote b {
+  color: #b45309;
+}
+html[data-theme='dark'] .funnote b {
+  color: #fcd34d;
 }
 </style>

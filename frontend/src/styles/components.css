@@ -1768,7 +1768,8 @@ html[data-theme='dark'] .v b {
 .scard {
   width: 100%;
   aspect-ratio: 3 / 4;
-  border-radius: 20px;
+  /* 圆角 20 → 28：用户说"边界棱角这么强的框"，圆角加大能让卡片不再像一块方砖 */
+  border-radius: 28px;
   overflow: hidden;
   position: relative;
   color: #e6f2fa;
@@ -1787,7 +1788,12 @@ html[data-theme='dark'] .v b {
      ⚠️ 柔光必须在 .sbg **之上**（否则被模糊封面盖住，取色就"看不见"了）——
         所以它放在 ::before 里，而不是 .scard 的 background 里。
      ⚠️ 不能真用 backdrop-filter / filter: blur()：html2canvas 不渲染，导出会整层丢。 */
-  background: #0a2438;
+  /* ⚠️ 2026-09-22 用户："背景色和感觉就让你用专辑 PK 的那套算法"、"你为什么搞出个边界棱角这么强的框"。
+     原来这里是**固定的深蓝**（#0a2438 / #0d3a5c→#031420）—— 与专辑本身无关，
+     于是任何冠军都是一块同色深蓝方块，贴在浅色页面上就是一个"硬框"。
+     现在底色改由**冠军专辑主色**推导（页面注入 --sa-deep：同色相、低明度），
+     卡片边缘的颜色就跟着专辑走 —— 和 PK 页那套取色是同一个来源（accentStyleOf + deepenRgb）。 */
+  background: var(--sa-deep, #0a2438);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow-3);
   font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC',
     'Source Han Sans SC', 'Segoe UI', Arial, sans-serif;
@@ -1796,7 +1802,7 @@ html[data-theme='dark'] .v b {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 20px;
+  border-radius: 28px;
   pointer-events: none;
   z-index: 1;
   background:
@@ -1806,18 +1812,16 @@ html[data-theme='dark'] .v b {
     radial-gradient(112% 82% at 104% 104%, var(--sa-38, rgba(13, 148, 136, 0.38)) 0%, transparent 56%),
     linear-gradient(202deg, var(--sa-20, rgba(14, 165, 233, 0.2)) 0%, transparent 42%),
     /* 深色纱幕：压在虚化封面之上。
-       ⚠️ 2026-09-22 二次调参（用户："颜色对了但是太淡了，看不出来是专辑模糊后的样子"）：
-         原来是 0.6 → 0.8，压得太狠 —— 虚化层等于被埋掉，只剩一片深蓝。
-         现在降到 **0.34 → 0.56**，虚化的封面能透出来了。
-       ⚠️ 那文字还压得住吗？**靠中央那块"玻璃板"**（见下面 .smain::before）：
-         真正要保证对比度的是"文字所在的中心区"，不是整张卡。
-         把压暗集中到中心、把四周让给虚化层 —— 既看得见模糊，又读得清字。
-         自检里那条闸门就是按"纯白封面 + 中央玻璃板"算的（实测仍 ≥ 9:1）。 */
+       ⚠️ 三次调参史（记住这条曲线，别再走回去）：
+         0.6→0.8（初版，虚化被埋，用户："看不出是专辑模糊后的样子"）
+       → 0.34→0.56（能看出模糊了，但用户："背景模糊太重了、不要这个框"）
+       → **0.14→0.34**（现在：虚化专辑本身就是卡片的背景与颜色，卡片不再像一块纯色方块）
+       文字可读性不靠整卡压暗，靠中央那块"玻璃板"（.smain::before）。 */
     linear-gradient(
       160deg,
-      rgba(9, 40, 64, 0.26) 0%,
-      rgba(4, 22, 34, 0.38) 55%,
-      rgba(2, 14, 22, 0.5) 100%
+      rgba(9, 40, 64, 0.14) 0%,
+      rgba(4, 22, 34, 0.24) 55%,
+      rgba(2, 14, 22, 0.34) 100%
     );
 }
 /* 模糊底图：56px 的封面放大铺满整张卡 —— "封面虚化成底"就靠它（导出工具也认得图片）。
@@ -1859,10 +1863,10 @@ html[data-theme='dark'] .v b {
   z-index: 0;
   pointer-events: none;
   background: radial-gradient(
-    84% 76% at 50% 52%,
-    rgba(2, 14, 22, 0.82) 0%,
-    rgba(2, 14, 22, 0.6) 46%,
-    rgba(2, 14, 22, 0.24) 76%,
+    78% 70% at 50% 52%,
+    rgba(2, 14, 22, 0.6) 0%,
+    rgba(2, 14, 22, 0.42) 44%,
+    rgba(2, 14, 22, 0.16) 74%,
     rgba(2, 14, 22, 0) 100%
   );
 }
@@ -1883,7 +1887,7 @@ html[data-theme='dark'] .v b {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 20px;
+  border-radius: 28px;
   pointer-events: none;
   z-index: 3;
   background:
@@ -1980,9 +1984,10 @@ html[data-theme='dark'] .v b {
   margin-top: 4px;
 }
 .scard .spath div {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  /* 用户红框标"大一点"：32 → 42px（其他专辑缩略图太小，看不出是专辑） */
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }

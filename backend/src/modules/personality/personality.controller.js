@@ -7,7 +7,10 @@ import { ok, paginated } from '../../shared/response.js';
 
 export async function questions(req, res) {
   // getQuestions() 现在直接返回 { list, meta }（meta 里带题库总量与抽题规则），别再包一层
-  return ok(res, await service.getQuestions());
+  // ?qids=a,b,c → 续答：按这份 id 列表取回**同一套题**（刷新/误退后接着答，见 service 里的说明）
+  const raw = String(req.query.qids || '').trim();
+  const qids = raw ? raw.split(',').map((x) => x.trim()).filter(Boolean) : null;
+  return ok(res, await service.getQuestions(qids));
 }
 
 export async function submit(req, res) {

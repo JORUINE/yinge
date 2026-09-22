@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>音格 · 人格测评系统手册</title>
+<style>
+  :root {
+    --bg: #f2f8fc;
+    --surface: #ffffff;
+    --surface-2: #eef6fb;
+    --text: #12303f;
+    --text2: #47637a;
+    --text3: #7b93a6;
+    --line: rgba(18, 48, 63, 0.1);
+    --brand: #0ea5e9;
+    --brand-deep: #0369a1;
+    --teal: #0d9488;
+    --gold: #b45309;
+    --r: 14px;
+    --shadow-1: 0 2px 8px rgba(8, 58, 92, 0.08);
+    --shadow-2: 0 8px 28px rgba(8, 58, 92, 0.1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 96px;
+    background: radial-gradient(60rem 40rem at 12% -8%, rgba(14, 165, 233, 0.16), transparent 62%),
+      radial-gradient(48rem 34rem at 100% 0%, rgba(13, 148, 136, 0.14), transparent 58%), var(--bg);
+    color: var(--text);
+    font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.8;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; }
+  header.top {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: var(--shadow-2);
+  }
+  .kicker { font-size: 13px; font-weight: 800; letter-spacing: 2px; color: var(--brand-deep); }
+  h1 { margin: 8px 0 10px; font-size: 32px; letter-spacing: -0.02em; line-height: 1.2; }
+  header.top p { margin: 0; color: var(--text2); font-size: 15px; }
+  .meta { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .tag {
+    font-size: 12.5px; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text2);
+  }
+  .tag.warn { background: rgba(245, 158, 11, 0.14); border-color: rgba(245, 158, 11, 0.34); color: var(--gold); }
+  .tag.ok { background: rgba(34, 197, 94, 0.14); border-color: rgba(34, 197, 94, 0.34); color: #15803d; }
+
+  nav.toc {
+    margin: 20px 0 0; padding: 18px 24px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); box-shadow: var(--shadow-1);
+  }
+  nav.toc b { display: block; font-size: 14px; margin-bottom: 8px; }
+  nav.toc ol { margin: 0; padding-left: 22px; columns: 2; column-gap: 28px; }
+  nav.toc li { font-size: 14px; }
+  nav.toc a { color: var(--brand-deep); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+
+  section {
+    margin-top: 24px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r); padding: 24px 28px; box-shadow: var(--shadow-1);
+  }
+  section > h2 {
+    margin: 0 0 6px; font-size: 21px; letter-spacing: -0.01em;
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  section > h2 .no {
+    flex: 0 0 auto; font-size: 13px; font-weight: 800; color: #fff; background: var(--brand);
+    border-radius: 6px; padding: 2px 9px; letter-spacing: 0;
+  }
+  section > .lead { margin: 0 0 16px; color: var(--text2); font-size: 14.5px; }
+  h3 { font-size: 16.5px; margin: 22px 0 8px; }
+  h4 { font-size: 15px; margin: 16px 0 6px; color: var(--text2); }
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid var(--line); padding: 9px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--surface-2); font-weight: 700; }
+  td code, p code, li code {
+    background: rgba(14, 165, 233, 0.1); padding: 1px 6px; border-radius: 5px;
+    font-family: 'Cascadia Mono', Consolas, monospace; font-size: 13px;
+  }
+  .note {
+    margin: 14px 0; padding: 14px 18px; border-radius: 12px; font-size: 14px;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--text2);
+  }
+  .note.warn { background: rgba(245, 158, 11, 0.09); border-color: rgba(245, 158, 11, 0.3); color: #7c4310; }
+  .note.ok { background: rgba(34, 197, 94, 0.09); border-color: rgba(34, 197, 94, 0.3); color: #14532d; }
+  .note b { color: inherit; }
+  .kv { display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 6px 14px; font-size: 14px; }
+  .kv dt { color: var(--text3); }
+  .kv dd { margin: 0; }
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; font-size: 13.5px; }
+  .flow span {
+    padding: 6px 12px; border-radius: 999px; background: var(--surface-2);
+    border: 1px solid var(--line); color: var(--text2);
+  }
+  .flow i { color: var(--text3); font-style: normal; }
+  footer { margin-top: 28px; text-align: center; font-size: 13px; color: var(--text3); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="kicker">音格 · YINGE.APP</div>
+    <h1>音乐人格测评系统手册</h1>
+    <p>
+      把「题目 → 计分 → 人格类型 → 推荐专辑」这条链路完整记下来：每个环节怎么实现的、为什么这么实现、
+      踩过哪些坑、以后要改从哪里改。<b>后续任何一次优化或更新，都先回到这份手册对照口径。</b>
+    </p>
+    <div class="meta">
+      <span class="tag">版本 2026-09-22</span>
+      <span class="tag ok">题库 50 道 · 每次随机抽 20 道</span>
+      <span class="tag ok">6 计分维 / 4 展示维</span>
+      <span class="tag warn">娱乐向测评 · 非心理诊断</span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <b>目录</b>
+    <ol>
+      <li><a href="#s1">定位与边界（娱乐声明）</a></li>
+      <li><a href="#s2">六个类型与维度体系</a></li>
+      <li><a href="#s3">计分逻辑</a></li>
+      <li><a href="#s4">抽题逻辑（随机题库）</a></li>
+      <li><a href="#s5">听感题与音频选择</a></li>
+      <li><a href="#s6">推荐专辑怎么来</a></li>
+      <li><a href="#s7">进度保存（续答）</a></li>
+      <li><a href="#s8">数据与文件索引</a></li>
+      <li><a href="#s9">自检与验收</a></li>
+      <li><a href="#s10">待讨论的优化方案</a></li>
+    </ol>
+  </nav>
+
+  <section id="s1">
+    <h2><span class="no">1</span>定位与边界（娱乐声明）</h2>
+    <p class="lead">先立边界，再谈实现 —— 一个音乐偏好测验最容易犯的错，是让用户把结果当成"我是什么人"。</p>
+
+    <h3>1.1 它是什么</h3>
+    <ul>
+      <li>一个<b>娱乐性质</b>的音乐偏好小测验：用 20 道题（含 4 道听感题）给出一个"你这一阵子偏哪一口"的人格卡。</li>
+      <li>它的产品价值在于<b>可传播</b>与<b>可讨论</b>（"你是哪个型？"），不在于心理学效度。</li>
+    </ul>
+
+    <h3>1.2 它不是什么</h3>
+    <ul>
+      <li><b>不是心理诊断</b>，不能用于任何临床、招聘、评价用途。</li>
+      <li><b>不能定义一个人</b>：音乐与情绪本身就多变，同一个人隔几天再测结果不同是正常的。</li>
+    </ul>
+
+    <h3>1.3 界面必须说出边界（硬性）</h3>
+    <table>
+      <thead><tr><th>位置</th><th>文案要义</th><th>为什么必须在这里</th></tr></thead>
+      <tbody>
+        <tr><td>测评页顶部（答题之前）</td><td>娱乐向测评 · 别当真；不是心理诊断；今天明天可能不一样</td><td>用户开始答题前就要知道自己在做什么，不能事后补</td></tr>
+        <tr><td>结果页（人格卡下方）</td><td>娱乐向结果，别当真；反映的是"这次答题时的偏好倾向"</td><td>这一刻用户最可能把结论当真</td></tr>
+        <tr><td>投票页（众包）</td><td>一人一张只算最新一票；投错可以改投</td><td>规则要正面写清，不能靠用户猜</td></tr>
+      </tbody>
+    </table>
+    <div class="note warn">
+      <b>验收口径：</b>这两处声明必须出现在答题卡**上方**与结果卡**下方**，且字符串里必须能匹配到
+      「娱乐」「不是心理诊断」——已写进自动断言（<code>verify-r24.mjs</code>），改文案时别把这两句删掉。
+    </div>
+  </section>
+
+  <section id="s2">
+    <h2><span class="no">2</span>六个类型与维度体系</h2>
+    <p class="lead">六型不是拍脑袋分的：每一型都对着一个"别人比不过"的音乐属性维度，这是六型<b>彼此可分</b>的前提。</p>
+
+    <h3>2.1 六型一览</h3>
+    <table>
+      <thead><tr><th>代码</th><th>名称</th><th>一句话</th><th>独占峰维度</th><th>理论对应</th></tr></thead>
+      <tbody>
+        <tr><td>MEL</td><td>旋律捕手</td><td>先记住旋律，再听其他</td><td>melody = 1.0</td><td>Upbeat &amp; Conventional 的旋律导向、高 Valence</td></tr>
+        <tr><td>RHY</td><td>节拍动物</td><td>身体先有反应，脑子后到</td><td>rhythm = 1.0</td><td>Energetic &amp; Rhythmic、高 Arousal；依赖 rhythmic entrainment</td></tr>
+        <tr><td>LYR</td><td>词句收藏家</td><td>歌词是灵魂，会为一句词反复听</td><td>lyric = 1.0</td><td>Reflective &amp; Complex 的文本/叙事取向、高 Depth</td></tr>
+        <tr><td>TMB</td><td>音色控</td><td>在意声音本身的质感与制作</td><td>texture = 1.0</td><td>MUSIC 模型里的 Sophisticated</td></tr>
+        <tr><td>CLM</td><td>安静聆听者</td><td>要的是氛围，不是信息量</td><td>calm = 1.0</td><td>MUSIC 模型里的 Mellow、低 Arousal</td></tr>
+        <tr><td>EXP</td><td>探索者</td><td>想听没听过的</td><td>novelty = 1.0</td><td>Openness to Experience、寻求新奇</td></tr>
+      </tbody>
+    </table>
+
+    <h3>2.2 理论依据（答辩可直接引用）</h3>
+    <ul>
+      <li><b>Rentfrow &amp; Gosling (2003)</b>《The Do Re Mi's of Everyday Life》—— 音乐偏好可归为 4 个维度（Reflective &amp; Complex / Intense &amp; Rebellious / Upbeat &amp; Conventional / Energetic &amp; Rhythmic），并与大五人格相关。</li>
+      <li><b>Rentfrow, Goldberg &amp; Levitin (2011)</b> —— 修订为 MUSIC 五因子（Mellow / Unpretentious / Sophisticated / Intense / Contemporary）。</li>
+      <li><b>Greenberg et al. (2016)</b>《The Song Is You》—— 主张<b>脱离流派</b>、改用音乐属性描述偏好，抽出 Arousal / Valence / Depth 三个主成分。</li>
+      <li><b>Juslin &amp; Västfjäll (2008)</b> BRECVEMA —— 音乐诱发情绪有 8 条机制，其中 brain stem reflex 与 rhythmic entrainment 是<b>亚秒级</b>起效的两条。这是"只听 30 秒片段"成立的依据：捕捉的是第一反应。</li>
+    </ul>
+
+    <h3>2.3 两套维度：计分 6 维、展示 4 维</h3>
+    <table>
+      <thead><tr><th></th><th>维度</th><th>用途</th></tr></thead>
+      <tbody>
+        <tr><td><b>计分维度（6）</b></td><td>melody / rhythm / lyric / texture / novelty / calm</td><td>算分、匹配类型。<b>每型独占一维</b>，所以六型可分。</td></tr>
+        <tr><td><b>展示维度（4）</b></td><td>melody / rhythm / arrangement / calm</td><td>人格卡上那 4 根条。<code>arrangement =（lyric + texture）/ 2</code>，后端折算，<b>前端零改动</b>。</td></tr>
+      </tbody>
+    </table>
+    <div class="note warn">
+      <b>为什么必须从 4 维扩到 6 维（老版真 bug）：</b>老版用 4 维区分 6 型时，<b>词句收藏家（核心是"歌词"）与探索者（核心是"新鲜感"）在 4 维里没有对应维度</b>，
+      只能在 arrangement 上争，而那一维输给音色控与探索者 —— 于是这两型<b>几乎永远匹配不到</b>。
+      换句话说："题目问的是歌词和新鲜感，计分表里却没有这两项。"
+    </div>
+  </section>
+
+  <section id="s3">
+    <h2><span class="no">3</span>计分逻辑</h2>
+    <p class="lead">三道工序：算原始分 → 归一化 → 按区分度加权匹配。</p>
+
+    <div class="flow">
+      <span>逐题累加选项 score</span><i>→</i>
+      <span>归一化（÷ 该维理论满分）</span><i>→</i>
+      <span>6 维倾向值 0~1</span><i>→</i>
+      <span>按维度区分度加权余弦</span><i>→</i>
+      <span>最接近的类型</span>
+    </div>
+
+    <h3>3.1 原始分累加</h3>
+    <ul>
+      <li>每个选项带 <code>score: { 维度: 分值 }</code>（通常是 3 分给一个维度）。</li>
+      <li>选了就累加；<b>没有 <code>score</code> 字段的选项＝不能出现</b>（写题漏了 score 会被自检拦下）。</li>
+      <li><b>中立出口选项</b>（听感题的"说不上来"）<code>score: {}</code> → 不加任何分，等于该题弃权。</li>
+    </ul>
+
+    <h3>3.2 归一化：除以"该维理论满分"，不是除以最大值</h3>
+    <div class="note">
+      <b>为什么：</b>题目是<b>随机抽</b>的，每次抽到的题里某个维度可能多、某个维度可能少。
+      除以最大值时各维之间是<b>相对比较</b>，一道维度偏多的题就能把整体形状带歪；
+      除以"本次抽到的题里这一维度最高能拿多少分"之后，每一维都是<b>独立的 0~1 倾向值</b>，不同次测评之间也可比。
+      <b>随机题库必须配这条，否则每次结果都会漂。</b>
+    </div>
+
+    <h3>3.3 匹配：按维度区分度加权</h3>
+    <ul>
+      <li>权重 = 该维度在 6 个类型特征值上的<b>标准差</b>（自动算，不手调）——类 LDA 的简化思路。</li>
+      <li>区分度大的维度（如 calm，各型从 0.12 到 1.0）说话更算数；区分度小的（如 melody，各型都在 0.45~1.0）权重更低。</li>
+      <li>实测权重：<code>melody 0.76 / rhythm 1.13 / lyric 1.06 / texture 0.87 / novelty 1.01 / calm 1.16</code>。</li>
+    </ul>
+
+    <h3>3.4 六个类型必须"彼此可分"（硬指标）</h3>
+    <div class="note ok">
+      蒙特卡洛 5000 个随机作答者的命中分布（<code>verify-personality.mjs</code> 实测）：
+      <b>MEL 15.3% ｜ RHY 10.6% ｜ LYR 20.8% ｜ TMB 16.2% ｜ CLM 12.9% ｜ EXP 24.2%</b>，
+      最冷门也占 10.6%。判据：冷门型 ≥8%、热门型 ≤30%、最热/最冷 ≤3 倍。
+    </div>
+  </section>
+
+  <section id="s4">
+    <h2><span class="no">4</span>抽题逻辑（随机题库）</h2>
+    <p class="lead">随机不是"随便抽"——随机只影响"抽到哪几道"，不能让维度配比也跟着随机。</p>
+
+    <h3>4.1 规则</h3>
+    <dl class="kv">
+      <dt>题库总量</dt><dd>50 道（选择 42 + 听感 8）</dd>
+      <dt>每次抽多少</dt><dd>20 道（在用户要求的 18~24 区间内取中位）</dd>
+      <dt>听感题</dt><dd>4 道（用户要求 4~6 道）；从 5 个气质标签里<b>各挑一道</b>，避免四道听感题测的是同一件事</dd>
+      <dt>选择题</dt><dd>16 道，<b>按维度配平</b>：melody 3 / rhythm 3 / lyric 3 / texture 3 / novelty 2 / calm 2</dd>
+      <dt>顺序</dt><dd>最后整体打乱 —— 听感题与选择题交错出现，不会"先 4 道听感再来选择题"</dd>
+    </dl>
+    <div class="note">
+      <b>配平的意义：</b>随机只决定"这个维度抽到的是哪 3 道题"，不决定"这个维度抽到几道"。
+      否则某次抽题 rhythm 抽到 6 道、calm 抽到 0 道，分数就不可比了。
+    </div>
+
+    <h3>4.2 选项乱序（去可猜性）</h3>
+    <ul>
+      <li>题目数据里的选项顺序是固定写的（A 往往对应某个维度），做两次的用户会形成"想当节拍动物就选 B"的经验 ——
+        <b>那测出来的是记忆，不是偏好</b>。</li>
+      <li>因此每次请求都把选项打乱，并<b>另给一个展示用字母 <code>displayKey</code></b>（A/B/C/D/E）。</li>
+      <li>⚠️ 提交时仍然回传<b>原始 key</b>，所以计分逻辑完全不用改 —— <b>乱的只是"给人看的顺序与字母"，不是"机器认的标识"</b>。</li>
+    </ul>
+
+    <h3>4.3 中立出口选项</h3>
+    <ul>
+      <li>听感题有第 5 个选项：<b>「说不上来，没什么感觉」</b>，<code>score: {}</code>，不加任何分。</li>
+      <li>存在的理由：原来的 4 个选项全是"正向偏好"，用户必须在四种喜欢里挑一种 ——
+        而听感是当下反应，本来就可能<b>不感冒</b>。给一个出口，用户不必硬选。</li>
+      <li>约束（写进自检）：<b>每题最多一个中立出口，且只允许出现在听感题上</b>。
+        选择题是"你的习惯"，全给弃权口会让测评失真。</li>
+    </ul>
+  </section>
+
+  <section id="s5">
+    <h2><span class="no">5</span>听感题与音频选择</h2>
+    <p class="lead">这一节是整条链路里返工最多的地方 —— 题干与音频不一致，用户当场就会发现问题。</p>
+
+    <h3>5.1 设计意图</h3>
+    <ul>
+      <li>听感题问的是<b>即时反应</b>（"这段里你第一下注意到的是？"），依据是 BRECVEMA 里的亚秒级机制。</li>
+      <li><b>盲听</b>：只回传音频地址，<b>不告诉用户是哪张专辑哪首歌</b>，避免"这首歌和我的类型有什么关系"的干扰。</li>
+    </ul>
+
+    <h3>5.2 音频怎么选（定向链，逐级兜底）</h3>
+    <div class="flow">
+      <span>气质标签</span><i>→</i>
+      <span>① 合格专辑 ∩ 流派命中 ∩ <b>真的有试听曲目</b></span><i>→</i>
+      <span>② 放宽"合格"标记</span><i>→</i>
+      <span>③ 任意一条能播的</span>
+    </div>
+    <table>
+      <thead><tr><th>标签</th><th>含义</th><th>流派正则（中英双写）</th></tr></thead>
+      <tbody>
+        <tr><td>rhythm</td><td>节奏驱动</td><td>舞曲｜摇滚｜搖滾｜節慶｜Hip-Hop｜Rap｜R&amp;B｜騷靈｜放克｜流行樂｜Dance｜Soul｜Funk</td></tr>
+        <tr><td>melody</td><td>旋律驱动</td><td>國語流行樂｜流行樂｜廣東歌｜香港流行樂｜民謠｜原聲配樂｜Pop｜Folk｜Ballad</td></tr>
+        <tr><td>quiet</td><td>安静氛围</td><td>原聲配樂｜爵士｜古典｜民謠｜新世紀｜Jazz｜Classical｜Ambient｜Easy</td></tr>
+        <tr><td>texture</td><td>音色/制作驱动</td><td>另類音樂｜搖滾｜硬搖滾｜舞曲｜Alternative｜Indie｜Experimental｜Ambient</td></tr>
+        <tr><td>vocal</td><td>人声驱动</td><td>國語流行樂｜廣東歌｜香港流行樂｜流行樂｜R&amp;B｜騷靈｜爵士｜Pop｜Soul</td></tr>
+      </tbody>
+    </table>
+    <div class="note warn">
+      <b>为什么正则必须中英双写：</b>中文区 iTunes 返回的流派是<b>繁体中文</b>（國語流行樂 / 廣東歌 / 舞曲 / R&amp;B/騷靈樂…），
+      只写英文（Pop / Mandopop）<b>一条都匹配不到</b>，会静默退化成"随便放一首"。
+    </div>
+
+    <h3>5.3 三次返工记录（别走回头路）</h3>
+    <table>
+      <thead><tr><th>轮次</th><th>问题</th><th>根因</th><th>修法</th></tr></thead>
+      <tbody>
+        <tr><td>一</td><td>听感题<b>根本没有声音</b></td><td>先抽专辑再找曲目，但库里 6246 张专辑只有 2000 多张的曲目被缓存过 → 随手抽中的专辑没有曲目</td><td>反过来：先取"能播的曲目"，再按流派筛</td></tr>
+        <tr><td>二</td><td>题干与音频气质不符（<b>"题问鼓点，放的是管弦乐纯音乐"</b>）</td><td>从 60 条随机曲目里"碰运气"看有没有气质命中的，命中不了就退回任意曲</td><td>改成<b>定向</b>：先按气质正则筛专辑，再从这些专辑取曲目</td></tr>
+        <tr><td>三</td><td>气质命中率只有 <b>67%</b></td><td>定向筛专辑时没管"这张专辑有没有缓存曲目"→ 挑中的专辑常常没曲目 → 又退回任意曲</td><td>先取<b>"真的有试听曲目的专辑集合"</b>（带 5 分钟缓存），只在这个集合里按气质挑 → <b>命中率 100%</b></td></tr>
+      </tbody>
+    </table>
+    <div class="note ok">
+      <b>当前验收：</b>5 个标签各抽 6 次共 30 次 → <b>30/30 条有音频、气质命中 30/30（100%）</b>。
+      同时题干已去掉对具体音乐特征的断言（"鼓点进来的那一下" → "节奏起来的时候"），双保险。
+    </div>
+
+    <h3>5.4 抽流派时的反集中</h3>
+    <p>筛专辑时按流派分组，用 <b>√(该流派数量)</b> 做加权随机 —— 否则库里上千张的粤语/国语流行会把摇滚、爵士、另类挤没，
+      导致"每次听到的都是同一类音乐"。</p>
+  </section>
+
+  <section id="s6">
+    <h2><span class="no">6</span>推荐专辑怎么来</h2>
+    <p class="lead">两条腿：脚本的"口碑默认值" + 用户的众包投票，最后都能被后台采纳。</p>
+
+    <h3>6.1 腿一：默认推荐（`bind-recommend-albums.mjs`）</h3>
+    <ul>
+      <li><b>选片依据（不是拍脑袋）：</b>西洋部分取 <b>Rolling Stone《史上最伟大 500 张专辑》</b>（2020 修订版）入榜专辑；
+        华语部分取<b>金曲奖最佳华语专辑</b>与<b>豆瓣长期 9.0+</b> 的公认高分专辑。</li>
+      <li>只在<b>本曲库已有的合格专辑</b>里选（前台按本地 ObjectId 取，库里没有的选了也显示不出来）。</li>
+      <li>每条都有可引用的理由，例如「Abbey Road · RS 500 第 5 名，旋律与编曲的教科书」。</li>
+    </ul>
+    <div class="note warn">
+      ⚠️ <b>这个脚本是"覆盖式"的</b>：重跑会用默认列表<b>覆盖</b>掉用户投票采纳进来的专辑。
+      所以在有众包数据之后<b>不要随手重跑</b>；要改默认值，先想清楚要不要保留已采纳的票选结果。
+    </div>
+
+    <h3>6.2 腿二：用户众包投票（`/personality/tag-albums`）</h3>
+    <ul>
+      <li>流程：看一张专辑 → 选它更像哪一型 → 票数沉淀 → 后台按票数<b>一键采纳</b>进对应类型的推荐池。</li>
+      <li>规则：<b>一人一张只算最新一票</b>（反复点不会多算）；<b>投错可以改投</b>，以最后一次为准；<b>投过的专辑不会再出现</b>。</li>
+      <li>交互：投完<b>停在本张</b>并显示「已投给 X · 点别的类型就是改投」+「下一张」，点错了原地就能改。</li>
+    </ul>
+
+    <h3>6.3 专辑池多样化（2026-09-22 修）</h3>
+    <p><b>用户报："为什么目前感觉这里的专辑池全是粤语区的？推荐必须多样化，什么种类地区都要有。"</b></p>
+    <ul>
+      <li><b>根因：</b>池子里合格专辑本身就偏向粤语/国语（按流派取榜单时 hk 区占一半），而原来是<b>全池均匀抽</b> →
+        抽到粤语的概率就等于它在库里的占比（很高）。</li>
+      <li><b>修法：分层抽样</b> —— ① 列出池子里有哪些流派；② 按 √(该流派数量) 加权随机<b>选一个流派</b>；
+        ③ 再在这个流派里抽一张没投过的。</li>
+      <li><b>实测：</b>抽 40 次出现 <b>10 种以上流派</b>，最大流派占比从"接近一半"降到 <b>18%~33%</b>。</li>
+    </ul>
+  </section>
+
+  <section id="s7">
+    <h2><span class="no">7</span>进度保存（续答）</h2>
+    <p class="lead">用户："我做一半不小心按到刷新或者退出，重进就要重头来。"</p>
+
+    <div class="note warn">
+      <b>关键点（容易想错）：</b>题目是<b>每次随机抽</b>的 —— 刷新后抽到的是<b>另一套题</b>。
+      所以"只存答案"是没用的：答案对不上任何一道题。
+      <b>必须把"本次抽到的那套题的 id"一起存下来</b>，重进时按这份 id 让服务端取回同一套题。
+    </div>
+
+    <h3>7.1 机制</h3>
+    <table>
+      <thead><tr><th>环节</th><th>做法</th></tr></thead>
+      <tbody>
+        <tr><td>存什么</td><td>localStorage 单键 <code>yinge_personality_quiz_v1</code>：题目 id 列表 + 已选答案 + 当前第几题</td></tr>
+        <tr><td>何时写</td><td>每答一题、每次切题各写一次</td></tr>
+        <tr><td>何时读</td><td>进入测评页时先读；有进度就带 <code>?qids=...</code> 请求，服务端按 id 取回<b>同一套题</b></td></tr>
+        <tr><td>何时清</td><td>① 提交成功 ② 超过 7 天 ③ 用户点"重新开始" ④ 服务端判定 qids 对不上（题库变了）</td></tr>
+        <tr><td>安全</td><td>只存题 id / 选项 key / 题号，<b>不存任何个人信息，也不缓存题目内容</b>；写失败（隐私模式、配额满）静默降级，不影响答题</td></tr>
+      </tbody>
+    </table>
+
+    <h3>7.2 两个必须守住的口径</h3>
+    <ul>
+      <li><b><code>resumed</code> 只有在"真的按 id 取回"时才为 true</b> ——
+        传了脏 id 而实际重抽一套时必须为 false，否则前端会拿旧答案往新题上套（这是自检抓到的 bug）。</li>
+      <li><b>"重新开始"要同时清 localStorage <u>和内存里的 idx/answers</u></b> ——
+        只清本地存储的话，页面还会停在第 5 题（这也是自检抓到的 bug）。</li>
+    </ul>
+  </section>
+
+  <section id="s8">
+    <h2><span class="no">8</span>数据与文件索引</h2>
+    <table>
+      <thead><tr><th>文件</th><th>作用</th></tr></thead>
+      <tbody>
+        <tr><td><code>backend/src/data/personality.js</code></td><td><b>唯一数据源</b>：六型定义、维度、抽题规则、50 道题库、音频气质正则、中立出口文案</td></tr>
+        <tr><td><code>backend/src/modules/personality/scoring.js</code></td><td>累加 / 归一化 / 加权匹配 / 6→4 维折算 / 降级文案</td></tr>
+        <tr><td><code>backend/src/modules/personality/personality.service.js</code></td><td>随机抽题、选项乱序、音频定向筛选、投票池分层抽样、推荐池读取</td></tr>
+        <tr><td><code>backend/scripts/migrate-personality-bank.mjs</code></td><td>把题库/六型写进数据库（幂等；<b>不删历史测评结果</b>）</td></tr>
+        <tr><td><code>backend/scripts/verify-personality.mjs</code></td><td>纯函数自检（不需要数据库）：题库结构 / 抽题配平 / 六型命中分布 / 极端作答</td></tr>
+        <tr><td><code>backend/scripts/verify-personality-runtime.mjs</code></td><td>运行时自检（要数据库）：音频气质匹配率 / 选项乱序 / 续答 / 专辑池多样化</td></tr>
+        <tr><td><code>backend/scripts/bind-recommend-albums.mjs</code></td><td>默认推荐专辑（⚠️ 覆盖式，有众包数据后别随手跑）</td></tr>
+        <tr><td><code>frontend/src/views/PersonalityTestView.vue</code></td><td>答题页：取题/续答、音频播放、娱乐声明</td></tr>
+        <tr><td><code>frontend/src/views/PersonalityResultView.vue</code></td><td>人格卡：4 维条、AI 解读、推荐专辑、娱乐声明</td></tr>
+        <tr><td><code>frontend/src/views/AlbumTagView.vue</code></td><td>众包投票页（一人一票 / 可改投 / 试听）</td></tr>
+        <tr><td><code>frontend/src/utils/quizResume.js</code></td><td>答题进度本地存取</td></tr>
+        <tr><td><code>tools/pw/verify-r24.mjs</code></td><td>界面自检：娱乐声明 / 中立选项 / 刷新续答 / 结果页声明</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="s9">
+    <h2><span class="no">9</span>自检与验收</h2>
+    <table>
+      <thead><tr><th>脚本</th><th>验什么</th><th>要数据库</th><th>当前</th></tr></thead>
+      <tbody>
+        <tr><td><code>verify-personality.mjs</code></td><td>题库结构、抽题配平、六型可分性（蒙特卡洛 5000 人）、极端作答</td><td>否</td><td><b>22/22</b></td></tr>
+        <tr><td><code>verify-personality-runtime.mjs</code></td><td>音频气质命中率、选项乱序、续答一致性、专辑池多样化</td><td>是</td><td><b>10/10</b></td></tr>
+        <tr><td><code>tools/pw/verify-r24.mjs</code></td><td>娱乐声明位置、中立选项、<b>刷新后能接着答</b>、重新开始、提交后清进度</td><td>是</td><td><b>14/14</b></td></tr>
+      </tbody>
+    </table>
+    <div class="note">
+      <b>改完任何一处，三个都要跑一遍</b>，并把结果贴出来 —— 尤其是改了题库或音频逻辑之后。
+      <b>"六型是否还可分"只有蒙特卡洛那条断言能证明</b>，肉眼看题是看不出来的。
+    </div>
+  </section>
+
+  <section id="s10">
+    <h2><span class="no">10</span>待讨论的优化方案（需要拍板）</h2>
+    <p class="lead">
+      下面这些是本轮讨论出来的方向，涉及<b>玩法调性与题库体量</b>，按约定先出方案，等确认后再动。
+      每一条都写了"要解决什么"和"代价是什么"，便于取舍。
+    </p>
+
+    <h3>10.1 负向选项：把"讨厌"也变成信号</h3>
+    <dl class="kv">
+      <dt>要解决</dt><dd>现在只测得出"喜欢哪一口"，测不出"讨厌哪一口"。而"讨厌"其实是<b>很强的信号</b>（说明对该特征敏感，只是反向）。本轮已经加了"说不上来"（弃权），但弃权与"讨厌"在心理上完全不同。</dd>
+      <dt>做法</dt><dd>选项里增加负向计分（如 <code>score: { rhythm: -2 }</code>），并把归一化改成区间映射（-N~+N → 0~1）。</dd>
+      <dt>代价</dt><dd>六型特征向量要重新标定，六型命中分布要重新跑蒙特卡洛；题目文案也要重写（现在的选项都是正向表述）。<b>工作量中等偏大，但不做会让题库一直"只有一半信息"。</b></dd>
+    </dl>
+
+    <h3>10.2 题目指向性：别让人一眼看出"选这个就是节拍动物"</h3>
+    <dl class="kv">
+      <dt>现状</dt><dd>选项乱序已经解决"位置可猜"，但<b>文案本身仍可能一眼看穿</b>（例如四个选项恰好对应四个维度，且措辞把维度写在脸上）。</dd>
+      <dt>做法</dt><dd>① 题干改成<b>情境化描述</b>而不是"你更在意什么"；② 同一题的 4 个选项尽量跨维度且"等价诱人"（不能有一个明显更体面）；③ 给每道题做一次"可猜性评审"。</dd>
+      <dt>代价</dt><dd>要重写 42 道选择题的选项文案，并重新验一次六型分布。<b>建议与本条的 10.1 一起做（都要动选项）。</b></dd>
+    </dl>
+
+    <h3>10.3 六型要不要细分 / 加娱乐与传播属性</h3>
+    <dl class="kv">
+      <dt>要解决</dt><dd>用户反馈"六个人格不够细分也不够娱乐，希望有更强的传播属性"。</dd>
+      <dt>可选方案</dt><dd>
+        <b>A 加"维度副标"</b>（不动六型）：每个型再给 2~3 个趣味副标（如"旋律捕手 · 副歌上头型"），共享成本最低；<br>
+        <b>B 扩到 8~12 型</b>：新增类型需要新的"独占峰维度"，等于要把 6 维扩到 8 维以上，题库要同步扩到 70~80 道；<br>
+        <b>C 只加传播层</b>：六型不变，但结果卡加"和你同型的歌手/专辑""你的听歌人设标签""好友对比"等可分享内容。
+      </dd>
+      <dt>我的建议</dt><dd><b>先做 C（传播属性），再看要不要 B。</b>理由是：六型当前的可分性是靠蒙特卡洛验过的，扩型会让这套验证全部重做；而"传播"其实主要靠结果卡的内容与视觉，不靠类型数量。</dd>
+    </dl>
+
+    <h3>10.4 听感题音频要不要"人工白名单"</h3>
+    <dl class="kv">
+      <dt>现状</dt><dd>按流派正则定向筛，气质命中率已 100%。但"流派命中"只是<b>强相关</b>，不等于"这首一定有明显鼓点"。</dd>
+      <dt>做法</dt><dd>给每个气质标签维护一份<b>人工确认过的专辑白名单</b>（每类 5~10 张），抽题只从白名单里抽；后台可维护。</dd>
+      <dt>代价</dt><dd>需要人工挑片（约 30 张），但一劳永逸，且能把"盲听片段"的音乐质量也控制住。</dd>
+    </dl>
+
+    <h3>10.5 推荐池的"地区/语言多样性"要不要写死配额</h3>
+    <dl class="kv">
+      <dt>现状</dt><dd>投票池已经分层抽样（√ 加权），最大流派 18%~33%。但推荐池目前主要来自默认列表 + 投票采纳，<b>没有"每个类型至少几张华语 / 几张欧美"的硬约束</b>。</dd>
+      <dt>做法</dt><dd>给每个类型设配额：西洋 ≥2 张、华语 ≥2 张、其他地区 ≥1 张；采纳时按配额补位。</dd>
+      <dt>代价</dt><dd>需要在后台采纳流程里加配额校验，小工作量。</dd>
+    </dl>
+
+    <div class="note warn">
+      <b>约定：</b>上面 5 条都还没动。你点哪几条，我就按"备份 → 出改动记录 → 跑三个自检 → 更新本手册"的流程来做。
+      <b>本手册是唯一入口</b>：以后人格部分的任何改动，都先在这里补一节，再动代码。
+    </div>
+  </section>
+
+  <footer>
+    音格 · 音乐人格测评系统手册 ｜ 2026-09-22 版 ｜ 与《前端设计工作守则》《进度与执行清单》配套使用
+  </footer>
+</div>
+</body>
+</html>

@@ -61,7 +61,8 @@ export const battleApi = {
 };
 
 export const personalityApi = {
-  questions: () => http.get('/personality/questions'),
+  // qids：续答时传上一次那套题的 id（刷新/误退后接着答）
+  questions: (qids) => http.get('/personality/questions', { params: qids?.length ? { qids: qids.join(',') } : {} }),
   submit: (answers) => http.post('/personality/submit', { answers }),
   result: (id) => http.get(`/personality/results/${id}`),
   listMine: (params) => http.get('/personality/results', { params }),

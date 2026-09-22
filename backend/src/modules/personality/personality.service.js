@@ -107,37 +107,124 @@ export function sampleQuestions(all) {
  *
  * ⚠️ 盲听：只回传音频地址，**不告诉用户是哪张专辑哪首歌**（避免"这首歌和我的类型有什么关系"的干扰）。
  */
-async function resolveAudio(audioRef) {
+export async function resolveAudio(audioRef) {
   const pattern = AUDIO_TAG_GENRE[audioRef || ''] || '';
 
-  // ① 从"真的能播"的曲目里随机抽一批候选（$sample 由 MongoDB 在库内随机，不用把整表拉回来）
-  const samples = await Track.aggregate([
-    { $match: { previewUrl: { $nin: [null, ''] } } },
-    { $sample: { size: 60 } },
-    { $project: { previewUrl: 1, albumId: 1 } },
-  ]);
-  if (!samples.length) return null;
+  /**
+   * ⚠️⚠️ 2026-09-22 第三次修（用户实测："这道题放的音乐根本没有鼓点，背景是管弦乐纯音乐"）
+   * ------------------------------------------------------------
+   * 上一版是"从 60 条随机曲目里碰运气看有没有气质命中的" —— 命中率太低，
+   * 命中不了就退回"任意一条能播的"，于是**节奏题配上了管弦乐**，题干与音频当场矛盾。
+   * 现在改成**定向**：先按气质正则筛出「候选专辑」，再从这些专辑的曲目里抽。
+   *   ① 筛专辑：`isEligible: true`（只从合格专辑里取）+ genre 命中气质正则
+   *   ② ⚠️ **抽那个流派时按 sqrt(数量) 加权**，否则粤语/国语流行（库里上千张）
+   *      会把摇滚/爵士/另类挤没 —— 用户已经报过"专辑池全是粤语区的"。
+   *   ③ 命中不到才逐级放宽：去掉 isEligible 限制 → 最后才是任意能播的一条。
+   * 这样"题问节奏"就**一定**拿到节奏型的曲子（舞曲/摇滚/Hip-Hop/R&B/放克）。
+   */
+  const re = new RegExp(pattern, 'i');
 
-  // ② 有气质要求就按专辑流派筛一遍，挑第一个命中的
-  if (pattern) {
-    const ids = [...new Set(samples.map((s) => s.albumId))];
-    const albums = await Album.find({ _id: { $in: ids } }).select('genre').lean();
-    const re = new RegExp(pattern, 'i');
-    const hit = new Set(albums.filter((a) => re.test(a.genre || '')).map((a) => String(a._id)));
-    const match = samples.find((s) => hit.has(String(s.albumId)));
-    if (match) return match.previewUrl;
+  /**
+   * ⚠️ 2026-09-22 第四次修（自检实测：气质命中率只有 67%）
+   * ------------------------------------------------------------
+   * 上一版是"先按气质挑一张专辑，再看它的曲目有没有试听" —— 但库里 6246 张专辑
+   * **只有 2000 多张的曲目被缓存过**，随手挑中的专辑很可能一条曲目都没入库，
+   * 于是又退回"任意一条能播的" → 气质又丢了（实测 67% 命中）。
+   * 现在反过来：**先把"真的有试听曲目的专辑"集合拿出来**（带缓存，5 分钟有效），
+   * 只在这个集合里按气质挑 —— 挑中的专辑一定有声音，气质才不会丢。
+   */
+  let playableIds = null;
+  let playableAt = 0;
+  async function playableAlbumIds() {
+    if (playableIds && Date.now() - playableAt < 5 * 60 * 1000) return playableIds;
+    const rows = await Track.distinct('albumId', { previewUrl: { $nin: [null, ''] } });
+    playableIds = rows;
+    playableAt = Date.now();
+    return playableIds;
   }
 
-  // ③ 气质没命中也不能没声音：退回任意一条能播的
-  return samples[0].previewUrl;
+  /** 在"genre 命中气质 **且真的有试听曲目**"的专辑里随机挑一张（按 sqrt 数量加权） */
+  async function pickAlbumByGenre(extraMatch = {}) {
+    const ids = await playableAlbumIds();
+    if (!ids.length) return null;
+    const groups = await Album.aggregate([
+      { $match: { _id: { $in: ids }, genre: re, ...extraMatch } },
+      { $group: { _id: '$genre', n: { $sum: 1 } } },
+    ]);
+    if (!groups.length) return null;
+    const weights = groups.map((g) => Math.sqrt(g.n));
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    let chosen = groups[0]._id;
+    for (let i = 0; i < groups.length; i += 1) {
+      r -= weights[i];
+      if (r <= 0) {
+        chosen = groups[i]._id;
+        break;
+      }
+    }
+    const pool = await Album.aggregate([
+      { $match: { _id: { $in: ids }, genre: chosen, ...extraMatch } },
+      { $sample: { size: 12 } },
+      { $project: { _id: 1 } },
+    ]);
+    return pool.length ? pool[Math.floor(Math.random() * pool.length)]._id : null;
+  }
+
+  async function pickTrack(alIds) {
+    if (!alIds || !alIds.length) return null;
+    const rows = await Track.aggregate([
+      { $match: { albumId: { $in: alIds }, previewUrl: { $nin: [null, ''] } } },
+      { $sample: { size: 1 } },
+      { $project: { previewUrl: 1 } },
+    ]);
+    return rows.length ? rows[0].previewUrl : null;
+  }
+
+  // ① 首选：合格专辑 + 气质流派
+  let albumId = await pickAlbumByGenre({ isEligible: true });
+  let url = await pickTrack(albumId ? [albumId] : []);
+  if (url) return url;
+  // ② 放宽：不限合格标记，但仍要求气质流派
+  albumId = await pickAlbumByGenre();
+  url = await pickTrack(albumId ? [albumId] : []);
+  if (url) return url;
+  // ③ 最后兜底：任意一条能播的（**宁可没有鼓点也不能没声音**，但题干已改成不假设具体特征）
+  const any = await Track.aggregate([
+    { $match: { previewUrl: { $nin: [null, ''] } } },
+    { $sample: { size: 1 } },
+    { $project: { previewUrl: 1 } },
+  ]);
+  return any.length ? any[0].previewUrl : null;
 }
 
 /** 取一套随机题（含听感题音频地址） */
-export async function getQuestions() {
+/**
+ * 取一套题
+ * @param {string[]} [resumeIds] 续答用：按这些 **题目 id 原样取回** 那一套题
+ * ------------------------------------------------------------
+ * 为什么必须有这个参数（2026-09-22 用户："我做一半不小心按到刷新或者退出，重进就要重头来"）：
+ *   题目是**每次随机抽**的，刷新后抽到的是**另一套** ——
+ *   所以"本地存答案"是不够的：必须把"当时抽到的那 20 道题的 id"一起存下来，
+ *   重进时按这份 id 列表取回同一套题，答案才能对得上。
+ *   （id 无效/数量不在 18~24 区间 → 当作没传，重新随机抽一套，保证不会因为脏数据卡死。）
+ */
+export async function getQuestions(resumeIds) {
   const all = await PersonalityQuestion.find().sort({ order: 1 });
   if (!all.length) return { list: [], meta: { total: 0, audio: 0 } };
 
-  const picked = sampleQuestions(all);
+  let picked = null;
+  let usedResume = false;
+  if (Array.isArray(resumeIds) && resumeIds.length >= SAMPLE_LIMITS.min && resumeIds.length <= SAMPLE_LIMITS.max) {
+    const byId = new Map(all.map((q) => [String(q._id), q]));
+    const restored = resumeIds.map((id) => byId.get(String(id))).filter(Boolean);
+    // 全部命中才认（少一道都说明题库变了，宁可重抽）
+    if (restored.length === resumeIds.length) {
+      picked = restored;
+      usedResume = true;
+    }
+  }
+  if (!picked) picked = sampleQuestions(all);
   const list = [];
   for (const q of picked) {
     const base = {
@@ -147,7 +234,22 @@ export async function getQuestions() {
       title: q.title,
       primary: primaryOf(q),
       dims: q.dims,
-      options: (q.options || []).map((o) => ({ key: o.key, label: o.label })),
+      /**
+       * 选项乱序（2026-09-22 用户："我不希望我们这个题目很明显就指向某个人格"）
+       * ------------------------------------------------------------
+       * 原来选项顺序是写死的：A=旋律 B=节奏 C=音色 D=安静 ——
+       * 做过一次的用户就会形成"想当节拍动物就选 B"的经验，测出来的是**记忆**不是偏好。
+       * 现在每次请求都把选项打乱，并另给一个展示用的字母 displayKey（A/B/C/D/E）。
+       * ⚠️ 提交时仍然回传**原始 key**（`key`），所以计分逻辑完全不用改 ——
+       *    乱的只是"给人看的顺序与字母"，不是"机器认的标识"。
+       */
+      options: shuffle(q.options || []).map((o, i) => ({
+        key: o.key,
+        displayKey: String.fromCharCode(65 + i),
+        label: o.label,
+        // 中立出口选项要能被前端识别（渲染成"说不上来"的样式，且不计分）
+        neutral: !o.score || Object.keys(o.score).length === 0,
+      })),
     };
     if (q.type === 'audio') {
       // eslint-disable-next-line no-await-in-loop
@@ -164,6 +266,11 @@ export async function getQuestions() {
       poolSize: all.length,
       rule: SAMPLE_RULE,
       limits: SAMPLE_LIMITS,
+      // 本次这一套题的 id 列表（前端要存下来，刷新后按它取回同一套题）
+      qids: list.map((q) => q.questionId),
+      // ⚠️ 只有**真的按 id 取回**才算续答；传了脏 id 而实际重抽时必须为 false，
+      //    否则前端会拿旧答案往新题上套（自检抓到的 bug）。
+      resumed: usedResume,
     },
   };
 }
@@ -373,10 +480,50 @@ export async function nextTagAlbum(userId) {
   const types = await tagTypeOptions();
   const voted = await AlbumTagVote.find({ userId }).select('albumId').lean();
   const votedIds = voted.map((v) => v.albumId);
-  const pool = await Album.aggregate([
-    { $match: { isEligible: true, _id: { $nin: votedIds } } },
-    { $sample: { size: 40 } },
-  ]);
+  /**
+   * ⚠️ 2026-09-22 用户："为什么目前感觉这里的专辑池全是粤语区的？推荐必须多样化，什么种类地区都要有"
+   * ------------------------------------------------------------
+   * 真因：池子里 `isEligible` 的专辑本来就偏向粤语/国语（按流派取榜单时 hk 区占一半），
+   * 而原来只是 `$sample 40` 全池均匀抽 → 抽到粤语的概率就是它在库里的占比（很高）。
+   * 现在改成**分层抽样**：
+   *   ① 先列出池子里有哪些流派（distinct，很轻）；
+   *   ② 按 **sqrt(该流派数量)** 加权随机选一个流派 —— 大流派仍更常出现，但不会被它吃掉；
+   *   ③ 再在这个流派里抽一张**还没投过**的。
+   * 效果：爵士/摇滚/另类/日韩这些小流派也能稳定出现在投票池里。
+   */
+  const genres = (await Album.distinct('genre', { isEligible: true })).filter(Boolean);
+  let pool = [];
+  if (genres.length) {
+    const counts = await Album.aggregate([
+      { $match: { isEligible: true, _id: { $nin: votedIds } } },
+      { $group: { _id: '$genre', n: { $sum: 1 } } },
+    ]);
+    const usable = counts.filter((c) => c.n > 0);
+    if (usable.length) {
+      const weights = usable.map((c) => Math.sqrt(c.n));
+      const total = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      let chosen = usable[0]._id;
+      for (let i = 0; i < usable.length; i += 1) {
+        r -= weights[i];
+        if (r <= 0) {
+          chosen = usable[i]._id;
+          break;
+        }
+      }
+      pool = await Album.aggregate([
+        { $match: { isEligible: true, genre: chosen, _id: { $nin: votedIds } } },
+        { $sample: { size: 20 } },
+      ]);
+    }
+  }
+  // 兜底：分层没抽到（比如全投过了）就退回原来的全池抽样
+  if (!pool.length) {
+    pool = await Album.aggregate([
+      { $match: { isEligible: true, _id: { $nin: votedIds } } },
+      { $sample: { size: 40 } },
+    ]);
+  }
   if (!pool.length) return { album: null, types, votedCount: votedIds.length, allDone: true };
 
   const counts = await AlbumTagVote.aggregate([

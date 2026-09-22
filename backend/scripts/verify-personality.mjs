@@ -21,6 +21,7 @@ import {
   SAMPLE_RULE,
   SAMPLE_LIMITS,
   AUDIO_TAG_GENRE,
+  NEUTRAL_KEY,
 } from '../src/data/personality.js';
 import {
   computeScores,
@@ -64,9 +65,32 @@ ok('选择题抽取数之和 = 16', sumChoice === SAMPLE_RULE.choice, `${sumChoi
 ok('每道题都有 primary 且属于 6 维',
   QUESTIONS.every((q) => DIMS.includes(q.primary)),
   QUESTIONS.filter((q) => !DIMS.includes(q.primary)).map((q) => q.order).join(',') || '全部合规');
-ok('每道题的选项都非空且都有 score',
-  QUESTIONS.every((q) => (q.options || []).length >= 2 && q.options.every((o) => o.score && Object.keys(o.score).length)),
-  '');
+/**
+ * 选项计分完整性 —— 2026-09-22 细化（不是放宽）
+ * ------------------------------------------------------------
+ * 原规则："每个选项都必须有非空 score"。加了"中立出口"选项后这条会误报。
+ * 但**不能直接删** —— 它的价值在于拦住"写题时漏了 score"这种真错。
+ * 细化成三条，比原来更严：
+ *   ① 每个选项都非空、且必须有 `score` 字段（哪怕是空对象 {} —— 缺字段就是漏写）；
+ *   ② **最多一个**选项可以是"空 score"（中立出口）；
+ *   ③ 空 score 的那个 key 必须是 NEUTRAL_KEY，且**只允许出现在听感题**上
+ *      （选择题是"你的习惯"，全给弃权口会让测评失真）。
+ */
+const optionIssues = [];
+for (const q of QUESTIONS) {
+  const opts = q.options || [];
+  if (opts.length < 2) optionIssues.push(`${q.order}:选项太少`);
+  const emptyScore = opts.filter((o) => !o.score || !Object.keys(o.score).length);
+  if (opts.some((o) => !('score' in o))) optionIssues.push(`${q.order}:有选项缺 score 字段`);
+  if (emptyScore.length > 1) optionIssues.push(`${q.order}:多个空 score 选项`);
+  if (emptyScore.length === 1) {
+    if (emptyScore[0].key !== NEUTRAL_KEY) optionIssues.push(`${q.order}:空 score 的应是中立出口 ${NEUTRAL_KEY}`);
+    if (q.type !== 'audio') optionIssues.push(`${q.order}:中立出口只允许出现在听感题`);
+  }
+}
+ok('选项计分完整（漏写 score 会被拦；中立出口只允许一个且只在听感题）',
+  optionIssues.length === 0,
+  optionIssues.slice(0, 4).join(' / ') || `中立出口 ${QUESTIONS.filter((q) => (q.options || []).some((o) => !o.score || !Object.keys(o.score).length)).length} 道`);
 ok('听感题的音频标签都登记在 AUDIO_TAG_GENRE 里',
   audio.every((q) => q.audioRef && AUDIO_TAG_GENRE[q.audioRef]),
   [...new Set(audio.map((q) => q.audioRef))].join('/'));

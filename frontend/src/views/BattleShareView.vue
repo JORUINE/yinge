@@ -270,6 +270,8 @@ const cardStyle = computed(() => {
     '--sa-58': withAlpha(deep, 0.58),
     '--sa-38': withAlpha(deep, 0.38),
     '--sa-20': withAlpha(deep, 0.2),
+    // 卡片底色：同色相、极低明度（取自冠军专辑）—— 用户："背景色和感觉就让你用专辑 PK 的那套算法"
+    '--sa-deep': deepenRgb(ac, { sMin: 32, sMax: 62, lMin: 9, lMax: 18 }),
   };
 });
 
@@ -555,9 +557,10 @@ onMounted(load);
   gap: 7px;
 }
 .scard.square .spath div {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  /* 方卡里的其他专辑同样放大（36 → 46px），用户："大一点" */
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
 }
 .scard.square .roundline {
   font-size: 12px;
