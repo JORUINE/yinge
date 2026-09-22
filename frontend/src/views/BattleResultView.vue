@@ -144,7 +144,11 @@
             <i class="sfarrow">展开</i>
           </summary>
           <div class="sfbody">
-            <div ref="shareEl">
+            <!-- ⚠️ 2026-09-22 关键修复（用户："你的对位赛简洁战报依然是有空白"／"你是直接截图的这个部分吧"）：
+                 真凶就在这个 wrapper —— 它是个**块级 div**，宽度＝父容器全宽（1200px+），
+                 而卡片本身只有 720px。html2canvas 截的是这个 div，于是右边多出一大片空白被一起导出去。
+                 修法：`width: fit-content` 让它贴合卡片，再加 `margin: 0 auto` 让预览居中。 -->
+            <div ref="shareEl" class="shareElBox">
               <AlignedMiniCard
                 :names="alignedSideNames"
                 :score="alignedScore"
@@ -1386,5 +1390,16 @@ onMounted(() => {
 }
 .sharefold .sffhd:hover {
   background: rgba(14, 165, 233, 0.06);
+}
+
+/* 导出范围修正：wrapper 贴合卡片宽度并居中，否则导出图会带上右侧一大片空白 */
+.shareElBox {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.sfbody {
+  display: flex;
+  justify-content: center;
 }
 </style>

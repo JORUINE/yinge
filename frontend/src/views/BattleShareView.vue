@@ -92,9 +92,14 @@
               </div>
               <div class="roundline">{{ roundLine }}</div>
             </div>
+            <!-- 脚注（2026-09-22 重排）
+                 ⚠️ 用户："出现了明显的分割线，像是两个矩形框拼在了一起，下面字体也很奇怪、排列没设计感"。
+                 上一版我在方卡下加了一条 `border-top` 把脚注切开 —— 那正是"两个框"的来源，已去掉。
+                 现在不靠"线"分区，靠**留白 + 层级**：统计一行安静小字，链接一枚小玻璃胶囊，居中成组。
+                 ⚠️ 链接用 nowrap 且文本已在 JS 里按宽度截过（导出卡里绝不能用 CSS 截断）。 -->
             <div class="sfoot">
-              <span>{{ footLine }}</span>
-              <span v-if="withLink" class="sharel">{{ shareUrl }}</span>
+              <span class="sstat">{{ footLine }}</span>
+              <span v-if="withLink" class="sharel">{{ shareUrlText }}</span>
             </div>
           </div>
           <p class="cap">预览效果 · 导出尺寸 {{ outSize }}</p>
@@ -218,6 +223,21 @@ const cnameClass = computed(() => {
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
 const shareUrl = computed(() => `${location.host}/battle/${id}`);
+/**
+ * 卡片上印出来的链接文本（2026-09-22 补）
+ * ------------------------------------------------------------
+ * 起因：用户截图里 `localhost:5173/battle/6ab2112520` 与 `66a70e82d75d6c` **被折成两行** ——
+ *   因为原来给了 `.sharel { max-width: 52% }`，一行塞不下就 `word-break: break-all` 断开了。
+ * 修法：① 链接在卡片上**独占一行居中**；② 文本按字符数截断（**JS 里截，不用 CSS** —— CSS 截断会被 html2canvas 压扁）；
+ *       ③ 去掉协议头，看着更像"一个网址"而不是"一串本地地址"。
+ * ⚠️ 图片上的链接本来就不能点，真正可点的是「复制链接分享」给的那串；这里只负责"看着体面"。
+ */
+const shareUrlText = computed(() => {
+  const raw = shareUrl.value.replace(/^https?:\/\//, '').replace(/^www\./, '');
+  // 46 字符 ≈ 12px 等宽数字下 330px，胶囊可用宽约 380px —— 一行放得下且很少需要截断
+  const max = 46;
+  return raw.length > max ? `${raw.slice(0, max - 1)}…` : raw;
+});
 
 const opponents = computed(() =>
   (data.value?.path || []).map((p) => p.opponent).filter(Boolean).slice(0, 5),
@@ -542,34 +562,46 @@ onMounted(load);
 .scard.square .roundline {
   font-size: 12px;
 }
+/* ⚠️ 这里原来有一条 `border-top` —— 那正是用户说的"明显的分割线、像两个矩形框拼在一起"，已去掉。
+   现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。 */
 .scard.square .sfoot {
   font-size: 12px;
-  margin-top: 4px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-}
-/**
- * 方卡 + "带上分享链接"（2026-09-22 用户："方形图带上链接字被遮住"）
- * ------------------------------------------------------------
- * 方卡只有 420×420，一行里塞"统计 + 链接"必然把链接挤出去。
- * 改成让链接**独占第二行、右对齐**：统计一行、链接一行，都完整看得见。
- * ⚠️ 链接本身仍然不能用 CSS 截断（html2canvas 会把字压扁），所以只换行不裁剪。
- */
-.scard.square .sfoot .sharel {
-  flex: 1 0 100%;
-  max-width: 100%;
-  text-align: right;
-  font-size: 12px;
-  opacity: 0.9;
+  margin-top: 6px;
+  gap: 6px;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。
    改成允许换行（链接本来就没有空格，用 break-all 断开）。 */
-.sharel {
-  max-width: 52%;
-  word-break: break-all;
+/* 脚注：不加任何分隔线，靠留白与层级分区（上一版那条 border-top 就是"两个框"的来源）
+   ⚠️ 父层 opacity 设回 1：全局 .sfoot 是 0.72，会让玻璃胶囊一起发灰 —— 透明度改由每个子元素自己管。 */
+.scard .sfoot {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  letter-spacing: 0.03em;
+  opacity: 1;
+}
+.scard .sfoot .sstat {
   font-size: 12px;
-  line-height: 1.4;  opacity: 0.85;
+  opacity: 0.66;
+}
+/* 链接：一枚小玻璃胶囊 —— 与卡片的透光玻璃同一套语言，也是一处"设计感"落点 */
+.sharel {
+  display: inline-block;
+  max-width: 100%;
+  padding: 4px 13px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  opacity: 0.95;
+  color: #dceffd;
+  font-variant-numeric: tabular-nums;
 }
 .roundline {
   font-size: 12px;

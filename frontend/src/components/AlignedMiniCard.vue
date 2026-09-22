@@ -33,7 +33,7 @@
       还有 {{ rows.length - maxRows }} 组未列出 · 完整对照见详细战报
     </p>
 
-    <div class="mini-foot">音格 · 专辑对决　|　对位赛不产生冠军　|　点封面即投票，人人可玩</div>
+    <div class="mini-foot">音格 · 专辑对决 · 对位赛不产生冠军 · 点封面即投票</div>
   </div>
 </template>
 
