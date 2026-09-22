@@ -4,6 +4,7 @@
  */
 import * as musicService from './music.service.js';
 import * as genreExpand from './genreExpand.js';
+import * as eraExpand from './eraExpand.js';
 import { ok } from '../../shared/response.js';
 
 export async function searchArtists(req, res) {
@@ -120,4 +121,20 @@ export async function warmGenreArtists(req, res) {
   const { genre, artistIds } = req.validated.body;
   const data = await genreExpand.warmGenreArtists(genre, artistIds);
   return ok(res, data, `已入库 ${data.saved} 位歌手`);
+}
+
+/**
+ * M-10 年代模式专辑池补足（#84）
+ * 前端「从 Apple Music 补足该年代」按钮调用：把区间内已知歌手的整张碟同步进曲库，
+ * 让年代模式能凑到用户选的张数。失败容忍，缺网络就返回本地现状。
+ */
+export async function eraBackfill(req, res) {
+  const { startYear, endYear, needCount } = req.validated.body;
+  const data = await eraExpand.ensureEraPool(startYear, endYear, Number(needCount) || 32);
+  const tail = data.triggered
+    ? data.synced > 0
+      ? `（已更新 ${data.synced} 位歌手）`
+      : '（已尝试但无新增，可能网络不可达或歌手碟已全）'
+    : '（本地已足够，无需补足）';
+  return ok(res, data, `区间内合格专辑 ${data.before} → ${data.after} 张${tail}`);
 }

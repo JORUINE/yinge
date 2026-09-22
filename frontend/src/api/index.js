@@ -32,6 +32,8 @@ export const musicApi = {
   searchAlbums: (params) => http.get('/music/albums/search', { params }),
   /** 把发现的歌手同步进曲库（后端每批最多 8 位） */
   warmGenreArtists: (data) => http.post('/music/genres/warm', data),
+  /** 年代模式专辑池补足（#84）：把区间内已知歌手整张碟同步进曲库 */
+  eraBackfill: (data) => http.post('/music/era/backfill', data),
 };
 
 export const battleApi = {

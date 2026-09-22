@@ -24,6 +24,7 @@ import {
 } from '../../shared/errors.js';
 import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
+import { ensureEraPool } from '../music/eraExpand.js';
 import * as bracket from './bracket.js';
 
 const byReleaseThenId = (a, b) => {
@@ -256,6 +257,11 @@ export async function resolvePool(payload) {
   }
 
   if (scopeType === 'era') {
+    // #84 年代池自动补足：本地区间内合格专辑不够就按已知歌手重同步整张碟（详见 eraExpand.js）。
+    // 先按用户选的张数算好 cap，再让 ensureEraPool 把池子撑到够（失败/不可达就退化为本地有多少给多少）。
+    const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
+    await ensureEraPool(payload.startYear, payload.endYear, cap);
+
     const filter = { isEligible: true };
     if (payload.startYear || payload.endYear) {
       filter.releaseDate = {};
@@ -277,7 +283,6 @@ export async function resolvePool(payload) {
 
     // 参赛池封顶 + 歌手均衡：按"各歌手轮转取一张"挑选，专辑多的歌手不会挤掉专辑少的，
     // 既把规模压在 ERA_MAX_POOL 以内，又保证池子里歌手足够多（跨歌手对阵才有得打）。
-    const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
     const buckets = [...byArtist.values()].map((bucket) => [...bucket]);
     const picked = [];
     let progressed = true;

@@ -72,4 +72,16 @@ router.post(
   asyncHandler(controller.warmGenreArtists),
 );
 
+// 年代模式专辑池补足（M-10 / #84）：把区间内已知歌手整张碟同步进库，撑大年代池
+const eraBackfillSchema = z.object({
+  startYear: z.coerce.number().int().min(1900).max(2100).optional(),
+  endYear: z.coerce.number().int().min(1900).max(2100).optional(),
+  needCount: z.coerce.number().int().min(4).max(32).optional(),
+});
+router.post(
+  '/era/backfill',
+  validate(eraBackfillSchema, 'body'),
+  asyncHandler(controller.eraBackfill),
+);
+
 export default router;

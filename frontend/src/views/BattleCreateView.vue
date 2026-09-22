@@ -500,6 +500,24 @@
           <input v-model.number="yearEnd" class="ipt year" type="number" min="1900" max="2100" />
           <span class="hint" style="margin: 0">年（含首尾）</span>
         </div>
+        <!-- 年代专辑池补足（#84）：区间内本地专辑不够时，从 Apple Music 把已知歌手整张碟同步进来撑大池子 -->
+        <div v-if="genreOrEra === 'era'" class="grow">
+          <div class="growhd">
+            <b>年代专辑不够？从 Apple Music 补足</b>
+            <span>区间 {{ yearStart || '—' }} — {{ yearEnd || '—' }} 年</span>
+          </div>
+          <div class="growrow">
+            <button
+              class="btn pri sm"
+              type="button"
+              :disabled="eraBackfilling"
+              @click="backfillEra"
+            >
+              {{ eraBackfilling ? '正在补足…' : '补足该年代' }}
+            </button>
+          </div>
+          <p v-if="eraBackfillNote" class="hint">{{ eraBackfillNote }}</p>
+        </div>
         <!-- 参赛张数：让用户真正能决定"选几张参战"（2026-09-23 修复：之前前端从不发 albumCount，
              后端恒按 32 封顶，选择无效）。后端会按此张数各歌手轮转抽，命中歌手越多越能凑跨歌手对阵。 -->
         <div class="block">
@@ -805,6 +823,30 @@ async function warmSelected() {
   }
 }
 
+/**
+ * #84 年代专辑池补足：区间内本地专辑不够时，从 Apple Music 把已知歌手整张碟同步进来撑大池子。
+ * 与流派「从 Apple Music 补足」同思路，只是种子来自"区间内已知歌手"而非流派榜单。
+ */
+async function backfillEra() {
+  eraBackfilling.value = true;
+  eraBackfillNote.value = '';
+  try {
+    const r = await musicApi.eraBackfill({
+      startYear: yearStart.value,
+      endYear: yearEnd.value,
+      needCount: genreEraScale.value,
+    });
+    eraBackfillNote.value = `区间内合格专辑 ${r.before} → ${r.after} 张${
+      r.triggered ? (r.synced > 0 ? `（已更新 ${r.synced} 位歌手）` : '（已尝试但无新增，可能网络不可达）') : '（本地已足够）'
+    }`;
+    if (r.after > r.before) ElMessage.success('年代专辑已补足，现在可以选更多张参战了');
+  } catch (e) {
+    eraBackfillNote.value = e?.message || '补足失败';
+  } finally {
+    eraBackfilling.value = false;
+  }
+}
+
 const router = useRouter();
 
 const mode = ref('multi-artist');
@@ -859,6 +901,9 @@ const genreOrEra = ref('genre');
 const genre = ref('Pop');
 const yearStart = ref(2000);
 const yearEnd = ref(2020);
+// 年代专辑池补足（#84）：区间内本地专辑不够时，从 Apple Music 把已知歌手整张碟同步进来
+const eraBackfilling = ref(false);
+const eraBackfillNote = ref('');
 
 // 对位赛
 const alignCount = ref(3);
