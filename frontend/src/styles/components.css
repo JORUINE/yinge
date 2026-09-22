@@ -1855,19 +1855,29 @@ html[data-theme='dark'] .v b {
 .scard .smain {
   position: relative;
 }
+/**
+ * 中央「玻璃板」—— 把压暗集中到文字所在的中心区（2026-09-23 修订）
+ * ------------------------------------------------------------
+ * 旧版用 `inset: -16px -12px` + `border-radius: 26px` 画了一块**有边界的暗矩形**，
+ * 叠加在模糊封面上，看着就是"两个矩形套在一起"（用户 09-23 反馈）。
+ * 而且方卡 `.smain { overflow:hidden }` 会把它裁出一道硬边，矩形感更重。
+ * 修订：① 去掉矩形边界 —— 渐变在抵达内容边缘之前就衰减到 0（inset 只比内容大一点点，
+ *       最后一档 0.06→0 落在 88% 处），暗区自然溶进模糊背景，不再有"框"；
+ *       ② 中心保留 0.62 暗度，白封面下浅色字仍压得住（可读性不靠整卡压暗，靠这块中央柔光）。
+ */
 .scard.glassy .smain::before {
   content: '';
   position: absolute;
-  inset: -16px -12px;
-  border-radius: 26px;
+  inset: -4% -3%;
   z-index: 0;
   pointer-events: none;
   background: radial-gradient(
-    78% 70% at 50% 52%,
-    rgba(2, 14, 22, 0.6) 0%,
-    rgba(2, 14, 22, 0.42) 44%,
-    rgba(2, 14, 22, 0.16) 74%,
-    rgba(2, 14, 22, 0) 100%
+    120% 100% at 50% 50%,
+    rgba(2, 14, 22, 0.62) 0%,
+    rgba(2, 14, 22, 0.46) 30%,
+    rgba(2, 14, 22, 0.22) 52%,
+    rgba(2, 14, 22, 0.06) 72%,
+    rgba(2, 14, 22, 0) 88%
   );
 }
 .scard.glassy .smain > * {

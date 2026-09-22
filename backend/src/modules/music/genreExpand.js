@@ -138,7 +138,35 @@ export const GENRE_RSS = {
   節慶: { id: 8, countries: ['us', 'hk'] },
   节庆: { id: 8, countries: ['us', 'hk'] },
   jpop: { id: 27, countries: ['hk', 'us'] },
+  // —— 以下为常见变体写法，保证"说唱 / Hip-Hop / rap / R&B / 雷鬼"等也能走上榜单源 ——
+  '说唱': { id: 18, countries: ['us', 'hk'] },
+  rap: { id: 18, countries: ['us', 'hk'] },
+  'hip-hop': { id: 18, countries: ['us', 'hk'] },
+  rnb: { id: 15, countries: ['us', 'hk'] },
+  '雷鬼': { id: 24, countries: ['us', 'hk'] },
+  reggae: { id: 24, countries: ['us', 'hk'] },
+  indie: { id: 20, countries: ['us', 'hk'] },
+  edm: { id: 17, countries: ['us', 'hk'] },
+  'k-pop': { id: 51, countries: ['kr', 'us'] },
+  kpop: { id: 51, countries: ['kr', 'us'] },
 };
+
+/**
+ * 流派名 → Apple Music 榜单流派 ID（模糊匹配，2026-09-23 补）。
+ * ------------------------------------------------------------
+ * 原先 `discoverGenreArtists` 只做精确归一化命中，导致「说唱 / Hip-Hop / rap」这类常见写法
+ * 走不到榜单源、退化成关键词搜索（只能拿到曲库里已有的少数歌手，知名艺人进不来 —— 用户原话）。
+ * 现在：精确命中优先；否则用"包含"容错（「華語 Hip-Hop」→ 嘻哈 18、「说唱」→ 嘻哈 18），
+ * 让更多写法都能拉到该流派真实靠前的知名艺人。
+ */
+export function resolveGenreRss(genre) {
+  const key = normalizeGenre(genre);
+  if (GENRE_RSS[key]) return GENRE_RSS[key];
+  for (const [k, v] of Object.entries(GENRE_RSS)) {
+    if (key.includes(k) || k.includes(key)) return v;
+  }
+  return null;
+}
 
 /**
  * 剔除"伪歌手"噪声（2026-09-18 用户报「搜摇滚出来一堆奇怪的」）。
@@ -220,7 +248,7 @@ function skipArtist(name, genre) {
  */
 export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
   const conf = resolveGenreConf(genre);
-  const rss = GENRE_RSS[normalizeGenre(genre)] || null;
+  const rss = resolveGenreRss(genre);
   const seen = new Map();
   let usedChart = false;
 

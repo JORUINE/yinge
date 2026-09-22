@@ -134,6 +134,66 @@ export const AUDIO_TAG_GENRE = {
 };
 
 /**
+ * 听感题音频 · 人工白名单（2026-09-22，D4）
+ * ------------------------------------------------------------
+ * 用户指令："人工去市面上音乐 app 按对应类型热门歌曲挑选部分，再结合音乐口碑挑选。"
+ * 挑选原则：该曲明显体现这种气质 + 市面热门 + 口碑公认。跨标签重复是故意的（一首好歌常兼具多气质）。
+ * 只在"曲库里真有、且缓存了试听曲目"的专辑上生效；库里没有的（命名差异/未入库）自然落空，退回 genre 定向兜底。
+ */
+export const AUDIO_WHITELIST = {
+  rhythm: [
+    { artist: 'Michael Jackson', album: 'Thriller' },
+    { artist: 'Daft Punk', album: 'Random Access Memories' },
+    { artist: 'Daft Punk', album: 'Discovery' },
+    { artist: 'Bruno Mars', album: '24K Magic' },
+    { artist: 'Dua Lipa', album: 'Future Nostalgia' },
+    { artist: 'Kendrick Lamar', album: 'good kid, m.A.A.d city' },
+    { artist: 'The Weeknd', album: 'Starboy' },
+    { artist: '周杰伦', album: '范特西' },
+  ],
+  melody: [
+    { artist: 'The Beatles', album: 'Abbey Road' },
+    { artist: 'Adele', album: '21' },
+    { artist: 'Taylor Swift', album: '1989' },
+    { artist: 'Ed Sheeran', album: '÷' },
+    { artist: '周杰伦', album: '七里香' },
+    { artist: '孫燕姿', album: '遇見' },
+    { artist: '劉若英', album: '後來' },
+    { artist: 'Fleetwood Mac', album: 'Rumours' },
+  ],
+  quiet: [
+    { artist: 'Radiohead', album: 'In Rainbows' },
+    { artist: 'Ludovico Einaudi', album: 'Divenire' },
+    { artist: 'Max Richter', album: 'Sleep' },
+    { artist: 'Joni Mitchell', album: 'Blue' },
+    { artist: '陳綺貞', album: '華麗的冒險' },
+    { artist: '李健', album: '似水流年' },
+    { artist: '王菲', album: '寓言' },
+    { artist: '羅大佑', album: '之乎者也' },
+  ],
+  texture: [
+    { artist: 'Tame Impala', album: 'Currents' },
+    { artist: 'Arctic Monkeys', album: 'AM' },
+    { artist: 'Björk', album: 'Homogenic' },
+    { artist: 'Daft Punk', album: 'Discovery' },
+    { artist: 'Taylor Swift', album: '1989' },
+    { artist: '陳奕迅', album: 'U87' },
+    { artist: '王力宏', album: '蓋世英雄' },
+    { artist: 'Radiohead', album: 'OK Computer' },
+  ],
+  vocal: [
+    { artist: 'Adele', album: '21' },
+    { artist: 'Lady Gaga', album: 'The Fame' },
+    { artist: 'Fleetwood Mac', album: 'Rumours' },
+    { artist: '孫燕姿', album: '遇見' },
+    { artist: '梁靜茹', album: '勇氣' },
+    { artist: '劉若英', album: '後來' },
+    { artist: '王菲', album: '寓言' },
+    { artist: 'Taylor Swift', album: '1989' },
+  ],
+};
+
+/**
  * 题库 50 道（选择 42 + 听感 8）
  * ------------------------------------------------------------
  * 每题结构：
@@ -155,10 +215,11 @@ export const QUESTIONS = [
     title: '一首歌让你"上头"，通常是哪一下？',
     dims: ['melody', 'texture', 'rhythm', 'lyric'],
     options: [
-      { key: 'A', label: '副歌起来的那几句', score: { melody: 3 } },
-      { key: 'B', label: '前奏第一个音色', score: { texture: 3 } },
-      { key: 'C', label: '鼓组一进来', score: { rhythm: 3 } },
-      { key: 'D', label: '某句词突然说到你', score: { lyric: 3 } },
+      { key: 'A', label: '那句副歌一出来，整个人就对了', score: { melody: 3 } },
+      { key: 'B', label: '一开嗓那个声音质感先抓住我', score: { texture: 3 } },
+      { key: 'C', label: '鼓点一进来，身体先醒', score: { rhythm: 3 } },
+      { key: 'D', label: '某句词突然戳到我', score: { lyric: 3 } },
+    { key: 'E', label: '没有特别记住哪一下，听完就过去了', score: { melody: -3 } },
     ],
   },
   {
@@ -168,10 +229,10 @@ export const QUESTIONS = [
     title: '你更容易记住一首歌的什么？',
     dims: ['melody', 'texture', 'lyric', 'calm'],
     options: [
-      { key: 'A', label: '旋律怎么走', score: { melody: 3 } },
-      { key: 'B', label: '唱的人是什么声音', score: { texture: 2, melody: 1 } },
-      { key: 'C', label: '歌里讲了什么', score: { lyric: 3 } },
-      { key: 'D', label: '整体的气氛', score: { calm: 3 } },
+      { key: 'A', label: '旋律怎么走的，我最先注意到', score: { melody: 3 } },
+      { key: 'B', label: '谁唱的、声音什么质地', score: { texture: 2, melody: 1 } },
+      { key: 'C', label: '它到底在讲什么', score: { lyric: 3 } },
+      { key: 'D', label: '整首歌笼着什么气氛', score: { calm: 3 } },
     ],
   },
   {
@@ -181,10 +242,11 @@ export const QUESTIONS = [
     title: '听到一首没听过的歌，你多快能跟着哼？',
     dims: ['melody', 'calm'],
     options: [
-      { key: 'A', label: '一遍差不多就会了', score: { melody: 3 } },
-      { key: 'B', label: '得听两三遍才跟上', score: { melody: 1, calm: 1 } },
-      { key: 'C', label: '只记得住最抓的那一句', score: { melody: 2 } },
-      { key: 'D', label: '我一般不哼，只听着', score: { calm: 2 } },
+      { key: 'A', label: '听一遍差不多就能跟着哼', score: { melody: 3 } },
+      { key: 'B', label: '得二三遍才跟得上', score: { melody: 1, calm: 1 } },
+      { key: 'C', label: '只记得住最抓耳的那一句', score: { melody: 2 } },
+      { key: 'D', label: '我通常不跟着哼，就静静听', score: { calm: 2 } },
+    { key: 'E', label: '旋律对我没那么重要，记不记得都行', score: { melody: -3 } },
     ],
   },
   {
@@ -194,10 +256,10 @@ export const QUESTIONS = [
     title: '听翻唱的时候，你会比较哪一点？',
     dims: ['melody', 'texture', 'lyric', 'novelty'],
     options: [
-      { key: 'A', label: '谁把旋律唱得更顺', score: { melody: 3 } },
-      { key: 'B', label: '谁的编曲更新鲜', score: { novelty: 2, texture: 1 } },
-      { key: 'C', label: '谁把词唱得更动人', score: { lyric: 3 } },
-      { key: 'D', label: '谁的声音更耐听', score: { texture: 3 } },
+      { key: 'A', label: '谁把旋律唱得更顺耳', score: { melody: 3 } },
+      { key: 'B', label: '谁的版本更让人耳目一新', score: { novelty: 2, texture: 1 } },
+      { key: 'C', label: '谁把词唱得更走心', score: { lyric: 3 } },
+      { key: 'D', label: '谁的声音更经得起反复听', score: { texture: 3 } },
     ],
   },
   {
@@ -209,8 +271,8 @@ export const QUESTIONS = [
     options: [
       { key: 'A', label: '会不会想再听一遍', score: { melody: 3 } },
       { key: 'B', label: '有没有让我起鸡皮疙瘩', score: { melody: 2, calm: 1 } },
-      { key: 'C', label: '写法巧不巧', score: { texture: 2, novelty: 1 } },
-      { key: 'D', label: '情绪对不对', score: { calm: 2, lyric: 1 } },
+      { key: 'C', label: '写法巧不巧、新不新', score: { texture: 2, novelty: 1 } },
+      { key: 'D', label: '情绪落没落到我心里', score: { calm: 2, lyric: 1 } },
     ],
   },
   {
@@ -220,10 +282,11 @@ export const QUESTIONS = [
     title: '走在路上突然想起一首歌，你想起的一般是？',
     dims: ['melody', 'rhythm', 'lyric', 'texture'],
     options: [
-      { key: 'A', label: '副歌那一段', score: { melody: 3 } },
-      { key: 'B', label: '某个节奏型', score: { rhythm: 3 } },
-      { key: 'C', label: '某一句词', score: { lyric: 3 } },
-      { key: 'D', label: '某个音色或者那股混响', score: { texture: 3 } },
+      { key: 'A', label: '副歌那一段，挥之不去', score: { melody: 3 } },
+      { key: 'B', label: '某个节奏型，一直循环', score: { rhythm: 3 } },
+      { key: 'C', label: '某一句词，突然蹦出来', score: { lyric: 3 } },
+      { key: 'D', label: '某个音色，或者那股混响', score: { texture: 3 } },
+    { key: 'E', label: '想不起来，旋律没在我这留痕', score: { melody: -3 } },
     ],
   },
   {
@@ -233,10 +296,10 @@ export const QUESTIONS = [
     title: '给朋友安利一首歌，你通常怎么开口？',
     dims: ['melody', 'lyric', 'texture', 'calm'],
     options: [
-      { key: 'A', label: '「你先听副歌」', score: { melody: 3 } },
-      { key: 'B', label: '「你听这句词」', score: { lyric: 3 } },
+      { key: 'A', label: '「你先听副歌，这段绝了」', score: { melody: 3 } },
+      { key: 'B', label: '「你听这句词，写得太准」', score: { lyric: 3 } },
       { key: 'C', label: '「你听这个鼓、这个合成器」', score: { texture: 2, rhythm: 1 } },
-      { key: 'D', label: '「你听这个氛围」', score: { calm: 3 } },
+      { key: 'D', label: '「你听这个氛围，很对味」', score: { calm: 3 } },
     ],
   },
   {
@@ -246,10 +309,11 @@ export const QUESTIONS = [
     title: '一首歌你最不能忍的是？',
     dims: ['melody', 'texture', 'lyric', 'calm'],
     options: [
-      { key: 'A', label: '旋律平，听完记不住', score: { melody: 3 } },
-      { key: 'B', label: '编曲糊，一层层堆在一起', score: { texture: 3 } },
-      { key: 'C', label: '词写得很敷衍', score: { lyric: 3 } },
-      { key: 'D', label: '一直很吵，喘不过气', score: { calm: 3 } },
+      { key: 'A', label: '旋律太平，听完什么都没留下', score: { melody: 3 } },
+      { key: 'B', label: '编曲糊成一团，分不清层次', score: { texture: 3 } },
+      { key: 'C', label: '词写得很敷衍，像凑的', score: { lyric: 3 } },
+      { key: 'D', label: '一直很吵，让人喘不过气', score: { calm: 3 } },
+    { key: 'E', label: '旋律本身好坏，我其实不太挑', score: { melody: -3 } },
     ],
   },
 
@@ -261,10 +325,11 @@ export const QUESTIONS = [
     title: '听歌的时候，你的身体最常有什么反应？',
     dims: ['rhythm', 'calm', 'melody'],
     options: [
-      { key: 'A', label: '脚会跟着点', score: { rhythm: 3 } },
+      { key: 'A', label: '脚会不自觉跟着点', score: { rhythm: 3 } },
       { key: 'B', label: '头会跟着晃', score: { rhythm: 3 } },
       { key: 'C', label: '就静静听，不太会动', score: { calm: 3 } },
-      { key: 'D', label: '会跟着哼旋律', score: { melody: 3 } },
+      { key: 'D', label: '会跟着哼起旋律', score: { melody: 3 } },
+    { key: 'E', label: '身体没什么反应，坐着听就挺好', score: { rhythm: -3 } },
     ],
   },
   {
@@ -274,10 +339,10 @@ export const QUESTIONS = [
     title: '挑歌单的时候，你第一条标准是？',
     dims: ['rhythm', 'melody', 'calm', 'novelty'],
     options: [
-      { key: 'A', label: '够不够带劲', score: { rhythm: 3 } },
-      { key: 'B', label: '够不够好听', score: { melody: 3 } },
-      { key: 'C', label: '够不够耐听', score: { calm: 2, texture: 1 } },
-      { key: 'D', label: '够不够新鲜', score: { novelty: 3 } },
+      { key: 'A', label: '够不够带劲、能让人动', score: { rhythm: 3 } },
+      { key: 'B', label: '够不够好听、顺耳', score: { melody: 3 } },
+      { key: 'C', label: '够不够耐听、能反复放', score: { calm: 2, texture: 1 } },
+      { key: 'D', label: '够不够新鲜、没听过', score: { novelty: 3 } },
     ],
   },
   {
@@ -288,9 +353,10 @@ export const QUESTIONS = [
     dims: ['rhythm', 'calm'],
     options: [
       { key: 'A', label: '运动、走路的时候', score: { rhythm: 3 } },
-      { key: 'B', label: '写东西、干活的时候', score: { rhythm: 2, calm: 1 } },
-      { key: 'C', label: '心里憋着要发泄的时候', score: { rhythm: 3 } },
+      { key: 'B', label: '写东西、干活需要提神的时候', score: { rhythm: 2, calm: 1 } },
+      { key: 'C', label: '心里憋着、想发泄的时候', score: { rhythm: 3 } },
       { key: 'D', label: '我很少专门找强节奏的歌', score: { calm: 3 } },
+    { key: 'E', label: '强节奏反而让我更烦躁', score: { rhythm: -3 } },
     ],
   },
   {
@@ -313,10 +379,10 @@ export const QUESTIONS = [
     title: '看现场演出，你最看重什么？',
     dims: ['rhythm', 'melody', 'texture', 'calm'],
     options: [
-      { key: 'A', label: '现场的热度与律动', score: { rhythm: 3 } },
-      { key: 'B', label: '唱功与音准', score: { melody: 3 } },
-      { key: 'C', label: '编曲与音响层次', score: { texture: 3 } },
-      { key: 'D', label: '能安静听清每个细节', score: { calm: 3 } },
+      { key: 'A', label: '现场的热度与律动，能嗨起来', score: { rhythm: 3 } },
+      { key: 'B', label: '唱功与音准，稳不稳', score: { melody: 3 } },
+      { key: 'C', label: '编曲与音响层次够不够满', score: { texture: 3 } },
+      { key: 'D', label: '能不能安静听清每个细节', score: { calm: 3 } },
     ],
   },
   {
@@ -330,6 +396,7 @@ export const QUESTIONS = [
       { key: 'B', label: '正好，我就喜欢慢的', score: { calm: 3 } },
       { key: 'C', label: '看歌词写得好不好', score: { lyric: 3 } },
       { key: 'D', label: '看制作里有没有细节', score: { texture: 2 } },
+    { key: 'E', label: '我其实不太被节奏带动', score: { rhythm: -3 } },
     ],
   },
   {
@@ -355,9 +422,10 @@ export const QUESTIONS = [
     dims: ['lyric', 'melody', 'texture'],
     options: [
       { key: 'A', label: '经常，还会截图存下来', score: { lyric: 3 } },
-      { key: 'B', label: '偶尔会', score: { lyric: 2 } },
-      { key: 'C', label: '很少，我主要听旋律', score: { melody: 3 } },
-      { key: 'D', label: '我基本不记词', score: { texture: 2, rhythm: 1 } },
+      { key: 'B', label: '偶尔会，心里默念', score: { lyric: 2 } },
+      { key: 'C', label: '很少，旋律抓住我就够了', score: { melody: 3 } },
+      { key: 'D', label: '基本不记词，当背景听', score: { texture: 2, rhythm: 1 } },
+    { key: 'E', label: '词写得好坏，我不太在意', score: { lyric: -3 } },
     ],
   },
   {
@@ -397,6 +465,7 @@ export const QUESTIONS = [
       { key: 'B', label: '听几次就放下了', score: { melody: 3 } },
       { key: 'C', label: '会自己改着哼', score: { melody: 2, novelty: 1 } },
       { key: 'D', label: '看当下的心情', score: { calm: 2 } },
+    { key: 'E', label: '词我基本不抠，旋律顺耳就行', score: { lyric: -3 } },
     ],
   },
   {
@@ -436,6 +505,7 @@ export const QUESTIONS = [
       { key: 'B', label: '写得很开阔，像电影台词', score: { lyric: 2, novelty: 1 } },
       { key: 'C', label: '写得怪，角度很新', score: { novelty: 3 } },
       { key: 'D', label: '我不太会被文字打动', score: { texture: 2, rhythm: 1 } },
+    { key: 'E', label: '文字打动不了我，听着对味就行', score: { lyric: -3 } },
     ],
   },
 
@@ -451,6 +521,7 @@ export const QUESTIONS = [
       { key: 'B', label: '有一点，糊了会难受', score: { texture: 2 } },
       { key: 'C', label: '不太留意，听歌不看这些', score: { melody: 2, lyric: 1 } },
       { key: 'D', label: '完全不在意', score: { rhythm: 2 } },
+    { key: 'E', label: '制作细节我基本听不出来', score: { texture: -3 } },
     ],
   },
   {
@@ -490,6 +561,7 @@ export const QUESTIONS = [
       { key: 'B', label: '没听过的合成器音色', score: { texture: 3, novelty: 1 } },
       { key: 'C', label: '一把干净的木吉他', score: { melody: 2, calm: 2 } },
       { key: 'D', label: '很硬很实的鼓', score: { rhythm: 3 } },
+    { key: 'E', label: '音色变化我不太敏感', score: { texture: -3 } },
     ],
   },
   {
@@ -529,6 +601,7 @@ export const QUESTIONS = [
       { key: 'B', label: '能听，但更习惯有唱', score: { melody: 2 } },
       { key: 'C', label: '听一会儿就走神', score: { lyric: 2, rhythm: 1 } },
       { key: 'D', label: '得配着做事才能听', score: { calm: 3 } },
+    { key: 'E', label: '纯器乐我容易走神', score: { texture: -3 } },
     ],
   },
 
@@ -544,6 +617,7 @@ export const QUESTIONS = [
       { key: 'B', label: '隔一阵加一批新的', score: { novelty: 2 } },
       { key: 'C', label: '挺稳定，就那些歌翻来覆去', score: { calm: 2, lyric: 1 } },
       { key: 'D', label: '基本不换', score: { calm: 3 } },
+    { key: 'E', label: '换歌让我有点不安', score: { novelty: -3 } },
     ],
   },
   {
@@ -583,6 +657,7 @@ export const QUESTIONS = [
       { key: 'B', label: '看乐评、长文推荐', score: { lyric: 2, novelty: 2 } },
       { key: 'C', label: '靠朋友推', score: { novelty: 1, calm: 1 } },
       { key: 'D', label: '不刻意找', score: { calm: 3 } },
+    { key: 'E', label: '新风格我不太主动去碰', score: { novelty: -3 } },
     ],
   },
   {
@@ -609,6 +684,7 @@ export const QUESTIONS = [
       { key: 'B', label: '会研究它为什么这么写', score: { texture: 3, novelty: 1 } },
       { key: 'C', label: '听完就算，不会收藏', score: { melody: 2 } },
       { key: 'D', label: '直接切掉', score: { melody: 2, calm: 1 } },
+    { key: 'E', label: '特别但不顺耳的，我一般直接划走', score: { novelty: -3 } },
     ],
   },
 
@@ -624,6 +700,7 @@ export const QUESTIONS = [
       { key: 'B', label: '通勤路上塞着耳朵', score: { rhythm: 2, calm: 1 } },
       { key: 'C', label: '家里放着当背景', score: { calm: 2 } },
       { key: 'D', label: '和朋友一起，声音开大', score: { rhythm: 3 } },
+    { key: 'E', label: '太安静我会觉得空', score: { calm: -3 } },
     ],
   },
   {
@@ -663,6 +740,7 @@ export const QUESTIONS = [
       { key: 'B', label: '有一点', score: { calm: 1, melody: 1 } },
       { key: 'C', label: '没差别', score: { melody: 2 } },
       { key: 'D', label: '我白天听得多，晚上早睡了', score: { rhythm: 2 } },
+    { key: 'E', label: '白天晚上我都一样听', score: { calm: -3 } },
     ],
   },
   {
@@ -702,6 +780,7 @@ export const QUESTIONS = [
       { key: 'B', label: '换个版本听（现场、翻唱）', score: { novelty: 2, texture: 1 } },
       { key: 'C', label: '听腻了，去找新的', score: { novelty: 3 } },
       { key: 'D', label: '听腻就切，但不影响喜欢', score: { rhythm: 2 } },
+    { key: 'E', label: '循环多了我就想换口味', score: { calm: -3 } },
     ],
   },
 

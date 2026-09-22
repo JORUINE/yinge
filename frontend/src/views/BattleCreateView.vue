@@ -500,7 +500,23 @@
           <input v-model.number="yearEnd" class="ipt year" type="number" min="1900" max="2100" />
           <span class="hint" style="margin: 0">年（含首尾）</span>
         </div>
-        <p class="hint">流派 / 年代命中的合格专辑会自动入池，最多 32 张；赛程规模由实际入池张数决定。</p>
+        <!-- 参赛张数：让用户真正能决定"选几张参战"（2026-09-23 修复：之前前端从不发 albumCount，
+             后端恒按 32 封顶，选择无效）。后端会按此张数各歌手轮转抽，命中歌手越多越能凑跨歌手对阵。 -->
+        <div class="block">
+          <h4>参赛张数 <em>决定赛程规模</em></h4>
+          <div class="seg" style="margin-top: 8px">
+            <button
+              v-for="n in GENRE_ERA_PRESETS"
+              :key="n"
+              type="button"
+              :class="{ on: genreEraScale === n }"
+              @click="genreEraScale = n"
+            >
+              {{ n }} 张
+            </button>
+          </div>
+        </div>
+        <p class="hint">命中的合格专辑会各歌手轮转抽，最多取你选的张数；流派 / 年代歌手越多，越能凑出跨歌手对阵（先点上方"从 Apple Music 补足"把知名歌手加进曲库）。</p>
       </div>
 
       <!-- 对位赛参数 -->
@@ -846,6 +862,9 @@ const yearEnd = ref(2020);
 
 // 对位赛
 const alignCount = ref(3);
+// 流派 / 年代模式的「参赛张数」预设（2026-09-23 修复"选几张参战无效"）：默认 16，可选 8/12/16/24/32
+const GENRE_ERA_PRESETS = [8, 12, 16, 24, 32];
+const genreEraScale = ref(16);
 /** 对位赛常用档位（用户要求上限拉到 24：准入过滤后基本不会有歌手超过 24 张） */
 const ALIGN_PRESETS = [4, 6, 8, 12, 16, 24];
 const alignMode = ref('ordinal');
@@ -1553,6 +1572,9 @@ async function onCreate() {
     payload.tournamentVersion = 2;
   } else if (mode.value === 'genre-era') {
     payload.tournamentVersion = 2;
+    // ⚠️ 2026-09-23 修复：此前 genre/era 分支从不发 albumCount，后端恒按 ERA_MAX_POOL(32) 封顶，
+    //    用户在前端无论怎么选"几张参战"都无效。现在把选中的张数真正传进去（后端 resolvePool 已支持）。
+    payload.albumCount = genreEraScale.value;
     if (genreOrEra.value === 'genre') {
       payload.scopeType = 'genre';
       payload.genre = genre.value.trim();

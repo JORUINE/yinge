@@ -16,7 +16,7 @@ import {
   buildTemplateComment,
 } from './scoring.js';
 import { generateComment } from './qwen.client.js';
-import { DIMS, SAMPLE_RULE, SAMPLE_LIMITS, AUDIO_TAG_GENRE } from '../../data/personality.js';
+import { DIMS, SAMPLE_RULE, SAMPLE_LIMITS, AUDIO_TAG_GENRE, AUDIO_WHITELIST } from '../../data/personality.js';
 
 /* ══════════════════════════════════════════════════════════════════════
  * 随机抽题（2026-09-22 新增）
@@ -179,6 +179,33 @@ export async function resolveAudio(audioRef) {
       { $project: { previewUrl: 1 } },
     ]);
     return rows.length ? rows[0].previewUrl : null;
+  }
+
+  /**
+   * ⚠️ 2026-09-22 D4：人工白名单（最高优先级，先于 genre 定向）
+   * ------------------------------------------------------------
+   * 先尝试从"人工确认过的知名专辑"里取试听。命中且库里真有试听曲目 → 直接用；
+   * 否则整段跳过，退回 ① genre 定向（绝不退化成没声音）。
+   * 匹配做了归一化（去空格/标点/大小写），容忍 iTunes 命名差异；
+   * 库里没有的（命名不同 / 未入库）→ 自然落空，不影响后续兜底。
+   */
+  const normMatch = (s) => String(s || '').toLowerCase().replace(/[\s\-_·'’.,&()]/g, '');
+  const wl = AUDIO_WHITELIST[audioRef || ''] || [];
+  if (wl.length) {
+    const ids = await playableAlbumIds();
+    if (ids.length) {
+      const candidates = await Album.find({ _id: { $in: ids } }, 'name artistName').lean();
+      const hit = candidates.filter((a) =>
+        wl.some(
+          (w) => normMatch(w.album) === normMatch(a.name) && normMatch(w.artist) === normMatch(a.artistName),
+        ),
+      );
+      if (hit.length) {
+        const chosen = hit[Math.floor(Math.random() * hit.length)];
+        const url = await pickTrack([chosen._id]);
+        if (url) return url;
+      }
+    }
   }
 
   // ① 首选：合格专辑 + 气质流派

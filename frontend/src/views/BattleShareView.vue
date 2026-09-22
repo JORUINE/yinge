@@ -517,8 +517,9 @@ onMounted(load);
 }
 .scard.square .smain {
   gap: 4px;
-  /* 内容万一算多了，宁可裁掉最后一行也不要撑破卡片（卡片本身 overflow:hidden） */
-  overflow: hidden;
+  /* ⚠️ 原来这里 `overflow:hidden` 会把最后一行「轮次路径」(.roundline) 裁掉
+     形成"轮次不见了 / 被遮住"（用户 09-23：「八强这两行字不能被遮挡」）。
+     现在去掉——卡片本体 `.scard` 已有 overflow:hidden 兜底，不会撑破卡。 */
 }
 /* ⚠️ 2026-09-22 实测发现：方形卡里内容比可用高度**多出 16px**，
    结果 `.roundline`（「半决赛 → 决赛」那一行）被 `.smain` 的 overflow:hidden 裁掉了 ——
@@ -587,7 +588,11 @@ onMounted(load);
 }
 .scard .sfoot .sstat {
   font-size: 12px;
-  opacity: 0.66;
+  opacity: 0.82;
+  /* 统计行不折行：一长串「16张专辑 · 6 位歌手 · 15 场决出」一旦在窄处折开就显得"奇怪"，
+     现在强制一行（方卡内容宽约 384px，足够放下），字距略放开更好读。 */
+  white-space: nowrap;
+  letter-spacing: 0.04em;
 }
 /* 链接：一枚小玻璃胶囊 —— 与卡片的透光玻璃同一套语言，也是一处"设计感"落点 */
 .sharel {
@@ -608,8 +613,11 @@ onMounted(load);
 }
 .roundline {
   font-size: 12px;
-  opacity: 0.7;
+  opacity: 0.78;
   text-align: center;
+  /* 轮次路径（八强 → 半决赛 → 决赛）与脚注之间留出呼吸空间，绝不与脚注挤在一起被"遮住" */
+  margin-top: 2px;
+  letter-spacing: 0.03em;
 }
 .cap {
   font-size: 13px;

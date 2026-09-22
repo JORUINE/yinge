@@ -35,6 +35,11 @@
           </div>
         </div>
 
+        <!-- 听歌人设标签（D3-C 传播层 · 随卡导出，便于分享"你是哪个型"） -->
+        <div class="pttags" v-if="personaTags.length">
+          <span v-for="t in personaTags" :key="t" class="pttag">{{ t }}</span>
+        </div>
+
         <div class="ai2" v-if="result.aiComment">
           <h4>AI 个性解读</h4>
           <p>{{ result.aiComment }}</p>
@@ -75,6 +80,19 @@
         这个类型暂时没有配置推荐专辑池（后台 `recommendAlbumIds` 为空）—— 管理员在「人格类型管理」里补上即可。
       </p>
 
+      <!-- 同型代表作（D3-C 传播层 · 人工挑片，与该型气质一致；仅供"找同类"参考，不参与计分） -->
+      <div class="hd" style="margin-top: 26px">
+        <b>{{ result.typeName }} 都在听这些</b><span>和你是同一种耳朵的人，常驻这几张</span>
+      </div>
+      <div v-if="representatives.length" class="recs rep2">
+        <div v-for="r in representatives" :key="r.artist + r.album" class="alb">
+          <div class="art albc repface">{{ r.album.slice(0, 1) }}</div>
+          <b>{{ r.album }}</b>
+          <div class="ar"><i></i>{{ r.artist }}</div>
+          <div class="mt num">同型代表作</div>
+        </div>
+      </div>
+
       <!-- 共建推荐池：让用户参与选出"这个人格该听什么"（2026-09-21 用户点名：
            "让用户参与进来选出所对应人格推荐的专辑这个功能还没做"）
            功能后端与页面早就通了（/personality/tag-albums），缺的是**用户找得到入口** ——
@@ -89,6 +107,18 @@
           </span>
         </div>
         <RouterLink to="/personality/tag-albums" class="btn pri">去投一票</RouterLink>
+      </div>
+
+      <!-- 好友对比（D3-C 传播层 · 占位：单机版暂无好友体系，预留入口与文案） -->
+      <div class="friendcmp">
+        <div class="fctx">
+          <b>和好友比一比，谁是同一种耳朵？</b>
+          <span>
+            把你的结果发到群里，邀请好友也测一测。看看你们是「撞型」还是「互补」——
+            同一种型说明听歌口味高度重合，互补的两型往往能互相安利到对方没听过的歌。
+          </span>
+        </div>
+        <button class="btn ghost" type="button" disabled title="好友体系上线后开放">邀请好友测一测（即将开放）</button>
       </div>
 
       <p class="note">
@@ -109,7 +139,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor, normalizeScores } from '@/utils/personality.js';
+import { typeColor, normalizeScores, PERSONA_TAGS, TYPE_REPRESENTATIVES } from '@/utils/personality.js';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
@@ -133,6 +163,10 @@ const pc2 = computed(() => {
 
 const dims = computed(() => normalizeScores(result.value?.scores));
 const topDim = computed(() => dims.value.slice().sort((a, b) => b.ten - a.ten)[0] || null);
+
+// D3-C 传播层：人设标签 + 同型代表作（按 typeCode 取静态映射）
+const personaTags = computed(() => PERSONA_TAGS[result.value?.typeCode] || []);
+const representatives = computed(() => TYPE_REPRESENTATIVES[result.value?.typeCode] || []);
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
 const artistNameOf = () => '';
@@ -231,6 +265,67 @@ onMounted(async () => {
   letter-spacing: -0.2px;
 }
 .joinpool .jptx span {
+  display: block;
+  margin-top: 4px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--text2);
+}
+
+/* 听歌人设标签（D3-C · 随卡导出的小药丸，强化"你是哪个型"的分享点） */
+.pttags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+.pttag {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 7px 12px;
+  border-radius: 999px;
+  color: var(--pc);
+  background: var(--pc2);
+  border: 1px solid var(--pc2);
+  letter-spacing: 0.2px;
+}
+
+/* 同型代表作卡片：用首字占位封面（无真封面，避免空图与版权问题） */
+.recs.rep2 .albc.repface {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, var(--pc), var(--pc2));
+  letter-spacing: 1px;
+}
+
+/* 好友对比占位（D3-C · 即将开放的玻璃条） */
+.friendcmp {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 22px 0 4px;
+  padding: 16px 20px;
+  border-radius: var(--r);
+  border: 1px solid rgba(138, 107, 193, 0.32);
+  background: linear-gradient(100deg, rgba(138, 107, 193, 0.12), var(--glass2) 62%);
+  box-shadow: var(--shadow-2);
+}
+.friendcmp .fctx {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.friendcmp .fctx b {
+  display: block;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+.friendcmp .fctx span {
   display: block;
   margin-top: 4px;
   font-size: 13.5px;

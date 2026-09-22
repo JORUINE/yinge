@@ -70,3 +70,57 @@ export function normalizeScores(scores) {
       return { key: k, label: dimLabel(k), ten, ratio: Math.max(3, Math.min(100, ten * 10)) };
     });
 }
+
+/**
+ * 传播 / 分享层数据（2026-09-22，D3-C，用户选 C：只加传播层、不扩型）
+ * ------------------------------------------------------------
+ * 纯前端静态数据，零后端改动；与 data/personality.js 的 AUDIO_WHITELIST 人工挑片口径一致。
+ * 用于结果卡上「听歌人设标签」与「同型代表作」。
+ */
+export const PERSONA_TAGS = {
+  MEL: ['副歌中毒', '旋律雷达', '哼唱体质', '抓耳优先'],
+  RHY: ['身体先动', '律动雷达', '节拍控', '蹦迪灵魂'],
+  LYR: ['词党', '摘抄选手', '故事胃', '一句封神'],
+  TMB: ['音色党', '制作控', '细节耳', '声场洁癖'],
+  CLM: ['独处耳机', '氛围胃', '安静体质', '深夜模式'],
+  EXP: ['猎奇耳', '新歌雷达', '口味常换', '冷门猎人'],
+};
+
+export const TYPE_REPRESENTATIVES = {
+  MEL: [
+    { artist: '周杰伦', album: '范特西' },
+    { artist: 'The Beatles', album: 'Abbey Road' },
+    { artist: '孫燕姿', album: '遇見' },
+    { artist: 'Adele', album: '21' },
+  ],
+  RHY: [
+    { artist: 'Michael Jackson', album: 'Thriller' },
+    { artist: 'Bruno Mars', album: '24K Magic' },
+    { artist: 'Dua Lipa', album: 'Future Nostalgia' },
+    { artist: '周杰伦', album: '范特西' },
+  ],
+  LYR: [
+    { artist: '李健', album: '似水流年' },
+    { artist: '羅大佑', album: '之乎者也' },
+    { artist: '陳綺貞', album: '華麗的冒險' },
+    { artist: '劉若英', album: '後來' },
+  ],
+  TMB: [
+    { artist: 'Radiohead', album: 'OK Computer' },
+    { artist: 'Björk', album: 'Homogenic' },
+    { artist: 'Tame Impala', album: 'Currents' },
+    { artist: '王力宏', album: '蓋世英雄' },
+  ],
+  CLM: [
+    { artist: '王菲', album: '寓言' },
+    { artist: 'Joni Mitchell', album: 'Blue' },
+    { artist: 'Max Richter', album: 'Sleep' },
+    { artist: 'Ludovico Einaudi', album: 'Divenire' },
+  ],
+  EXP: [
+    { artist: 'Daft Punk', album: 'Discovery' },
+    { artist: 'Arctic Monkeys', album: 'AM' },
+    { artist: 'Kendrick Lamar', album: 'good kid, m.A.A.d city' },
+    { artist: 'Tame Impala', album: 'Currents' },
+  ],
+};
