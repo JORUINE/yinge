@@ -55,7 +55,20 @@ export const GENRE_ALIAS = {
   '原声配乐': { terms: ['Soundtrack', 'Original Score'], accept: ['原声', '原聲', 'soundtrack', '配乐', '配樂'] },
   '原聲配樂': { terms: ['Soundtrack', 'Original Score'], accept: ['原声', '原聲', 'soundtrack', '配乐', '配樂'] },
   'jpop': { terms: ['J-Pop'], accept: ['j-pop', 'jpop', '日本流行'] },
+  /**
+   * ⚠️ 2026-09-23 修（用户报「韩国流行乐出来一堆莫名其妙的歌手」）：
+   * 界面的流派名是**库里歌手的 iTunes 中文标签**，而这里原来只登记了英文键 `kpop`。
+   * 「韓國流行樂」归一化后不命中任何键 → 掉进下面的模糊匹配 → 被更短的「流行乐」抢走
+   * → 拿 `Pop` 去搜 → 回来一堆 Miley Cyrus / ABBA 这类欧美流行歌手。
+   * 现补上中文键（诊断脚本 scripts/diag-genres.mjs 可复现）。
+   */
+  '日本流行乐': { terms: ['J-Pop'], accept: ['j-pop', 'jpop', '日本流行'] },
+  '日本流行樂': { terms: ['J-Pop'], accept: ['j-pop', 'jpop', '日本流行'] },
   'kpop': { terms: ['K-Pop'], accept: ['k-pop', 'kpop', '韩国流行', '韓國流行'] },
+  '韩国流行乐': { terms: ['K-Pop'], accept: ['k-pop', 'kpop', '韩国流行', '韓國流行'] },
+  '韓國流行樂': { terms: ['K-Pop'], accept: ['k-pop', 'kpop', '韩国流行', '韓國流行'] },
+  '器乐': { terms: ['Instrumental'], accept: ['器乐', '器樂', 'instrumental'] },
+  '器樂': { terms: ['Instrumental'], accept: ['器乐', '器樂', 'instrumental'] },
   '节庆': { terms: ['Christmas', 'Holiday'], accept: ['节庆', '節慶', 'holiday', 'christmas', '圣诞', '聖誕'] },
   '節慶': { terms: ['Christmas', 'Holiday'], accept: ['节庆', '節慶', 'holiday', 'christmas', '圣诞', '聖誕'] },
   // —— 宽泛项放最后 ——
@@ -149,6 +162,11 @@ export const GENRE_RSS = {
   edm: { id: 17, countries: ['us', 'hk'] },
   'k-pop': { id: 51, countries: ['kr', 'us'] },
   kpop: { id: 51, countries: ['kr', 'us'] },
+  // 2026-09-23 补：界面传的是中文流派名（库里歌手的 iTunes 标签），必须同键登记
+  '韩国流行乐': { id: 51, countries: ['kr', 'us'] },
+  '韓國流行樂': { id: 51, countries: ['kr', 'us'] },
+  '日本流行乐': { id: 27, countries: ['hk', 'us'] },
+  '日本流行樂': { id: 27, countries: ['hk', 'us'] },
 };
 
 /**
@@ -159,9 +177,21 @@ export const GENRE_RSS = {
  * 现在：精确命中优先；否则用"包含"容错（「華語 Hip-Hop」→ 嘻哈 18、「说唱」→ 嘻哈 18），
  * 让更多写法都能拉到该流派真实靠前的知名艺人。
  */
+/** 中文语种词：命中即判定"该流派属华语系" → 不用 Apple 榜单源（见 resolveGenreRss） */
+const CN_LANG_WORDS = ['華語', '华语', '國語', '国语', '廣東', '广东', '粵語', '粤语', 'cantopop', 'mandopop'];
+
 export function resolveGenreRss(genre) {
   const key = normalizeGenre(genre);
   if (GENRE_RSS[key]) return GENRE_RSS[key];
+  /**
+   * ⚠️ 2026-09-23 修（诊断脚本 scripts/diag-genres.mjs 实测）：
+   * 「廣東歌香港流行樂」原来会**模糊命中「流行樂」→ 吃掉 14 号流行榜**，
+   * 而 hk 区的流行榜里混着 K-pop 与欧美流行 —— 与上面注释"华语系不用榜单源"
+   * 的设计意图相反，华语流派因此被带偏。
+   * 现在先按**语种**拦一道：只要名字里带中文语种词，直接判"无榜单源"，
+   * 退回「关键词搜 + primaryGenreName 反筛」（那条路才能把 K-pop 筛出去）。
+   */
+  if (CN_LANG_WORDS.some((w) => key.includes(w))) return null;
   for (const [k, v] of Object.entries(GENRE_RSS)) {
     if (key.includes(k) || k.includes(key)) return v;
   }

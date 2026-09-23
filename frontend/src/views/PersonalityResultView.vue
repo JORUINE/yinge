@@ -1,13 +1,12 @@
 <template>
-  <div class="result">
+  <div class="result" :style="{ '--pc': pc, '--pc2': pc2 }">
     <div v-if="loading" class="state muted">正在生成你的音乐人格卡…</div>
 
     <template v-else-if="result">
-      <div
-        ref="cardEl"
-        class="ptcard"
-        :style="{ '--pc': pc, '--pc2': pc2 }"
-      >
+      <!-- ⚠️ 2026-09-23：`--pc/--pc2` 提到根 `.result` 上（原来只挂在 `.ptcard`）。
+           根因：`.ptcard` **外面**的「同型代表作」网格也用了 `var(--pc)`，
+           取不到变量 → 渐变失效退成白底，而字是白色 → 整块"白板看不见"（用户报的空白）。 -->
+      <div ref="cardEl" class="ptcard">
         <div class="glowc"></div>
         <div class="pthd">
           <div>
@@ -15,15 +14,6 @@
             <div class="ptname">{{ result.typeName }}</div>
             <div class="accent2"></div>
             <p class="ptdesc">{{ result.typeDescription }}</p>
-            <div class="btns">
-              <button class="btn pri" type="button" :disabled="exporting" @click="download">
-                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
-                </svg>
-                {{ exporting ? '正在生成…' : '生成人格卡图片' }}
-              </button>
-              <RouterLink to="/personality/types" class="btn ghost">看看其他人格</RouterLink>
-            </div>
           </div>
 
           <div>
@@ -47,6 +37,20 @@
             {{ result.aiCommentSource === 'llm' ? '由大语言模型根据你的作答生成 · 非模板文案' : '当前为模板解读（配置大模型密钥后自动升级为个性化生成）' }}
           </span>
         </div>
+      </div>
+
+      <!-- ⚠️ 操作按钮必须放在导出元素 `.ptcard` **之外**（2026-09-23 用户报的 bug：
+           导出的图片里印着「正在生成…」）。html2canvas 导出瞬间按钮文字正好被切成
+           "正在生成…"，而按钮又在导出对象内部 → 一起被印进图。
+           这就是设计守则里"交互按钮放导出元素之外"那条硬规则。 -->
+      <div class="btns cardacts">
+        <button class="btn pri" type="button" :disabled="exporting" @click="download">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
+          </svg>
+          {{ exporting ? '正在生成…' : '生成人格卡图片' }}
+        </button>
+        <RouterLink to="/personality/types" class="btn ghost">看看其他人格</RouterLink>
       </div>
 
       <!-- 娱乐声明（2026-09-22 用户要求"人格测试那里也要加上一个告示，娱乐为主，不要当真"）
@@ -232,6 +236,10 @@ onMounted(async () => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+/* 卡片外的操作按钮（导出元素之外，见模板注释） */
+.cardacts {
+  margin-top: 16px;
 }
 .hint {
   font-size: var(--fs-sm);
