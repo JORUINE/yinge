@@ -28,10 +28,9 @@ import { ensureEraPool } from '../music/eraExpand.js';
 // 白名单「知名歌手」判定 + 策展流派：流派/年代池轮转取张时让大牌排在前面（只调顺序，不动张数/公式）
 import {
   isWhitelistedArtist,
-  curatedListOf,
   sameArtistName,
   canonicalGenreKey,
-  EXTRA_LISTS,
+  whitelistNamesFor,
 } from '../../data/genreWhitelist.js';
 // 语种/地区两级筛选（2026-09-23 用户拍板）：标签是派生的，不落库、不迁移
 import { languageTagOf, passesLanguageFilter, interleaveByLang } from '../../data/languageTag.js';
@@ -62,8 +61,14 @@ function orderBucketsForPool(entries, nameById) {
   const famous = [];
   const others = [];
   for (const [id, bucket] of entries) {
+    /**
+     * ⚠️ 2026-09-23 用户报「pop 流派全是这几张专辑，甚至出现顺序都一样」（测了三次都一样）——
+     * 因为轮转取张拿的是每个歌手 bucket 的**第一张**（按发行时间升序），池子完全确定。
+     * 这里先洗牌再轮转，于是每次开局抽到的专辑不同（保留"盲盒"手感）。
+     * 只影响**选哪张**，不影响歌手轮转的公平性与张数。
+     */
     const target = isWhitelistedArtist(nameById.get(id) || '') ? famous : others;
-    target.push([...bucket]);
+    target.push(shuffle(bucket));
   }
   const out = [];
   let fi = 0;
@@ -73,6 +78,16 @@ function orderBucketsForPool(entries, nameById) {
     if (oi < others.length) out.push(others[oi++]);
   }
   return out;
+}
+
+/** Fisher–Yates 洗牌（不改原数组） */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 /**
@@ -244,36 +259,29 @@ export async function resolvePool(payload) {
   if (scopeType === 'genre') {
     const term = String(payload.genre || '').trim();
     /**
-     * 策展流派（華語新生代 / 華語樂隊）—— 2026-09-23 用户："流派里加上你已经做出来的华语新人，
-     * 单开一个新生代"。它们**不是 Apple 的流派标签**，歌手集合完全由白名单定义，
-     * 所以走"按名字匹配已缓存歌手"，而不是 `genre` 正则。
+     * ⚠️ 2026-09-23 用户定调「流派 = 白名单这一册人」，所以组池也按**白名单名字**匹配已缓存歌手，
+     * 不再按 iTunes 流派标签 —— 否则「華語 Hip-Hop」白名单那 15 位（蛋堡 / GAI / MC HotDog…）
+     * 标签各不相同，会被漏掉、只数到 3 位（用户报的"显示只有 3 个歌手，但是都入库了"）。
+     * 这一处与 listGenres 的计数、whitelistNamesFor 的取册**三处同口径**。
+     * 表外流派（你手输的、白名单没覆盖的写法）才退回按规范键全等匹配。
      */
-    const curated = curatedListOf(term, normalizeGenre);
+    const wlNames = whitelistNamesFor(term, normalizeGenre);
+    const all = await Artist.find({}).select('artistId name genre region').lean();
     let matched;
-    if (curated) {
-      const names = EXTRA_LISTS[curated] || [];
-      const all = await Artist.find({}).select('artistId name genre region').lean();
-      matched = all.filter((a) => names.some((n) => sameArtistName(a.name, n)));
+    if (wlNames.length) {
+      matched = all.filter((a) => wlNames.some((n) => sameArtistName(a.name, n)));
       if (!matched.length) {
         throw new BadRequestError(
-          `曲库里还没有「${term}」这册里的歌手。它是一份**策展名单**（不是 Apple 的流派标签），先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
+          `「${term}」这册名单里的歌手还没进曲库 —— 先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
         );
       }
     } else {
-      /**
-       * ⚠️ 2026-09-23 用户报「为什么你流行乐里有粤语歌手」——
-       * 原来这里是 `Artist.find({ genre: new RegExp(term, 'i') })`，**子串匹配**，
-       * 于是「流行樂」把「廣東歌/香港流行樂」「國語流行樂」全吃了 → 粤语/国语歌手跑进流行乐。
-       * 现在改成按**白名单规范键全等匹配**（与 listGenres 的聚合、白名单取册三处同一口径）。
-       * 本地库现在只有两百来位歌手，整表扫描是毫秒级，比正则更准也更便宜。
-       */
       const wantKey = canonicalGenreKey(term);
-      const all = await Artist.find({}).select('artistId name genre region').lean();
       matched = all.filter((a) => canonicalGenreKey(a.genre) === wantKey);
       if (!matched.length) {
-        // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索（2026-09-18 修复 genre 不落库后才会真的有命中）
+        // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索
         throw new BadRequestError(
-          `曲库里还没有归类到「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
+          `曲库里还没有归类到「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方点「一键补知名歌手」再回来，或换个流派词`,
         );
       }
     }

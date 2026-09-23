@@ -13,7 +13,12 @@ import { logger } from '../../shared/logger.js';
 import * as itunes from './itunes.client.js';
 import { applyAdmission } from './admission.js';
 // 流派列表按"白名单规范键"聚合（2026-09-23 修"流行乐里有粤语歌手"/"流派太多"）
-import { canonicalGenreKey, isWhitelistCovered, CURATED_GENRES } from '../../data/genreWhitelist.js';
+import {
+  canonicalGenreKey,
+  whitelistNamesFor,
+  sameArtistName,
+  whitelistGenreEntries,
+} from '../../data/genreWhitelist.js';
 
 /** 缓存新鲜度判定，前台与后台共用同一套口径 */
 export function freshness(cachedAt) {
@@ -246,44 +251,25 @@ export async function getAlbumPreview(albumExternalId) {
  *    「國語流行樂 / 流行樂 / 舞曲」这类繁体标签，写死 Pop/Rock 永远匹配不上（已踩坑）。
  */
 export async function listGenres() {
-  const rows = await Artist.aggregate([
-    { $match: { genre: { $type: 'string' } } },
-    { $group: { _id: '$genre', artists: { $sum: 1 } } },
-    { $sort: { artists: -1, _id: 1 } },
-  ]);
   /**
-   * ⚠️ 2026-09-23 用户报三件事，根因是同一个：
-   *   ①「为什么你流行乐里有粤语歌手」
-   *   ②「不需要这么多流派，保留白名单里的这些就行了」
-   *   ③（同一份白名单的多个写法各占一个 chip：Hip-Hop/Rap + Hip-Hop、饒舌 + Hip-Hop/Rap…）
-   * 原来的做法是把 DB 里的 genre 标签**原样**返回，前端再拿 `genre` 去做**子串正则**匹配歌手；
-   * 于是 `/流行樂/` 把「廣東歌/香港流行樂」「國語流行樂」全吃了 → 粤语歌手跑进流行乐。
-   * 现在统一按**白名单规范键**聚合：
-   *   · 一个规范键 = 一个 chip（`饒舌/獨立搖滾/電視原聲帶` 这些别名不再各占一格）；
-   *   · 展示名取该键下**歌手最多**的那个写法（所以显示的是「流行樂」而不是简体「流行乐」）；
-   *   · 只保留白名单覆盖到的流派（边角标签不再排上来）。
+   * ⚠️ 2026-09-23 用户报「为什么这里显示这个流派只有 3 个歌手，但是都入库了」——
+   * 因为 chip 上的人数原来按 **DB 流派标签** 聚合，而白名单那 15 位（蛋堡 / GAI / MC HotDog…）
+   * 的 iTunes 标签压根不是「華語 Hip-Hop」→ 一个都数不到，只有 3 位恰好带这个标签的被算上。
+   * 用户已定调"流派 = 白名单这一册人"，所以数字也改成**按白名单名字匹配已缓存歌手**，
+   * 与 resolvePool 组池口径完全一致 —— 否则"chip 显示 3 位"和"池子里 15 位"永远对不上。
+   * 展示名固定取自 WHITELIST_GENRE_DISPLAY，不再随库里标签漂移。
    */
-  const byKey = new Map();
-  for (const r of rows) {
-    const key = canonicalGenreKey(r._id);
-    if (!key || !isWhitelistCovered(key)) continue;
-    const prev = byKey.get(key);
-    if (!prev) {
-      byKey.set(key, { genre: r._id, artists: r.artists, top: r.artists });
-    } else {
-      prev.artists += r.artists;
-      if (r.artists > prev.top) {
-        prev.genre = r._id; // 展示名取"这个键下歌手最多的写法"
-        prev.top = r.artists;
-      }
-    }
-  }
-  const out = [...byKey.values()]
-    .map((v) => ({ genre: v.genre, artists: v.artists }))
-    .sort((a, b) => b.artists - a.artists || a.genre.localeCompare(b.genre));
-  // 策展流派固定排最前（歌手数由白名单定义，不编数字）
-  const curated = CURATED_GENRES.map((c) => ({ genre: c.label, artists: 0, curated: true }));
-  return [...curated, ...out];
+  const all = await Artist.find({}).select('name').lean();
+  return whitelistGenreEntries().map((e) => {
+    const names = whitelistNamesFor(e.label, canonicalGenreKey);
+    const artists = all.filter((a) => names.some((n) => sameArtistName(a.name, n))).length;
+    return {
+      genre: e.label,
+      artists,
+      whitelistTotal: names.length,
+      ...(e.curated ? { curated: true } : {}),
+    };
+  });
 }
 
 export const GENRES = [

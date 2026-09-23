@@ -345,6 +345,48 @@ export const CURATED_GENRES = [
 ];
 export const CURATED_KEYS = CURATED_GENRES.map((c) => c.key);
 
+/**
+ * 界面展示名（2026-09-23 用户："不需要这么多流派，保留白名单里的这些就行了"）
+ * ------------------------------------------------------------
+ * ⚠️ 这是**界面上流派名的唯一真相源**：
+ *    以前展示名是从 DB 标签里挑"歌手最多的那个写法"，于是灌库后新标签一多，
+ *    列表就开始漂（同一个流派换名字 / 多出别名格子）。
+ *    现在固定成这张表 —— 一个白名单册 = 一个 chip、一个名字，与库里标签怎么变无关。
+ */
+export const WHITELIST_GENRE_DISPLAY = {
+  流行乐: '流行樂',
+  国语流行乐: '國語流行樂',
+  广东歌香港流行乐: '廣東歌/香港流行樂',
+  hiphoprap: 'Hip-Hop/Rap',
+  华语hiphop: '華語 Hip-Hop',
+  'r&b骚灵乐': 'R&B/騷靈樂',
+  韩国流行乐: '韓國流行樂',
+  日本流行乐: '日本流行樂',
+  摇滚: '搖滾',
+  硬摇滚: '硬搖滾',
+  另类音乐: '另類音樂',
+  电子音乐: '電子音樂',
+  舞曲: '舞曲',
+  爵士: '爵士',
+  古典乐: '古典樂',
+  器乐: '器樂',
+  民谣: '民謠',
+  乡村: '鄉村',
+  节庆: '節慶',
+  原声配乐: '原聲配樂',
+};
+
+/** 界面上要列出的流派（策展流派排最前，其余按固定顺序） */
+export function whitelistGenreEntries() {
+  const curated = CURATED_GENRES.map((c) => ({ key: c.key, label: c.label, curated: true }));
+  const rest = Object.keys(WHITELIST_GENRE_DISPLAY).map((key) => ({
+    key,
+    label: WHITELIST_GENRE_DISPLAY[key],
+    curated: false,
+  }));
+  return [...curated, ...rest];
+}
+
 /** 派生的「并进哪册」映射：规范键 → 附加册（含 CANON 反向补齐的繁体键） */
 const MERGE_BY_KEY = (() => {
   const out = { ...EXTRA_MERGE };
@@ -415,12 +457,43 @@ export function whitelistNamesFor(genre, normalizeGenre) {
   return [...new Set([...main, ...extras])];
 }
 
-/** 名字是否同一个歌手（宽松归一化后相等，或"名字+空格/左括号"起头） */
+/** 只保留字母/数字/汉字（用于"字符多重集"比较） */
+function bareChars(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '');
+}
+
+/** 名字是否同一个歌手（分级匹配，见 sameArtistName） */
 export function sameArtistName(a, b) {
   const x = softNameOf(a);
   const y = softNameOf(b);
   if (!x || !y) return false;
-  return x === y || x.startsWith(`${y} `) || x.startsWith(`${y}(`);
+  // A. 完全相等
+  if (x === y) return true;
+  // B. 带后缀（`周杰倫 (Jay Chou)` / `MC HotDog 熱狗 Live`）
+  if (x.startsWith(`${y} `) || x.startsWith(`${y}(`)) return true;
+  if (y.startsWith(`${x} `) || y.startsWith(`${x}(`)) return true;
+  /**
+   * ⚠️ 2026-09-23 用户报「显示这个流派只有 3 个歌手，但是都入库了」——
+   * 真因：白名单写的是 `MC HotDog 熱狗` / `那吾克熱` / `艾熱` / `Bridge 布瑞吉`，
+   * 而库里存的是 iTunes 返回的 `MC HotDog` / `那吾克熱-NW` / `艾熱AIR` / `布瑞吉Bridge`，
+   * 上面 A/B 两级一条都匹配不上 → 15 位只数到 6 位。
+   * 所以补 C/D 两级（都有保守门槛，避免 `Nas` 误吃 `Nasdaq`、`GAI` 误吃 `Gaia`）：
+   *   C. 去掉所有非字母数字汉字后，一方是另一方的**前缀**（短的那边：汉字≥2 或 拉丁≥4）
+   *   D. 去掉标点后**字符多重集相同**（治 `Bridge 布瑞吉` ↔ `布瑞吉Bridge` 这种语序颠倒）
+   */
+  const bx = bareChars(x);
+  const by = bareChars(y);
+  if (!bx || !by) return false;
+  const [short, long] = bx.length <= by.length ? [bx, by] : [by, bx];
+  const cjkOnly = /^[\u4e00-\u9fff]+$/.test(short);
+  if ((cjkOnly && short.length >= 2) || short.length >= 4) {
+    if (long.startsWith(short)) return true;
+    if (long.includes(short)) return true; // 中文片段包含（`熱狗` ⊂ `mchotdog熱狗`）
+  }
+  if (short.length >= 3 && [...short].sort().join('') === [...long].sort().join('')) return true;
+  return false;
 }
 
 /**

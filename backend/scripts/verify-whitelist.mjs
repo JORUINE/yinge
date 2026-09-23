@@ -21,6 +21,7 @@ import {
   normArtistName,
   curatedListOf,
   canonicalGenreKey,
+  sameArtistName,
 } from '../src/data/genreWhitelist.js';
 import * as musicService from '../src/modules/music/music.service.js';
 import {
@@ -194,6 +195,24 @@ ok('粤语流派不再混入国语乐队（用户报"出来一堆其他类型的
   assert.ok(rock.includes('五月天'), '摇滚流派应该并进华语乐队');
 });
 
+ok('sameArtistName 分级匹配：库里/白名单写法不一致也要认（用户报"只有3位但都入库"）', () => {
+  const YES = [
+    ['MC HotDog', 'MC HotDog 熱狗'],
+    ['那吾克熱-NW', '那吾克熱'],
+    ['艾熱AIR', '艾熱'],
+    ['布瑞吉Bridge', 'Bridge 布瑞吉'],
+    ['周杰倫 (Jay Chou)', '周杰倫'],
+    ['派偉俊 & 周杰倫', '派偉俊'],
+  ];
+  for (const [a, b] of YES) assert.ok(sameArtistName(a, b), `${a} ↔ ${b} 应该认作同一人`);
+  const NO = [
+    ['Upchurch', 'Drake'],
+    ['Novel Fergus', 'Nas'],
+    ['Miley Cyrus', 'Taylor Swift'],
+  ];
+  for (const [a, b] of NO) assert.ok(!sameArtistName(a, b), `${a} ↔ ${b} 不该被认作同一人`);
+});
+
 ok('Hip-Hop/Rap 与 Hip-Hop 解析到同一份名单（避免重复 chip）', () => {
   const a = whitelistNamesFor('Hip-Hop/Rap', normalizeGenre);
   const b = whitelistNamesFor('Hip-Hop', normalizeGenre);
@@ -266,19 +285,45 @@ await okAsync('流派列表只保留白名单覆盖的流派 + 按规范键聚�
   assert.ok(pop.artists < 40, `流行樂 歌手数 ${pop.artists} —— 像是把粤语/国语流派也吃进来了`);
 });
 
-await okAsync('流派池「流行樂」里没有粤语/国语歌手（用户报的核心 bug）', async () => {
+await okAsync('流派池「流行樂」里的人**全在流行乐白名单里**（不再混进华语歌手）', async () => {
   const r = await battleService.resolvePool({ scopeType: 'genre', genre: '流行樂', albumCount: 16 });
   const docs = await Artist.find({ artistId: { $in: r.artists.map((a) => a.artistId) } })
-    .select('name genre region')
+    .select('name genre')
     .lean();
   console.log(`     流行樂池 ${r.artists.length} 位：${docs.map((d) => `${d.name}[${d.genre}]`).join('、')}`);
+  const wl = whitelistNamesFor('流行樂', normalizeGenre);
   for (const d of docs) {
-    assert.equal(
-      canonicalGenreKey(d.genre),
-      '流行乐',
-      `${d.name} 的标签是「${d.genre}」→ 规范键 ${canonicalGenreKey(d.genre)}，不该出现在流行樂池里`,
+    assert.ok(
+      wl.some((n) => sameArtistName(d.name, n)),
+      `${d.name} 不在「流行樂」白名单里 —— 说明池子又回到"按 DB 标签匹配"的老路了`,
     );
   }
+});
+
+await okAsync('流派池「華語 Hip-Hop」人数 = 白名单里已入库的人数（用户报"只显示3个但都入库了"）', async () => {
+  const r = await battleService.resolvePool({ scopeType: 'genre', genre: '華語 Hip-Hop', albumCount: 16 });
+  const genres = await musicService.listGenres();
+  const chip = genres.find((g) => g.genre === '華語 Hip-Hop');
+  console.log(`     chip 显示 ${chip?.artists} 位（白名单共 ${chip?.whitelistTotal} 位）· 池子 ${r.artists.length} 位`);
+  // chip 数 = 白名单里"已入库"的人数；池子数 = 其中"有合格专辑"的人数 —— 后者 ≤ 前者是正常的
+  // （某位歌手在库里只有 1 张且被准入规则剔除，就不进池）。两者差超过 2 才说明口径分叉了。
+  assert.ok(
+    chip.artists - r.artists.length <= 2,
+    `chip ${chip.artists} 位 vs 池子 ${r.artists.length} 位，差太多（说明 chip 与池子的口径又分叉了）`,
+  );
+  assert.ok(r.artists.length >= 8, `池子只有 ${r.artists.length} 位（白名单共 ${chip?.whitelistTotal} 位）—— 库里已入库的人被漏掉了`);
+});
+
+await okAsync('同一位歌手同一流派的两次开局**抽到的专辑不完全相同**（治"全是这几张，顺序都一样"）', async () => {
+  const runs = [];
+  for (let i = 0; i < 6; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const r = await battleService.resolvePool({ scopeType: 'genre', genre: '流行樂', albumCount: 32 });
+    runs.push(r.albums.map((a) => a.albumId).join(','));
+  }
+  const uniq = new Set(runs);
+  console.log(`     6 次开局的专辑组合有 ${uniq.size} 种不同结果`);
+  assert.ok(uniq.size >= 2, '6 次开局完全一样 —— 洗牌没生效（用户报的"全是这几张"）');
 });
 
 console.log('\n=== D. 语种/地区筛选（2026-09-23 两级：华语区/外语区 → 语种）===');
