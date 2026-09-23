@@ -17,6 +17,7 @@
 import { Artist } from '../../models/index.js';
 import * as itunes from './itunes.client.js';
 import { looksLikeArtistList } from './admission.js';
+import { whitelistNamesFor } from '../../data/genreWhitelist.js';
 
 /**
  * 流派 → 检索词 + 认可的 iTunes 流派标签关键词。
@@ -273,6 +274,51 @@ function skipArtist(name, genre) {
 }
 
 /**
+ * ①-c 白名单补足（2026-09-23 用户拍板："榜单 + 人工白名单兜底"）
+ * ------------------------------------------------------------
+ * 为什么必须有这一步：Apple 的流派榜单回答的是**"此刻在卖什么"** ——
+ * 冷门新专与地区榜歌手会挤掉常青大牌（实测 Hip-Hop 榜前排是 Upchurch / AZ Cure /
+ * Novel Fergus 这类，而 Drake / Kanye / Eminem 排在很后面甚至没有）。
+ * 榜单管"热"，白名单管"够大牌"。
+ *
+ * 做法：按 data/genreWhitelist.js 里该流派的名字清单，**逐个去 iTunes 搜**
+ * （每个名字 1 次请求，取第一条还没进池、且不是歌单伪歌手的命中），
+ * 凑够 limit 就停。名字搜不到的（改名/下架/拼写差异）静默跳过，不阻塞其它人。
+ *
+ * ⚠️ 并发固定 3：iTunes 对密集请求会限流（-462 的教训，与 warmGenreArtists 同一套写法）。
+ */
+async function whitelistArtistsOf(genre, { limit, seen }) {
+  const names = whitelistNamesFor(genre, normalizeGenre);
+  if (!names.length) return 0;
+  const queue = [...names];
+  let added = 0;
+  const worker = async () => {
+    while (queue.length && seen.size < limit) {
+      const name = queue.shift();
+      let artists = [];
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        ({ artists } = await itunes.searchArtists(name, 5));
+      } catch {
+        continue; // 单个名字失败不影响其它名字（iTunes 偶发限流）
+      }
+      const hit = artists.find((a) => !seen.has(a.artistId) && !skipArtist(a.name, genre));
+      if (!hit) continue;
+      seen.set(hit.artistId, {
+        artistId: hit.artistId,
+        name: hit.name,
+        genre: hit.genre,
+        chartRank: null,
+        from: 'whitelist',
+      });
+      added += 1;
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
+  return added;
+}
+
+/**
  * ① 发现：按流派去 Apple Music 找靠前的歌手（**只读，不写库**）
  * 返回的 artists 按热度（榜单名次 / iTunes 相关度）排序，已经入库的会标 cached。
  */
@@ -280,7 +326,6 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
   const conf = resolveGenreConf(genre);
   const rss = resolveGenreRss(genre);
   const seen = new Map();
-  let usedChart = false;
 
   // ①-a 流派榜单源（首选）：hk / us 两区穿插，保证华语与欧美的大咖都进得来
   if (rss) {
@@ -309,10 +354,14 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
         if (seen.size >= limit) break;
       }
     }
-    usedChart = seen.size > 0;
   }
 
-  // ①-b 关键词源：无榜单 ID 的流派（华语系）或榜单不足时补足
+  // ①-c 白名单补足：榜单没凑够时，**优先出"够大牌"的人**（再不够才退回关键词源）
+  if (seen.size < limit) {
+    await whitelistArtistsOf(genre, { limit, seen });
+  }
+
+  // ①-b 关键词源：无榜单 ID 的流派（华语系）或榜单/白名单仍不足时补足
   let looseUsed = false;
   if (seen.size < limit) {
     const { strict, loose } = await keywordArtistsOf(conf, genre, { limit, seen });
@@ -337,8 +386,14 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
   return {
     genre,
     searched: conf.terms,
-    /** 'chart' = 来自流派榜单（准）｜'keyword' = 关键词+标签反筛｜'mixed' = 两者混合 */
-    source: usedChart && list.some((a) => a.from === 'keyword') ? 'mixed' : usedChart ? 'chart' : 'keyword',
+    /** 'chart' = 来自流派榜单（准）｜'whitelist' = 人工白名单补足｜'keyword' = 关键词+标签反筛｜'mixed' = 混合 */
+    source: (() => {
+      const kinds = new Set(list.map((a) => a.from));
+      if (kinds.size > 1) return 'mixed';
+      if (kinds.has('chart')) return 'chart';
+      if (kinds.has('whitelist')) return 'whitelist';
+      return 'keyword';
+    })(),
     total: list.length,
     /** true = 命中数不足，部分是按相关度收的（流派标签没做精确对照） */
     loose: !usedChart && looseUsed,

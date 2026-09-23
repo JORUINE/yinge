@@ -1,0 +1,164 @@
+/**
+ * 流派白名单自检（2026-09-23）
+ * ============================================================
+ * 两段：
+ *   A. 纯函数段（不连库）：名单结构、归一化 key、合并规则、知名歌手判定
+ *   B. 连库段：流派/年代池里"白名单歌手"真的排到前面了吗
+ *
+ * 用法：node scripts/verify-whitelist.mjs   （需本地 mongod 在 27017）
+ */
+import assert from 'node:assert/strict';
+import { connectDb, disconnectDb } from '../src/db/connect.js';
+import * as battleService from '../src/modules/battles/battle.service.js';
+import {
+  GENRE_WHITELIST,
+  EXTRA_LISTS,
+  EXTRA_MERGE,
+  WHITELIST_NAME_SET,
+  isWhitelistedArtist,
+  whitelistNamesFor,
+  normArtistName,
+} from '../src/data/genreWhitelist.js';
+import { normalizeGenre } from '../src/modules/music/genreExpand.js';
+
+let pass = 0;
+let fail = 0;
+function ok(label, fn) {
+  try {
+    fn();
+    pass += 1;
+    console.log(`  ✅ ${label}`);
+  } catch (e) {
+    fail += 1;
+    console.log(`  ❌ ${label}\n     ${e.message}`);
+  }
+}
+async function okAsync(label, fn) {
+  try {
+    await fn();
+    pass += 1;
+    console.log(`  ✅ ${label}`);
+  } catch (e) {
+    fail += 1;
+    console.log(`  ❌ ${label}\n     ${e.message}`);
+  }
+}
+
+console.log('\n=== A. 纯函数段（名单结构 + 判定）===');
+
+ok('每个流派键都是 normalizeGenre 之后的形式（否则永远匹配不上）', () => {
+  for (const k of Object.keys(GENRE_WHITELIST)) {
+    assert.equal(k, normalizeGenre(k), `键「${k}」不是归一化形式`);
+  }
+});
+
+ok('每一册至少 10 位歌手', () => {
+  for (const [k, v] of Object.entries(GENRE_WHITELIST)) {
+    assert.ok(v.length >= 10, `「${k}」只有 ${v.length} 位`);
+  }
+  for (const [k, v] of Object.entries(EXTRA_LISTS)) {
+    assert.ok(v.length >= 10, `附加册「${k}」只有 ${v.length} 位`);
+  }
+});
+
+ok('同一册内无重复名字', () => {
+  for (const [k, v] of Object.entries({ ...GENRE_WHITELIST, ...EXTRA_LISTS })) {
+    const s = new Set(v.map(normArtistName));
+    assert.equal(s.size, v.length, `「${k}」有重复：${v.length - s.size} 个`);
+  }
+});
+
+ok('EXTRA_MERGE 只引用真实存在的附加册', () => {
+  for (const [k, arr] of Object.entries(EXTRA_MERGE)) {
+    for (const n of arr) {
+      assert.ok(EXTRA_LISTS[n], `并入了不存在的册「${n}」`);
+    }
+    assert.ok(GENRE_WHITELIST[k], `并到了不存在的流派「${k}」`);
+  }
+});
+
+ok('Hip-Hop/Rap → 名字里含 Drake / Eminem（治"没有大牌"）', () => {
+  const n = whitelistNamesFor('Hip-Hop/Rap', normalizeGenre);
+  assert.ok(n.includes('Drake'), '缺 Drake');
+  assert.ok(n.includes('Eminem'), '缺 Eminem');
+});
+
+ok('韓國流行樂（中文标签）→ 含 BTS', () => {
+  const n = whitelistNamesFor('韓國流行樂', normalizeGenre);
+  assert.ok(n.includes('BTS'), '缺 BTS');
+});
+
+ok('廣東歌/香港流行樂 → 含 陳奕迅，且并入了华语乐队', () => {
+  const n = whitelistNamesFor('廣東歌/香港流行樂', normalizeGenre);
+  assert.ok(n.includes('陳奕迅'), '缺 陳奕迅');
+  assert.ok(n.includes('Dear Jane'), '没并入华语乐队');
+});
+
+ok('国语流行乐 → 主名单 + 新生代 都在（周杰倫、周興哲）', () => {
+  const n = whitelistNamesFor('国语流行乐', normalizeGenre);
+  assert.ok(n.includes('周杰倫'), '缺 周杰倫');
+  assert.ok(n.includes('周興哲'), '没并入华语新生代');
+});
+
+ok('搖滾 → 并入华语乐队（五月天 / 告五人）', () => {
+  const n = whitelistNamesFor('搖滾', normalizeGenre);
+  assert.ok(n.includes('The Beatles'), '缺 The Beatles');
+  assert.ok(n.includes('五月天'), '没并入华语乐队');
+  assert.ok(n.includes('告五人'), '没并入华语乐队');
+});
+
+ok('表外流派 → 返回空数组（调用方退回关键词源，行为与改动前一致）', () => {
+  assert.deepEqual(whitelistNamesFor('某个不存在的流派XYZ', normalizeGenre), []);
+});
+
+ok('isWhitelistedArtist：大牌 true / 冷门 false / 带后缀 true', () => {
+  assert.equal(isWhitelistedArtist('Drake'), true);
+  assert.equal(isWhitelistedArtist('周杰倫'), true);
+  assert.equal(isWhitelistedArtist('Upchurch'), false);
+  assert.equal(isWhitelistedArtist('Novel Fergus'), false);
+  assert.equal(isWhitelistedArtist('周杰倫 (Jay Chou)'), true, '前缀匹配没生效');
+});
+
+ok('白名单全量集合规模合理（>200 位）', () => {
+  assert.ok(WHITELIST_NAME_SET.size > 200, `只有 ${WHITELIST_NAME_SET.size}`);
+});
+
+console.log('\n=== B. 连库段（池子里大牌真的排前面了吗）===');
+await connectDb();
+
+await okAsync('年代池（1990–2026, 选 12 张）：大牌靠前、但**不独占**（留名额给其他歌手）', async () => {
+  const r = await battleService.resolvePool({
+    scopeType: 'era',
+    startYear: 1990,
+    endYear: 2026,
+    albumCount: 12,
+  });
+  const famous = (r.artists || []).filter((a) => isWhitelistedArtist(a.name)).map((a) => a.name);
+  const others = (r.artists || []).filter((a) => !isWhitelistedArtist(a.name)).map((a) => a.name);
+  console.log(`     池子：${r.albums.length} 张 / ${r.artists.length} 位歌手`);
+  console.log(`     白名单大牌 ${famous.length} 位：${famous.join('、') || '（无）'}`);
+  console.log(`     其余歌手 ${others.length} 位：${others.join('、') || '（无）'}`);
+  assert.ok(famous.length > 0, '一个大牌都没排进来，知名歌手优先没生效');
+  assert.ok(
+    others.length > 0,
+    `大牌独占整池（${famous.length}/${r.artists.length}）—— 多样性没保住，2:1 交错失效`,
+  );
+  assert.ok(r.albums.length <= 32, `超过封顶：${r.albums.length}`);
+});
+
+await okAsync('流派池（Hip-Hop/Rap, 选 12 张）能成局且不超封顶', async () => {
+  const r = await battleService.resolvePool({
+    scopeType: 'genre',
+    genre: 'Hip-Hop/Rap',
+    albumCount: 12,
+  });
+  const famous = (r.artists || []).filter((a) => isWhitelistedArtist(a.name)).map((a) => a.name);
+  console.log(`     池子：${r.albums.length} 张 / ${r.artists.length} 位歌手`);
+  console.log(`     其中白名单大牌 ${famous.length} 位：${famous.join('、') || '（无）'}`);
+  assert.ok(r.albums.length >= 4, `池子太小：${r.albums.length}`);
+  assert.ok(r.albums.length <= 32, `超过封顶：${r.albums.length}`);
+});
+
+await disconnectDb();
+console.log(`\n===== 白名单自检结果：${pass}/${pass + fail} 通过 =====\n`);
+process.exit(fail ? 1 : 0);

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>音格 · 流派歌手白名单（草稿 · 待确认）</title>
+<style>
+  :root{
+    --bg:#f4f8fc; --card:#ffffff; --ink:#12232e; --ink2:#41617a; --ink3:#7d97ab;
+    --line:#dbe7f1; --brand:#0e7490; --brand2:#0ea5e9; --warn:#b45309; --ok:#0f766e;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:28px 20px 56px; background:var(--bg); color:var(--ink);
+    font-family:'Microsoft YaHei','PingFang SC','Hiragino Sans GB','Noto Sans SC',Arial,sans-serif;
+    font-size:15px; line-height:1.7;
+  }
+  .wrap{max-width:1080px; margin:0 auto}
+  h1{font-size:23px; margin:0 0 6px; letter-spacing:-.3px}
+  .sub{color:var(--ink2); font-size:14px; margin:0 0 18px}
+  .badge{
+    display:inline-block; font-size:12px; font-weight:700; padding:4px 10px; border-radius:999px;
+    background:#fff7ed; color:var(--warn); border:1px solid #fed7aa; vertical-align:2px; margin-left:8px;
+  }
+  .box{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:16px; box-shadow:0 1px 2px rgba(16,42,67,.05)}
+  .box h2{font-size:16px; margin:0 0 8px}
+  .box p{margin:6px 0; font-size:14px; color:var(--ink2)}
+  .box b{color:var(--ink)}
+  code{background:#eef6fb; border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:13px}
+  table{width:100%; border-collapse:collapse; font-size:14px}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); font-size:14px; vertical-align:top}
+  th{font-size:13px; color:var(--ink3); font-weight:700; background:#f8fbfe}
+  .g{border:1px solid var(--line); border-radius:14px; background:var(--card); padding:14px 18px 16px; margin-bottom:12px}
+  .g h3{font-size:15.5px; margin:0 0 2px}
+  .g .tag{font-size:12px; color:var(--ink3); margin:0 0 10px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{font-size:13px; padding:4px 10px; border-radius:999px; background:#eef6fb; border:1px solid #d5e9f6; color:#0b4f68}
+  .chip.cn{background:#f3f0fb; border-color:#e0d8f6; color:#4c3d80}
+  .chip.jp{background:#fdeff5; border-color:#f8d7e6; color:#8a2f5b}
+  .chip.kr{background:#eefaf4; border-color:#cdeee0; color:#136b4c}
+  .note{font-size:13px; color:var(--ink3); margin-top:9px}
+  .ft{color:var(--ink3); font-size:13px; text-align:center; margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>音格 · 流派歌手白名单<span class="badge" style="background:#ecfdf5;color:#0f766e;border-color:#a7f3d0">已落地 · 2026-09-23</span></h1>
+  <p class="sub">这份是「流派/年代模式要有多元 + 大牌」的选人清单，已写成代码 <code>backend/src/data/genreWhitelist.js</code> 并接进 <code>discoverGenreArtists</code> / 流派池 / 年代池。自检 <b>14/14 通过</b>。</p>
+
+  <div class="box">
+    <h2>这套白名单怎么工作（你先看规则，再看名单）</h2>
+    <p>① <b>榜单照旧先跑</b>：Apple 流派榜单（真实销量/播放排序）仍是第一来源 —— 它回答"现在最热的是谁"。</p>
+    <p>② <b>白名单兜底补足</b>：榜单跑完还没凑够 30 位时，<b>优先</b>按这份名单去 iTunes 搜人（每人一次搜索，取第一条命中的歌手），而不是像现在这样退回关键词搜。</p>
+    <p>③ <b>去重 + 容错</b>：已在榜上的自动跳过；搜不到的（改名/下架/拼写差异）只记日志、不报错，不影响别人进池。</p>
+    <p>④ <b>只动"发现"</b>：白名单不参与计分、不改赛制、不改封顶（年代/流派仍是 32 封顶）。它只决定"补足时优先给你看谁"。</p>
+    <p>⑤ <b>为什么必须有它</b>：你截图里 <b>Hip-Hop 全是 Upchurch / AZ Chike / Novel Fergus</b> —— 因为 Apple 的流派榜是"当下在卖什么"，冷门新专和地区榜会挤掉常青大牌。榜单管"热"，白名单管"够大牌"，两者合起来才稳。</p>
+  </div>
+
+  <div class="box">
+    <h2>覆盖总览（18 个流派 · 共约 330 位）</h2>
+    <table>
+      <thead><tr><th style="width:150px">流派（库里真实标签）</th><th style="width:70px">人数</th><th>语境侧重</th></tr></thead>
+      <tbody>
+        <tr><td>流行樂</td><td>20</td><td>欧美主流流行（含当下最热女声）</td></tr>
+        <tr><td>國語流行樂</td><td>20</td><td>华语国语：周王陶林方 + 天后 + 新生代</td></tr>
+        <tr><td>廣東歌/香港流行樂</td><td>20</td><td>粤语：歌神一代 + 千禧 + 当代</td></tr>
+        <tr><td>Hip-Hop/Rap</td><td>20</td><td>欧美说唱大牌（治你截图那个问题）</td></tr>
+        <tr><td>華語 Hip-Hop</td><td>14</td><td>中文说唱：地下到主流</td></tr>
+        <tr><td>R&amp;B/騷靈樂（含當代 R&amp;B）</td><td>20</td><td>当代 R&amp;B / Soul</td></tr>
+        <tr><td>韓國流行樂</td><td>18</td><td>K-Pop 三代团 + Solo</td></tr>
+        <tr><td>日本流行樂</td><td>16</td><td>J-Pop 当代主力</td></tr>
+        <tr><td>搖滾</td><td>20</td><td>摇滚史经典 + 现代摇滚</td></tr>
+        <tr><td>硬搖滾</td><td>16</td><td>硬摇滚 / 重金属名团</td></tr>
+        <tr><td>另類音樂</td><td>18</td><td>Alternative / Indie 大牌</td></tr>
+        <tr><td>電子音樂 / 舞曲</td><td>24</td><td>EDM 头部 + 电子名家</td></tr>
+        <tr><td>爵士</td><td>20</td><td>爵士史标杆</td></tr>
+        <tr><td>古典樂 / 器樂</td><td>18</td><td>古典作曲大师 + 当代演奏明星</td></tr>
+        <tr><td>民謠</td><td>20</td><td>欧美民谣 + 华语民谣</td></tr>
+        <tr><td>鄉村</td><td>20</td><td>乡村经典 + 当代乡村</td></tr>
+        <tr><td>節慶</td><td>16</td><td>圣诞常青</td></tr>
+        <tr><td>原聲配樂</td><td>20</td><td>电影配乐名家</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="g">
+    <h3>1. 流行樂 · Pop</h3>
+    <p class="tag">库里 11 位歌手 · 欧美当下主流</p>
+    <div class="chips">
+      <span class="chip">Taylor Swift</span><span class="chip">Ed Sheeran</span><span class="chip">Adele</span><span class="chip">Bruno Mars</span>
+      <span class="chip">Ariana Grande</span><span class="chip">Billie Eilish</span><span class="chip">Dua Lipa</span><span class="chip">The Weeknd</span>
+      <span class="chip">Justin Bieber</span><span class="chip">Harry Styles</span><span class="chip">Olivia Rodrigo</span><span class="chip">Sabrina Carpenter</span>
+      <span class="chip">Miley Cyrus</span><span class="chip">Lady Gaga</span><span class="chip">Katy Perry</span><span class="chip">Rihanna</span>
+      <span class="chip">Beyoncé</span><span class="chip">Maroon 5</span><span class="chip">Charlie Puth</span><span class="chip">Shawn Mendes</span>
+    </div>
+    <p class="note">⚠️ 修完「韩国流行乐」的映射 bug 后，「流行樂」才是欧美流行；这份名单正好是它该有的人。</p>
+  </div>
+
+  <div class="g">
+    <h3>2. 國語流行樂 · Mandopop</h3>
+    <p class="tag">库里 27 位歌手 · 华语国语中坚</p>
+    <div class="chips">
+      <span class="chip cn">周杰倫</span><span class="chip cn">林俊傑</span><span class="chip cn">王力宏</span><span class="chip cn">陶喆</span>
+      <span class="chip cn">方大同</span><span class="chip cn">孫燕姿</span><span class="chip cn">蔡依林</span><span class="chip cn">張惠妹</span>
+      <span class="chip cn">五月天</span><span class="chip cn">梁靜茹</span><span class="chip cn">田馥甄</span><span class="chip cn">張韶涵</span>
+      <span class="chip cn">鄧紫棋</span><span class="chip cn">李榮浩</span><span class="chip cn">薛之謙</span><span class="chip cn">毛不易</span>
+      <span class="chip cn">陳奕迅</span><span class="chip cn">劉若英</span><span class="chip cn">光良</span><span class="chip cn">范瑋琪</span>
+    </div>
+    <p class="note">周王陶林方你已经在用（系统组合「周王陶林方大混战」），这份名单是把它扩到"天后 + 新生代"，让混战歌手池不再只有那 5 位。</p>
+  </div>
+
+  <div class="g">
+    <h3>3. 廣東歌 / 香港流行樂 · Cantopop</h3>
+    <p class="tag">库里 37 位歌手 · 粤语三个世代</p>
+    <div class="chips">
+      <span class="chip cn">陳奕迅</span><span class="chip cn">容祖兒</span><span class="chip cn">楊千嬅</span><span class="chip cn">古巨基</span>
+      <span class="chip cn">李克勤</span><span class="chip cn">譚詠麟</span><span class="chip cn">張國榮</span><span class="chip cn">梅艷芳</span>
+      <span class="chip cn">張學友</span><span class="chip cn">鄭秀文</span><span class="chip cn">劉德華</span><span class="chip cn">謝霆鋒</span>
+      <span class="chip cn">張敬軒</span><span class="chip cn">衛蘭</span><span class="chip cn">側田</span><span class="chip cn">陳慧嫻</span>
+      <span class="chip cn">Beyond</span><span class="chip cn">林子祥</span><span class="chip cn">關淑怡</span><span class="chip cn">麥浚龍</span>
+    </div>
+    <p class="note">⚠️ 你说"粤语专辑好多" —— 修完「華語區/外語區」筛选后，<b>粤语会变成一个可选语种</b>，不再是年代模式的默认大头。这条名单保证你选了粤语时出的是真大牌。</p>
+  </div>
+
+  <div class="g">
+    <h3>4. Hip-Hop/Rap</h3>
+    <p class="tag">库里 5 位歌手 · 欧美说唱头部（治你截图那个问题）</p>
+    <div class="chips">
+      <span class="chip">Drake</span><span class="chip">Kendrick Lamar</span><span class="chip">J. Cole</span><span class="chip">Kanye West</span>
+      <span class="chip">Travis Scott</span><span class="chip">Eminem</span><span class="chip">JAY-Z</span><span class="chip">Nicki Minaj</span>
+      <span class="chip">Future</span><span class="chip">21 Savage</span><span class="chip">Lil Wayne</span><span class="chip">Tyler, The Creator</span>
+      <span class="chip">A$AP Rocky</span><span class="chip">Cardi B</span><span class="chip">Post Malone</span><span class="chip">Metro Boomin</span>
+      <span class="chip">Doja Cat</span><span class="chip">Nas</span><span class="chip">50 Cent</span><span class="chip">Playboi Carti</span>
+    </div>
+    <p class="note">你截图里的 Upchurch / AZ Chike / Novel Fergus 是"当下榜单在卖什么"，不是"谁是说唱大牌"。这份名单是后者。</p>
+  </div>
+
+  <div class="g">
+    <h3>5. 華語 Hip-Hop</h3>
+    <p class="tag">库里 1 位歌手 · 中文说唱</p>
+    <div class="chips">
+      <span class="chip cn">MC HotDog 熱狗</span><span class="chip cn">蛋堡</span><span class="chip cn">頑童MJ116</span><span class="chip cn">GAI 周延</span>
+      <span class="chip cn">馬思唯</span><span class="chip cn">萬妮達</span><span class="chip cn">謝帝</span><span class="chip cn">派偉俊</span>
+      <span class="chip cn">玖壹壹</span><span class="chip cn">王以太</span><span class="chip cn">那吾克熱</span><span class="chip cn">VAVA</span>
+      <span class="chip cn">艾熱</span><span class="chip cn">Bridge 布瑞吉</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>6. R&amp;B / 騷靈樂（含當代 R&amp;B）</h3>
+    <p class="tag">库里 3 位歌手 · 当代 R&amp;B / Soul</p>
+    <div class="chips">
+      <span class="chip">Frank Ocean</span><span class="chip">SZA</span><span class="chip">Alicia Keys</span><span class="chip">Usher</span>
+      <span class="chip">Chris Brown</span><span class="chip">H.E.R.</span><span class="chip">Daniel Caesar</span><span class="chip">Jhené Aiko</span>
+      <span class="chip">Summer Walker</span><span class="chip">Brent Faiyaz</span><span class="chip">Anderson .Paak</span><span class="chip">John Legend</span>
+      <span class="chip">Miguel</span><span class="chip">Kali Uchis</span><span class="chip">Steve Lacy</span><span class="chip">Giveon</span>
+      <span class="chip">Khalid</span><span class="chip">Luther Vandross</span><span class="chip">Marvin Gaye</span><span class="chip">Stevie Wonder</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>7. 韓國流行樂 · K-Pop</h3>
+    <p class="tag">库里 1 位歌手 · 三代团 + Solo</p>
+    <div class="chips">
+      <span class="chip kr">BTS</span><span class="chip kr">BLACKPINK</span><span class="chip kr">TWICE</span><span class="chip kr">EXO</span>
+      <span class="chip kr">SEVENTEEN</span><span class="chip kr">IU</span><span class="chip kr">aespa</span><span class="chip kr">IVE</span>
+      <span class="chip kr">NewJeans</span><span class="chip kr">Stray Kids</span><span class="chip kr">NCT 127</span><span class="chip kr">Red Velvet</span>
+      <span class="chip kr">(G)I-DLE</span><span class="chip kr">LE SSERAFIM</span><span class="chip kr">TOMORROW X TOGETHER</span><span class="chip kr">ITZY</span>
+      <span class="chip kr">BIGBANG</span><span class="chip kr">PSY</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>8. 日本流行樂 · J-Pop</h3>
+    <p class="tag">库里暂无该标签歌手 · 当代主力</p>
+    <div class="chips">
+      <span class="chip jp">米津玄師</span><span class="chip jp">YOASOBI</span><span class="chip jp">ヨルシカ</span><span class="chip jp">Official髭男dism</span>
+      <span class="chip jp">あいみょん</span><span class="chip jp">宇多田ヒカル</span><span class="chip jp">King Gnu</span><span class="chip jp">Aimer</span>
+      <span class="chip jp">藤井風</span><span class="chip jp">LiSA</span><span class="chip jp">Ado</span><span class="chip jp">Vaundy</span>
+      <span class="chip jp">RADWIMPS</span><span class="chip jp">Mrs. GREEN APPLE</span><span class="chip jp">星野源</span><span class="chip jp">back number</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>9. 搖滾 · Rock</h3>
+    <p class="tag">库里 5 位歌手 · 史经典 + 现代</p>
+    <div class="chips">
+      <span class="chip">The Beatles</span><span class="chip">Queen</span><span class="chip">Led Zeppelin</span><span class="chip">Pink Floyd</span>
+      <span class="chip">Nirvana</span><span class="chip">Radiohead</span><span class="chip">Muse</span><span class="chip">Coldplay</span>
+      <span class="chip">Arctic Monkeys</span><span class="chip">The Rolling Stones</span><span class="chip">AC/DC</span><span class="chip">Guns N' Roses</span>
+      <span class="chip">Linkin Park</span><span class="chip">Green Day</span><span class="chip">Foo Fighters</span><span class="chip">Oasis</span>
+      <span class="chip">U2</span><span class="chip">Red Hot Chili Peppers</span><span class="chip">Metallica</span><span class="chip">Bon Jovi</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>10. 硬搖滾 · Hard Rock</h3>
+    <p class="tag">库里 2 位歌手</p>
+    <div class="chips">
+      <span class="chip">AC/DC</span><span class="chip">Guns N' Roses</span><span class="chip">Metallica</span><span class="chip">Mötley Crüe</span>
+      <span class="chip">Def Leppard</span><span class="chip">Van Halen</span><span class="chip">Black Sabbath</span><span class="chip">Deep Purple</span>
+      <span class="chip">Aerosmith</span><span class="chip">Iron Maiden</span><span class="chip">Scorpions</span><span class="chip">Judas Priest</span>
+      <span class="chip">Whitesnake</span><span class="chip">KISS</span><span class="chip">Skid Row</span><span class="chip">Alice Cooper</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>11. 另類音樂 · Alternative</h3>
+    <p class="tag">库里 1 位歌手</p>
+    <div class="chips">
+      <span class="chip">Radiohead</span><span class="chip">Coldplay</span><span class="chip">Muse</span><span class="chip">The Killers</span>
+      <span class="chip">Imagine Dragons</span><span class="chip">Twenty One Pilots</span><span class="chip">Vampire Weekend</span><span class="chip">Tame Impala</span>
+      <span class="chip">Gorillaz</span><span class="chip">The 1975</span><span class="chip">Lana Del Rey</span><span class="chip">Hozier</span>
+      <span class="chip">Foster The People</span><span class="chip">MGMT</span><span class="chip">Beach House</span><span class="chip">The Strokes</span>
+      <span class="chip">Interpol</span><span class="chip">Blur</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>12. 電子音樂 / 舞曲 · Electronic / Dance</h3>
+    <p class="tag">库里 4 位歌手</p>
+    <div class="chips">
+      <span class="chip">Calvin Harris</span><span class="chip">David Guetta</span><span class="chip">Avicii</span><span class="chip">Martin Garrix</span>
+      <span class="chip">Zedd</span><span class="chip">Tiësto</span><span class="chip">The Chainsmokers</span><span class="chip">Kygo</span>
+      <span class="chip">Alan Walker</span><span class="chip">Marshmello</span><span class="chip">Swedish House Mafia</span><span class="chip">Major Lazer</span>
+      <span class="chip">Daft Punk</span><span class="chip">Aphex Twin</span><span class="chip">Deadmau5</span><span class="chip">Flume</span>
+      <span class="chip">Four Tet</span><span class="chip">The Chemical Brothers</span><span class="chip">Fatboy Slim</span><span class="chip">Disclosure</span>
+      <span class="chip">ODESZA</span><span class="chip">Fred again..</span><span class="chip">Porter Robinson</span><span class="chip">Massive Attack</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>13. 爵士 · Jazz</h3>
+    <p class="tag">库里暂无该标签歌手</p>
+    <div class="chips">
+      <span class="chip">Miles Davis</span><span class="chip">John Coltrane</span><span class="chip">Bill Evans</span><span class="chip">Ella Fitzgerald</span>
+      <span class="chip">Louis Armstrong</span><span class="chip">Duke Ellington</span><span class="chip">Chet Baker</span><span class="chip">Billie Holiday</span>
+      <span class="chip">Herbie Hancock</span><span class="chip">Thelonious Monk</span><span class="chip">Dave Brubeck</span><span class="chip">Nina Simone</span>
+      <span class="chip">Oscar Peterson</span><span class="chip">Stan Getz</span><span class="chip">Keith Jarrett</span><span class="chip">Pat Metheny</span>
+      <span class="chip">Norah Jones</span><span class="chip">Diana Krall</span><span class="chip">Charlie Parker</span><span class="chip">Sonny Rollins</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>14. 古典樂 / 器樂 · Classical / Instrumental</h3>
+    <p class="tag">库里各 1 位歌手</p>
+    <div class="chips">
+      <span class="chip">Beethoven</span><span class="chip">Mozart</span><span class="chip">Bach</span><span class="chip">Chopin</span>
+      <span class="chip">Tchaikovsky</span><span class="chip">Vivaldi</span><span class="chip">Debussy</span><span class="chip">Brahms</span>
+      <span class="chip">Liszt</span><span class="chip">Rachmaninoff</span><span class="chip">Schubert</span><span class="chip">Handel</span>
+      <span class="chip">Mahler</span><span class="chip">Dvo&#345;ák</span><span class="chip">Erik Satie</span><span class="chip">Yo-Yo Ma</span>
+      <span class="chip">郎朗</span><span class="chip">王羽佳</span>
+    </div>
+    <p class="note">古典的检索名用**作曲家/演奏家本名**（不是中文译名），命中率最高 —— 落地时我会用这份名字搜，不写"贝多芬"这种译名。</p>
+  </div>
+
+  <div class="g">
+    <h3>15. 民謠 · Folk</h3>
+    <p class="tag">库里暂无该标签歌手</p>
+    <div class="chips">
+      <span class="chip">Bob Dylan</span><span class="chip">Simon &amp; Garfunkel</span><span class="chip">Joni Mitchell</span><span class="chip">Leonard Cohen</span>
+      <span class="chip">Nick Drake</span><span class="chip">Cat Stevens</span><span class="chip">Joan Baez</span><span class="chip">Damien Rice</span>
+      <span class="chip">José González</span><span class="chip">Sufjan Stevens</span><span class="chip">Fleet Foxes</span><span class="chip">Bon Iver</span>
+      <span class="chip">The Lumineers</span><span class="chip">Mumford &amp; Sons</span>
+      <span class="chip cn">宋冬野</span><span class="chip cn">趙雷</span><span class="chip cn">李志</span><span class="chip cn">馬頔</span><span class="chip cn">堯十三</span><span class="chip cn">樸樹</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>16. 鄉村 · Country</h3>
+    <p class="tag">库里暂无该标签歌手</p>
+    <div class="chips">
+      <span class="chip">Johnny Cash</span><span class="chip">Dolly Parton</span><span class="chip">Willie Nelson</span><span class="chip">Taylor Swift</span>
+      <span class="chip">Chris Stapleton</span><span class="chip">Luke Combs</span><span class="chip">Morgan Wallen</span><span class="chip">Kacey Musgraves</span>
+      <span class="chip">Blake Shelton</span><span class="chip">Carrie Underwood</span><span class="chip">Keith Urban</span><span class="chip">Tim McGraw</span>
+      <span class="chip">Faith Hill</span><span class="chip">Shania Twain</span><span class="chip">Garth Brooks</span><span class="chip">Alan Jackson</span>
+      <span class="chip">Kenny Rogers</span><span class="chip">Reba McEntire</span><span class="chip">Miranda Lambert</span><span class="chip">Brad Paisley</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>17. 節慶 · Holiday</h3>
+    <p class="tag">库里 1 位歌手</p>
+    <div class="chips">
+      <span class="chip">Mariah Carey</span><span class="chip">Michael Bublé</span><span class="chip">Wham!</span><span class="chip">Bing Crosby</span>
+      <span class="chip">Nat King Cole</span><span class="chip">Frank Sinatra</span><span class="chip">Pentatonix</span><span class="chip">Josh Groban</span>
+      <span class="chip">Celine Dion</span><span class="chip">Dean Martin</span><span class="chip">Andy Williams</span><span class="chip">John Lennon</span>
+      <span class="chip">Brenda Lee</span><span class="chip">Bobby Helms</span><span class="chip">Sia</span><span class="chip">Sam Smith</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>18. 原聲配樂 · Soundtrack</h3>
+    <p class="tag">库里 2 位歌手</p>
+    <div class="chips">
+      <span class="chip">Hans Zimmer</span><span class="chip">John Williams</span><span class="chip">Ennio Morricone</span><span class="chip">Alexandre Desplat</span>
+      <span class="chip">Danny Elfman</span><span class="chip">Michael Giacchino</span><span class="chip">Howard Shore</span><span class="chip">Alan Silvestri</span>
+      <span class="chip">Ludwig Göransson</span><span class="chip">Trent Reznor &amp; Atticus Ross</span><span class="chip">Ramin Djawadi</span><span class="chip">Max Richter</span>
+      <span class="chip">Ólafur Arnalds</span><span class="chip">Jóhann Jóhannsson</span><span class="chip">Thomas Newman</span><span class="chip">James Horner</span>
+      <span class="chip jp">久石譲</span><span class="chip jp">坂本龍一</span><span class="chip jp">澤野弘之</span><span class="chip jp">菅野よう子</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>19. 华语新生代（附加册 · 并入 國語流行樂）</h3>
+    <p class="tag">你点名要的：国语那 20 位偏 2000-2015，新生代单独一册</p>
+    <div class="chips">
+      <span class="chip cn">周興哲</span><span class="chip cn">韋禮安</span><span class="chip cn">徐佳瑩</span><span class="chip cn">艾怡良</span>
+      <span class="chip cn">孫盛希</span><span class="chip cn">9m88</span><span class="chip cn">高爾宣</span><span class="chip cn">吳青峰</span>
+      <span class="chip cn">家家</span><span class="chip cn">李佳薇</span><span class="chip cn">王詩安</span><span class="chip cn">陳零九</span>
+      <span class="chip cn">邱鋒澤</span><span class="chip cn">婁峻碩</span><span class="chip cn">持修</span><span class="chip cn">熊仔</span>
+      <span class="chip cn">李浩瑋</span><span class="chip cn">魏如萱</span><span class="chip cn">鄭宜農</span><span class="chip cn">柯智棠</span>
+    </div>
+  </div>
+
+  <div class="g">
+    <h3>20. 华语乐队（附加册 · 并入 廣東歌香港流行樂 / 搖滾 / 另類音樂）</h3>
+    <p class="tag">你点名要的：告五人这种乐队单独一册</p>
+    <div class="chips">
+      <span class="chip cn">五月天</span><span class="chip cn">蘇打綠</span><span class="chip cn">告五人</span><span class="chip cn">茄子蛋</span>
+      <span class="chip cn">老王樂隊</span><span class="chip cn">宇宙人</span><span class="chip cn">麋先生</span><span class="chip cn">理想混蛋</span>
+      <span class="chip cn">落日飛車</span><span class="chip cn">草東沒有派對</span><span class="chip cn">溫室雜草</span><span class="chip cn">傷心欲絕</span>
+      <span class="chip cn">美秀集團</span><span class="chip cn">椅子樂團</span><span class="chip cn">大象體操</span>
+      <span class="chip cn">Dear Jane</span><span class="chip cn">RubberBand</span><span class="chip cn">Supper Moment</span><span class="chip cn">ToNick</span>
+      <span class="chip cn">萬能青年旅店</span><span class="chip cn">痛仰</span><span class="chip cn">新褲子</span><span class="chip cn">五條人</span>
+      <span class="chip cn">二手玫瑰</span><span class="chip cn">刺蝟</span><span class="chip cn">逃跑計劃</span><span class="chip cn">房東的貓</span>
+      <span class="chip cn">好妹妹</span><span class="chip cn">後海大鯊魚</span>
+    </div>
+    <p class="note">台湾 / 香港 / 内地三个语境都有 —— 粤语区选「廣東歌」时能拉到 Dear Jane、RubberBand；选「搖滾」时能拉到五月天、告五人、万青。</p>
+  </div>
+
+  <div class="box">
+    <h2>落地结果（2026-09-23 已生效）</h2>
+    <p>① <b>作用范围</b>：只影响 <b>流派模式 + 年代模式</b>（按你的选择），不动"手动挑选歌手搜索"。</p>
+    <p>② <b>补足顺序</b>：Apple 榜单 → <b>白名单逐个搜</b> → 关键词源；名字搜不到的静默跳过。</p>
+    <p>③ <b>池子排序</b>：流派/年代池轮转取张时，白名单大牌按 <b>2:1 交错</b> 排前面 —— 约 2/3 名额给大牌、1/3 留给其他歌手，避免每次都是同一批人（自检实测：年代池 12 张 = 8 位大牌 + 4 位其他）。</p>
+    <p>④ <b>没动的东西</b>：张数、封顶（年代/流派仍 32）、赛程公式、计分 —— 一律没碰。</p>
+    <p>⑤ <b>自检</b>：<code>scripts/verify-whitelist.mjs</code> 14/14（含"繁体流派名能命中"「前缀匹配不误伤」「年代池大牌不独占」）；<code>scripts/verify-era.mjs</code> 15/15 无回归。</p>
+    <p>⑥ <b>踩到的坑（已修）</b>：库里流派标签是<b>繁体</b>（搖滾 / 韓國流行樂 / 廣東歌香港流行樂），白名单键一开始按简体写 → 精确命中不了、名单静默失效。已加 <code>CANON</code> 繁简映射表并写进自检。</p>
+  </div>
+
+  <div class="ft">音格 · 流派歌手白名单（草稿 v1）· 待确认后落地 · 生成于 2026-09-23</div>
+</div>
+</body>
+</html>

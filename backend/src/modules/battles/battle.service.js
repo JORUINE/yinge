@@ -25,6 +25,8 @@ import {
 import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
 import { ensureEraPool } from '../music/eraExpand.js';
+// 白名单「知名歌手」判定：流派/年代池轮转取张时让大牌排在前面（只调顺序，不动张数/公式）
+import { isWhitelistedArtist } from '../../data/genreWhitelist.js';
 import * as bracket from './bracket.js';
 
 const byReleaseThenId = (a, b) => {
@@ -32,6 +34,37 @@ const byReleaseThenId = (a, b) => {
   const tb = b.releaseDate ? new Date(b.releaseDate).getTime() : Number.MAX_SAFE_INTEGER;
   return ta - tb || a.albumId - b.albumId;
 };
+
+/**
+ * 「知名歌手优先」的桶排序（2026-09-23 用户拍板：白名单要影响流派/年代模式）
+ * ------------------------------------------------------------
+ * 背景：用户同时要两个目标 —— ① 要有大牌（"一个出名的大牌歌手都没有"）② 要多元。
+ * 若纯粹把白名单歌手全排前面，年代池（本地 1100+ 张专辑）每次都会被同一批
+ * 港台大牌填满 —— 大牌有了，多样性没了。自检实测到过这个副作用。
+ *
+ * 做法：**2:1 交错** —— 大牌、大牌、其他、大牌、大牌、其他…… 于是 cap 个名额里
+ * 约 2/3 是白名单大牌、1/3 留给其余歌手，两个目标同时满足。
+ *
+ * ⚠️ 只影响**顺序**：张数、封顶（ERA_MAX_POOL / 32）、赛程公式一律不动。
+ * @param {Array<[number, Array]>} entries byArtist 的 [artistId, albums] 列表
+ * @param {Map<number,string>} nameById artistId → 歌手名
+ */
+function orderBucketsForPool(entries, nameById) {
+  const famous = [];
+  const others = [];
+  for (const [id, bucket] of entries) {
+    const target = isWhitelistedArtist(nameById.get(id) || '') ? famous : others;
+    target.push([...bucket]);
+  }
+  const out = [];
+  let fi = 0;
+  let oi = 0;
+  while (fi < famous.length || oi < others.length) {
+    for (let k = 0; k < 2 && fi < famous.length; k += 1) out.push(famous[fi++]);
+    if (oi < others.length) out.push(others[oi++]);
+  }
+  return out;
+}
 
 /**
  * 需要「跨歌手对局」的范围模式（《系统设计文档》4.4 规则 2）。
@@ -224,7 +257,13 @@ export async function resolvePool(payload) {
 
     // 各歌手轮转取一张封顶（默认 32）：既压住规模，又保证流派池里歌手足够多、谁也不挤谁
     const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
-    const buckets = [...byArtist.values()].map((bucket) => [...bucket]);
+    const nameById = new Map(matched.map((a) => [a.artistId, a.name]));
+    /**
+     * ⚠️ 2026-09-23 用户拍板「白名单要影响流派模式」：
+     * 轮转取张时让白名单大牌靠前（2:1 交错，见 orderBucketsForPool）。
+     * 只调顺序：张数、封顶、赛程公式一律不动。
+     */
+    const buckets = orderBucketsForPool([...byArtist.entries()], nameById);
     const picked = [];
     let progressed = true;
     while (picked.length < cap && progressed) {
@@ -240,8 +279,6 @@ export async function resolvePool(payload) {
     }
     picked.sort(byReleaseThenId);
 
-    const docs = await Artist.find({ artistId: { $in: [...byArtist.keys()] } }).select('artistId name');
-    const nameById = new Map(docs.map((d) => [d.artistId, d.name]));
     const countById = new Map();
     for (const al of picked) {
       const key = Number(al.artistExternalId);
@@ -283,7 +320,17 @@ export async function resolvePool(payload) {
 
     // 参赛池封顶 + 歌手均衡：按"各歌手轮转取一张"挑选，专辑多的歌手不会挤掉专辑少的，
     // 既把规模压在 ERA_MAX_POOL 以内，又保证池子里歌手足够多（跨歌手对阵才有得打）。
-    const buckets = [...byArtist.values()].map((bucket) => [...bucket]);
+    const eraDocs = await Artist.find({ artistId: { $in: [...byArtist.keys()] } }).select(
+      'artistId name',
+    );
+    const eraNameById = new Map(eraDocs.map((d) => [d.artistId, d.name]));
+    /**
+     * ⚠️ 2026-09-23 用户拍板「白名单要影响年代模式」+ 用户报「粤语专辑好多 / 一个大牌都没有」：
+     * 轮转取张时让白名单大牌靠前（2:1 交错，见 orderBucketsForPool）——
+     * 既让大牌进池，又保留 1/3 名额给其余歌手，不至于每次都同一批人。
+     * ⚠️ 只调**顺序**：张数、封顶、赛程公式一律不动。
+     */
+    const buckets = orderBucketsForPool([...byArtist.entries()], eraNameById);
     const picked = [];
     let progressed = true;
     while (picked.length < cap && progressed) {
@@ -299,9 +346,6 @@ export async function resolvePool(payload) {
     }
     picked.sort(byReleaseThenId);
 
-    const ids = [...byArtist.keys()];
-    const docs = await Artist.find({ artistId: { $in: ids } }).select('artistId name');
-    const nameById = new Map(docs.map((d) => [d.artistId, d.name]));
     const countById = new Map();
     for (const al of picked) {
       const key = Number(al.artistExternalId);
@@ -309,7 +353,7 @@ export async function resolvePool(payload) {
     }
     const artists = [...countById.keys()].map((id) => ({
       artistId: id,
-      name: nameById.get(id) || `歌手 ${id}`,
+      name: eraNameById.get(id) || `歌手 ${id}`,
       albumCount: countById.get(id),
     }));
 
