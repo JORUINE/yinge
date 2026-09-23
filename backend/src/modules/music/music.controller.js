@@ -117,6 +117,12 @@ export async function discoverGenreArtists(req, res) {
 /**
  * M-09 把发现的歌手同步进曲库（前端分批调用，每批最多 8 位）
  */
+/** 白名单名单（瞬时，不打 iTunes）—— 供"点开就能看到这册里都有谁" */
+export async function genreWhitelist(req, res) {
+  const { genre } = req.validated.query;
+  return ok(res, await genreExpand.whitelistOfGenre(genre));
+}
+
 export async function warmGenreArtists(req, res) {
   const { genre, artistIds } = req.validated.body;
   const data = await genreExpand.warmGenreArtists(genre, artistIds);

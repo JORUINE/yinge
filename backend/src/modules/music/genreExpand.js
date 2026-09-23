@@ -17,7 +17,7 @@
 import { Artist } from '../../models/index.js';
 import * as itunes from './itunes.client.js';
 import { looksLikeArtistList } from './admission.js';
-import { whitelistNamesFor } from '../../data/genreWhitelist.js';
+import { whitelistNamesFor, sameArtistName } from '../../data/genreWhitelist.js';
 
 /**
  * 流派 → 检索词 + 认可的 iTunes 流派标签关键词。
@@ -271,6 +271,38 @@ function skipArtist(name, genre) {
     }
   }
   return { strict, loose };
+}
+
+/**
+ * 白名单名单（**瞬时**，不打 iTunes）—— 2026-09-23 用户：
+ * "我希望这里增加点开就能看到的我们白名单内置的歌手名单"。
+ * ------------------------------------------------------------
+ * 与 discoverGenreArtists 的分工：
+ *   · discover  —— 要逐个名字去 iTunes 搜（慢、依赖外网），用于"把还没入库的知名歌手找出来"；
+ *   · 本函数    —— 只读本地白名单清单 + **一次** DB 查询标注"已入库"，毫秒级返回。
+ * 于是"点开看看这册里都有谁"不再需要等搜索（用户同时抱怨了"查找速度太慢"）。
+ */
+export async function whitelistOfGenre(genre) {
+  const names = whitelistNamesFor(genre, normalizeGenre);
+  if (!names.length) return { genre, total: 0, cached: 0, artists: [] };
+  // 一次扫描库里歌手（本地库千余条，毫秒级），用宽松名字匹配标注已入库
+  const all = await Artist.find({}).select('artistId name albumCount genre').lean();
+  const artists = names.map((name) => {
+    const hit = all.find((a) => sameArtistName(a.name, name));
+    return {
+      name,
+      cached: Boolean(hit),
+      artistId: hit?.artistId || null,
+      localAlbumCount: hit?.albumCount || 0,
+      localGenre: hit?.genre || null,
+    };
+  });
+  return {
+    genre,
+    total: artists.length,
+    cached: artists.filter((a) => a.cached).length,
+    artists,
+  };
 }
 
 /**

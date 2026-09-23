@@ -96,10 +96,11 @@ ok('韓國流行樂（中文标签）→ 含 BTS', () => {
   assert.ok(n.includes('BTS'), '缺 BTS');
 });
 
-ok('廣東歌/香港流行樂 → 含 陳奕迅，且并入了华语乐队', () => {
+ok('廣東歌/香港流行樂 → 含 陳奕迅 + 港澳乐队，但**不含国语乐队**', () => {
   const n = whitelistNamesFor('廣東歌/香港流行樂', normalizeGenre);
   assert.ok(n.includes('陳奕迅'), '缺 陳奕迅');
-  assert.ok(n.includes('Dear Jane'), '没并入华语乐队');
+  assert.ok(n.includes('Dear Jane'), '缺港澳乐队');
+  assert.ok(!n.includes('五月天'), '混进了国语乐队（用户报的"出来一堆其他类型的"）');
 });
 
 ok('国语流行乐 → 主名单 + 新生代 都在（周杰倫、周興哲）', () => {
@@ -129,6 +130,62 @@ ok('isWhitelistedArtist：大牌 true / 冷门 false / 带后缀 true', () => {
 
 ok('白名单全量集合规模合理（>200 位）', () => {
   assert.ok(WHITELIST_NAME_SET.size > 200, `只有 ${WHITELIST_NAME_SET.size}`);
+});
+
+/**
+ * ⚠️ 这条是"防白名单静默失效"的守门断言 —— 用户报的
+ * 「你白名单里写的好好的流行乐 pop 这里也没有」就是它抓出来的：
+ * 库里标签是繁体「流行樂」而白名单键是简体「流行乐」，CANON 恰好漏了一个 →
+ * whitelistNamesFor 返回空 → 白名单静默失效 → 退回 Apple 榜单（出来一堆冷门）。
+ * 所以这里把**曲库里真实存在的标签**逐个过一遍，任何一个解析为空都算错。
+ */
+ok('每个真实流派标签都能命中白名单（繁简都认，防静默失效）', () => {
+  const REAL = [
+    ['流行樂', 'Taylor Swift'],
+    ['流行乐', 'Taylor Swift'],
+    ['國語流行樂', '周杰倫'],
+    ['國語流行樂', '周興哲'],
+    ['廣東歌/香港流行樂', '陳奕迅'],
+    ['Hip-Hop/Rap', 'Drake'],
+    ['Hip-Hop', 'Drake'],
+    ['搖滾', 'The Beatles'],
+    ['硬搖滾', 'AC/DC'],
+    ['另類音樂', 'Radiohead'],
+    ['舞曲', 'Calvin Harris'],
+    ['電子音樂', 'Daft Punk'],
+    ['R&B/騷靈樂', 'SZA'],
+    ['當代 R&B', 'SZA'],
+    ['爵士', 'Miles Davis'],
+    ['古典樂', 'Beethoven'],
+    ['器樂', 'Max Richter'],
+    ['民謠', 'Bob Dylan'],
+    ['鄉村', 'Johnny Cash'],
+    ['節慶', 'Mariah Carey'],
+    ['原聲配樂', 'Hans Zimmer'],
+    ['韓國流行樂', 'BTS'],
+    ['日本流行樂', '米津玄師'],
+    ['華語 Hip-Hop', 'MC HotDog 熱狗'],
+  ];
+  for (const [g, name] of REAL) {
+    const list = whitelistNamesFor(g, normalizeGenre);
+    assert.ok(list.length > 0, `「${g}」白名单为空（静默失效）`);
+    assert.ok(list.includes(name), `「${g}」里缺 ${name}`);
+  }
+});
+
+ok('粤语流派不再混入国语乐队（用户报"出来一堆其他类型的"）', () => {
+  const cant = whitelistNamesFor('廣東歌/香港流行樂', normalizeGenre);
+  for (const bad of ['五月天', '告五人', '萬能青年旅店', '蘇打綠', '草東沒有派對']) {
+    assert.ok(!cant.includes(bad), `粤语流派里混进了 ${bad}`);
+  }
+  const rock = whitelistNamesFor('搖滾', normalizeGenre);
+  assert.ok(rock.includes('五月天'), '摇滚流派应该并进华语乐队');
+});
+
+ok('Hip-Hop/Rap 与 Hip-Hop 解析到同一份名单（避免重复 chip）', () => {
+  const a = whitelistNamesFor('Hip-Hop/Rap', normalizeGenre);
+  const b = whitelistNamesFor('Hip-Hop', normalizeGenre);
+  assert.deepEqual(a, b);
 });
 
 console.log('\n=== B. 连库段（池子里大牌真的排前面了吗）===');

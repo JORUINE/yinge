@@ -66,6 +66,16 @@ router.get(
   validate(genreDiscoverSchema, 'query'),
   asyncHandler(controller.discoverGenreArtists),
 );
+/**
+ * 白名单名单（2026-09-23 用户："我希望这里增加点开就能看到的我们白名单内置的歌手名单"）。
+ * ⚠️ 与 /genres/discover 的区别：discover 要逐个去 iTunes 搜（慢、依赖外网）；
+ *    这个只读本地白名单 + 一次 DB 查询标注"已入库"，**毫秒级**即可返回。
+ */
+router.get(
+  '/genres/whitelist',
+  validate(genreDiscoverSchema, 'query'),
+  asyncHandler(controller.genreWhitelist),
+);
 router.post(
   '/genres/warm',
   validate(genreWarmSchema, 'body'),

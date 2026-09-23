@@ -193,14 +193,32 @@ export const EXTRA_LISTS = {
     '萬能青年旅店', '痛仰', '新褲子', '五條人', '二手玫瑰',
     '刺蝟', '逃跑計劃', '房東的貓', '好妹妹', '後海大鯊魚',
   ],
+  /**
+   * 粤语乐队（= 华语乐队的**港澳子集**）
+   * ------------------------------------------------------------
+   * 2026-09-23 用户报「点开广东流行乐查看有哪些歌手，出来一堆其他类型的」——
+   * 因为原来把**整个**华语乐队册（含五月天/苏打绿/告五人 等国语团）都并进了粤语流派。
+   * 现在拆开：粤语流派只并这一册（港澳团），国语团归「摇滚 / 另类音乐」。
+   */
+  粤语乐队: [
+    'Dear Jane', 'RubberBand', 'Supper Moment', 'ToNick',
+    'Kolor', '鐵樹蘭', 'Zpecial', 'Nowhere Boys', 'My Little Airport',
+  ],
 };
 
 /** 流派键 → 还要并进哪些附加名单 */
 export const EXTRA_MERGE = {
   国语流行乐: ['华语新生代'],
-  广东歌香港流行乐: ['华语乐队'],
-  摇滚: ['华语乐队'],
-  另类音乐: ['华语乐队'],
+  /**
+   * ⚠️ 2026-09-23 用户报「我点开广东流行乐查看有哪些歌手，出来一堆其他类型的」——
+   * 根因就是这里原来把「华语乐队」并进了「广东歌香港流行乐」：
+   * 于是粤语流派的名单里混进了五月天 / 苏打绿 / 告五人 / 万能青年旅店 这些国语乐团。
+   * 已移除。乐队册只并入「摇滚」「另类音乐」，不再碰粤语。
+   */
+  // 粤语流派只并「粤语乐队」（港澳团）—— 不并国语团，否则又会混进五月天那批
+  广东歌香港流行乐: ['粤语乐队'],
+  摇滚: ['华语乐队', '粤语乐队'],
+  另类音乐: ['华语乐队', '粤语乐队'],
 };
 
 /* ------------------------------------------------------------------
@@ -245,6 +263,33 @@ const CANON = {
   中文乐队: '华语乐队',
   中文樂隊: '华语乐队',
 };
+
+/**
+ * 繁 → 简 逐字兜底表（2026-09-23 自检抓到的 bug 的通用解法）
+ * ------------------------------------------------------------
+ * 用户报「你白名单里写的好好的流行乐 pop 这里也没有」——
+ * 根因：库里标签是 **繁体**「流行樂」，而白名单键按简体写「流行乐」，
+ * CANON 里**恰好漏了这一个**，于是 `whitelistNamesFor('流行樂')` 返回空、
+ * 白名单静默失效、退回 Apple 榜单（于是出来 Charli xcx / BABYLONSTER 那批）。
+ * 逐个手写 CANON 迟早再漏，所以改成"逐字繁简兜底 + CANON 特例优先"：
+ * 任何繁体流派名都会先被逐字转简，再查白名单，**结构上不可能再漏**。
+ */
+const T2S = {
+  樂: '乐', 語: '语', 國: '国', 華: '华', 廣: '广', 東: '东', 團: '团', 隊: '队',
+  節: '节', 慶: '庆', 電: '电', 聲: '声', 韻: '韵', 藍: '蓝', 調: '调', 搖: '摇',
+  滾: '滚', 鄉: '乡', 謠: '谣', 類: '类', 曲: '曲', 醫: '医', 劇: '剧', 藝: '艺',
+};
+function toSimplified(s) {
+  return String(s).replace(/[樂語國華廣東團隊節慶電聲韻藍調搖滾鄉謠類劇藝]/g, (c) => T2S[c] || c);
+}
+
+/** 流派词 → 白名单规范键：CANON 特例优先，其次逐字繁转简，最后原样返回 */
+function canonKey(raw) {
+  if (CANON[raw]) return CANON[raw];
+  const s = toSimplified(raw);
+  if (CANON[s]) return CANON[s];
+  return s;
+}
 
 /** 派生的「并进哪册」映射：规范键 → 附加册（含 CANON 反向补齐的繁体键） */
 const MERGE_BY_KEY = (() => {
@@ -309,7 +354,7 @@ export function isWhitelistedArtist(name) {
 export function whitelistNamesFor(genre, normalizeGenre) {
   const raw = normalizeGenre(genre);
   if (!raw) return [];
-  const key = CANON[raw] || raw;
+  const key = canonKey(raw);
   const main = GENRE_WHITELIST[key] || EXTRA_LISTS[key];
   if (!main) return [];
   const extras = (MERGE_BY_KEY[key] || []).flatMap((n) => EXTRA_LISTS[n] || []);
@@ -332,7 +377,7 @@ export function sameArtistName(a, b) {
 export function curatedListOf(genre, normalizeGenre) {
   const raw = normalizeGenre(genre);
   if (!raw) return null;
-  const key = CANON[raw] || raw;
+  const key = canonKey(raw);
   return EXTRA_LISTS[key] ? key : null;
 }
 

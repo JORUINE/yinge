@@ -750,10 +750,29 @@ const genreOptions = ref([]);
  * 数字由白名单定义，编在前端就是第二个真相源，迟早对不上。
  */
 const CURATED_GENRES = ['華語新生代', '華語樂隊'];
+/**
+ * 同一个白名单的别名流派 → 只留一个 chip（用户 2026-09-23："hiphop 留一个就行了"）。
+ * 库里同时存在「Hip-Hop/Rap」与「Hip-Hop」（iTunes 不同批次给的标签不一样），
+ * 它们解析到**同一份白名单**，并排两个 chip 只会让人以为玩法不同。
+ * 同理「當代 R&B」与「R&B/騷靈樂」。
+ */
+const GENRE_CANON_UI = {
+  'hip-hop': 'Hip-Hop/Rap',
+  'hip hop': 'Hip-Hop/Rap',
+  '當代 r&b': 'R&B/騷靈樂',
+  '当代 r&b': 'R&B/騷靈樂',
+};
 function withCurated(list) {
   const rest = (list || []).filter((g) => !CURATED_GENRES.includes(g.genre));
+  // 按规范名合并，保留歌手数最多的那条（数字仅供参考，最终由后端按白名单组池）
+  const byKey = new Map();
+  for (const g of rest) {
+    const k = GENRE_CANON_UI[String(g.genre).trim().toLowerCase()] || g.genre;
+    const prev = byKey.get(k);
+    if (!prev || (g.artists || 0) > (prev.artists || 0)) byKey.set(k, { ...g, genre: k });
+  }
   const curated = CURATED_GENRES.map((g) => ({ genre: g, artists: 0, curated: true }));
-  return [...curated, ...rest];
+  return [...curated, ...byKey.values()];
 }
 
 // —— 流派歌手扩充（Apple Music 抓同流派的歌手补进曲库）——
