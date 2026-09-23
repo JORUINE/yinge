@@ -421,7 +421,7 @@
               :class="{ on: genre === g.genre }"
               @click="genre = g.genre"
             >
-              {{ g.genre }}<i>{{ g.artists }} 位歌手</i>
+              {{ g.genre }}<i>{{ g.curated ? '策展名单' : `${g.artists} 位歌手` }}</i>
             </button>
           </div>
           <p v-else class="hint">
@@ -533,6 +533,32 @@
               {{ n }} 张
             </button>
           </div>
+        </div>
+        <!-- 地区/语种筛选（2026-09-23 用户拍板）：
+             两级 —— 华语区 / 外语区，选定后再细分语种；都不勾＝混着打（与改动前行为一致）。
+             起因：用户报年代模式"粤语专辑好多"，因为年代区间横跨所有地区、本地港台歌手本来就多。 -->
+        <div class="block">
+          <h4>地区 / 语种 <em>不勾＝混着打</em></h4>
+          <div class="seg" style="margin-top: 8px">
+            <button type="button" :class="{ on: zoneFilter === '' }" @click="setZone('')">不限</button>
+            <button type="button" :class="{ on: zoneFilter === 'zh' }" @click="setZone('zh')">华语区</button>
+            <button type="button" :class="{ on: zoneFilter === 'foreign' }" @click="setZone('foreign')">外语区</button>
+          </div>
+          <div v-if="zoneFilter" class="seg" style="margin-top: 8px">
+            <button type="button" :class="{ on: langFilter === '' }" @click="langFilter = ''">全部语种</button>
+            <button
+              v-for="l in langOptions"
+              :key="l.value"
+              type="button"
+              :class="{ on: langFilter === l.value }"
+              @click="langFilter = l.value"
+            >
+              {{ l.label }}
+            </button>
+          </div>
+          <p class="hint">
+            选「华语区」但不选具体语种时，池子会按语种<b>交替均衡</b> —— 不会一边倒向粤语。
+          </p>
         </div>
         <p class="hint">命中的合格专辑会各歌手轮转抽，最多取你选的张数；流派 / 年代歌手越多，越能凑出跨歌手对阵（先点上方"一键补知名歌手"把该流派的大牌加进曲库）。</p>
       </div>
@@ -713,16 +739,34 @@ const QUICK = ['周杰伦', '林俊杰', '陈奕迅', '陶喆'];
 /** 流派选项：来自曲库的真实流派（带歌手数）；拉不到就只留手输框 */
 const genreOptions = ref([]);
 
+/**
+ * 策展流派（2026-09-23 用户："流派里加上你已经做出来的华语新人，单开一个新生代"）。
+ * ------------------------------------------------------------
+ * ⚠️ 华语新生代 / 华语乐队**不是 Apple 的流派标签** —— 库里不会有歌手带这个标签，
+ *    所以它们永远不可能从 `listGenres()`（按 Artist.genre 聚合）里冒出来。
+ *    做法：前端固定挂这两个入口；后端遇到它们时走"按白名单名字匹配已缓存歌手"
+ *    （battle.service 的 curatedListOf 分支），而不是 genre 正则。
+ * 歌手数不硬编：策展流派不显示"N 位歌手"，只显示「策展名单」——
+ * 数字由白名单定义，编在前端就是第二个真相源，迟早对不上。
+ */
+const CURATED_GENRES = ['華語新生代', '華語樂隊'];
+function withCurated(list) {
+  const rest = (list || []).filter((g) => !CURATED_GENRES.includes(g.genre));
+  const curated = CURATED_GENRES.map((g) => ({ genre: g, artists: 0, curated: true }));
+  return [...curated, ...rest];
+}
+
 // —— 流派歌手扩充（Apple Music 抓同流派的歌手补进曲库）——
 const discovering = ref(false);
 const growing = ref(false);
 const discovered = ref([]);
 const discoverNote = ref('');
 const warmDone = ref(0);
-/** 这个流派在曲库里现存的歌手数 */
-const genreCount = computed(
-  () => genreOptions.value.find((g) => g.genre === genre.value)?.artists || 0,
-);
+/** 这个流派在曲库里现存的歌手数（策展流派返回 null —— 它的歌手集合由白名单定义，不是 genre 聚合出来的） */
+const genreCount = computed(() => {
+  const hit = genreOptions.value.find((g) => g.genre === genre.value);
+  return hit?.curated ? null : hit?.artists || 0;
+});
 /** 还没入库的那些（只补这些，已入库的不重复拉） */
 const missing = computed(() => discovered.value.filter((a) => !a.cached));
 /**
@@ -734,7 +778,7 @@ const warmPick = ref([]);
 onMounted(async () => {
   try {
     const data = await musicApi.listGenres();
-    genreOptions.value = data.list || [];
+    genreOptions.value = withCurated(data.list);
   } catch {
     /* 忽略：流派选项拉不到不影响手输 */
   }
@@ -822,7 +866,7 @@ async function warmSelected() {
     ElMessage.success(`已把 ${saved} 位歌手补进曲库，现在可以按「${genre.value.trim()}」开局了`);
     // 刷新流派列表，让歌手数显示同步更新
     const g = await musicApi.listGenres();
-    genreOptions.value = g.list || [];
+    genreOptions.value = withCurated(g.list);
   } catch (e) {
     ElMessage.error(e?.message || '入库失败');
   } finally {
@@ -908,6 +952,32 @@ const genreOrEra = ref('genre');
 const genre = ref('Pop');
 const yearStart = ref(2000);
 const yearEnd = ref(2020);
+/**
+ * 地区 / 语种两级筛选（2026-09-23 用户拍板："新增一个华语区 外语区，如果不勾选就是混在一起打"）。
+ * 语义与后端 passesLanguageFilter 一致：
+ *   zone 空 → 混着打（**与改动前行为完全一致**，老组合/老局面不受影响）
+ *   zone='zh'  → 华语区（国语 + 粤语）；再选 lang 就只留该语种
+ *   zone='foreign' → 外语区（日语 + 韩语 + 欧美）
+ */
+const zoneFilter = ref('');
+const langFilter = ref('');
+const LANG_BY_ZONE = {
+  zh: [
+    { value: 'mandarin', label: '国语' },
+    { value: 'cantonese', label: '粤语' },
+  ],
+  foreign: [
+    { value: 'japanese', label: '日语' },
+    { value: 'korean', label: '韩语' },
+    { value: 'western', label: '欧美' },
+  ],
+};
+/** 子语种只列当前大区下的，避免出现"外语区 + 粤语"这种自相矛盾的组合 */
+const langOptions = computed(() => LANG_BY_ZONE[zoneFilter.value] || []);
+function setZone(z) {
+  zoneFilter.value = z;
+  langFilter.value = '';
+}
 // 年代专辑池补足（#84）：区间内本地专辑不够时，从 Apple Music 把已知歌手整张碟同步进来
 const eraBackfilling = ref(false);
 const eraBackfillNote = ref('');
@@ -1637,6 +1707,9 @@ async function onCreate() {
     // ⚠️ 2026-09-23 修复：此前 genre/era 分支从不发 albumCount，后端恒按 ERA_MAX_POOL(32) 封顶，
     //    用户在前端无论怎么选"几张参战"都无效。现在把选中的张数真正传进去（后端 resolvePool 已支持）。
     payload.albumCount = genreEraScale.value;
+    // 地区/语种筛选（不勾就不发，后端视为"混着打"，与改动前行为一致）
+    if (zoneFilter.value) payload.zone = zoneFilter.value;
+    if (langFilter.value) payload.lang = langFilter.value;
     if (genreOrEra.value === 'genre') {
       payload.scopeType = 'genre';
       payload.genre = genre.value.trim();

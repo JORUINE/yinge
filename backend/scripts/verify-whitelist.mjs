@@ -9,6 +9,7 @@
  */
 import assert from 'node:assert/strict';
 import { connectDb, disconnectDb } from '../src/db/connect.js';
+import { Artist } from '../src/models/index.js';
 import * as battleService from '../src/modules/battles/battle.service.js';
 import {
   GENRE_WHITELIST,
@@ -18,7 +19,14 @@ import {
   isWhitelistedArtist,
   whitelistNamesFor,
   normArtistName,
+  curatedListOf,
 } from '../src/data/genreWhitelist.js';
+import {
+  languageTagOf,
+  passesLanguageFilter,
+  interleaveByLang,
+  zoneOfLang,
+} from '../src/data/languageTag.js';
 import { normalizeGenre } from '../src/modules/music/genreExpand.js';
 
 let pass = 0;
@@ -157,6 +165,175 @@ await okAsync('流派池（Hip-Hop/Rap, 选 12 张）能成局且不超封顶', 
   console.log(`     其中白名单大牌 ${famous.length} 位：${famous.join('、') || '（无）'}`);
   assert.ok(r.albums.length >= 4, `池子太小：${r.albums.length}`);
   assert.ok(r.albums.length <= 32, `超过封顶：${r.albums.length}`);
+});
+
+await okAsync('策展流派「華語新生代」能组池（库里没有就给可读提示，不崩）', async () => {
+  try {
+    const r = await battleService.resolvePool({
+      scopeType: 'genre',
+      genre: '華語新生代',
+      albumCount: 8,
+    });
+    console.log(
+      `     华语新生代池：${r.albums.length} 张 / ${r.artists.length} 位 → ${r.artists.map((a) => a.name).join('、')}`,
+    );
+    assert.ok(r.albums.length >= 1, '池子空');
+  } catch (e) {
+    console.log(`     预期内的提示：${e.message}`);
+    assert.ok(/策展名单|一键补知名歌手/.test(e.message), `错误信息不可读：${e.message}`);
+  }
+});
+
+console.log('\n=== D. 语种/地区筛选（2026-09-23 两级：华语区/外语区 → 语种）===');
+
+ok('languageTagOf：genre 语种词优先（最准）', () => {
+  assert.equal(languageTagOf({ genre: '國語流行樂', name: 'x' }), 'mandarin');
+  assert.equal(languageTagOf({ genre: '廣東歌/香港流行樂', name: 'x' }), 'cantonese');
+  assert.equal(languageTagOf({ genre: '韓國流行樂', name: 'x' }), 'korean');
+  assert.equal(languageTagOf({ genre: '日本流行樂', name: 'x' }), 'japanese');
+});
+
+ok('languageTagOf：白名单册归属（华语新生代 → 国语）', () => {
+  assert.equal(languageTagOf({ name: '周興哲' }), 'mandarin');
+  assert.equal(languageTagOf({ name: '陳奕迅' }), 'cantonese');
+  assert.equal(languageTagOf({ name: 'IU' }), 'korean');
+});
+
+ok('languageTagOf：region 兜底 + 字符兜底', () => {
+  assert.equal(languageTagOf({ region: 'kr', name: 'Whatever' }), 'korean');
+  assert.equal(languageTagOf({ region: 'us', name: 'Drake' }), 'western');
+  // 米津玄師 在白名单的日文册里 → 判日语（比"纯汉字回落国语"更准）
+  assert.equal(languageTagOf({ name: '米津玄師' }), 'japanese');
+  assert.equal(languageTagOf({ name: 'ヨルシカ' }), 'japanese'); // 含假名
+  /**
+   * ⚠️ 自检抓出来的真坑：`region` 是 **iTunes 取数地区**（本项目很多欧美歌手是经 hk 区同步的），
+   *    如果让 region 优先，Pink Floyd 会被判成粤语、外语区池子会被清空（实测只剩 1 位歌手）。
+   */
+  assert.equal(languageTagOf({ region: 'hk', name: 'Pink Floyd' }), 'western', '拉丁名 + hk 区不能判成粤语');
+  assert.equal(languageTagOf({ region: 'hk', name: '張國榮' }), 'cantonese', '汉字名 + hk 区 → 粤语');
+  assert.equal(languageTagOf({ region: 'us', name: '某位不存在的汉字歌手' }), 'mandarin', '汉字名 + us 区 → 国语');
+});
+
+ok('zoneOfLang：华语区 = 国语 + 粤语；外语区 = 日/韩/欧美', () => {
+  assert.equal(zoneOfLang('mandarin'), 'zh');
+  assert.equal(zoneOfLang('cantonese'), 'zh');
+  assert.equal(zoneOfLang('japanese'), 'foreign');
+  assert.equal(zoneOfLang('korean'), 'foreign');
+  assert.equal(zoneOfLang('western'), 'foreign');
+});
+
+ok('passesLanguageFilter：不勾＝全通过（与改动前行为一致）', () => {
+  for (const l of ['mandarin', 'cantonese', 'japanese', 'korean', 'western']) {
+    assert.equal(passesLanguageFilter(l, {}), true, `${l} 应通过`);
+  }
+});
+
+ok('passesLanguageFilter：华语区 / 外语区互斥', () => {
+  assert.equal(passesLanguageFilter('mandarin', { zone: 'zh' }), true);
+  assert.equal(passesLanguageFilter('cantonese', { zone: 'zh' }), true);
+  assert.equal(passesLanguageFilter('western', { zone: 'zh' }), false);
+  assert.equal(passesLanguageFilter('japanese', { zone: 'foreign' }), true);
+  assert.equal(passesLanguageFilter('korean', { zone: 'foreign' }), true);
+  assert.equal(passesLanguageFilter('cantonese', { zone: 'foreign' }), false);
+});
+
+ok('passesLanguageFilter：选了子语种就只留该语种', () => {
+  assert.equal(passesLanguageFilter('cantonese', { lang: 'cantonese' }), true);
+  assert.equal(passesLanguageFilter('mandarin', { lang: 'cantonese' }), false);
+  assert.equal(passesLanguageFilter('japanese', { zone: 'foreign', lang: 'japanese' }), true);
+});
+
+ok('interleaveByLang：两个语种交替（治粤语独占）', () => {
+  const src = [
+    { lang: 'cantonese', n: 1 },
+    { lang: 'cantonese', n: 2 },
+    { lang: 'cantonese', n: 3 },
+    { lang: 'mandarin', n: 4 },
+    { lang: 'mandarin', n: 5 },
+  ];
+  const out = interleaveByLang(src);
+  assert.deepEqual(
+    out.map((x) => x.lang),
+    ['cantonese', 'mandarin', 'cantonese', 'mandarin', 'cantonese'],
+  );
+  assert.equal(out.length, src.length);
+});
+
+ok('curatedListOf：新生代 / 华语乐队 能当流派用（简繁都认）', () => {
+  assert.equal(curatedListOf('華語新生代', normalizeGenre), '华语新生代');
+  assert.equal(curatedListOf('华语新生代', normalizeGenre), '华语新生代');
+  assert.equal(curatedListOf('華語樂隊', normalizeGenre), '华语乐队');
+  assert.equal(curatedListOf('摇滚', normalizeGenre), null);
+});
+
+ok('策展流派的名字清单 = 该册本身（不是别的流派）', () => {
+  const n = whitelistNamesFor('華語新生代', normalizeGenre);
+  assert.ok(n.includes('周興哲'), '缺 周興哲');
+  assert.ok(!n.includes('Drake'), '混进了说唱名单');
+});
+
+/** 结果里的歌手 → 用库里真实的 genre/region 派生语种（不能用裸名字，会失真） */
+async function langsOf(result) {
+  const ids = (result.artists || []).map((a) => a.artistId);
+  const docs = await Artist.find({ artistId: { $in: ids } })
+    .select('artistId name genre region')
+    .lean();
+  return docs.map((d) => languageTagOf(d));
+}
+
+await okAsync('年代池 + 华语区（zone=zh）：池里**全是华语歌手**', async () => {
+  const r = await battleService.resolvePool({
+    scopeType: 'era',
+    startYear: 1990,
+    endYear: 2026,
+    albumCount: 16,
+    zone: 'zh',
+  });
+  const langs = await langsOf(r);
+  const set = [...new Set(langs)];
+  console.log(`     华语区池：${r.albums.length} 张 / ${r.artists.length} 位 → 语种：${set.join('、')}`);
+  for (const l of set) assert.equal(zoneOfLang(l), 'zh', `混进了非华语歌手：${l}`);
+  assert.ok(set.length >= 2, `只有 ${set.join('、')} —— 交错均衡没生效（应同时有国语与粤语）`);
+});
+
+await okAsync('年代池 + 外语区（zone=foreign）：池里**没有华语歌手**', async () => {
+  const r = await battleService.resolvePool({
+    scopeType: 'era',
+    startYear: 1990,
+    endYear: 2026,
+    albumCount: 16,
+    zone: 'foreign',
+  });
+  const langs = await langsOf(r);
+  const set = [...new Set(langs)];
+  console.log(`     外语区池：${r.albums.length} 张 / ${r.artists.length} 位 → 语种：${set.join('、')}`);
+  for (const l of set) assert.equal(zoneOfLang(l), 'foreign', `混进了华语歌手：${l}`);
+});
+
+await okAsync('年代池 + 指定粤语（lang=cantonese）：池里全是粤语歌手', async () => {
+  const r = await battleService.resolvePool({
+    scopeType: 'era',
+    startYear: 1990,
+    endYear: 2026,
+    albumCount: 12,
+    lang: 'cantonese',
+  });
+  const langs = await langsOf(r);
+  const set = [...new Set(langs)];
+  console.log(`     粤语池：${r.albums.length} 张 / ${r.artists.length} 位 → 语种：${set.join('、')}`);
+  assert.deepEqual(set, ['cantonese'], `实际语种：${set.join('、')}`);
+});
+
+await okAsync('年代池默认（不传 zone/lang）：语种是混的（向后兼容）', async () => {
+  const r = await battleService.resolvePool({
+    scopeType: 'era',
+    startYear: 1990,
+    endYear: 2026,
+    albumCount: 16,
+  });
+  const langs = [...new Set(await langsOf(r))];
+  console.log(`     默认池：${r.albums.length} 张 / ${r.artists.length} 位 → 语种：${langs.join('、')}`);
+  assert.ok(langs.length >= 2, '默认池应该混着打');
 });
 
 console.log('\n=== C. 发现顺序：白名单是不是真的排在最前（需要外网）===');

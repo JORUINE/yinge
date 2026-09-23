@@ -234,6 +234,16 @@ const CANON = {
   日本流行樂: '日本流行乐',
   // 变体：只写 Hip-Hop 时也走说唱那一册
   hiphop: 'hiphoprap',
+  /* ── 策展流派（不是 iTunes 标签，歌手集合由白名单直接定义）── */
+  華語新生代: '华语新生代',
+  华语新人: '华语新生代',
+  华语新声: '华语新生代',
+  新生代: '华语新生代',
+  華語樂隊: '华语乐队',
+  華語樂團: '华语乐队',
+  华语乐团: '华语乐队',
+  中文乐队: '华语乐队',
+  中文樂隊: '华语乐队',
 };
 
 /** 派生的「并进哪册」映射：规范键 → 附加册（含 CANON 反向补齐的繁体键） */
@@ -259,7 +269,7 @@ export function normArtistName(s) {
  * 严格版把标点全删了，`周杰倫 (Jay Chou)` 会变成 `周杰倫jaychou`，
  * 与 `周杰倫` 只差三个字母却看不出边界 —— 会误判也会漏判。
  */
-function softName(s) {
+export function softNameOf(s) {
   return String(s || '')
     .toLowerCase()
     .replace(/\s+/g, ' ')
@@ -270,7 +280,7 @@ function softName(s) {
 export const WHITELIST_NAME_SET = new Set(
   [...Object.values(GENRE_WHITELIST), ...Object.values(EXTRA_LISTS)]
     .flat()
-    .map(softName)
+    .map(softNameOf)
     .filter(Boolean),
 );
 
@@ -281,7 +291,7 @@ export const WHITELIST_NAME_SET = new Set(
  * ⚠️ 不做"无边界前缀"匹配：否则 `Nas` 会命中 `Nasdaq`、`PSY` 会命中 `Psychedelic Furs`。
  */
 export function isWhitelistedArtist(name) {
-  const n = softName(name);
+  const n = softNameOf(name);
   if (!n) return false;
   if (WHITELIST_NAME_SET.has(n)) return true;
   for (const w of WHITELIST_NAME_SET) {
@@ -291,16 +301,38 @@ export function isWhitelistedArtist(name) {
 }
 
 /**
- * 取某个流派在"补足"时该用的名字清单 = 主名单 + 该流派并进来的附加名单（按顺序、去重）。
+ * 取某个流派在"发现/组池"时该用的名字清单 = 主名单 + 该流派并进来的附加名单（按顺序、去重）。
  * 库里出现表外的流派标签时返回空数组（调用方会退回关键词源，行为与改动前一致）。
+ * ⚠️ 2026-09-23 起，`EXTRA_LISTS` 里的册子**本身也能当流派用**（用户要求"流派里单开一个新生代"）——
+ *    华语新生代 / 华语乐队不是 Apple 的流派标签，所以它们的歌手集合完全由本名单定义。
  */
 export function whitelistNamesFor(genre, normalizeGenre) {
   const raw = normalizeGenre(genre);
   if (!raw) return [];
   const key = CANON[raw] || raw;
-  const main = GENRE_WHITELIST[key];
+  const main = GENRE_WHITELIST[key] || EXTRA_LISTS[key];
   if (!main) return [];
   const extras = (MERGE_BY_KEY[key] || []).flatMap((n) => EXTRA_LISTS[n] || []);
   return [...new Set([...main, ...extras])];
+}
+
+/** 名字是否同一个歌手（宽松归一化后相等，或"名字+空格/左括号"起头） */
+export function sameArtistName(a, b) {
+  const x = softNameOf(a);
+  const y = softNameOf(b);
+  if (!x || !y) return false;
+  return x === y || x.startsWith(`${y} `) || x.startsWith(`${y}(`);
+}
+
+/**
+ * 这个流派词是不是"策展流派"（歌手集合由白名单直接定义，不靠 iTunes 流派标签）。
+ * 是则返回规范键（'华语新生代' / '华语乐队'），否则 null。
+ * 用途：battle.service 组池时，策展流派走"按名字匹配已缓存歌手"，而不是 `genre` 正则。
+ */
+export function curatedListOf(genre, normalizeGenre) {
+  const raw = normalizeGenre(genre);
+  if (!raw) return null;
+  const key = CANON[raw] || raw;
+  return EXTRA_LISTS[key] ? key : null;
 }
 

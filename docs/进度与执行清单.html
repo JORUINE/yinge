@@ -72,6 +72,9 @@
       <li><b>⑦ 年代/流派模式「赛程」不随张数变——已修</b>：以前是一句写死文案（"赛程按实际入池张数生成"），选 8 张还是 32 张一字不变。现在按所选张数<b>算出真实场次</b>，数字随档位实时变化。</li>
       <li><b>⑧ 流派/年代「没有大牌」——已修（人工白名单落地）</b>：Apple 流派榜回答的是"此刻在卖什么"，冷门新专与地区榜会挤掉常青大牌（实测 Hip-Hop 前排是 Upchurch / Novel Fergus）。按你拍板的「榜单 + 人工白名单兜底」，新建 <code>backend/src/data/genreWhitelist.js</code>（<b>20 册 / 约 390 位</b>，含你点名的<b>华语新生代</b>与<b>华语乐队</b>两册）：顺序（按你 9/23 定调再调）＝<b>人工白名单（主）→ Apple 榜单（补足）→ 关键词（兜底）</b> —— 你说得对，白名单那批人更符合大众对各流派的认知；流派/年代池轮转取张时白名单大牌 <b>2:1 交错</b> 排前（约 2/3 大牌 + 1/3 其他，避免每次同一批人）。实测 Hip-Hop 返回 <b>J. Cole / Kendrick / Drake / Travis Scott / Kanye / Eminem / JAY-Z / Nicki Minaj / Future / 21 Savage / Lil Wayne / Tyler</b>；年代池 12 张 = 8 大牌 + 4 其他。<code>verify-whitelist.mjs</code> <b>16/16</b>（含"发现结果前 5 位必须是白名单"）、<code>verify-era.mjs</code> <b>15/15</b> 无回归。<br>
         <span class="muted">踩坑记录：① 库里流派标签是<b>繁体</b>（搖滾 / 韓國流行樂 / 廣東歌香港流行樂），白名单键一开始按简体写 → 静默失效；已加繁简 <code>CANON</code> 映射表。② 重构时删了 <code>usedChart</code> 却漏改一处引用 —— <code>node --check</code> 查不出未声明变量，是只在真实调用时才炸的运行时炸弹；已改为不依赖中间变量并写进自检。</span></li>
+      <li><b>⑨ 地区/语种两级筛选——已做</b>（你拍板：华语区/外语区 → 再分国语/粤语/日语/韩语，<b>不勾＝混着打</b>）：新建 <code>backend/src/data/languageTag.js</code>，语种标签**派生**（genre 语种词 → 白名单册归属 → 字符 + region 细分），<b>不落库、不迁移</b>；<code>resolvePool</code> 的流派/年代分支加 <code>zone</code>/<code>lang</code> 过滤，选「华语区」但不选子语种时按语种<b>交替均衡</b>（治你报的"粤语专辑好多"）。实测：华语区池 16 位＝国语+粤语、外语区池 16 位＝欧美+韩语、粤语池 12 位全是粤语、不传参＝混着打（向后兼容）。<br>
+        <span class="muted">踩坑记录：<code>region</code> 是 <b>iTunes 取数地区</b>不是国籍（很多欧美歌手经 hk 区同步，region 也是 'hk'）—— 一开始让 region 优先，把 Pink Floyd 判成粤语、外语区池子<b>只剩 1 位歌手</b>；自检当场量出来，改成"region 只做细分、字符判定优先"。另一个：陈奕迅同时在「粤语」与「国语」两册里，后写覆盖导致他被判国语，已改为"先写先赢"。</span></li>
+      <li><b>⑩ 流派里单开「华语新生代 / 华语乐队」——已做</b>（你的要求）：这两册<b>不是 Apple 的流派标签</b>（永远进不了 <code>listGenres()</code> 的聚合结果），所以在流派选择器里固定挂两个入口（标「策展名单」），后端 <code>curatedListOf</code> 分支走"按白名单名字匹配已缓存歌手"组池；库里没有这册人会给出可读提示（先去「一键补知名歌手」）。</li>
     </ul>
     <p class="muted" style="margin:10px 0 0">
       你这轮还定了另外两条方向，我接着做：<br>

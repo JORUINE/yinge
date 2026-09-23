@@ -25,8 +25,16 @@ import {
 import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
 import { ensureEraPool } from '../music/eraExpand.js';
-// 白名单「知名歌手」判定：流派/年代池轮转取张时让大牌排在前面（只调顺序，不动张数/公式）
-import { isWhitelistedArtist } from '../../data/genreWhitelist.js';
+// 白名单「知名歌手」判定 + 策展流派：流派/年代池轮转取张时让大牌排在前面（只调顺序，不动张数/公式）
+import {
+  isWhitelistedArtist,
+  curatedListOf,
+  sameArtistName,
+  EXTRA_LISTS,
+} from '../../data/genreWhitelist.js';
+// 语种/地区两级筛选（2026-09-23 用户拍板）：标签是派生的，不落库、不迁移
+import { languageTagOf, passesLanguageFilter, interleaveByLang } from '../../data/languageTag.js';
+import { normalizeGenre } from '../music/genreExpand.js';
 import * as bracket from './bracket.js';
 
 const byReleaseThenId = (a, b) => {
@@ -234,12 +242,32 @@ export async function resolvePool(payload) {
 
   if (scopeType === 'genre') {
     const term = String(payload.genre || '').trim();
-    const matched = await Artist.find({ genre: new RegExp(term, 'i') }).select('artistId name');
-    if (!matched.length) {
-      // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索（2026-09-18 修复 genre 不落库后才会真的有命中）
-      throw new BadRequestError(
-        `曲库里还没有流派含「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方搜索并缓存几位该流派的歌手再回来，或换个流派词（如 Pop / Mandopop / Cantopop / Rock）`,
-      );
+    /**
+     * 策展流派（華語新生代 / 華語樂隊）—— 2026-09-23 用户："流派里加上你已经做出来的华语新人，
+     * 单开一个新生代"。它们**不是 Apple 的流派标签**，歌手集合完全由白名单定义，
+     * 所以走"按名字匹配已缓存歌手"，而不是 `genre` 正则。
+     */
+    const curated = curatedListOf(term, normalizeGenre);
+    let matched;
+    if (curated) {
+      const names = EXTRA_LISTS[curated] || [];
+      const all = await Artist.find({}).select('artistId name genre region').lean();
+      matched = all.filter((a) => names.some((n) => sameArtistName(a.name, n)));
+      if (!matched.length) {
+        throw new BadRequestError(
+          `曲库里还没有「${term}」这册里的歌手。它是一份**策展名单**（不是 Apple 的流派标签），先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
+        );
+      }
+    } else {
+      matched = await Artist.find({ genre: new RegExp(term, 'i') })
+        .select('artistId name genre region')
+        .lean();
+      if (!matched.length) {
+        // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索（2026-09-18 修复 genre 不落库后才会真的有命中）
+        throw new BadRequestError(
+          `曲库里还没有流派含「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方搜索并缓存几位该流派的歌手再回来，或换个流派词（如 Pop / Mandopop / Cantopop / Rock）`,
+        );
+      }
     }
     const ids = matched.map((a) => a.artistId);
     const list = await Album.find({ artistExternalId: { $in: ids }, isEligible: true }).sort({
@@ -258,12 +286,35 @@ export async function resolvePool(payload) {
     // 各歌手轮转取一张封顶（默认 32）：既压住规模，又保证流派池里歌手足够多、谁也不挤谁
     const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
     const nameById = new Map(matched.map((a) => [a.artistId, a.name]));
+    const langById = new Map(matched.map((a) => [a.artistId, languageTagOf(a)]));
+
+    /**
+     * 地区/语种筛选（2026-09-23 用户拍板「两级：华语区/外语区 → 再分语种」，不勾＝混着打）。
+     * ⚠️ 不传 zone/lang 时全部通过 —— 与改动前行为**完全一致**，老组合、老局面不受影响。
+     */
+    const langFilter = { zone: payload.zone, lang: payload.lang };
+    let entries = [...byArtist.entries()].filter(([id]) =>
+      passesLanguageFilter(langById.get(id) || 'western', langFilter),
+    );
+    if (!entries.length) {
+      throw new BadRequestError('这个流派里没有符合所选语种/地区的专辑，放宽筛选或换个流派试试');
+    }
+    /**
+     * 「华语区」但不选子语种时：按语种交错，治用户报的"粤语专辑好多"。
+     * 先交错语种，再让白名单大牌靠前（2:1）—— 两个目标互不冲突：交错决定"谁和谁交替"，
+     * 大牌靠前决定"谁先上"。⚠️ 只调顺序，不动张数/封顶。
+     */
+    if (langFilter.zone === 'zh' && !langFilter.lang) {
+      entries = interleaveByLang(
+        entries.map(([id, bucket]) => ({ id, bucket, lang: langById.get(id) || 'western' })),
+      ).map((x) => [x.id, x.bucket]);
+    }
     /**
      * ⚠️ 2026-09-23 用户拍板「白名单要影响流派模式」：
      * 轮转取张时让白名单大牌靠前（2:1 交错，见 orderBucketsForPool）。
      * 只调顺序：张数、封顶、赛程公式一律不动。
      */
-    const buckets = orderBucketsForPool([...byArtist.entries()], nameById);
+    const buckets = orderBucketsForPool(entries, nameById);
     const picked = [];
     let progressed = true;
     while (picked.length < cap && progressed) {
@@ -321,16 +372,36 @@ export async function resolvePool(payload) {
     // 参赛池封顶 + 歌手均衡：按"各歌手轮转取一张"挑选，专辑多的歌手不会挤掉专辑少的，
     // 既把规模压在 ERA_MAX_POOL 以内，又保证池子里歌手足够多（跨歌手对阵才有得打）。
     const eraDocs = await Artist.find({ artistId: { $in: [...byArtist.keys()] } }).select(
-      'artistId name',
+      'artistId name genre region',
     );
     const eraNameById = new Map(eraDocs.map((d) => [d.artistId, d.name]));
+    const eraLangById = new Map(eraDocs.map((d) => [d.artistId, languageTagOf(d)]));
+
+    /**
+     * 地区/语种筛选（2026-09-23 用户拍板）。年代区间横跨所有地区，本地库里港台歌手格外多，
+     * 这正是用户报"粤语专辑好多"的场景 —— 所以这里是最需要这道筛的地方。
+     * ⚠️ 不传 zone/lang 时全部通过，与改动前行为完全一致。
+     */
+    const eraLangFilter = { zone: payload.zone, lang: payload.lang };
+    let eraEntries = [...byArtist.entries()].filter(([id]) =>
+      passesLanguageFilter(eraLangById.get(id) || 'western', eraLangFilter),
+    );
+    if (!eraEntries.length) {
+      throw new BadRequestError('该年代区间内没有符合所选语种/地区的专辑，放宽筛选或放宽年份');
+    }
+    // 选「华语区」但不选子语种时按语种交错，不让粤语独占（与流派分支同口径）
+    if (eraLangFilter.zone === 'zh' && !eraLangFilter.lang) {
+      eraEntries = interleaveByLang(
+        eraEntries.map(([id, bucket]) => ({ id, bucket, lang: eraLangById.get(id) || 'western' })),
+      ).map((x) => [x.id, x.bucket]);
+    }
     /**
      * ⚠️ 2026-09-23 用户拍板「白名单要影响年代模式」+ 用户报「粤语专辑好多 / 一个大牌都没有」：
      * 轮转取张时让白名单大牌靠前（2:1 交错，见 orderBucketsForPool）——
      * 既让大牌进池，又保留 1/3 名额给其余歌手，不至于每次都同一批人。
      * ⚠️ 只调**顺序**：张数、封顶、赛程公式一律不动。
      */
-    const buckets = orderBucketsForPool([...byArtist.entries()], eraNameById);
+    const buckets = orderBucketsForPool(eraEntries, eraNameById);
     const picked = [];
     let progressed = true;
     while (picked.length < cap && progressed) {

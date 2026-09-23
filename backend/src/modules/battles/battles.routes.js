@@ -43,6 +43,13 @@ const createSchema = z
     startYear: z.coerce.number().int().min(1900).max(2100).optional(),
     endYear: z.coerce.number().int().min(1900).max(2100).optional(),
     albumIds: z.array(z.coerce.number().int().positive()).max(100, '单场对决最多 100 张专辑').optional(),
+    /**
+     * 地区/语种筛选（2026-09-23 用户拍板，两級）：
+     *   zone = 'zh'（华语区）| 'foreign'（外语区）；都不传 = 混着打（与改动前行为一致）
+     *   lang = 'mandarin' | 'cantonese' | 'japanese' | 'korean' | 'western' —— 在 zone 之下再细分
+     */
+    zone: z.enum(['zh', 'foreign']).optional(),
+    lang: z.enum(['mandarin', 'cantonese', 'japanese', 'korean', 'western']).optional(),
     withRevival: z.boolean().optional(),
     // 新赛制开关：2 = 规模自选 + 小组赛 4 选 2 + 遗珠复活 + 1v1 淘汰；默认 1（旧赛制）
     tournamentVersion: z.coerce.number().int().min(1).max(2).optional(),
