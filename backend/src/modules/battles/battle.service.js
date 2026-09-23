@@ -30,6 +30,7 @@ import {
   isWhitelistedArtist,
   curatedListOf,
   sameArtistName,
+  canonicalGenreKey,
   EXTRA_LISTS,
 } from '../../data/genreWhitelist.js';
 // 语种/地区两级筛选（2026-09-23 用户拍板）：标签是派生的，不落库、不迁移
@@ -259,13 +260,20 @@ export async function resolvePool(payload) {
         );
       }
     } else {
-      matched = await Artist.find({ genre: new RegExp(term, 'i') })
-        .select('artistId name genre region')
-        .lean();
+      /**
+       * ⚠️ 2026-09-23 用户报「为什么你流行乐里有粤语歌手」——
+       * 原来这里是 `Artist.find({ genre: new RegExp(term, 'i') })`，**子串匹配**，
+       * 于是「流行樂」把「廣東歌/香港流行樂」「國語流行樂」全吃了 → 粤语/国语歌手跑进流行乐。
+       * 现在改成按**白名单规范键全等匹配**（与 listGenres 的聚合、白名单取册三处同一口径）。
+       * 本地库现在只有两百来位歌手，整表扫描是毫秒级，比正则更准也更便宜。
+       */
+      const wantKey = canonicalGenreKey(term);
+      const all = await Artist.find({}).select('artistId name genre region').lean();
+      matched = all.filter((a) => canonicalGenreKey(a.genre) === wantKey);
       if (!matched.length) {
         // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索（2026-09-18 修复 genre 不落库后才会真的有命中）
         throw new BadRequestError(
-          `曲库里还没有流派含「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方搜索并缓存几位该流派的歌手再回来，或换个流派词（如 Pop / Mandopop / Cantopop / Rock）`,
+          `曲库里还没有归类到「${term}」的歌手。流派取自 iTunes 的歌手流派标签，只覆盖已缓存进曲库的歌手 —— 先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
         );
       }
     }

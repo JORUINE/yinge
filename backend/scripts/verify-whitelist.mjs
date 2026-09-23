@@ -20,7 +20,9 @@ import {
   whitelistNamesFor,
   normArtistName,
   curatedListOf,
+  canonicalGenreKey,
 } from '../src/data/genreWhitelist.js';
+import * as musicService from '../src/modules/music/music.service.js';
 import {
   languageTagOf,
   passesLanguageFilter,
@@ -248,6 +250,34 @@ await okAsync('策展流派「華語新生代」能组池（库里没有就给�
   } catch (e) {
     console.log(`     预期内的提示：${e.message}`);
     assert.ok(/策展名单|一键补知名歌手/.test(e.message), `错误信息不可读：${e.message}`);
+  }
+});
+
+await okAsync('流派列表只保留白名单覆盖的流派 + 按规范键聚合（用户："不需要这么多流派"）', async () => {
+  const genres = await musicService.listGenres();
+  const names = genres.map((g) => g.genre);
+  console.log(`     共 ${genres.length} 个 chip：${names.join('、')}`);
+  assert.ok(names.includes('華語新生代') && names.includes('華語樂隊'), '缺策展流派');
+  for (const bad of ['電視原聲帶', '成人當代', '華語音樂', '流行樂/搖滾', '饒舌', '獨立搖滾', 'Hip-Hop']) {
+    assert.ok(!names.includes(bad), `边角/别名流派不该单独出现：${bad}`);
+  }
+  const pop = genres.find((g) => g.genre === '流行樂');
+  assert.ok(pop, '缺 流行樂 chip');
+  assert.ok(pop.artists < 40, `流行樂 歌手数 ${pop.artists} —— 像是把粤语/国语流派也吃进来了`);
+});
+
+await okAsync('流派池「流行樂」里没有粤语/国语歌手（用户报的核心 bug）', async () => {
+  const r = await battleService.resolvePool({ scopeType: 'genre', genre: '流行樂', albumCount: 16 });
+  const docs = await Artist.find({ artistId: { $in: r.artists.map((a) => a.artistId) } })
+    .select('name genre region')
+    .lean();
+  console.log(`     流行樂池 ${r.artists.length} 位：${docs.map((d) => `${d.name}[${d.genre}]`).join('、')}`);
+  for (const d of docs) {
+    assert.equal(
+      canonicalGenreKey(d.genre),
+      '流行乐',
+      `${d.name} 的标签是「${d.genre}」→ 规范键 ${canonicalGenreKey(d.genre)}，不该出现在流行樂池里`,
+    );
   }
 });
 

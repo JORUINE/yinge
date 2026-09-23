@@ -749,30 +749,15 @@ const genreOptions = ref([]);
  * 歌手数不硬编：策展流派不显示"N 位歌手"，只显示「策展名单」——
  * 数字由白名单定义，编在前端就是第二个真相源，迟早对不上。
  */
-const CURATED_GENRES = ['華語新生代', '華語樂隊'];
 /**
- * 同一个白名单的别名流派 → 只留一个 chip（用户 2026-09-23："hiphop 留一个就行了"）。
- * 库里同时存在「Hip-Hop/Rap」与「Hip-Hop」（iTunes 不同批次给的标签不一样），
- * 它们解析到**同一份白名单**，并排两个 chip 只会让人以为玩法不同。
- * 同理「當代 R&B」与「R&B/騷靈樂」。
+ * 流派列表现在由**后端**按白名单规范键聚合好（2026-09-23）：
+ *   · 一个白名单册 = 一个 chip（Hip-Hop/Rap 与 Hip-Hop、饒舌 这些别名写法已合并，不再重复）；
+ *   · 只保留**白名单覆盖到**的流派（用户："不需要这么多流派，保留白名单里的这些就行了"）；
+ *   · 策展流派（華語新生代 / 華語樂隊）固定排最前。
+ * 前端不再自己拼、也不再去重 —— 两边都改就是第二个真相源，迟早对不上。
  */
-const GENRE_CANON_UI = {
-  'hip-hop': 'Hip-Hop/Rap',
-  'hip hop': 'Hip-Hop/Rap',
-  '當代 r&b': 'R&B/騷靈樂',
-  '当代 r&b': 'R&B/騷靈樂',
-};
-function withCurated(list) {
-  const rest = (list || []).filter((g) => !CURATED_GENRES.includes(g.genre));
-  // 按规范名合并，保留歌手数最多的那条（数字仅供参考，最终由后端按白名单组池）
-  const byKey = new Map();
-  for (const g of rest) {
-    const k = GENRE_CANON_UI[String(g.genre).trim().toLowerCase()] || g.genre;
-    const prev = byKey.get(k);
-    if (!prev || (g.artists || 0) > (prev.artists || 0)) byKey.set(k, { ...g, genre: k });
-  }
-  const curated = CURATED_GENRES.map((g) => ({ genre: g, artists: 0, curated: true }));
-  return [...curated, ...byKey.values()];
+function normalizeGenreList(list) {
+  return (list || []).filter((g) => g && g.genre);
 }
 
 // —— 流派歌手扩充（Apple Music 抓同流派的歌手补进曲库）——
@@ -797,7 +782,7 @@ const warmPick = ref([]);
 onMounted(async () => {
   try {
     const data = await musicApi.listGenres();
-    genreOptions.value = withCurated(data.list);
+    genreOptions.value = normalizeGenreList(data.list);
   } catch {
     /* 忽略：流派选项拉不到不影响手输 */
   }
@@ -885,7 +870,7 @@ async function warmSelected() {
     ElMessage.success(`已把 ${saved} 位歌手补进曲库，现在可以按「${genre.value.trim()}」开局了`);
     // 刷新流派列表，让歌手数显示同步更新
     const g = await musicApi.listGenres();
-    genreOptions.value = withCurated(g.list);
+    genreOptions.value = normalizeGenreList(g.list);
   } catch (e) {
     ElMessage.error(e?.message || '入库失败');
   } finally {

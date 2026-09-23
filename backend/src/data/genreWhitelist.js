@@ -311,6 +311,40 @@ function canonKey(raw) {
   return s;
 }
 
+/**
+ * 对外暴露的规范键（2026-09-23）
+ * ------------------------------------------------------------
+ * 归一化与 `genreExpand.normalizeGenre` 完全同口径（去空格/斜杠/连字符 + 小写 + ＆→&），
+ * 这里自己实现一遍是为了**不引入反向依赖**（genreExpand 已经 import 本文件）。
+ * 用途：listGenres / resolvePool / discoverGenreArtists 三处**共用同一张嘴**，
+ * 保证「界面上的流派」「池子里匹配的歌手」「白名单用哪一册」三者口径一致 ——
+ * 用户报的「为什么你流行乐里有粤语歌手」就是因为其中一处用了子串正则。
+ */
+export function canonicalGenreKey(genre) {
+  const raw = String(genre || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s/\\_·・－-]+/g, '')
+    .replace(/＆/g, '&');
+  if (!raw) return '';
+  return canonKey(raw);
+}
+
+/** 这个规范键有没有白名单覆盖（有 = 值得在界面上列出来） */
+export function isWhitelistCovered(key) {
+  return Boolean(GENRE_WHITELIST[key] || EXTRA_LISTS[key]);
+}
+
+/**
+ * 策展流派（歌手集合完全由白名单定义，不来自 iTunes 流派标签）——
+ * 界面固定挂这两个入口，放在流派列表最前。
+ */
+export const CURATED_GENRES = [
+  { key: '华语新生代', label: '華語新生代' },
+  { key: '华语乐队', label: '華語樂隊' },
+];
+export const CURATED_KEYS = CURATED_GENRES.map((c) => c.key);
+
 /** 派生的「并进哪册」映射：规范键 → 附加册（含 CANON 反向补齐的繁体键） */
 const MERGE_BY_KEY = (() => {
   const out = { ...EXTRA_MERGE };

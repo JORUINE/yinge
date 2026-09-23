@@ -325,10 +325,36 @@ export async function whitelistOfGenre(genre) {
 async function whitelistArtistsOf(genre, { limit, seen }) {
   const names = whitelistNamesFor(genre, normalizeGenre);
   if (!names.length) return 0;
-  const queue = [...names];
+  /**
+   * ① 已在曲库里的名字：直接取库里的 artistId，**一次 iTunes 都不打**。
+   *    （用户 2026-09-23 抱怨"查找速度太慢"—— 原因是原来每个名字都去 iTunes 搜一遍，
+   *     而灌库之后大多数名字其实已经在库里了。）
+   */
+  const all = await Artist.find({}).select('artistId name genre').lean();
+  const queue = [];
+  for (const name of names) {
+    const hit = all.find((a) => sameArtistName(a.name, name));
+    if (hit) {
+      if (!seen.has(hit.artistId)) {
+        seen.set(hit.artistId, {
+          artistId: hit.artistId,
+          name: hit.name,
+          genre: hit.genre,
+          chartRank: null,
+          from: 'whitelist',
+        });
+      }
+    } else {
+      queue.push(name);
+    }
+  }
+  /**
+   * ② 库里还没有的，才逐个去 iTunes 搜（并发 3：iTunes 对密集请求会限流，
+   *    见 seed-whitelist-artists.mjs 里 403/429 的教训）。
+   */
   let added = 0;
   const worker = async () => {
-    while (queue.length && seen.size < limit) {
+    while (queue.length) {
       const name = queue.shift();
       let artists = [];
       try {
@@ -337,7 +363,9 @@ async function whitelistArtistsOf(genre, { limit, seen }) {
       } catch {
         continue; // 单个名字失败不影响其它名字（iTunes 偶发限流）
       }
-      const hit = artists.find((a) => !seen.has(a.artistId) && !skipArtist(a.name, genre));
+      const hit =
+        artists.find((a) => sameArtistName(a.name, name) && !seen.has(a.artistId)) ||
+        artists.find((a) => !seen.has(a.artistId) && !skipArtist(a.name, genre));
       if (!hit) continue;
       seen.set(hit.artistId, {
         artistId: hit.artistId,
@@ -373,10 +401,21 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
    *   · 榜单   = "此刻在卖什么"（当红新人 / 地区热歌），把剩余名额补满；
    *   · 关键词 = 表外流派，或前两者都没凑够时的兜底。
    */
-  await whitelistArtistsOf(genre, { limit, seen });
+  /**
+   * ⚠️ 2026-09-23 用户定调："你这个白名单不是做的很好吗，我们流派默认歌手就用白名单里这些就行了。"
+   * → **有白名单覆盖的流派，只用白名单**，不再拿 Apple 榜单去凑 30 位。
+   *   原因（用户截图）：流行乐的白名单是欧美那批，但榜单补足把 hk 区流行榜的
+   *   梁詠琪 / 譚詠麟 / 梅艷芳 / MC 張天賦 全塞进来了 —— 于是"流行乐里出现粤语歌手"。
+   *   榜单/关键词退化为**表外流派**的兜底（那时白名单为空，没有更好的来源）。
+   */
+  const wlNames = whitelistNamesFor(genre, normalizeGenre);
+  const whitelistOnly = wlNames.length > 0;
+  if (whitelistOnly) {
+    await whitelistArtistsOf(genre, { limit: Math.max(wlNames.length, limit), seen });
+  }
 
-  // ①-b 榜单补足：白名单没凑够时，用"时下热门"补齐（hk / us 两区穿插）
-  if (seen.size < limit && rss) {
+  // ①-b 榜单补足：**只在没有白名单覆盖时**才用（表外流派兜底）
+  if (!whitelistOnly && seen.size < limit && rss) {
     const lists = [];
     for (const country of rss.countries) {
       try {
@@ -404,9 +443,9 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
     }
   }
 
-  // ①-c 关键词源：表外流派（华语系原先的路径）或白名单/榜单仍不足时兜底
+  // ①-c 关键词源：**表外流派**的兜底（有白名单覆盖时不用，见上面 whitelistOnly）
   let looseUsed = false;
-  if (seen.size < limit) {
+  if (!whitelistOnly && seen.size < limit) {
     const { strict, loose } = await keywordArtistsOf(conf, genre, { limit, seen });
     const need = limit - seen.size;
     const useStrict = strict.size >= Math.min(need, 5);

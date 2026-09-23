@@ -12,6 +12,8 @@ import { NotFoundError } from '../../shared/errors.js';
 import { logger } from '../../shared/logger.js';
 import * as itunes from './itunes.client.js';
 import { applyAdmission } from './admission.js';
+// 流派列表按"白名单规范键"聚合（2026-09-23 修"流行乐里有粤语歌手"/"流派太多"）
+import { canonicalGenreKey, isWhitelistCovered, CURATED_GENRES } from '../../data/genreWhitelist.js';
 
 /** 缓存新鲜度判定，前台与后台共用同一套口径 */
 export function freshness(cachedAt) {
@@ -249,7 +251,39 @@ export async function listGenres() {
     { $group: { _id: '$genre', artists: { $sum: 1 } } },
     { $sort: { artists: -1, _id: 1 } },
   ]);
-  return rows.map((r) => ({ genre: r._id, artists: r.artists }));
+  /**
+   * ⚠️ 2026-09-23 用户报三件事，根因是同一个：
+   *   ①「为什么你流行乐里有粤语歌手」
+   *   ②「不需要这么多流派，保留白名单里的这些就行了」
+   *   ③（同一份白名单的多个写法各占一个 chip：Hip-Hop/Rap + Hip-Hop、饒舌 + Hip-Hop/Rap…）
+   * 原来的做法是把 DB 里的 genre 标签**原样**返回，前端再拿 `genre` 去做**子串正则**匹配歌手；
+   * 于是 `/流行樂/` 把「廣東歌/香港流行樂」「國語流行樂」全吃了 → 粤语歌手跑进流行乐。
+   * 现在统一按**白名单规范键**聚合：
+   *   · 一个规范键 = 一个 chip（`饒舌/獨立搖滾/電視原聲帶` 这些别名不再各占一格）；
+   *   · 展示名取该键下**歌手最多**的那个写法（所以显示的是「流行樂」而不是简体「流行乐」）；
+   *   · 只保留白名单覆盖到的流派（边角标签不再排上来）。
+   */
+  const byKey = new Map();
+  for (const r of rows) {
+    const key = canonicalGenreKey(r._id);
+    if (!key || !isWhitelistCovered(key)) continue;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { genre: r._id, artists: r.artists, top: r.artists });
+    } else {
+      prev.artists += r.artists;
+      if (r.artists > prev.top) {
+        prev.genre = r._id; // 展示名取"这个键下歌手最多的写法"
+        prev.top = r.artists;
+      }
+    }
+  }
+  const out = [...byKey.values()]
+    .map((v) => ({ genre: v.genre, artists: v.artists }))
+    .sort((a, b) => b.artists - a.artists || a.genre.localeCompare(b.genre));
+  // 策展流派固定排最前（歌手数由白名单定义，不编数字）
+  const curated = CURATED_GENRES.map((c) => ({ genre: c.label, artists: 0, curated: true }));
+  return [...curated, ...out];
 }
 
 export const GENRES = [
