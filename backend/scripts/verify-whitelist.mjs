@@ -165,6 +165,16 @@ ok('每个真实流派标签都能命中白名单（繁简都认，防静默失�
     ['韓國流行樂', 'BTS'],
     ['日本流行樂', '米津玄師'],
     ['華語 Hip-Hop', 'MC HotDog 熱狗'],
+    // 2026-09-23 实跑白名单预灌脚本后，库里新冒出来的这些标签也要能命中
+    ['饒舌', 'Drake'],
+    ['獨立搖滾', 'Radiohead'],
+    ['前衛搖滾/藝術搖滾', 'Radiohead'],
+    ['搖滾樂', 'The Beatles'],
+    ['成人當代', 'Taylor Swift'],
+    ['另類民謠', 'Bob Dylan'],
+    ['電視原聲帶', 'Hans Zimmer'],
+    ['流行樂/搖滾', 'Taylor Swift'],
+    ['華語音樂', '周杰倫'],
   ];
   for (const [g, name] of REAL) {
     const list = whitelistNamesFor(g, normalizeGenre);
