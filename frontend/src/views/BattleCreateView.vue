@@ -437,7 +437,7 @@
           <!-- 流派歌手扩充：一个流派本来有几百位艺人，曲库里只有几位就撑不起混战 -->
           <div class="grow">
             <div class="growhd">
-              <b>流派歌手不够？从 Apple Music 补足</b>
+              <b>流派歌手不够？一键补知名歌手</b>
               <span>
                 被选中的流派：<b>{{ genre || '（还没选）' }}</b>
                 <template v-if="genreCount"> · 曲库里现有 <b>{{ genreCount }}</b> 位歌手</template>
@@ -534,7 +534,7 @@
             </button>
           </div>
         </div>
-        <p class="hint">命中的合格专辑会各歌手轮转抽，最多取你选的张数；流派 / 年代歌手越多，越能凑出跨歌手对阵（先点上方"从 Apple Music 补足"把知名歌手加进曲库）。</p>
+        <p class="hint">命中的合格专辑会各歌手轮转抽，最多取你选的张数；流派 / 年代歌手越多，越能凑出跨歌手对阵（先点上方"一键补知名歌手"把该流派的大牌加进曲库）。</p>
       </div>
 
       <!-- 对位赛参数 -->
@@ -771,15 +771,22 @@ async function discoverGenre() {
       return;
     }
     const name = genre.value.trim();
+    /**
+     * ⚠️ 2026-09-23 用户定调："把白名单做成默认，时下热门的做成去补的那些人"。
+     * 所以来源说明也要跟着改 —— 现在主来源是**人工白名单**（大众认知里这个流派该有谁），
+     * Apple 榜单只在白名单凑不满 30 位时补足。
+     */
     const srcNote =
-      d?.source === 'chart'
-        ? '（来自 Apple Music 该流派榜单，华语区 + 欧美区合并）'
-        : d?.source === 'mixed'
-          ? '（流派榜单 + 关键词检索合并）'
-          : '';
+      d?.source === 'whitelist'
+        ? '（全部来自人工白名单 · 按大众对这个流派的认知挑选）'
+        : d?.source === 'chart'
+          ? '（来自 Apple Music 该流派榜单 —— 白名单没覆盖到的部分）'
+          : d?.source === 'mixed'
+            ? '（人工白名单为主 + Apple 榜单补足）'
+            : '（关键词检索）';
     discoverNote.value = d?.loose
-      ? `Apple Music 里「${name}」在中文区没有统一流派标签，这 ${discovered.value.length} 位是按相关度收的 —— 勾选前你可以先看一眼名字对不对`
-      : `Apple Music 里「${name}」靠前的 ${discovered.value.length} 位歌手${srcNote}，其中 ${discovered.value.length - missing.value.length} 位已在曲库`;
+      ? `「${name}」在白名单与 Apple 都没有统一流派标签，这 ${discovered.value.length} 位是按相关度收的 —— 勾选前你可以先看一眼名字对不对`
+      : `「${name}」的 ${discovered.value.length} 位知名歌手${srcNote}，其中 ${discovered.value.length - missing.value.length} 位已在曲库`;
   } catch (e) {
     discoverNote.value = e?.message || '查找失败';
   } finally {

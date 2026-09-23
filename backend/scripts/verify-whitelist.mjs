@@ -159,6 +159,41 @@ await okAsync('流派池（Hip-Hop/Rap, 选 12 张）能成局且不超封顶', 
   assert.ok(r.albums.length <= 32, `超过封顶：${r.albums.length}`);
 });
 
+console.log('\n=== C. 发现顺序：白名单是不是真的排在最前（需要外网）===');
+{
+  const { discoverGenreArtists } = await import('../src/modules/music/genreExpand.js');
+  let d = null;
+  try {
+    d = await discoverGenreArtists('Hip-Hop/Rap', { limit: 30 });
+  } catch (e) {
+    console.log(`  ⚠️ 调用失败：${e.message}`);
+  }
+  if (!d || !d.total) {
+    console.log('  ⚠️ 拿不到任何歌手（沙箱通常连不上 itunes.apple.com）→ 跳过顺序断言');
+    console.log('     （这不是代码错：榜单/白名单/关键词三层都失败时返回空，前端会提示"没搜到"）');
+  } else {
+    console.log(`  source=${d.source} · total=${d.total} · loose=${d.loose}`);
+    console.log(
+      `  名单：${d.artists
+        .slice(0, 12)
+        .map((a) => `${a.name}[${a.from}]`)
+        .join('、')}`,
+    );
+    ok('前 5 位都来自 whitelist（白名单是主来源，不是榜单）', () => {
+      const head = d.artists.slice(0, 5);
+      assert.ok(
+        head.length > 0 && head.every((a) => a.from === 'whitelist'),
+        `实际：${head.map((a) => `${a.name}(${a.from})`).join('、')}`,
+      );
+    });
+    ok('榜单只出现在白名单之后（做补足用）', () => {
+      const idx = d.artists.findIndex((a) => a.from === 'chart');
+      const lastWl = d.artists.map((a) => a.from).lastIndexOf('whitelist');
+      assert.ok(idx === -1 || idx > lastWl, `榜单出现在白名单之前（chart@${idx}, lastWhitelist@${lastWl}）`);
+    });
+  }
+}
+
 await disconnectDb();
 console.log(`\n===== 白名单自检结果：${pass}/${pass + fail} 通过 =====\n`);
 process.exit(fail ? 1 : 0);

@@ -274,12 +274,15 @@ function skipArtist(name, genre) {
 }
 
 /**
- * ①-c 白名单补足（2026-09-23 用户拍板："榜单 + 人工白名单兜底"）
+ * ①-a 人工白名单（**主来源**，2026-09-23 用户定调）
  * ------------------------------------------------------------
- * 为什么必须有这一步：Apple 的流派榜单回答的是**"此刻在卖什么"** ——
+ * 用户原话："把白名单做成默认，然后把那些时下热门的做成去补的那些人 ——
+ * 因为你这个名单里的歌手反而比较符合大众对这个流派的认知，我觉得这样是最对的。"
+ *
+ * 为什么它比 Apple 榜单更准：榜单回答的是**"此刻在卖什么"** ——
  * 冷门新专与地区榜歌手会挤掉常青大牌（实测 Hip-Hop 榜前排是 Upchurch / AZ Cure /
  * Novel Fergus 这类，而 Drake / Kanye / Eminem 排在很后面甚至没有）。
- * 榜单管"热"，白名单管"够大牌"。
+ * 大众提到"说唱"时想到的是后者，所以**白名单做主、榜单做补**。
  *
  * 做法：按 data/genreWhitelist.js 里该流派的名字清单，**逐个去 iTunes 搜**
  * （每个名字 1 次请求，取第一条还没进池、且不是歌单伪歌手的命中），
@@ -327,8 +330,21 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
   const rss = resolveGenreRss(genre);
   const seen = new Map();
 
-  // ①-a 流派榜单源（首选）：hk / us 两区穿插，保证华语与欧美的大咖都进得来
-  if (rss) {
+  /**
+   * ①-a 人工白名单（**首选**，2026-09-23 用户定调）
+   * ------------------------------------------------------------
+   * 用户原话："把白名单做成默认，然后把那些时下热门的做成去补的那些人 ——
+   * 因为你这个名单里的歌手反而比较符合大众对这个流派的认知，我觉得这样是最对的。"
+   *
+   * 所以发现顺序改为：**人工白名单 → Apple 榜单（补足）→ 关键词（兜底）**。
+   *   · 白名单 = "大众认知里这个流派该有谁"（稳定、够大牌）—— 主来源；
+   *   · 榜单   = "此刻在卖什么"（当红新人 / 地区热歌），把剩余名额补满；
+   *   · 关键词 = 表外流派，或前两者都没凑够时的兜底。
+   */
+  await whitelistArtistsOf(genre, { limit, seen });
+
+  // ①-b 榜单补足：白名单没凑够时，用"时下热门"补齐（hk / us 两区穿插）
+  if (seen.size < limit && rss) {
     const lists = [];
     for (const country of rss.countries) {
       try {
@@ -356,12 +372,7 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
     }
   }
 
-  // ①-c 白名单补足：榜单没凑够时，**优先出"够大牌"的人**（再不够才退回关键词源）
-  if (seen.size < limit) {
-    await whitelistArtistsOf(genre, { limit, seen });
-  }
-
-  // ①-b 关键词源：无榜单 ID 的流派（华语系）或榜单/白名单仍不足时补足
+  // ①-c 关键词源：表外流派（华语系原先的路径）或白名单/榜单仍不足时兜底
   let looseUsed = false;
   if (seen.size < limit) {
     const { strict, loose } = await keywordArtistsOf(conf, genre, { limit, seen });
@@ -386,17 +397,25 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
   return {
     genre,
     searched: conf.terms,
-    /** 'chart' = 来自流派榜单（准）｜'whitelist' = 人工白名单补足｜'keyword' = 关键词+标签反筛｜'mixed' = 混合 */
+    /**
+     * 'whitelist' = 人工白名单（现在的主来源）｜'chart' = Apple 榜单补足｜
+     * 'keyword' = 关键词+标签反筛兜底｜'mixed' = 混合
+     */
     source: (() => {
       const kinds = new Set(list.map((a) => a.from));
       if (kinds.size > 1) return 'mixed';
-      if (kinds.has('chart')) return 'chart';
       if (kinds.has('whitelist')) return 'whitelist';
+      if (kinds.has('chart')) return 'chart';
       return 'keyword';
     })(),
     total: list.length,
-    /** true = 命中数不足，部分是按相关度收的（流派标签没做精确对照） */
-    loose: !usedChart && looseUsed,
+    /**
+     * true = 命中数不足，部分是按相关度收的（流派标签没做精确对照）。
+     * ⚠️ 2026-09-23 修：这里原来读的是 `usedChart`，而该变量在上一批重构时已被删除 ——
+     *    `node --check` 查不出未声明变量，是个只在**真实调用时**才炸的运行时炸弹（ReferenceError）。
+     *    现在直接看最终名单里有没有榜单来源，不依赖中间变量。
+     */
+    loose: !list.some((a) => a.from === 'chart') && looseUsed,
     artists: list.map((a) => {
       const hit = cacheMap.get(a.artistId);
       return {
