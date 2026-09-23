@@ -1119,9 +1119,19 @@ const startInfo = computed(() => {
       : '';
   }
   if (mode.value === 'genre-era') {
-    return genreOrEra.value === 'genre'
-      ? `流派「${genre.value}」· 最多 32 张 · 赛程按实际入池张数生成`
-      : `${yearStart.value}–${yearEnd.value} 年 · 最多 32 张 · 赛程按实际入池张数生成`;
+    /**
+     * ⚠️ 2026-09-23 用户："这里有个显示不同数量的赛程" ——
+     * 以前这两句是**写死的文案**（"赛程按实际入池张数生成"），选 8 张还是 32 张一字不变，
+     * 看着就像赛程没跟着规模变。现在直接按所选张数**算出真实场次**（走 v2 赛程公式），
+     * 数字随档位实时变化。
+     */
+    const n = genreEraScale.value;
+    const p = planTournament(n);
+    const scope =
+      genreOrEra.value === 'genre'
+        ? `流派「${genre.value}」`
+        : `${yearStart.value}–${yearEnd.value} 年`;
+    return `${scope} · 参赛 ${n} 张 · 赛程：${p ? describePlan(p) : '至少 4 张'}（若库里不足，按实际入池张数生成）`;
   }
   if (!plan.value) return '';
   return `已选 ${totalSelected.value} 张 · 来自 ${picked.value.length} 位歌手 · 赛程：${describePlan(plan.value)}`;

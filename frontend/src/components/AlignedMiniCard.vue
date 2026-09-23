@@ -14,7 +14,10 @@
     <div class="mini-sub">{{ leaderText }}　|　共 {{ rows.length }} 场对位</div>
 
     <div class="mini-rows">
-      <div v-for="(r, i) in rows.slice(0, maxRows)" :key="i" class="mrow">
+      <!-- ⚠️ 2026-09-23 用户："分享图应该让别人看到所有内容，不应该出现'还有两组未显示'"。
+           原先这里 `rows.slice(0, maxRows)`（默认只列 10 组）→ 超过就写一句"还有 N 组未列出"。
+           现在**全列**，卡片随内容变高（配合 BattleShareView 的自适应高度）。 -->
+      <div v-for="(r, i) in rows" :key="i" class="mrow">
         <div class="mhalf" :class="{ win: sideOf(r) === 'left' }">
           <img :src="r.left?.artworkUrl" :alt="r.left?.name" />
           <span class="mtx">{{ short(r.left?.name) }}</span>
@@ -28,10 +31,6 @@
         </div>
       </div>
     </div>
-
-    <p v-if="rows.length > maxRows" class="mini-more">
-      还有 {{ rows.length - maxRows }} 组未列出 · 完整对照见详细战报
-    </p>
 
     <div class="mini-foot">音格 · 专辑对决 · 对位赛不产生冠军 · 点封面即投票</div>
   </div>
@@ -57,8 +56,11 @@ const props = defineProps({
   leaderText: { type: String, default: '' },
   /** 后端 result 的 rows（每行一组对位） */
   rows: { type: Array, default: () => [] },
-  /** 最多列几组（单列版式下 10 组 ≈ 640px 高，再长就不适合发群了） */
-  maxRows: { type: Number, default: 10 },
+  /**
+   * @deprecated 2026-09-23 起**不再截断**（用户要求"分享图要让别人看到所有内容，
+   * 不应该出现'还有 N 组未列出'"）。字段保留只为兼容旧调用方传参，已不参与渲染。
+   */
+  maxRows: { type: Number, default: 0 },
 });
 
 /** 这一行谁赢了：winnerAlbumId 是「外部专辑标识」，与 left/right 的 albumId 同口径 */

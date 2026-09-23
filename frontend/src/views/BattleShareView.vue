@@ -110,11 +110,11 @@
           <div class="opts">
             <div class="opt" :class="{ on: shape === 'portrait' }" @click="shape = 'portrait'">
               <span class="rd2"></span>
-              <span class="tx"><b>竖版长图 1080 × 1440</b><span>适合发朋友圈、小红书、微博</span></span>
+              <span class="tx"><b>竖版长图（宽 1080 · 高自适应）</b><span>适合发朋友圈、小红书、微博</span></span>
             </div>
             <div class="opt" :class="{ on: shape === 'square' }" @click="shape = 'square'">
               <span class="rd2"></span>
-              <span class="tx"><b>方形图 1080 × 1080</b><span>适合发 Instagram、微博九宫格</span></span>
+              <span class="tx"><b>紧凑版（宽 1080 · 高自适应）</b><span>适合发 Instagram、微博九宫格</span></span>
             </div>
             <div class="opt" :class="{ on: withLink }" @click="withLink = !withLink">
               <span class="rd2"></span>
@@ -254,7 +254,9 @@ const footLine = computed(() => {
   parts.push(`${b.stepTotal || 0} 场决出`);
   return parts.join(' · ');
 });
-const outSize = computed(() => (shape.value === 'square' ? '1080 × 1080' : '1080 × 1440'));
+const outSize = computed(() =>
+  shape.value === 'square' ? '宽 1080 · 高自适应（约 1080 起）' : '宽 1080 · 高自适应（约 1440 起）',
+);
 
 /**
  * 冠军卡取色：把冠军专辑的封面主色做成配色变量。
@@ -491,8 +493,10 @@ onMounted(load);
     margin: 0 auto;
   }
 }
+/* ⚠️ 2026-09-23：方卡原来定死 `aspect-ratio: 1/1` → 内容一多就叠字（用户截图）。
+   现在只给一个"接近方形"的起始高度，内容多则自动变高（用户拍板"图高自适应，不裁不叠"）。 */
 .scard.square {
-  aspect-ratio: 1 / 1;
+  min-height: 430px;
 }
 /**
  * 方形图的版式（2026-09-22 按用户给的草图重排）

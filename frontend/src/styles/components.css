@@ -1767,7 +1767,11 @@ html[data-theme='dark'] .v b {
 }
 .scard {
   width: 100%;
-  aspect-ratio: 3 / 4;
+  /* ⚠️ 2026-09-23：原来是 `aspect-ratio: 3 / 4`（**定高**）。定高 + 内容一多就必然越界 ——
+     用户截图里方卡的「晋级路径」和「统计」两行直接叠在一起，就是这条引起的。
+     用户拍板："图高自适应，不裁不叠" → 改成 min-height 起步，内容把卡片撑高。
+     导出侧不用改：download() 按 `offsetHeight` 反算高度，变高会完整导出。 */
+  min-height: 520px;
   /* 圆角 20 → 28：用户说"边界棱角这么强的框"，圆角加大能让卡片不再像一块方砖 */
   border-radius: 28px;
   overflow: hidden;
@@ -1936,7 +1940,10 @@ html[data-theme='dark'] .v b {
   margin-top: 4px;
 }
 .scard .smain {
-  flex: 1;
+  /* ⚠️ 2026-09-23：`flex: 1`（basis 0%）只在**定高**卡里成立 —— 它会让 smain 的
+     假设高度为 0，内容超出时既不撑高卡片、也不收缩，直接溢出叠到脚注上。
+     卡片改成自适应高度后，basis 必须跟着内容走（auto），卡片才会被内容撑高。 */
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
