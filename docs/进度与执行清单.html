@@ -49,7 +49,7 @@
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-inner">
-    <span class="tag">进度与执行清单 · 2026-09-24 第十四批（视觉返工第一刀 · 自检全绿）</span>
+    <span class="tag">进度与执行清单 · 2026-09-24 第十五批（分享卡去框 + Edge 兜底）</span>
     <h1>音格 · 现在到哪一步了</h1>
     <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节收尾 + 页面/体验补全」</b>阶段。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。<br />
       <b>这次更新到 2026-09-24 第十三批</b>（你 5 张截图给的反馈）——
@@ -69,7 +69,24 @@
 <div class="wrap">
 
   <div class="new">
-    <h3>本轮（9/24 第十四批 · 视觉返工第一刀）—— 大框套小框 + 音乐海洋玻璃 + 分享卡</h3>
+    <h3>本轮（9/24 第十五批 · 紧跟第十四批）—— 分享卡去环/去框 + Edge 断层线兜底</h3>
+    <p class="muted" style="margin:4px 0 10px">备份 <code>_backup/2026-09-24_1658_第十五批_去环去框与Edge兜底/</code>（改前＝HEAD）。</p>
+    <ul>
+      <li><b>① 你圈的"蓝色那个框"——已删</b>：它是封面容器上的 <code>linear-gradient(160deg, --sa-58, 深蓝)</code> 底（专辑非方形时会露出一大片）。整条规则删除。</li>
+      <li><b>② 你说"画蛇添足 去掉"的那圈环——已去</b>：第十四批我给封面加的 7px 渐变环整圈拿掉，恢复<b>"专辑 + 好看的阴影"</b>（<code>height:auto</code> 仍不裁切非方形封面）。实测 <code>.art</code> padding=0、无底色、radius 18。</li>
+      <li><b>③ 四角的"矩形框"——已去掉亮线</b>：卡片圆角 <b>28→34</b>（与创建页大框同档），并<b>去掉所有内描边/亮线</b>（<code>.scard</code> 的上缘反光、<code>::after</code> 的内晕）—— 那道白线沿圆角走一圈就是你看到的框。现在边界只靠「深色卡面 → 外发光 → 页面」的亮度过渡。</li>
+      <li><b>④ 首页那条大断层线 —— 真因找到并修掉（只有 Edge 有，也解释了为什么）</b>：<br>
+        本项目在 Edge 下走 <code>html.ua-edge</code> <b>自动降级</b>（防"最小化闪屏"的既有机制）。第十三/十四批新加的三样<b>没被它覆盖</b>：<br>
+        · <b>断层线</b>：降级后的 body 光晕是<b>固定像素尺寸</b>的径向渐变，而 <code>background-repeat</code> 默认 <b>repeat</b> → 页面一长就<b>纵向平铺</b>，每块光晕"重新开始"的位置就是一条横向断层线。已改 <code>no-repeat</code> 并统一用 <code>--bg-wash</code>；<br>
+        · <b>毛玻璃</b>：<code>ua-edge</code> 会关掉所有 <code>backdrop-filter</code>（既有决策）→ Edge 上<b>本来就没有毛玻璃</b>，不是"没做"；<br>
+        · <b>分享卡的矩形亮框</b>：本色外发光在 Edge 上会出色带 → Edge 下不画。<br>
+        实测：首页在<b>正常浏览器</b>与<b>模拟 ua-edge</b> 两种状态下<b>断层线均已消失</b>。</li>
+    </ul>
+    <p class="muted" style="margin:10px 0 0">验收：<code>vite build</code> 通过（7.18s）｜实测 <code>.art</code> padding=0 / 无底色 / radius 18｜卡片 box-shadow 只剩两道外发光｜零 JS 运行时错误。截图见 <code>tools/pw/shots/r28-*.png</code>。</p>
+  </div>
+
+  <div class="new">
+    <h3>上一轮（9/24 第十四批 · 视觉返工第一刀）—— 大框套小框 + 音乐海洋玻璃 + 分享卡</h3>
     <p class="muted" style="margin:4px 0 10px">参考物＝你点名的两份自己的稿子：结构看 <code>音格-UI原型.html</code>（大框 + 内层小框 + 圆角）、风格看 <code>音格-UI方向v4-音乐海洋.html</code>。并按要求加载了 <b>impeccable</b> 设计技能，按其 <code>arrange.md</code> 的间距体系执行（它明令"禁卡片套卡片"→ 所以内层刻意做成<b>轻质分区面</b>，靠亮度差与圆角读结构，不靠第二层边框）。</p>
     <ul>
       <li><b>① 分享卡：把内框收成"围绕专辑一圈"——已改</b>：你圈的蓝色那块，根子是封面容器写死成 <code>width:58% + aspect-ratio:1</code> 的<b>固定方框</b>，专辑不是正方形时就空出一大片、露出渐变底。现在<b>去掉固定比例、高度跟着专辑走</b>，四周只留 7px —— 渐变底就变成<b>围着专辑的一圈细环</b>（实测 环 220×208 / 图 206×194）。</li>

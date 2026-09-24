@@ -192,6 +192,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第十四批 · 视觉返工第一刀</b>：按你点名的两份稿子（结构＝<code>音格-UI原型.html</code>、风格＝<code>音格-UI方向v4-音乐海洋.html</code>）并加载 impeccable 技能重做视觉 —— ① 分享卡把内框收成<b>围绕专辑一圈的细环</b>（原来写死 58% 方框，非方形专辑会露一大片渐变底）② 被圈的文字依次放大：冠军徽标 14→16、专辑名 26→28、轮次行与统计行 13/13.5→<b>15px</b>，统一中轴对齐 ③ 页面底色从"一块纯色 #edf6fc"改成<b>"音乐海洋"渐变洗色</b>（新增 --bg-wash，浅/深两套）④ 创建页改成<b>大框套小框</b>：新增 <code>.stage</code> 大圆角玻璃框（radius 34 + 毛玻璃 blur22/saturate160 + 双径向色晕）把模式大厅/各板块/开始条全收进去，框内板块变成 radius 24 的轻质分区面（无描边）。自检 verify-r26 <b>18/18</b>、vite build 通过；⚠️ 其余页面目前跟着全局 token 变，待你确认方向后再逐页做同样的结构改造）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第十五批</b>（紧跟第十四批）—— ① 分享卡：你圈的"蓝色那个框"（封面容器的渐变底）与第十四批加的 7px 环<b>都删了</b>，恢复"专辑 + 好看的阴影"（实测 .art padding=0、无底色、radius 18，height:auto 仍不裁切）；② 四角"矩形框"：卡片圆角 28→<b>34</b> 并<b>去掉所有内描边/亮线</b>（.scard 上缘反光、::after 内晕），边界只靠亮度过渡；③ <b>首页断层线真因找到</b>：项目在 Edge 走 <code>html.ua-edge</code> 自动降级（防最小化闪屏），降级后的 body 光晕是固定像素径向渐变且 <code>background-repeat</code> 默认 repeat → 页面一长<b>纵向平铺</b>出横向断层线，已改 no-repeat 并统一 --bg-wash；Edge 上没有毛玻璃是<b>降级</b>（ua-edge 关闭全部 backdrop-filter），不是没做；④ 分享卡本色外发光在 Edge 出色带 → Edge 下不画。实测首页在正常浏览器与模拟 ua-edge 两种状态下断层线均消失。vite build 通过、零 JS 运行时错误；上一批（第十四批：大框套小框/音乐海洋/分享卡收环/文字放大）保留）</div>
 </body>
 </html>

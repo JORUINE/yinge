@@ -1779,8 +1779,9 @@ html[data-theme='dark'] .v b {
      用户拍板："图高自适应，不裁不叠" → 改成 min-height 起步，内容把卡片撑高。
      导出侧不用改：download() 按 `offsetHeight` 反算高度，变高会完整导出。 */
   min-height: 520px;
-  /* 圆角 20 → 28：用户说"边界棱角这么强的框"，圆角加大能让卡片不再像一块方砖 */
-  border-radius: 28px;
+  /* 圆角 28 → 34（与创建页大框 `.stage` 同一档）：用户"为什么不做圆角雾化处理"——
+     圆角越大，四角的"方框感"越弱 */
+  border-radius: 34px;
   overflow: hidden;
   position: relative;
   color: #e6f2fa;
@@ -1814,10 +1815,15 @@ html[data-theme='dark'] .v b {
    *   视觉上就成了"从页面里长出来的一块"，而不是贴上去的框。
    *   ⚠️ 外发光在元素盒子之外，html2canvas 只渲染元素盒子 → **不会被导进图片**（导出仍是实心底）。
    */
+  /**
+   * ⚠️ 2026-09-24 第十五批：去掉 `inset 0 1px 0 白`（上缘反光）——
+   *   用户圈的四角"矩形框"就是它 + ::after 的内描边一起读出来的：一道亮线沿着圆角走一圈，
+   *   看起来就是"有个框"。现在卡片**不再有任何内描边/亮线**，
+   *   边界只靠「深色卡面 → 外发光 → 页面」的亮度过渡（这才是"雾化"）。
+   */
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
     0 26px 60px -28px rgba(2, 14, 22, 0.55),
-    0 0 64px -8px var(--sa-glow, rgba(10, 40, 64, 0.55));
+    0 0 72px -6px var(--sa-glow, rgba(10, 40, 64, 0.55));
   font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC',
     'Source Han Sans SC', 'Segoe UI', Arial, sans-serif;
 }
@@ -1825,7 +1831,7 @@ html[data-theme='dark'] .v b {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 28px;
+  border-radius: 34px;
   pointer-events: none;
   z-index: 1;
   background:
@@ -1920,7 +1926,7 @@ html[data-theme='dark'] .v b {
   content: '';
   position: absolute;
   inset: 0;
-  border-radius: 28px;
+  border-radius: 34px;
   pointer-events: none;
   z-index: 3;
   background:
@@ -1941,14 +1947,13 @@ html[data-theme='dark'] .v b {
     ),
     /* ③ 底部内侧微光（下缘二次反射） */
     radial-gradient(120% 46% at 50% 104%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 62%);
-  box-shadow:
-    /* ⚠️ 2026-09-24 第十三批（用户："你一直没有优化这个方框的过渡线条 你把它和背景融合 线条雾化"）：
-       这里原来是「双内描边」—— inset 0 0 0 1px 白 + inset 0 0 0 2px 黑。
-       它读作"玻璃厚度"，但在浅色页面上就是**一圈硬线**，把卡片切成了一个方框。
-       现在改成**只有上缘一道柔光**（有方向=还有厚度感），不再有一圈闭合的线：
-       卡片与页面的交界由「卡片底色 → 外发光」自然过渡。 */
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
-    inset 0 14px 26px -18px rgba(255, 255, 255, 0.16);
+  /**
+   * ⚠️ 2026-09-24 第十五批：**连"上缘柔光"也去掉了**。
+   * 第十三批我留了一道上缘反光，但用户圈的四角仍是"矩形框"——那道白线沿着圆角走，
+   * 亮线 + 圆角 = 一个看得见的框。现在 ::after **完全不画线**，只剩上面三块柔光渐变
+   * （左上高光 / 斜向光带 / 底部微光），卡片边界只靠「深色卡面 → 外发光 → 页面」的亮度过渡。
+   */
+  box-shadow: none;
 }
 .scard .stop {
   /* 「音格 · YINGE.APP」水印：用户要求"水印也可以做大一点，字体也是" */
@@ -1985,26 +1990,30 @@ html[data-theme='dark'] .v b {
  * 现在：去掉 aspect-ratio，**高度跟专辑走**，四周只留 7px 内边距 —— 于是渐变底变成
  *   "**围着专辑的一圈细环**"（相框感），专辑有多大，环就贴多紧。
  */
+/**
+ * 冠军封面（2026-09-24 第十五批：**去掉那圈环**）
+ * ------------------------------------------------------------
+ * 用户原话："上个版本专辑的阴影质感很好 你加了个这个 **完全画蛇添足 去掉**"
+ * （第十四批我给封面加了一圈 7px 的渐变环 —— 用户不要，恢复成"专辑 + 好看的阴影"。
+ *   高度仍跟着专辑走（height:auto），非方形专辑不会被裁。）
+ */
 .scard .smain .art {
-  width: 58%;
+  width: 56%;
   aspect-ratio: auto;
-  padding: 7px;
-  border-radius: 22px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5);
 }
 .scard .smain .art img {
   width: 100%;
   height: auto;
-  border-radius: 15px;
+  border-radius: 18px;
   object-fit: contain;
   display: block;
 }
-/* 冠军封面：比例不方的专辑不裁切（contain），留白用冠军主色淡染 —— 
-   看起来像"刻意的相框"，而不是漏底。方形封面走 contain 与 cover 完全一致，不影响原观感。 */
-.scard.glassy .smain .art {
-  background: linear-gradient(160deg, var(--sa-58, rgba(14, 165, 233, 0.58)), rgba(4, 20, 32, 0.66));
-}
+/* 2026-09-24 第十五批：删掉封面容器的蓝色渐变底 ——
+   用户圈的"蓝色那个框"就是它（专辑非方形时会露出一大片，像一个大蓝块套着小图）。
+   现在容器不画任何底色，只留专辑本身 + 阴影。 */
 .scard.glassy .smain .art img {
   object-fit: contain;
 }
@@ -3781,4 +3790,30 @@ html[data-theme='dark'] .stage .block,
 html[data-theme='dark'] .stage .alignbox {
   background: rgba(140, 200, 235, 0.07);
   box-shadow: inset 0 1px 0 rgba(140, 200, 235, 0.14);
+}
+
+/* ============================================================================
+ * ⑥ 第十三/十四批新增效果的 **Edge 兜底**（2026-09-24 第十五批）
+ * ----------------------------------------------------------------------------
+ * 用户："中间这个这么大的断层线你意识不到吗" ＋ "为什么只有 edge 有问题 其他浏览器都很正常"。
+ * 本项目在 Edge 下本来就走 `html.ua-edge` 自动降级（main.js，防"最小化闪屏"），
+ * 但第十三/十四批新加的三样**没被它覆盖**，Edge 上就露馅了：
+ *   ① 断层线：ua-edge 给 body 画的海洋光晕是**固定像素尺寸**（1100px 900px）的径向渐变，
+ *      而 `background-repeat` 默认是 **repeat** → 页面一长就纵向平铺，
+ *      每块光晕"重新开始"的位置就是一条横向断层线（用户截图里那条）。
+ *   ② 毛玻璃：`html.ua-edge *` 会关掉所有 backdrop-filter（既有决策：Edge 合成器闪烁），
+ *      所以 Edge 上**本来就没有毛玻璃** —— 不是"没做"，是降级。
+ *   ③ 分享卡的本色外发光（--sa-glow 大 blur box-shadow）在 Edge 上会出**色带**，
+ *      看起来就像一圈"矩形亮框"→ Edge 下不画。
+ * ========================================================================== */
+html.ua-edge body {
+  background-image: var(--bg-wash);
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+}
+html.ua-edge .scard {
+  box-shadow: 0 24px 56px -28px rgba(2, 14, 22, 0.6);
+}
+html.ua-edge .scard .smain .art {
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.5);
 }
