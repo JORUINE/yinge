@@ -192,6 +192,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-25（<b>第二十一批</b>：修管理后台两个 bug —— ① 「按流派手动加歌手」永远"读取中…"：<code>GET /admin/genre-artists</code> 500，真因是 admin.service 里用了不存在的 <code>genreExpand</code> 命名空间（只按名导入了 skipArtist）；② 编辑题目保存报「题号 49 已存在」：题目列表**没有 <code>questionId</code> 字段**，前端 editing 变 undefined → 走了"新建"分支（删除同理也是坏的）；另修 <code>schema.partial()</code> 只作用于顶层导致的中立选项分数必填问题。两处都先用 curl 复现、改完 curl 回归 + 界面实测；vite build 通过）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-09-25（<b>第二十二批</b>：后台「加流派歌手」两处真因 —— ① 「字段校验未通过」是搜索参数名写错（后端要 <code>term</code>，面板写了 <code>q</code> → 422，每点一次报一次）；② 「加了歌手人数还是20」是统计口径未含 <code>curatedGenres</code>，且查询 <code>select</code> 没放宽导致该字段恒为 undefined；现已改为「22 位，含后台手动加 2」并同步更新自检断言。后端 9 脚本全绿 + verify-r26 18/18 + build 通过）</div>
 </body>
 </html>
