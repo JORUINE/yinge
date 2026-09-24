@@ -18,6 +18,7 @@ import { Artist } from '../../models/index.js';
 import * as itunes from './itunes.client.js';
 import { looksLikeArtistList } from './admission.js';
 import { whitelistNamesFor, sameArtistName, artistMatchesWhitelistName, canonicalGenreKey } from '../../data/genreWhitelist.js';
+import { languageTagOf } from '../../data/languageTag.js';
 
 /**
  * 流派 → 检索词 + 认可的 iTunes 流派标签关键词。
@@ -405,6 +406,24 @@ async function whitelistArtistsOf(genre, { limit, seen }) {
  * ① 发现：按流派去 Apple Music 找靠前的歌手（**只读，不写库**）
  * 返回的 artists 按热度（榜单名次 / iTunes 相关度）排序，已经入库的会标 cached。
  */
+/**
+ * 语言特定流派 → 期望语种（2026-09-24 第十八批）
+ * ------------------------------------------------------------
+ * 用户报（截图）：选了「華語 Hip-Hop」点「从音乐源找歌手」，结果在线补出来的是
+ * 2Pac / Beastie Boys / Don Toliver / Nujabes —— **全是西洋说唱**。
+ * 原因：在线兜底走的是 Apple 的「Hip-Hop/Rap」榜单与关键词，那是个**跨语种**大类；
+ * 而"華語 Hip-Hop"这种**语言+风格**的册子，候选必须再按语种筛一道，否则勾选入库就把西洋歌手灌进华语册了。
+ * 返回 null = 不限语种（流行樂 / 搖滾 这类不绑语言的册子）。
+ */
+function expectedLangsOf(genre) {
+  const key = canonicalGenreKey(genre);
+  if (/华语|国语|國語|華語/.test(key)) return ['mandarin', 'cantonese'];
+  if (/广东|粤|香港/.test(key)) return ['cantonese'];
+  if (/韩|韓/.test(key)) return ['korean'];
+  if (/日本/.test(key)) return ['japanese'];
+  return null;
+}
+
 export async function discoverGenreArtists(genre, { limit = 30, online = false } = {}) {
   const conf = resolveGenreConf(genre);
   const rss = resolveGenreRss(genre);
@@ -429,6 +448,9 @@ export async function discoverGenreArtists(genre, { limit = 30, online = false }
    *   榜单/关键词退化为**表外流派**的兜底（那时白名单为空，没有更好的来源）。
    */
   const wlNames = whitelistNamesFor(genre, normalizeGenre);
+  /** 语言特定册子：在线候选要按语种过滤（见 expectedLangsOf 注释） */
+  const wantLangs = expectedLangsOf(genre);
+  const langOk = (name) => !wantLangs || wantLangs.includes(languageTagOf({ name: String(name || ''), genre: '', region: '' }));
   /**
    * ⚠️ 2026-09-24 第十七批：新增 `online` 出口 —— 创建页的「从音乐源找歌手」要
    * **在线补白名单之外的人**（用户："其他没有的再通过那个在线获取"），这时即使有白名单
@@ -457,6 +479,7 @@ export async function discoverGenreArtists(genre, { limit = 30, online = false }
       for (const list of lists) {
         const e = list[i];
         if (!e || seen.has(e.artistId) || skipArtist(e.artistName, genre)) continue;
+        if (!langOk(e.artistName)) continue; // 语言特定册子：滤掉别的语种
         seen.set(e.artistId, {
           artistId: e.artistId,
           name: e.artistName,
@@ -480,6 +503,7 @@ export async function discoverGenreArtists(genre, { limit = 30, online = false }
     for (const a of pool) {
       if (seen.size >= limit) break;
       if (seen.has(a.artistId)) continue;
+      if (!langOk(a.name)) continue; // 语言特定册子：滤掉别的语种
       seen.set(a.artistId, { ...a, chartRank: null, from: 'keyword' });
     }
   }

@@ -954,7 +954,9 @@ async function warmSelected() {
   if (!ids.length) return;
   growing.value = true;
   warmDone.value = 0;
-  const CHUNK = 6;
+  // 2026-09-24 第十八批：6 改 4。每位歌手都要打 iTunes 整碟（慢），批次越大越容易超时；
+  // 配合 api 侧放宽到 180s，双保险。
+  const CHUNK = 4;
   let saved = 0;
   try {
     for (let i = 0; i < ids.length; i += CHUNK) {
@@ -1069,6 +1071,15 @@ const yearStart = ref(2000);
  *    整页白屏（2026-09-23 被自检 verify-r25 抓到过，所以这条纪律写在注释里）。
  */
 watch([genre, genreOrEra], ([g, ge]) => {
+  /**
+   * 2026-09-24 第十八批（用户："我选华语hiphop 然后想补充歌手发现没有按钮 只能刷新后再来"）：
+   * 换流派时**必须把上一次的查找状态清掉** —— 否则开关还是"展开"、列表还是上一个流派的人，
+   * 用户看到的就是"按钮状态不对 / 列表不是这个流派的"，只能刷新页面。
+   */
+  discoverOpen.value = false;
+  discovered.value = [];
+  warmPick.value = [];
+  discoverNote.value = '';
   if (ge !== 'genre') return;
   loadWhitelistRoster(g);
 });

@@ -575,18 +575,18 @@ onMounted(load);
   border-radius: 12px;
 }
 .scard.square .roundline {
-  /* 2026-09-24 第十四批：13 → 15px（用户："半决赛决赛…字体依次放大"） */
-  font-size: 15px;
-  letter-spacing: 0.04em;
+  /* 2026-09-24 第十八批：15 → 18px（与竖版同步） */
+  font-size: 18px;
+  letter-spacing: 0.05em;
 }
 /* ⚠️ 这里原来有一条 `border-top` —— 那正是用户说的"明显的分割线、像两个矩形框拼在一起"，已去掉。
    现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。
    2026-09-24 第十三批：小字 12 → 13px、间距略放开（用户："下面的小字体大小大一点点，然后间距合理"）。 */
 .scard.square .sfoot {
-  /* 2026-09-24 第十四批：13 → 15px，间距放开（用户要"依次放大 + 规整对齐"） */
-  font-size: 15px;
-  margin-top: 12px;
-  gap: 10px;
+  /* 2026-09-24 第十八批：15 → 18px，间距再放开 */
+  font-size: 18px;
+  margin-top: 14px;
+  gap: 12px;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。
@@ -602,10 +602,11 @@ onMounted(load);
   opacity: 1;
 }
 .scard .sfoot .sstat {
-  /* 2026-09-24 第十三批 12 → 13.5px；第十四批 13.5 → **15px**
-     （用户："被我圈起来的…下面…的字体依次放大然后规整的对齐"） */
-  font-size: 15px;
-  opacity: 0.9;
+  /* 12 → 13.5（十三批）→ 15（十四批）→ **18px**（第十八批）
+     —— 用户拿自己做的版本对比（"你自己对比下 我做的和你这个的区别 然后做成我这样的"）：
+     他那版底部两行明显更大更清楚，18px 是按比例反推的。 */
+  font-size: 18px;
+  opacity: 0.92;
   /* 统计行不折行：一长串「16张专辑 · 6 位歌手 · 15 场决出」一旦在窄处折开就显得"奇怪"，
      现在强制一行（方卡内容宽约 384px，足够放下），字距略放开更好读。 */
   white-space: nowrap;
@@ -629,13 +630,13 @@ onMounted(load);
   font-variant-numeric: tabular-nums;
 }
 .roundline {
-  /* 2026-09-24 第十三批 12 → 13px；第十四批 13 → **15px**（用户："半决赛决赛…字体依次放大"）
-     —— 基准值，竖版/方版共用。字距略放开、强制居中，与上下的名字/统计同一中轴。 */
-  font-size: 15px;
-  opacity: 0.82;
+  /* 12 → 13（十三批）→ 15（十四批）→ **18px**（第十八批，按用户自制版本的比例对齐）
+     —— 基准值，竖版/方版共用；与上下的名字/统计同一中轴。 */
+  font-size: 18px;
+  opacity: 0.88;
   text-align: center;
-  margin-top: 6px;
-  letter-spacing: 0.04em;
+  margin-top: 8px;
+  letter-spacing: 0.05em;
 }
 .cap {
   font-size: 13px;

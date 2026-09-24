@@ -33,7 +33,13 @@ export const musicApi = {
   /** 白名单名单（瞬时返回，不打 iTunes）—— "点开就能看到这册里都有谁" */
   genreWhitelist: (params) => http.get('/music/genres/whitelist', { params }),
   /** 把发现的歌手同步进曲库（后端每批最多 8 位） */
-  warmGenreArtists: (data) => http.post('/music/genres/warm', data),
+  /**
+   * 2026-09-24 第十八批：必须单独放宽 timeout。
+   * 全局 http 是 timeout:15000，而这个接口一次要同步 4 位歌手的整张碟
+   * （每人 1-2 次 iTunes 请求 + 写库）→ 实测常常超过 15s → axios 超时被兜成
+   * 「网络异常，请稍后重试」（用户截图报的就是这个，不是真的断网）。
+   */
+  warmGenreArtists: (data) => http.post('/music/genres/warm', data, { timeout: 180000 }),
   /** 年代模式专辑池补足（#84）：把区间内已知歌手整张碟同步进曲库 */
   eraBackfill: (data) => http.post('/music/era/backfill', data),
 };
@@ -121,7 +127,8 @@ export const adminApi = {
   listMusic: (params) => http.get('/admin/music', { params }),
   refreshMusic: (artistId) => http.post('/admin/music/refresh', { artistId }),
   // 按流派手动加歌手（2026-09-24 第十七批）：搜音乐源 → 专辑入库 → 记录流派归属
-  addGenreArtist: (data) => http.post('/admin/genre-artists', data),
+  // 同理：搜音乐源 + 整碟入库，也可能超过全局 15s
+  addGenreArtist: (data) => http.post('/admin/genre-artists', data, { timeout: 180000 }),
   listGenreArtists: (params) => http.get('/admin/genre-artists', { params }),
   listUsers: (params) => http.get('/admin/users', { params }),
   updateUserStatus: (id, data) => http.put(`/admin/users/${id}/status`, data),
