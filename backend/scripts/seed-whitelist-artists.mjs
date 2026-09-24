@@ -83,8 +83,22 @@ async function main() {
         // ② 同步整张碟（含准入过滤）
         // eslint-disable-next-line no-await-in-loop
         await musicService.syncArtist(hit.artistId);
-        ok += 1;
-        if (ok % 10 === 0) console.log(`  …已灌 ${ok} 位（最近：${name}）`);
+        /**
+         * ③ 校验：库里**存下来的名字**能不能跟白名单写法对上。
+         * ⚠️ 2026-09-23 修「假成功」：iTunes hk 区返回当地译名（BTS → 防彈少年團、
+         *    ヨルシカ → Yorushika、宇多田ヒカル → 宇多田光），灌完名字对不上时
+         *    原来照样计 +1 成功 → 页面上仍然显示"未入库"。现在必须真能匹配才算成功。
+         *    （名字变体的正解是 genreWhitelist 的 NAME_ALIAS_GROUPS，与本校验同口径。）
+         */
+        // eslint-disable-next-line no-await-in-loop
+        const stored = await Artist.findOne({ artistId: hit.artistId }).select('name').lean();
+        if (stored && sameArtistName(stored.name, name)) {
+          ok += 1;
+          if (ok % 10 === 0) console.log(`  …已灌 ${ok} 位（最近：${name}）`);
+        } else {
+          failed += 1;
+          failures.push(`${name}（库里存成「${stored?.name || '?'}」，与白名单写法对不上）`);
+        }
       } catch (e) {
         failed += 1;
         failures.push(`${name}（${e?.message || '同步失败'}）`);

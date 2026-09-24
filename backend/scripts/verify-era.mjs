@@ -4,7 +4,9 @@
  * 修复前：resolvePool('era') 返回 artists: []，跨歌手分组拿到"歌手数 = 0"
  *         → 组容量退化成 1 → 一场对阵都排不出 → 必然抛
  *         "这些专辑无法组成跨歌手对局" —— 等于该模式完全不可用。
- * 修复后：歌手由命中的专辑反推得到；参赛池按"各歌手轮转取一张"封顶 32 张。
+ * 修复后：歌手由命中的专辑反推得到；参赛池按"各歌手轮转取一张"封顶 ERA_MAX_POOL 张。
+ * ⚠️ 2026-09-23 第十二批：ERA_MAX_POOL 由 32 提到 48，所以这里**不再写死 32**，
+ *    改成读导出的常量 —— 否则每次调上限都要改测试（上次就是这么挂的）。
  * 运行：cd backend && node scripts/verify-era.mjs
  */
 import assert from 'node:assert/strict';
@@ -12,6 +14,8 @@ import mongoose from 'mongoose';
 import { connectDb, disconnectDb } from '../src/db/connect.js';
 import * as battleService from '../src/modules/battles/battle.service.js';
 import * as eraExpand from '../src/modules/music/eraExpand.js';
+
+const ERA_CAP = battleService.ERA_MAX_POOL;
 
 let pass = 0;
 const ok = (name, fn) => {
@@ -32,8 +36,8 @@ async function main() {
   console.log('\n=== ① 宽区间：应正常解析出专辑与歌手（修复前这里 artists = 0）===');
   const wide = await battleService.resolvePool({ scopeType: 'era', startYear: 1990, endYear: 2026 });
   console.log(`    解析结果：参赛专辑 ${wide.albums.length} 张 · 歌手 ${wide.artists.length} 位`);
-  ok('专辑数在 4 ~ 32 之间（封顶生效）', () =>
-    assert.ok(wide.albums.length >= 4 && wide.albums.length <= 32, `实际 ${wide.albums.length}`));
+  ok(`专辑数在 4 ~ ${ERA_CAP} 之间（封顶生效）`, () =>
+    assert.ok(wide.albums.length >= 4 && wide.albums.length <= ERA_CAP, `实际 ${wide.albums.length}`));
   ok('歌手数 >= 2（跨歌手对阵才有得打）', () =>
     assert.ok(wide.artists.length >= 2, `实际 ${wide.artists.length}`));
   ok('各歌手 albumCount 之和 = 参赛专辑数（口径自洽）', () =>

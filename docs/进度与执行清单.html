@@ -49,10 +49,17 @@
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-inner">
-    <span class="tag">进度与执行清单 · 2026-09-23 第十一批（进行中）</span>
+    <span class="tag">进度与执行清单 · 2026-09-24 第十二批（已完成 · 自检全绿）</span>
     <h1>音格 · 现在到哪一步了</h1>
     <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节收尾 + 页面/体验补全」</b>阶段。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。<br />
-      <b>这次更新到 2026-09-23 第十一批</b>：修掉 5 条已查实的 bug（对位赛组合 ID/名字错配、流派中文名没进别名表导致「韩流」搜成欧美流行、人格卡导出图印着「正在生成…」、人格「同型代表作」空白、分享卡两行叠字），并把「分享卡全列 / 图高自适应 / 赛程显示真实场次」按你的拍板做完；再落地<b>流派歌手人工白名单</b>（20 册约 390 位，含华语新生代 / 华语乐队），治「流派年代模式没有大牌」。剩：多语区筛选、人格底色与内置专辑。<br>
+      <b>这次更新到 2026-09-24 第十二批</b>：把之前列出的<b>「还欠你的 6 条」全部收口</b> ——
+      ① 流派白名单「点开即见」（后端接口早已就绪、前端一直漏接）；
+      ② 参赛张数档位改 <b>16 / 24 / 32 / 48</b>（上限 32→48）并隐藏流派模式下<b>无效的「参赛规模」块</b>；
+      ③ 修「我的收藏破图 / 名字全是—」（读了扁平字段，接口返回的却是嵌套 <code>target</code>）；
+      ④ <b>你说的「I'm O.K. 封面有 bug」与 ③ 同根</b>（那张专辑正在收藏里，封面因此取不到）；
+      ⑤ 人格「同型代表作」由"专辑名首字"换成<b>真封面</b>；
+      ⑥ K-Pop / J-Pop 白名单<b>补齐到 100%</b>（真因是 iTunes hk 区返回当地译名，与白名单写法对不上 → 新增别名表）。
+      本轮自检 <b>90+ 条断言全绿</b>，其中一条还抓出了<b>会让建局页白屏</b>的暂时性死区 bug（语法检查查不出的那种）。<br>
       ⭐ 另外按你的要求出了<b>《音格-人格测评系统手册》</b>（docs/design/ 下）—— 人格部分的逻辑、实现点、踩坑记录、自检口径全在里面，以后改动都先看它。</p>
   </div>
 </div>
@@ -60,7 +67,36 @@
 <div class="wrap">
 
   <div class="new">
-    <h3>本轮（9/23 第十一批·进行中）—— 用户 10 条反馈：先修「已确认的 bug」，玩法类待拍板</h3>
+    <h3>本轮（9/24 第十二批 · 已完成）—— 你列的「还欠你的 6 条」全部做完 + 自检全绿</h3>
+    <p class="muted" style="margin:4px 0 10px">这一轮全部是<b>已查实根因</b>的活儿，没有待拍板项；改动清单与回退方式见 <code>_证据与痕迹/改动记录.md</code>，原始文件备份在 <code>_backup/2026-09-23_2350_第十二批_六项修复/</code>。</p>
+    <ul>
+      <li><b>① 白名单名单「点开即见」——已做</b>：后端 <code>GET /api/music/genres/whitelist</code> 早就可用（返回该流派白名单 + 是否已入库），但前端一直没接 → 你在界面上看不到"这册人是谁、还缺谁"。现在流派区新增一块：一个按钮点开即出名单，带<b>「已入库 N 张」/「未入库」</b>标记与「共 N 位 · 已入库 N 位 · 还缺 N 位」统计；<b>换流派自动收起</b>（否则会出现第二个真相源）。实测：流行樂 → 20 位 / 已入库 18 位。</li>
+      <li><b>② 参赛张数 16/24/32/48 + 流派模式隐藏「参赛规模」——已做</b>：<br>
+        ① 档位由 <code>[8,12,16,24,32]</code> 改 <b>[16,24,32,48]</b>，后端 <code>ERA_MAX_POOL</code> 同步 <b>32→48</b>（安全性已推：48 张 → 12 组×4 → 晋级 24 → 淘汰轮 32（r32）→ 复活补 8；要 64 张才会需要 r64，上限留足余量）。<br>
+        ② 流派/年代模式里那块「参赛规模」是<b>假控件</b> —— 它的档位（<code>SINGER_SCALES/PER_ARTIST_SCALES</code>）在该模式<b>根本不参与建局</b>（建局发的是 <code>genreEraScale</code>），改了没用还容易让人以为生效了。现在该模式只留自己那块「参赛张数」；<b>单歌手内战仍保留</b>「参赛规模」（自检里有回归守卫）。</li>
+      <li><b>③ 我的收藏破图 / 名字全是「—」——已修（字段路径）</b>：根因是<b>接口形状</b>——收藏接口返回 <code>{ favoriteId, targetType, targetId, target: {专辑字段} }</code>，专辑字段在 <code>target</code> <b>里面</b>；而个人中心「我的收藏」读的是 <code>f.artworkUrl / f.name / f.artistName</code>（扁平）→ 全取不到：封面 <code>src</code> 为空（破图）、<code>artistName</code> 落空显示「—」。已加 <code>favAlbum(f)</code> 统一取数（优先后端嵌套形状、兼容扁平），封面缺图时回退 <code>♫</code> 占位。</li>
+      <li><b>④ 「I'm O.K. 封面有 bug」——查实 = ③ 的同一个根因，已随 ③ 修好</b>：你举的这张是陶喆《I'm O.K.》，<b>确实在你账号 <code>jorui</code> 的收藏里</b>；它的封面本身是<b>正常的方图</b>（600×589，能正常加载），破损完全来自 ③ 那个"读错字段"的 bug。<br>
+        <span class="muted">顺带做了一次全站封面体检（榜单 20 张 + 收藏页）：<b>破图 0 张</b>。唯一发现的"非正方封面"是《太平盛世》(523×600)；项目自己那条"比例偏差 &gt;6% 就用 contain + 主色淡染底"的规则目前<b>只在对战页实现了</b>，榜单/收藏页还是统一 <code>object-fit: cover</code>（轻微裁边）。这条要不要铺到其他页属于 UI 口径，等你一句话。</span></li>
+      <li><b>⑤ 人格「同型代表作」真封面——已做</b>：原来是用<b>专辑名首字</b>画个色块当封面（你看到的"占位"）。现在 24 条代表作的 <code>artworkUrl</code> 全部落地：<b>本地曲库优先</b>（范特西 / Abbey Road / Thriller / 21 / 寓言…与全站同口径），库里没有的走 iTunes 且<b>强制歌手匹配</b>并排除 Live / EP / Tribute（否则《Homogenic》会拿成 Live 版、《Currents》会拿成 B-Sides EP）；《遇見》《後來》本身是"歌不是专辑"→ 取其所属专辑封面。拿不到图才回退首字，不会白板。实测 4/4 加载成功。</li>
+      <li><b>⑥ K-Pop / J-Pop 白名单补灌——已做（覆盖率 100%）</b>：<br>
+        ① 直接补灌：K-Pop <b>18/18</b>、J-Pop <b>16/16</b>；顺带把整册剩余缺口(幂等脚本，本轮 217 位)一起补齐，歌手 259 位。<br>
+        ② <b>真因不是限流</b>：灌完发现页面上仍显示"未入库"——库里存的是 iTunes <b>hk 区的当地译名</b>：<code>BTS→防彈少年團</code>、<code>ヨルシカ→Yorushika</code>、<code>宇多田ヒカル→宇多田光</code>、<code>Official髭男dism→Official鬍子男dism</code>，与白名单写法<b>字符级对不上</b>。已加 <code>NAME_ALIAS_GROUPS</code> 别名表（双向生效）并并入「知名歌手」判定。<br>
+        ③ 顺手修了灌库脚本的<b>「假成功」</b>：原来只要同步不抛异常就计成功（名字对不上也报成功）；现在同步后回读库里的名字并要求真能匹配，否则记失败并打印"库里存成《X》"。</li>
+    </ul>
+    <p class="muted" style="margin:10px 0 0">
+      <b>⭐ 自检又抓到一个真 bug（第 6 条断言的意义）</b>：我给"点开即见"加了个 <code>watch(genre, …)</code>（换流派要收起名单），
+      但把它放在了 <code>const genre = ref('Pop')</code> <b>之前</b> → 命中<b>暂时性死区</b>，
+      建局页直接抛 <code>ReferenceError: Cannot access 'genre' before initialization</code> 并<b>整页白屏</b>。
+      <code>node --check</code> 语法正确、<code>vite build</code> 也通过 —— <b>只有真跑页面才炸</b>。
+      已修，并把「页面零 JS 运行时错误」写成自检硬断言。<br>
+      <b>验收</b>：后端 <code>verify-batch12</code> 13/13 ｜ <code>verify-whitelist</code> 39/39 ｜ <code>verify-era</code> 15/15 ｜
+      <code>verify-genre</code> 17/17 ｜ <code>verify-pool</code> 17/17 ｜ <code>verify-scale</code> 152/152 ｜ <code>verify-v2</code> 59/59 ｜
+      <code>verify-modes</code> 22/22；前端 <code>verify-r25</code> <b>14/14</b>；<code>vite build</code> 通过。
+    </p>
+  </div>
+
+  <div class="new" style="opacity:.85">
+    <h3>上一轮（9/23 第十一批）—— 用户 10 条反馈：先修「已确认的 bug」，玩法类待拍板</h3>
     <p class="muted" style="margin:4px 0 10px">这一轮先把**根因已用脚本查实**的 bug 修掉，玩法/设计类的（多语区筛选、赛程数量、分享卡重构、人格底色与内置专辑）已出方案等你拍板。</p>
     <ul>
       <li><b>① 对位赛「选陶喆+林俊杰却出王菲李克勤」——已修（清库）</b>：诊断脚本 <code>diag-combos.mjs</code> 查出库里 4 个<b>自检遗留组合</b>的 <code>{artistId,name}</code> 自己错配（名字写「周杰伦/陶喆」、ID 实际是「李克勤/王菲」）。前端按 artistId 取专辑 → 界面显示 A、实际加载 B。已用 <code>cleanup-selfcheck-combos.mjs</code> 备份后删除这 4 条测试垃圾。</li>

@@ -86,41 +86,50 @@ export const PERSONA_TAGS = {
   EXP: ['猎奇耳', '新歌雷达', '口味常换', '冷门猎人'],
 };
 
+/**
+ * 同型代表作（D3-C 传播层 · 人工挑片，与该型气质一致；仅供"找同类"参考，不参与计分）
+ * ⚠️ 2026-09-23 第十二批：补上 **真实封面 artworkUrl**（原来在结果页只画专辑名首字占位，
+ *    用户："要真封面"）。URL 解析口径：
+ *      ① 本地曲库优先（与全站同口径，如 范特西 / Abbey Road / Thriller / 21 / 寓言…）；
+ *      ② 库里没有的走 iTunes（**强制歌手匹配**，排除 Live / EP / Tribute），取 600×600；
+ *      ③ 遇見 / 後來 本身是"歌不是专辑" → 用其所属专辑的封面。
+ *    渲染端（PersonalityResultView）在 artworkUrl 缺失时回退为原来的首字占位，不会白板。
+ */
 export const TYPE_REPRESENTATIVES = {
   MEL: [
-    { artist: '周杰伦', album: '范特西' },
-    { artist: 'The Beatles', album: 'Abbey Road' },
-    { artist: '孫燕姿', album: '遇見' },
-    { artist: 'Adele', album: '21' },
+    { artist: '周杰伦', album: '范特西', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/14/b9/fa/14b9fa3f-ef0c-01de-3721-93ff740062b5/23UM1IM56711.rgb.jpg/600x600bb.jpg' },
+    { artist: 'The Beatles', album: 'Abbey Road', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/48/53/43/485343e3-dd6a-0034-faec-f4b6403f8108/13UMGIM63890.rgb.jpg/600x600bb.jpg' },
+    { artist: '孫燕姿', album: '遇見', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/8a/91/d7/8a91d731-cdb1-01b5-17a9-c88cf66d6e01/5050466855725.jpg/600x600bb.jpg' },
+    { artist: 'Adele', album: '21', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/f8/df/0a/f8df0ac9-ae76-9dae-86d3-4e913fc54fb1/634904152062.png/600x600bb.jpg' },
   ],
   RHY: [
-    { artist: 'Michael Jackson', album: 'Thriller' },
-    { artist: 'Bruno Mars', album: '24K Magic' },
-    { artist: 'Dua Lipa', album: 'Future Nostalgia' },
-    { artist: '周杰伦', album: '范特西' },
+    { artist: 'Michael Jackson', album: 'Thriller', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/32/4f/fd/324ffda2-9e51-8f6a-0c2d-c6fd2b41ac55/074643811224.jpg/600x600bb.jpg' },
+    { artist: 'Bruno Mars', album: '24K Magic', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/e3/47/a0/e347a0cc-87ce-5d05-d560-176c7d48f66e/075679904119.jpg/600x600bb.jpg' },
+    { artist: 'Dua Lipa', album: 'Future Nostalgia', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/6c/11/d6/6c11d681-aa3a-d59e-4c2e-f77e181026ab/190295092665.jpg/600x600bb.jpg' },
+    { artist: '周杰伦', album: '范特西', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/14/b9/fa/14b9fa3f-ef0c-01de-3721-93ff740062b5/23UM1IM56711.rgb.jpg/600x600bb.jpg' },
   ],
   LYR: [
-    { artist: '李健', album: '似水流年' },
-    { artist: '羅大佑', album: '之乎者也' },
-    { artist: '陳綺貞', album: '華麗的冒險' },
-    { artist: '劉若英', album: '後來' },
+    { artist: '李健', album: '似水流年', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/60/a0/ce/60a0cee1-51e1-a8d3-e37a-0c4363f7550d/dj.gjyxmysu.jpg/600x600bb.jpg' },
+    { artist: '羅大佑', album: '之乎者也', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/72/e7/c7/72e7c712-7417-e73a-d802-6569af1489df/cover.jpg/600x600bb.jpg' },
+    { artist: '陳綺貞', album: '華麗的冒險', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music/v4/c5/c5/b9/c5c5b9a5-7b08-1579-950e-6ad69d8f105a/2005_9-_1400.jpg/600x600bb.jpg' },
+    { artist: '劉若英', album: '後來', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music6/v4/35/fd/2e/35fd2ef0-83c1-58dc-924b-553f04fb0104/dj.cozpisse.jpg/600x600bb.jpg' },
   ],
   TMB: [
-    { artist: 'Radiohead', album: 'OK Computer' },
-    { artist: 'Björk', album: 'Homogenic' },
-    { artist: 'Tame Impala', album: 'Currents' },
-    { artist: '王力宏', album: '蓋世英雄' },
+    { artist: 'Radiohead', album: 'OK Computer', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music116/v4/07/60/ba/0760ba0f-148c-b18f-d0ff-169ee96f3af5/634904078164.png/600x600bb.jpg' },
+    { artist: 'Björk', album: 'Homogenic', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/7f/bd/d0/7fbdd0e0-c588-ef4b-a6dd-4dca21f8b41f/081227607364.jpg/600x600bb.jpg' },
+    { artist: 'Tame Impala', album: 'Currents', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/a8/2e/b4/a82eb490-f30a-a321-461a-0383c88fec95/15UMGIM23316.rgb.jpg/600x600bb.jpg' },
+    { artist: '王力宏', album: '蓋世英雄', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/f9/82/88/f98288eb-ea32-6c8c-7919-357c31a4b437/1400X1400.jpg/600x600bb.jpg' },
   ],
   CLM: [
-    { artist: '王菲', album: '寓言' },
-    { artist: 'Joni Mitchell', album: 'Blue' },
-    { artist: 'Max Richter', album: 'Sleep' },
-    { artist: 'Ludovico Einaudi', album: 'Divenire' },
+    { artist: '王菲', album: '寓言', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music1/v4/eb/1a/6c/eb1a6ce1-646b-b2a6-bc2e-be629e981b74/Untitled.png/600x600bb.jpg' },
+    { artist: 'Joni Mitchell', album: 'Blue', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/00/a2/43/00a24363-cf69-bfd2-a26a-a042d57ab141/075992719926.jpg/600x600bb.jpg' },
+    { artist: 'Max Richter', album: 'Sleep', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/d6/1f/4a/d61f4a9a-1b9f-b0ff-b857-23d8ddf9a592/15UMGIM26134.rgb.jpg/600x600bb.jpg' },
+    { artist: 'Ludovico Einaudi', album: 'Divenire', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/2c/86/bc/2c86bcb8-2ff2-f0a1-f157-976f5c85159a/06UMGIM37884.rgb.jpg/600x600bb.jpg' },
   ],
   EXP: [
-    { artist: 'Daft Punk', album: 'Discovery' },
-    { artist: 'Arctic Monkeys', album: 'AM' },
-    { artist: 'Kendrick Lamar', album: 'good kid, m.A.A.d city' },
-    { artist: 'Tame Impala', album: 'Currents' },
+    { artist: 'Daft Punk', album: 'Discovery', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/fd/4a/77/fd4a77db-0ebc-d043-41a2-f32fa1bb0fb4/dj.qrikkdwj.jpg/600x600bb.jpg' },
+    { artist: 'Arctic Monkeys', album: 'AM', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music211/v4/69/9c/b5/699cb5d6-115c-ff73-9d26-e57ea4350d72/887828031795.png/600x600bb.jpg' },
+    { artist: 'Kendrick Lamar', album: 'good kid, m.A.A.d city', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music112/v4/ba/c3/c5/bac3c531-dc7e-d0da-d785-fe9f17219950/12UMGIM52990.rgb.jpg/600x600bb.jpg' },
+    { artist: 'Tame Impala', album: 'Currents', artworkUrl: 'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/a8/2e/b4/a82eb490-f30a-a321-461a-0383c88fec95/15UMGIM23316.rgb.jpg/600x600bb.jpg' },
   ],
 };

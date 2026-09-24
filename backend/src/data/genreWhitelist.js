@@ -417,10 +417,56 @@ export function softNameOf(s) {
     .trim();
 }
 
-/** 白名单全量名字集合（宽松归一化）—— 判定"是不是白名单里的知名歌手" */
+/**
+ * 名字变体别名组（2026-09-23 第十二批）
+ * ------------------------------------------------------------
+ * 真因：iTunes **hk 区**返回的是当地译名 / 罗马字，与白名单写的中/日原名**字符级对不上**，
+ *   而 `sameArtistName` 只做字符匹配 → 白名单那册人"灌进库了却数不到"（表现为 chip 显示 0/N 位）。
+ *   实测（灌库后库里实际存的写法）：
+ *     白名单 `BTS`             ↔ 库里 `防彈少年團`
+ *     白名单 `ヨルシカ`         ↔ 库里 `Yorushika`
+ *     白名单 `宇多田ヒカル`      ↔ 库里 `宇多田光`
+ *     白名单 `Official髭男dism` ↔ 库里 `Official鬍子男dism`
+ * 口径：**同一组内任意两个名字都视为同一歌手**（双向生效），先查别名表、再走字符分级匹配。
+ *   ⚠️ 只写"确实是同一个人"的写法；不要写近似但不同的歌手（否则会张冠李戴）。
+ */
+const NAME_ALIAS_GROUPS = [
+  ['BTS', '防彈少年團', '방탄소년단', 'Bangtan Boys', 'Beyond The Scene'],
+  ['ヨルシカ', 'Yorushika'],
+  ['宇多田ヒカル', '宇多田光', 'Hikaru Utada'],
+  ['Official髭男dism', 'Official鬍子男dism', 'OFFICIAL HIGE DANDISM'],
+  ['米津玄師', 'Kenshi Yonezu'],
+  ['あいみょん', 'Aimyon'],
+  ['藤井風', 'Fujii Kaze'],
+];
+/** 名字（宽松归一化）→ 组号 */
+const NAME_ALIAS_INDEX = (() => {
+  const m = new Map();
+  NAME_ALIAS_GROUPS.forEach((group, i) => {
+    for (const n of group) {
+      const k = softNameOf(n);
+      if (k) m.set(k, i);
+    }
+  });
+  return m;
+})();
+
+/** 两个名字是否属于同一别名组（当地译名 / 罗马字差异） */
+export function sameAliasGroup(a, b) {
+  const x = NAME_ALIAS_INDEX.get(softNameOf(a));
+  const y = NAME_ALIAS_INDEX.get(softNameOf(b));
+  return x !== undefined && x === y;
+}
+
+
+/** 白名单全量名字集合（宽松归一化）—— 判定"是不是白名单里的知名歌手"
+ *  ⚠️ 2026-09-23：把**别名组里的写法**一并放进集合 —— 库里存的是当地译名（防彈少年團 / Yorushika），
+ *  不收进来的话"知名歌手优先"排序会把它们当路人（与 sameArtistName 的口径不一致）。 */
 export const WHITELIST_NAME_SET = new Set(
-  [...Object.values(GENRE_WHITELIST), ...Object.values(EXTRA_LISTS)]
-    .flat()
+  [
+    ...[...Object.values(GENRE_WHITELIST), ...Object.values(EXTRA_LISTS)].flat(),
+    ...NAME_ALIAS_GROUPS.flat(),
+  ]
     .map(softNameOf)
     .filter(Boolean),
 );
@@ -471,6 +517,8 @@ export function sameArtistName(a, b) {
   if (!x || !y) return false;
   // A. 完全相等
   if (x === y) return true;
+  // A2. 别名组（当地译名 / 罗马字差异，如 BTS ↔ 防彈少年團、宇多田ヒカル ↔ 宇多田光）
+  if (sameAliasGroup(a, b)) return true;
   // B. 带后缀（`周杰倫 (Jay Chou)` / `MC HotDog 熱狗 Live`）
   if (x.startsWith(`${y} `) || x.startsWith(`${y}(`)) return true;
   if (y.startsWith(`${x} `) || y.startsWith(`${x}(`)) return true;

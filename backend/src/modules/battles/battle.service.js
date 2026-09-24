@@ -99,8 +99,14 @@ function shuffle(arr) {
 const CROSS_ARTIST_SCOPES = new Set(['multi-artist', 'genre', 'era']);
 export const isCrossArtistScope = (scopeType) => CROSS_ARTIST_SCOPES.has(scopeType);
 
-/** 年代模式参赛池上限：一个年代区间可能命中上百张，封顶 32 张以保证一场对决打得完 */
-export const ERA_MAX_POOL = 32;
+/**
+ * 流派/年代模式参赛池上限。
+ * 2026-09-23 第十二批（用户拍板）：**32 → 48**，与前端档位 16/24/32/48 对齐。
+ * 安全性：赛程公式 planTournament 是纯函数，48 张 → 12 组 × 4、晋级 24 → 淘汰轮 32（r32）
+ *   → 复活补 8。qualified 上限 = 2·ceil(t/4) ≤ 24（t≤48），knockoutSize ≤ 32，
+ *   不会超过 KO_NAMES 的 r32（≥64 张才会需要 r64，本上限留足余量）。
+ */
+export const ERA_MAX_POOL = 48;
 
 /**
  * 多歌手混战的总池上限（2026-09-19 修正）。
@@ -108,7 +114,7 @@ export const ERA_MAX_POOL = 32;
  *    直接把用户"5 位歌手 × 每位 10 张、40 多场"的大场砍没了（用户原话：
  *    "修复bug不能破坏改变已经好了的玩法 这也是规则 而且你没问我"）。
  *    多歌手模式本来就允许超 32（5×10=50 张），上限与「自选专辑最多 100 张」对齐 = 100。
- *    单歌手档位（最大 32）与流派/年代模式（ERA_MAX_POOL=32）维持原样不动。
+ *    单歌手档位（最大 32）维持原样不动；流派/年代模式上限见 ERA_MAX_POOL（2026-09-23 起为 48）。
  */
 export const MULTI_POOL_MAX = 100;
 

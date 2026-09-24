@@ -325,8 +325,13 @@
         </div>
       </div>
 
-      <!-- v2 参赛规模 + 抽张方式（杯赛制才有） -->
-      <div v-if="cupMode" class="block">
+      <!-- v2 参赛规模 + 抽张方式（杯赛制才有）
+           ⚠️ 2026-09-23 第十二批：流派/年代模式**不再显示**这一块 ——
+           该模式自己有一块「参赛张数」（GENRE_ERA_PRESETS：16/24/32/48，走 genreEraScale），
+           而这块的档位（SINGER_SCALES/PER_ARTIST_SCALES）在流派模式下**根本不参与建局**
+           （buildPayload 里 genre-era 发的是 genreEraScale）→ 留着就是"改了没用的假控件"。
+           口径：有独立的参赛张数块的模式，就不显示这块。 -->
+      <div v-if="cupMode && mode !== 'genre-era'" class="block">
         <h4>
           参赛规模
           <em>{{ mode === 'artist' ? '这位歌手有几张能进池' : '每位歌手有几张能进池' }}</em>
@@ -431,8 +436,54 @@
             <input v-model="genre" class="ipt" placeholder="或直接输入流派词（需与曲库标签一致，如 流行樂）" />
           </div>
           <p class="hint">
-            流派 = 曲库里已缓存歌手的 iTunes 流派标签；命中后自动按准入规则过滤，再<b>各歌手轮转抽最多 32 张</b>入池 —— 不用手动挑，专辑多也不怕。
+            流派 = 曲库里已缓存歌手的 iTunes 流派标签；命中后自动按准入规则过滤，再<b>各歌手轮转抽你选的张数（最多 48 张）</b>入池 —— 不用手动挑，专辑多也不怕。
           </p>
+
+          <!-- 📋 白名单名单（点开即见）· 2026-09-23 第十二批
+               背景：后端 `/api/music/genres/whitelist` 端点早就就绪（返回该流派的白名单歌手
+               + 是否已入库），但前端一直没接 → 用户看不到"这册人是谁、还缺谁"。
+               这里补上：一个按钮，点开即出名单（不点不请求，省流量）。 -->
+          <div class="grow">
+            <div class="growhd">
+              <b>📋 这个流派的白名单名单（点开即见）</b>
+              <span>
+                组池顺序是「<b>人工白名单 → Apple 榜单 → 关键词</b>」。这里把该流派的
+                <b>白名单歌手</b>全列出来，并标出谁已入库、谁还没补。
+              </span>
+            </div>
+            <div class="growrow">
+              <button
+                class="btn ghost sm"
+                type="button"
+                :disabled="!genre.trim() || wlLoading"
+                @click="toggleWhitelist"
+              >
+                {{ wlLoading ? '读取中…' : wlOpen ? '收起名单' : '📋 点开即见白名单名单' }}
+              </button>
+              <span v-if="wlData" class="wlstat">
+                共 <b>{{ wlData.total }}</b> 位 · 已入库 <b>{{ wlData.cached }}</b> 位 ·
+                还缺 <b>{{ wlData.total - wlData.cached }}</b> 位
+              </span>
+            </div>
+            <p v-if="wlOpen && wlData && !wlData.total" class="hint">
+              这个流派暂时没有人工白名单 —— 后端会走 Apple 榜单 + 关键词兜底。
+            </p>
+            <p v-if="wlOpen && wlData && wlData.total && wlData.cached < wlData.total" class="hint">
+              还缺的在下面点名字即可勾选补进曲库（也可用上方「一键补知名歌手」批量补）。
+            </p>
+            <div v-if="wlOpen && wlData && wlData.total" class="glist wllist">
+              <span
+                v-for="a in wlData.artists"
+                :key="a.name"
+                class="chip"
+                :class="{ lock: a.cached }"
+                :title="a.cached ? `已在曲库（${a.localAlbumCount} 张）` : '未入库'"
+              >
+                <b>{{ a.name }}</b>
+                <i>{{ a.cached ? `已入库 ${a.localAlbumCount} 张` : '未入库' }}</i>
+              </span>
+            </div>
+          </div>
 
           <!-- 流派歌手扩充：一个流派本来有几百位艺人，曲库里只有几位就撑不起混战 -->
           <div class="grow">
@@ -519,7 +570,8 @@
           <p v-if="eraBackfillNote" class="hint">{{ eraBackfillNote }}</p>
         </div>
         <!-- 参赛张数：让用户真正能决定"选几张参战"（2026-09-23 修复：之前前端从不发 albumCount，
-             后端恒按 32 封顶，选择无效）。后端会按此张数各歌手轮转抽，命中歌手越多越能凑跨歌手对阵。 -->
+             后端恒按 32 封顶，选择无效）。后端会按此张数各歌手轮转抽，命中歌手越多越能凑跨歌手对阵。
+             2026-09-23 第十二批：档位改 16/24/32/48，上限 48（后端 ERA_MAX_POOL 同步）。 -->
         <div class="block">
           <h4>参赛张数 <em>决定赛程规模</em></h4>
           <div class="seg" style="margin-top: 8px">
@@ -533,6 +585,9 @@
               {{ n }} 张
             </button>
           </div>
+          <p class="hint" style="margin-top: 8px">
+            最多 <b>48 张</b>（档位 16 / 24 / 32 / 48）。命中歌手越多，越能凑出跨歌手对阵。
+          </p>
         </div>
         <!-- 地区/语种筛选（2026-09-23 用户拍板）：
              两级 —— 华语区 / 外语区，选定后再细分语种；都不勾＝混着打（与改动前行为一致）。
@@ -779,6 +834,42 @@ const missing = computed(() => discovered.value.filter((a) => !a.cached));
  */
 const warmPick = ref([]);
 
+/**
+ * 📋 白名单名单（点开即见）· 2026-09-23 第十二批
+ * 后端 `GET /api/music/genres/whitelist?genre=` 一直可用（见 genreExpand.whitelistOfGenre），
+ * 前端此前漏接 → 现在补：按钮点击才请求（不点不耗流量），并按名字列出 + 标已入库。
+ */
+const wlOpen = ref(false);
+const wlLoading = ref(false);
+const wlData = ref(null);
+/**
+ * ⚠️ 2026-09-23 自检抓到的坑：`watch(genre, …)` **不能放在这里** ——
+ *   `genre` 直到本文件下面（流派区）才 `const genre = ref('Pop')` 声明，
+ *   在声明之前引用会命中「暂时性死区」，直接抛
+ *   `ReferenceError: Cannot access 'genre' before initialization`（整页白屏）。
+ *   `node --check` 查不出这种错 —— 只有真的把页面跑起来才炸。
+ *   所以 watch 挪到 `genre` 声明之后（见下方 // 换流派收起白名单）。
+ */
+
+async function toggleWhitelist() {
+  const g = genre.value.trim();
+  if (!g) return;
+  if (wlOpen.value) {
+    wlOpen.value = false;
+    return;
+  }
+  wlLoading.value = true;
+  try {
+    const d = await musicApi.genreWhitelist({ genre: g });
+    wlData.value = d || null;
+    wlOpen.value = true;
+  } catch (err) {
+    ElMessage.error(err?.message || '读取白名单失败');
+  } finally {
+    wlLoading.value = false;
+  }
+}
+
 onMounted(async () => {
   try {
     const data = await musicApi.listGenres();
@@ -955,6 +1046,16 @@ const shownCombos = computed(() => {
 const genreOrEra = ref('genre');
 const genre = ref('Pop');
 const yearStart = ref(2000);
+
+/**
+ * 换流派就把「白名单名单」收起并清掉 —— 否则会显示上一个流派的名单（第二个真相源）。
+ * ⚠️ 必须放在 `genre` 声明**之后**：放前面会命中暂时性死区（ReferenceError），
+ *    整页白屏（2026-09-23 被自检 verify-r25 抓到）。
+ */
+watch(genre, () => {
+  wlOpen.value = false;
+  wlData.value = null;
+});
 const yearEnd = ref(2020);
 /**
  * 地区 / 语种两级筛选（2026-09-23 用户拍板："新增一个华语区 外语区，如果不勾选就是混在一起打"）。
@@ -988,8 +1089,10 @@ const eraBackfillNote = ref('');
 
 // 对位赛
 const alignCount = ref(3);
-// 流派 / 年代模式的「参赛张数」预设（2026-09-23 修复"选几张参战无效"）：默认 16，可选 8/12/16/24/32
-const GENRE_ERA_PRESETS = [8, 12, 16, 24, 32];
+// 流派 / 年代模式的「参赛张数」预设（2026-09-23 修复"选几张参战无效"）
+// 2026-09-23 第十二批：用户拍板改为 **16 / 24 / 32 / 48**（原 8/12/16/24/32）——
+//   档位整体上移，并把上限从 32 抬到 48；后端 ERA_MAX_POOL 同步 32→48（赛程公式是纯函数，48 可推）。
+const GENRE_ERA_PRESETS = [16, 24, 32, 48];
 const genreEraScale = ref(16);
 /** 对位赛常用档位（用户要求上限拉到 24：准入过滤后基本不会有歌手超过 24 张） */
 const ALIGN_PRESETS = [4, 6, 8, 12, 16, 24];
@@ -2237,5 +2340,18 @@ async function onCreate() {
   .pairrow {
     grid-template-columns: 1fr;
   }
+}
+
+/* 📋 白名单名单（点开即见）· 2026-09-23 第十二批 */
+.wlstat {
+  font-size: var(--fs-sm);
+  color: var(--text2);
+}
+.wlstat b {
+  color: var(--brand-deep);
+}
+.wllist {
+  max-height: 260px;
+  overflow-y: auto;
 }
 </style>

@@ -192,6 +192,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-23（第十一批：流派歌手人工白名单落地并预灌进曲库(歌手 121→217、专辑→13298) + 流派彻底改为「白名单驱动」(计数与组池一律按白名单名字匹配，修「只显示3位但都入库」与「流行乐混进华语歌手」；名字分级匹配 MC HotDog/那吾克熱-NW/艾熱AIR；流派池洗牌治「全是这几张、顺序都一样」，6 次开局 6 种结果) + 地区/语种两级筛选 + 流派列表收敛 + 顺带提速(已入库名字不再打 iTunes)。自检 verify-whitelist 39/39、verify-era 15/15）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（第十二批：把之前列的「<b>还欠你的 6 条</b>」全部收口 —— ① 流派白名单「点开即见」（后端 <code>/music/genres/whitelist</code> 早就有、前端一直漏接）② 参赛张数档位改 <b>16/24/32/48</b>（后端上限 32→48，赛程公式已推过 48 张自洽）并隐藏流派模式下<b>不参与建局的假控件</b>「参赛规模」③ 修「我的收藏破图 / 名字全是—」（读的是扁平字段，而接口返回的是嵌套 <code>target</code>）④ <b>你说的「I'm O.K. 封面有 bug」查实与 ③ 同根</b>（该专辑正在收藏里，封面因此取不到；它自己的封面 600×589 是正常的）⑤ 人格「同型代表作」由首字占位换成<b>真封面</b>（本地曲库优先 + iTunes 强歌手匹配、排除 Live/EP/Tribute）⑥ K-Pop/J-Pop 白名单<b>补齐 100%</b>（真因是 iTunes hk 区返回当地译名：BTS→防彈少年團、ヨルシカ→Yorushika、宇多田ヒカル→宇多田光 → 新增双向别名表）。自检 <b>90+ 条断言全绿</b>；其中「页面零 JS 运行时错误」那条抓出会让建局页白屏的暂时性死区 bug。verify-batch12 13/13、verify-whitelist 39/39、verify-era 15/15、verify-genre 17/17、verify-pool 17/17、verify-scale 152/152、verify-v2 59/59、verify-modes 22/22、verify-r25 14/14，vite build 通过）</div>
 </body>
 </html>

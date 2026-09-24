@@ -87,11 +87,20 @@
 
       <!-- 我的收藏 -->
       <div v-else-if="tab === 'favorites'" class="list">
-        <div v-for="f in favorites" :key="f.targetId || f.albumId" class="r">
-          <div class="th"><img :src="f.artworkUrl" alt="" /></div>
+        <!-- ⚠️ 2026-09-23 修复「破图 + 名字全是—」：收藏接口返回的是**嵌套**形状
+             `{ favoriteId, targetType, targetId, target: {...专辑字段} }`（后端 listFavorites
+             统一走 serializeAlbum 放在 `target` 里）；本页原来读的是**扁平**字段
+             （f.artworkUrl / f.name / f.artistName）→ 全部取不到：
+             封面 src 为空（破图）、name 空、artistName 空 → 落到「—」。
+             与 FavoritesView 的口径对齐（那边读的就是 f.target.*）。 -->
+        <div v-for="f in favorites" :key="f.favoriteId || f.targetId || f.albumId" class="r">
+          <div class="th">
+            <img v-if="favAlbum(f)?.artworkUrl" :src="favAlbum(f).artworkUrl" :alt="favAlbum(f)?.name || ''" loading="lazy" />
+            <span v-else class="noart">♫</span>
+          </div>
           <div class="m">
-            <b>{{ f.name || f.title }}</b>
-            <span>{{ f.artistName || '—' }} · {{ year(f.releaseDate) }}</span>
+            <b>{{ favAlbum(f)?.name || f.name || f.title || '已失效' }}</b>
+            <span>{{ favAlbum(f)?.artistName || f.artistName || '—' }} · {{ year(favAlbum(f)?.releaseDate || f.releaseDate) }}</span>
           </div>
           <div class="v">
             <button class="btn ghost sm" type="button" @click="unfavorite(f)">取消收藏</button>
@@ -150,6 +159,11 @@ const saving = ref(false);
 const nickname = ref('');
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');
+/**
+ * 收藏条目 → 专辑对象。后端返回嵌套形状（`target`），但为向后兼容也接受扁平形状。
+ * 2026-09-23 修复：本页原来直接读扁平字段，导致封面破图、名字显示「—」。
+ */
+const favAlbum = (f) => (f && (f.target || (f.name || f.artworkUrl ? f : null))) || null;
 const joinMonth = computed(() => {
   const d = user.value?.createdAt;
   if (!d) return '—';

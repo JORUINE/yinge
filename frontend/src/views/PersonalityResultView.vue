@@ -90,7 +90,12 @@
       </div>
       <div v-if="representatives.length" class="recs rep2">
         <div v-for="r in representatives" :key="r.artist + r.album" class="alb">
-          <div class="art albc repface">{{ r.album.slice(0, 1) }}</div>
+          <!-- 2026-09-23 第十二批：有真封面就出封面（用户："要真封面"）；
+               拿不到才回退成原来的首字占位（.ph），不会白板。 -->
+          <div class="art albc repface" :class="{ ph: !r.artworkUrl }">
+            <img v-if="r.artworkUrl" :src="r.artworkUrl" :alt="r.album" loading="lazy" crossorigin="anonymous" />
+            <template v-else>{{ r.album.slice(0, 1) }}</template>
+          </div>
           <b>{{ r.album }}</b>
           <div class="ar"><i></i>{{ r.artist }}</div>
           <div class="mt num">同型代表作</div>
@@ -299,11 +304,20 @@ onMounted(async () => {
   letter-spacing: 0.2px;
 }
 
-/* 同型代表作卡片：用首字占位封面（无真封面，避免空图与版权问题） */
+/* 同型代表作卡片封面：优先真封面（img）；无封面时回退首字占位（.ph，避免空图与版权问题） */
 .recs.rep2 .albc.repface {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+.recs.rep2 .albc.repface img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.recs.rep2 .albc.repface.ph {
   font-size: 30px;
   font-weight: 700;
   color: #fff;
