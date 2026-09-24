@@ -64,9 +64,17 @@ const chipBad = [];
 for (const g of list) {
   const names = whitelistNamesFor(g.genre, normalizeGenre);
   if (!names.length) continue;
-  if (g.artists !== g.whitelistTotal) {
+  /**
+   * ⚠️ 2026-09-25 改（不是放水，是设计变了）：
+   * 第二十一批起，chip 人数 = **册子白名单人数 + 管理员在后台手动归入的歌手数**（`manualAdded`）。
+   * 所以等式应是 `artists === whitelistTotal + manualAdded`；仍要求**完全相等**，
+   * 只是把"手动加的人"这一项显式算进去 —— 这样它依然能抓出"漏数/多数"。
+   */
+  if (g.artists !== g.whitelistTotal + (g.manualAdded || 0)) {
     chipOk = false;
-    chipBad.push(`${g.genre}: chip ${g.artists} ≠ 册子 ${g.whitelistTotal}`);
+    chipBad.push(
+      `${g.genre}: chip ${g.artists} ≠ 册子 ${g.whitelistTotal} + 手动 ${g.manualAdded || 0}`,
+    );
   }
 }
 ok('每个 chip 的「N 位歌手」=== 该册白名单人数（全内置时相等）', chipOk, chipBad.length ? '\n     ' + chipBad.join('\n     ') : '');

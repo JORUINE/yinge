@@ -259,7 +259,14 @@ export async function listGenres() {
    * 与 resolvePool 组池口径完全一致 —— 否则"chip 显示 3 位"和"池子里 15 位"永远对不上。
    * 展示名固定取自 WHITELIST_GENRE_DISPLAY，不再随库里标签漂移。
    */
-  const all = await Artist.find({}).select('name aliases').lean();
+  /**
+   * ⚠️ 2026-09-25：**必须把 curatedGenres / artistId 一起 select 出来**。
+   * 这里原来只取 `name aliases`，而下面新加的手动加人统计要读 `curatedGenres` 与 `artistId` ——
+   * mongoose 的 select 一旦限定字段，没点名的字段就是 undefined（不会报错），
+   * 结果 `manualAdded` 恒为 0（用户："你把窦靖童加进去了 为什么显示的还是 20 个"）。
+   * 教训：**改了统计口径，先回头核对查询的 select 字段**。
+   */
+  const all = await Artist.find({}).select('artistId name aliases curatedGenres').lean();
   return whitelistGenreEntries().map((e) => {
     const names = whitelistNamesFor(e.label, canonicalGenreKey);
     /**
@@ -271,11 +278,27 @@ export async function listGenres() {
      * 现在：`artists` = 这册里**已经内置到曲库**的名字个数（≤ 册子人数），
      * 全内置时 === whitelistTotal，与 whitelistOfGenre 的 cached 完全同源。
      */
-    const artists = names.filter((n) => all.some((a) => artistMatchesWhitelistName(a, n))).length;
+    const matchedIds = new Set();
+    const artists = names.filter((n) => {
+      const hit = all.find((a) => artistMatchesWhitelistName(a, n));
+      if (hit) matchedIds.add(hit.artistId);
+      return Boolean(hit);
+    }).length;
+    /**
+     * 2026-09-25：**把"管理员在后台手动归入"的歌手也算进人数**。
+     * 用户报："你把窦靖童加进去了 为什么显示的还是 20 个" —— 名单读出来是 21 位（白名单 20 + 手动 1），
+     * 但 chip/下拉的人数是按白名单名字数的，没算手动加的。
+     * `manualAdded` 单独返回，前端好把"含手动加 N 位"写清楚，而不是显示成莫名的 21/20。
+     */
+    const bookKey = canonicalGenreKey(e.label);
+    const manualAdded = all.filter(
+      (a) => (a.curatedGenres || []).includes(bookKey) && !matchedIds.has(a.artistId),
+    ).length;
     return {
       genre: e.label,
-      artists,
+      artists: artists + manualAdded,
       whitelistTotal: names.length,
+      manualAdded,
       ...(e.curated ? { curated: true } : {}),
     };
   });

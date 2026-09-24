@@ -54,7 +54,9 @@
         <select v-model="gaGenre" class="ipt" style="max-width: 230px">
           <option value="" disabled>选择流派</option>
           <option v-for="g in genreOptions" :key="g.genre" :value="g.genre">
-            {{ g.genre }}（{{ g.artists }}/{{ g.whitelistTotal }} 位）
+            {{ g.genre }}（{{ g.artists }} 位{{
+              g.manualAdded ? `，含后台手动加 ${g.manualAdded}` : ` / 册子 ${g.whitelistTotal}`
+            }}）
           </option>
         </select>
         <input
@@ -192,7 +194,9 @@ async function gaSearch() {
   if (!q) return;
   gaSearching.value = true;
   try {
-    const d = await musicApi.searchArtists({ q, limit: 5 });
+    // ⚠️ 2026-09-25：这个接口的参数名是 **term**（后端 searchSchema 校验 term 必填），
+    // 原来写成 q → 422「字段校验未通过」→ 后台点搜索必报错（用户截图里那串 toast）。
+    const d = await musicApi.searchArtists({ term: q, limit: 5 });
     gaResults.value = d?.artists || [];
     if (!gaResults.value.length) ElMessage.warning('音乐源里没找到，换个写法试试');
   } catch (e) {
