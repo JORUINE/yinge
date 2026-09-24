@@ -917,7 +917,8 @@ async function discoverGenre() {
   warmPick.value = [];
   discoverNote.value = '';
   try {
-    const d = await musicApi.discoverGenreArtists({ genre: genre.value.trim(), limit: 30 });
+    // online=true：「从音乐源找歌手」要在线补白名单之外的人（2026-09-24 第十七批）
+    const d = await musicApi.discoverGenreArtists({ genre: genre.value.trim(), limit: 30, online: true });
     discovered.value = d?.artists || [];
     if (!discovered.value.length) {
       discoverNote.value = '这个流派没找到歌手，换个流派词试试（如 Mandopop / Rock / 爵士）';

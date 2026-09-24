@@ -17,7 +17,7 @@
 import { Artist } from '../../models/index.js';
 import * as itunes from './itunes.client.js';
 import { looksLikeArtistList } from './admission.js';
-import { whitelistNamesFor, sameArtistName, artistMatchesWhitelistName } from '../../data/genreWhitelist.js';
+import { whitelistNamesFor, sameArtistName, artistMatchesWhitelistName, canonicalGenreKey } from '../../data/genreWhitelist.js';
 
 /**
  * 流派 → 检索词 + 认可的 iTunes 流派标签关键词。
@@ -246,7 +246,7 @@ export function looksLikeCuratedArtist(name, genre) {
  *      这类**入库也白入**：专辑准入里"非多人拼盘署名"会把它们的专辑全剔掉
  *      （实测榜单里有好几条这种），提前筛掉可以省下入库请求。
  */
-function skipArtist(name, genre) {
+export function skipArtist(name, genre) {
   return looksLikeCuratedArtist(name, genre) || looksLikeArtistList(name);
 }
 
@@ -287,7 +287,8 @@ export async function whitelistOfGenre(genre) {
   if (!names.length) return { genre, total: 0, cached: 0, artists: [] };
   // 一次扫描库里歌手（本地库千余条，毫秒级），用**别名感知**匹配标注已入库
   // （2026-09-24：以前只比 name，hk 区本地化名/繁简差异会漏 → 与 discover 的口径打架）
-  const all = await Artist.find({}).select('artistId name albumCount genre aliases').lean();
+  const wantKey = canonicalGenreKey(genre);
+  const all = await Artist.find({}).select('artistId name albumCount genre aliases curatedGenres').lean();
   const artists = names.map((name) => {
     const hit = all.find((a) => artistMatchesWhitelistName(a, name));
     return {
@@ -298,6 +299,24 @@ export async function whitelistOfGenre(genre) {
       localGenre: hit?.genre || null,
     };
   });
+  /**
+   * 2026-09-24 第十七批：把**管理员手动归入**的歌手也列进来（用户在后台按流派加的人，
+   * 得在名单里看得到）。已在名单里的（按 artistId 去重）不重复。
+   */
+  const listed = new Set(artists.map((a) => a.artistId).filter(Boolean));
+  for (const a of all) {
+    if (!(a.curatedGenres || []).includes(wantKey)) continue;
+    if (listed.has(a.artistId)) continue;
+    listed.add(a.artistId);
+    artists.push({
+      name: a.name,
+      cached: true,
+      artistId: a.artistId,
+      localAlbumCount: a.albumCount || 0,
+      localGenre: a.genre || null,
+      curated: true,
+    });
+  }
   return {
     genre,
     total: artists.length,
@@ -386,7 +405,7 @@ async function whitelistArtistsOf(genre, { limit, seen }) {
  * ① 发现：按流派去 Apple Music 找靠前的歌手（**只读，不写库**）
  * 返回的 artists 按热度（榜单名次 / iTunes 相关度）排序，已经入库的会标 cached。
  */
-export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
+export async function discoverGenreArtists(genre, { limit = 30, online = false } = {}) {
   const conf = resolveGenreConf(genre);
   const rss = resolveGenreRss(genre);
   const seen = new Map();
@@ -410,7 +429,13 @@ export async function discoverGenreArtists(genre, { limit = 30 } = {}) {
    *   榜单/关键词退化为**表外流派**的兜底（那时白名单为空，没有更好的来源）。
    */
   const wlNames = whitelistNamesFor(genre, normalizeGenre);
-  const whitelistOnly = wlNames.length > 0;
+  /**
+   * ⚠️ 2026-09-24 第十七批：新增 `online` 出口 —— 创建页的「从音乐源找歌手」要
+   * **在线补白名单之外的人**（用户："其他没有的再通过那个在线获取"），这时即使有白名单
+   * 也要放行榜单/关键词（下面的 whitelistOnly 会被置 false）。
+   * 只影响"补歌手候选名单"；**组池仍按白名单 + 库里歌手**（resolvePool 不传 online），互不影响。
+   */
+  const whitelistOnly = wlNames.length > 0 && !online;
   if (whitelistOnly) {
     await whitelistArtistsOf(genre, { limit: Math.max(wlNames.length, limit), seen });
   }

@@ -17,6 +17,9 @@ import { ForbiddenError, NotFoundError, BadRequestError, DuplicateError } from '
 import { parsePagination } from '../../shared/http.js';
 import * as authService from '../auth/auth.service.js';
 import * as musicService from '../music/music.service.js';
+import * as itunes from '../music/itunes.client.js';
+import { canonicalGenreKey } from '../../data/genreWhitelist.js';
+import { skipArtist } from '../music/genreExpand.js';
 
 export async function login({ account, password }) {
   const result = await authService.login({ account, password });
@@ -196,6 +199,45 @@ export async function refreshMusic({ artistId }) {
   return { artistId: Number(artistId), albums: result.albums.length, stats: result.stats };
 }
 
+// ---- 流派歌手手动管理（2026-09-24 第十七批）----
+/**
+ * 管理员给某个流派手动加歌手：搜音乐源 → 专辑入库 → 记录"该歌手属于这个流派"。
+ * 用户原话："在管理员后台加上我可以给每个流派手动添加歌手然后把它的专辑入库，
+ * 就和推荐专辑那里我也可以自己搜一样"。
+ */
+export async function addGenreArtist({ genre, q }) {
+  const term = String(q || '').trim();
+  if (!term) throw new BadRequestError('请输入歌手名');
+  const key = canonicalGenreKey(genre);
+  if (!key) throw new BadRequestError(`「${genre}」不是可用的流派`);
+  const { artists } = await itunes.searchArtists(term, 5);
+  const hit =
+    (artists || []).find((a) => !skipArtist(a.name, genre)) || (artists || [])[0];
+  if (!hit) throw new BadRequestError(`音乐源里没找到「${term}」，换个写法试试`);
+  // 专辑入库（含准入过滤）
+  const result = await musicService.syncArtist(hit.artistId);
+  // 记录流派归属 + 把搜索词记成别名（ hk 区本地化名也能对上）
+  const doc = await Artist.findOneAndUpdate(
+    { artistId: hit.artistId },
+    { $addToSet: { curatedGenres: key, aliases: term } },
+    { new: true },
+  )
+    .select('artistId name albumCount curatedGenres')
+    .lean();
+  return {
+    artistId: hit.artistId,
+    name: doc?.name || hit.artistName,
+    importedAlbums: result.albums.length,
+    albumCount: doc?.albumCount || 0,
+    curatedGenres: doc?.curatedGenres || [key],
+  };
+}
+
+/** 某个流派当前的歌手名单（白名单 + 管理员手动加的），供后台核对 */
+export async function listGenreArtists({ genre }) {
+  return genreExpand.whitelistOfGenre(genre);
+}
+
 // ---- 用户管理 ----
 export async function listUsers(query) {
   const { page, pageSize, skip, limit } = parsePagination(query);
@@ -255,6 +297,8 @@ export default {
   deleteType,
   listMusic,
   refreshMusic,
+  addGenreArtist,
+  listGenreArtists,
   listUsers,
   updateUserStatus,
 };

@@ -17,6 +17,7 @@ import {
 } from './scoring.js';
 import { generateComment } from './qwen.client.js';
 import { DIMS, SAMPLE_RULE, SAMPLE_LIMITS, AUDIO_TAG_GENRE, AUDIO_WHITELIST } from '../../data/personality.js';
+import { languageTagOf } from '../../data/languageTag.js';
 
 /* ══════════════════════════════════════════════════════════════════════
  * 随机抽题（2026-09-22 新增）
@@ -584,32 +585,79 @@ export async function voteAlbumTag(userId, albumId, typeCode) {
 }
 
 /** 聚合统计：每型票数最高的若干张（后台"采纳进推荐池"用） */
+/**
+ * 10.5 推荐池地区配额（2026-09-24 用户拍板并实施）
+ * ------------------------------------------------------------
+ * 每型的候选列表保证：<b>西洋 ≥2 / 华语 ≥2 / 其他地区 ≥1</b> —— 先让各配额区里
+ * 票数最高者占位（quotaSlot 标明），剩余名额再按总票数补满。
+ * 配额是"保底下限"不是上限：某区票数断层领先时照样占满剩余名额。
+ */
+const REGION_QUOTA = { western: 2, chinese: 2, other: 1 };
+function regionOfAlbum(al) {
+  const lang = languageTagOf({ genre: al.genre, name: al.artistName, region: '' });
+  if (lang === 'mandarin' || lang === 'cantonese') return 'chinese';
+  if (lang === 'western') return 'western';
+  return 'other';
+}
+
 export async function albumTagStats(limit = 8) {
   const rows = await AlbumTagVote.aggregate([
     { $group: { _id: { albumId: '$albumId', typeCode: '$typeCode' }, votes: { $sum: 1 } } },
     { $sort: { votes: -1 } },
   ]);
   const albumIds = [...new Set(rows.map((r) => r._id.albumId))];
-  const albums = albumIds.length ? await Album.find({ _id: { $in: albumIds } }).select('name artistName artworkUrl').lean() : [];
+  const albums = albumIds.length
+    ? await Album.find({ _id: { $in: albumIds } }).select('name artistName artworkUrl genre').lean()
+    : [];
   const byId = new Map(albums.map((a) => [String(a._id), a]));
   const byType = {};
   for (const r of rows) {
     const code = r._id.typeCode;
     if (!byType[code]) byType[code] = [];
-    if (byType[code].length >= limit) continue;
     const a = byId.get(String(r._id.albumId));
     if (!a) continue;
-    byType[code].push({
-      id: String(a._id),
-      name: a.name,
-      artistName: a.artistName,
-      artworkUrl: a.artworkUrl,
-      votes: r.votes,
-    });
+    byType[code].push({ row: a, votes: r.votes });
+  }
+  const out = {};
+  for (const [code, cands] of Object.entries(byType)) {
+    // 每张候选标上地区
+    const withRegion = cands.map((c) => ({ ...c, region: regionOfAlbum(c.row) }));
+    const picked = new Set();
+    const outList = [];
+    // ① 配额占位：各区票数最高者先入选（直到该区配额满足）
+    for (const [region, need] of Object.entries(REGION_QUOTA)) {
+      let got = 0;
+      for (const c of withRegion) {
+        if (got >= need) break;
+        if (c.region !== region || picked.has(String(c.row._id))) continue;
+        picked.add(String(c.row._id));
+        outList.push({ ...c, quotaSlot: region });
+        got += 1;
+      }
+    }
+    // ② 剩余名额按总票数补满（不再看地区 —— 配额是下限不是上限）
+    for (const c of withRegion) {
+      if (outList.length >= limit) break;
+      if (picked.has(String(c.row._id))) continue;
+      picked.add(String(c.row._id));
+      outList.push({ ...c, quotaSlot: null });
+    }
+    out[code] = outList
+      .slice(0, limit)
+      .sort((x, y) => y.votes - x.votes)
+      .map((c) => ({
+        id: String(c.row._id),
+        name: c.row.name,
+        artistName: c.row.artistName,
+        artworkUrl: c.row.artworkUrl,
+        votes: c.votes,
+        region: c.region,
+        quotaSlot: c.quotaSlot,
+      }));
   }
   const total = await AlbumTagVote.estimatedDocumentCount();
   const voters = await AlbumTagVote.distinct('userId');
-  return { total, voters: voters.length, byType };
+  return { total, voters: voters.length, byType: out, quota: REGION_QUOTA };
 }
 
 export default {

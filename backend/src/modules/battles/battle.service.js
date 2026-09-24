@@ -273,19 +273,27 @@ export async function resolvePool(payload) {
      * 表外流派（你手输的、白名单没覆盖的写法）才退回按规范键全等匹配。
      */
     const wlNames = whitelistNamesFor(term, normalizeGenre);
-    const all = await Artist.find({}).select('artistId name genre region aliases').lean();
-    let matched;
+    const wantKey = canonicalGenreKey(term);
+    const all = await Artist.find({}).select('artistId name genre region aliases curatedGenres').lean();
+    /**
+     * 2026-09-24 第十七批：流派成员 = 白名单匹配 ∪ **管理员手动归入**（curatedGenres）。
+     * 后台按流派加的歌手必须真能进池，否则"加了但没用"。
+     */
+    const merged = new Map();
     if (wlNames.length) {
-      // ⚠️ 2026-09-24 第十三批：改**别名感知**匹配（以前只比 name，hk 区本地化名/繁简差异会漏，
-      //    于是"chip 上人数"与"池子里的人"对不上）
-      matched = all.filter((a) => artistMatchesAnyWhitelistName(a, wlNames));
-      if (!matched.length) {
-        throw new BadRequestError(
-          `「${term}」这册名单里的歌手还没进曲库 —— 先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
-        );
-      }
+      // ⚠️ 别名感知匹配（hk 区本地化名/繁简差异）
+      for (const a of all.filter((x) => artistMatchesAnyWhitelistName(x, wlNames))) merged.set(a.artistId, a);
+    }
+    for (const a of all.filter((x) => (x.curatedGenres || []).includes(wantKey))) merged.set(a.artistId, a);
+    let matched = [...merged.values()];
+    if (matched.length) {
+      // 命中了（白名单 ∪ 手动归入）
+    } else if (wlNames.length) {
+      throw new BadRequestError(
+        `「${term}」这册名单里的歌手还没进曲库 —— 先在上方点「从音乐源找歌手」把这册人加进曲库再回来`,
+      );
     } else {
-      const wantKey = canonicalGenreKey(term);
+      // 表外流派：按库里歌手的 iTunes 流派标签兜底（wantKey 用上面算好的）
       matched = all.filter((a) => canonicalGenreKey(a.genre) === wantKey);
       if (!matched.length) {
         // 把话说清楚：流派 = 已缓存歌手的 iTunes 流派标签，不是全网搜索

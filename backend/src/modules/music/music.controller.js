@@ -108,9 +108,8 @@ export async function listGenres(req, res) {
  * 用于解决"库里某流派只有几位歌手，撑不起混战"的问题。
  */
 export async function discoverGenreArtists(req, res) {
-  const { genre } = req.validated.query;
-  const { limit } = req.validated.query;
-  const data = await genreExpand.discoverGenreArtists(genre, { limit: limit || 30 });
+  const { genre, limit, online } = req.validated.query;
+  const data = await genreExpand.discoverGenreArtists(genre, { limit: limit || 30, online: Boolean(online) });
   return ok(res, data);
 }
 

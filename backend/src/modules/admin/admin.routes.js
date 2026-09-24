@@ -70,6 +70,11 @@ const pageQuery = z.object({
   status: z.enum(['active', 'banned']).optional(),
 });
 
+const genreArtistSchema = z.object({
+  genre: z.string().trim().min(1, '请提供流派'),
+  q: z.string().trim().min(1, '请输入歌手名').max(80),
+});
+
 const router = Router();
 
 // 公开：管理员登录
@@ -100,6 +105,20 @@ router.post(
   '/music/refresh',
   validate(z.object({ artistId: z.coerce.number().int().positive() }), 'body'),
   asyncHandler(controller.refreshMusic),
+);
+
+/**
+ * 按流派手动加歌手（2026-09-24 第十七批）：搜音乐源 → 专辑入库 → 记录流派归属
+ */
+router.post(
+  '/genre-artists',
+  validate(genreArtistSchema, 'body'),
+  asyncHandler(controller.addGenreArtist),
+);
+router.get(
+  '/genre-artists',
+  validate(z.object({ genre: z.string().trim().min(1) }), 'query'),
+  asyncHandler(controller.listGenreArtists),
 );
 
 router.get('/users', validate(pageQuery, 'query'), asyncHandler(controller.listUsers));

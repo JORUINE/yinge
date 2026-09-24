@@ -44,6 +44,46 @@
       </div>
     </div>
 
+    <!-- 按流派手动加歌手（2026-09-24 第十七批）
+         用户："在管理员后台加上我可以给每个流派手动添加歌手然后把它的专辑入库
+         就和推荐专辑那里我也可以自己搜一样"。 -->
+    <div class="panel">
+      <h4>按流派手动加歌手</h4>
+      <p class="ps">选流派 → 搜歌手 → 点「加入该流派并入库专辑」。加完在创建页该流派里直接出现，组池也会带上 TA。</p>
+      <div class="searchrow">
+        <select v-model="gaGenre" class="ipt" style="max-width: 230px">
+          <option value="" disabled>选择流派</option>
+          <option v-for="g in genreOptions" :key="g.genre" :value="g.genre">
+            {{ g.genre }}（{{ g.artists }}/{{ g.whitelistTotal }} 位）
+          </option>
+        </select>
+        <input
+          v-model="gaTerm"
+          class="ipt"
+          placeholder="输入歌手名（例如 Daft Punk）"
+          @keyup.enter="gaSearch"
+        />
+        <button class="mini" type="button" :disabled="gaSearching" @click="gaSearch">
+          {{ gaSearching ? '搜索中…' : '搜索' }}
+        </button>
+      </div>
+      <div v-if="gaResults.length" class="reslist">
+        <div v-for="r in gaResults" :key="r.artistId" class="resrow">
+          <span class="rn">{{ r.name }} <em class="muted">#{{ r.artistId }}</em></span>
+          <button
+            class="mini pri"
+            type="button"
+            :disabled="gaBusy === r.artistId"
+            @click="gaAdd(r)"
+          >
+            {{ gaBusy === r.artistId ? '入库中…' : '加入该流派并入库专辑' }}
+          </button>
+        </div>
+      </div>
+      <p v-if="gaNote" class="ps" :style="{ color: gaOk ? 'var(--ok)' : 'var(--text2)' }">{{ gaNote }}</p>
+      <p v-if="gaGenre" class="ps">该流派现有：{{ gaRosterNote || '读取中…' }}</p>
+    </div>
+
     <div class="panel">
       <h4>已缓存歌手</h4>
       <p class="ps">共 {{ list.length }} 位 · 按缓存时间倒序</p>
@@ -84,7 +124,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import AdminShell from '@/layouts/AdminShell.vue';
 import { adminApi, musicApi } from '@/api';
@@ -108,6 +148,79 @@ function freshLabel(f) {
 function freshType(f) {
   // 返回设计系统的 tagx 变体类名（以前返回的是 el-tag 的 type，换成 .tagx 后要跟着改）
   return (FRESH[f] || { type: 'tp' }).type;
+}
+
+// —— 按流派手动加歌手（2026-09-24 第十七批）——
+const gaGenre = ref('');
+const gaTerm = ref('');
+const gaSearching = ref(false);
+const gaResults = ref([]);
+const gaBusy = ref(null);
+const gaNote = ref('');
+const gaOk = ref(false);
+const gaRoster = ref(null);
+const genreOptions = ref([]);
+const gaRosterNote = computed(() => {
+  const r = gaRoster.value;
+  if (!r || !r.total) return '';
+  const curated = (r.artists || []).filter((a) => a.curated).length;
+  const extra = curated ? `，其中 ${curated} 位是你在后台手动加的` : '';
+  return `共 ${r.total} 位，白名单 ${r.cached}/${r.total} 位已入库${extra}`;
+});
+
+async function loadGenreOptions() {
+  try {
+    const d = await musicApi.listGenres();
+    genreOptions.value = Array.isArray(d) ? d : d?.list || [];
+  } catch {
+    genreOptions.value = [];
+  }
+}
+async function loadGaRoster() {
+  gaRoster.value = null;
+  if (!gaGenre.value) return;
+  try {
+    gaRoster.value = await adminApi.listGenreArtists({ genre: gaGenre.value });
+  } catch {
+    gaRoster.value = null;
+  }
+}
+watch(gaGenre, loadGaRoster);
+
+async function gaSearch() {
+  const q = gaTerm.value.trim();
+  if (!q) return;
+  gaSearching.value = true;
+  try {
+    const d = await musicApi.searchArtists({ q, limit: 5 });
+    gaResults.value = d?.artists || [];
+    if (!gaResults.value.length) ElMessage.warning('音乐源里没找到，换个写法试试');
+  } catch (e) {
+    ElMessage.error(e?.message || '搜索失败');
+  } finally {
+    gaSearching.value = false;
+  }
+}
+
+async function gaAdd(row) {
+  if (!gaGenre.value) {
+    ElMessage.warning('先选择流派');
+    return;
+  }
+  gaBusy.value = row.artistId;
+  try {
+    const d = await adminApi.addGenreArtist({ genre: gaGenre.value, q: row.name });
+    gaOk.value = true;
+    gaNote.value = `「${d.name}」已加入「${gaGenre.value}」，本次入库专辑 ${d.importedAlbums} 张（该歌手现有 ${d.albumCount} 张）`;
+    ElMessage.success(gaNote.value);
+    await Promise.all([loadGaRoster(), reload()]);
+  } catch (e) {
+    gaOk.value = false;
+    gaNote.value = e?.message || '加入失败';
+    ElMessage.error(gaNote.value);
+  } finally {
+    gaBusy.value = null;
+  }
 }
 
 // —— 概览（2026-09-20 统一版式时补的 KPI）——
@@ -159,7 +272,10 @@ async function reload() {
   }
 }
 
-onMounted(reload);
+onMounted(() => {
+  reload();
+  loadGenreOptions();
+});
 </script>
 
 <style scoped>

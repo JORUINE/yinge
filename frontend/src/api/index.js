@@ -120,6 +120,9 @@ export const adminApi = {
   deleteType: (id) => http.delete(`/admin/types/${id}`),
   listMusic: (params) => http.get('/admin/music', { params }),
   refreshMusic: (artistId) => http.post('/admin/music/refresh', { artistId }),
+  // 按流派手动加歌手（2026-09-24 第十七批）：搜音乐源 → 专辑入库 → 记录流派归属
+  addGenreArtist: (data) => http.post('/admin/genre-artists', data),
+  listGenreArtists: (params) => http.get('/admin/genre-artists', { params }),
   listUsers: (params) => http.get('/admin/users', { params }),
   updateUserStatus: (id, data) => http.put(`/admin/users/${id}/status`, data),
 };

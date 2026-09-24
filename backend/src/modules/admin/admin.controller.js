@@ -60,6 +60,14 @@ export async function refreshMusic(req, res) {
   return ok(res, await service.refreshMusic(req.validated.body), '已触发刷新');
 }
 
+export async function addGenreArtist(req, res) {
+  return ok(res, await service.addGenreArtist(req.validated.body), '已加入该流派并同步专辑');
+}
+
+export async function listGenreArtists(req, res) {
+  return ok(res, await service.listGenreArtists(req.validated.query));
+}
+
 export async function listUsers(req, res) {
   const { list, page, pageSize, total, bannedReasons } = await service.listUsers(req.validated.query);
   return ok(res, { ...paginated(list, total, page, pageSize), bannedReasons });

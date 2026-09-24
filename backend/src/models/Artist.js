@@ -32,6 +32,13 @@ const artistSchema = new mongoose.Schema(
      * 有了它，`artistMatchesWhitelistName()` 就能把两边判定统一起来。
      */
     aliases: { type: [String], default: [] },
+    /**
+     * 管理员手动归入的流派（2026-09-24 第十七批）
+     * ------------------------------------------------------------
+     * 用户："在管理员后台加上我可以给每个流派手动添加歌手然后把它的专辑入库"。
+     * 存**规范键**（如 `舞曲`），组池/名单时与白名单合并 —— 不改静态白名单数据文件。
+     */
+    curatedGenres: { type: [String], default: [] },
   },
   { timestamps: true },
 );

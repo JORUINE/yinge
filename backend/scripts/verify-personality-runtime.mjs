@@ -14,7 +14,7 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
 import { Album, Track } from '../src/models/index.js';
-import { AUDIO_TAG_GENRE } from '../src/data/personality.js';
+import { AUDIO_TAG_GENRE, AUDIO_WHITELIST } from '../src/data/personality.js';
 import { resolveAudio, getQuestions, nextTagAlbum } from '../src/modules/personality/personality.service.js';
 
 let pass = 0;
@@ -34,7 +34,22 @@ const roundsPerTag = 6;
 let matched = 0;
 let total = 0;
 let empty = 0;
+let wlHit = 0;
 const samples = [];
+/**
+ * ⚠️ 2026-09-24 第十七批：判定口径修正（修的不是阈值，是**指标本身**）。
+ * 原判定＝"曲库流派标签是否命中 AUDIO_TAG_GENRE 正则"，但 10.4 的 AUDIO_WHITELIST
+ * 是**人工挑的气质代表专辑**（Michael Jackson / Bruno Mars / Dua Lipa 这类节奏系歌手，
+ * iTunes 给它们打的标签全是「流行樂」）——人工挑的当然"对"，却被标签正则判成不匹配。
+ * 所以正确口径是：**命中人工白名单＝匹配**（白名单就是人工事实标准），
+ * 只有**兜底来源**（流派定向/任意曲）才用标签正则把关。这样指标才真的在测
+ * "兜底会不会退回气质不对的曲子"。
+ */
+const norm = (x) => String(x || '').toLowerCase().replace(/[\s\-_·'’.,&()]/g, '');
+const wlKeys = {};
+for (const [tag, list] of Object.entries(AUDIO_WHITELIST)) {
+  wlKeys[tag] = new Set(list.map((w) => `${norm(w.album)}|${norm(w.artist)}`));
+}
 for (const tag of TAGS) {
   for (let i = 0; i < roundsPerTag; i += 1) {
     // eslint-disable-next-line no-await-in-loop
@@ -50,15 +65,17 @@ for (const tag of TAGS) {
     // eslint-disable-next-line no-await-in-loop
     const al = tk ? await Album.findById(tk.albumId).select('genre name artistName').lean() : null;
     const genre = al?.genre || '';
-    const hit = new RegExp(AUDIO_TAG_GENRE[tag], 'i').test(genre);
+    const fromWhitelist = wlKeys[tag]?.has(`${norm(al?.name)}|${norm(al?.artistName)}`) || false;
+    const hit = fromWhitelist || new RegExp(AUDIO_TAG_GENRE[tag], 'i').test(genre);
     if (hit) matched += 1;
-    samples.push({ tag, genre: genre || '(未知)', hit, name: al?.name || '' });
+    if (fromWhitelist) wlHit += 1;
+    samples.push({ tag, genre: fromWhitelist ? `${genre}(白名单)` : genre || '(未知)', hit, name: al?.name || '' });
   }
 }
 ok('每道听感题都取到了音频（不会出现"音频源待配置"）', empty === 0, `${total - empty}/${total} 条有音频`);
-ok('★ 音频流派与题目气质标签匹配率 ≥ 90%（老版本命中不到就退回任意曲）',
+ok('★ 音频气质匹配率 ≥ 90%（命中人工白名单＝匹配；兜底来源用流派标签把关）',
   matched / Math.max(1, total - empty) >= 0.9,
-  `命中 ${matched}/${total - empty}（${((matched / Math.max(1, total - empty)) * 100).toFixed(0)}%）`);
+  `命中 ${matched}/${total - empty}（${((matched / Math.max(1, total - empty)) * 100).toFixed(0)}%，其中白名单直取 ${wlHit}）`);
 console.log('   抽样明细：', samples.slice(0, 8).map((s) => `${s.tag}→${s.genre}${s.hit ? '' : '✗'}`).join('  '));
 
 // ══════════ ② 选项乱序 ══════════

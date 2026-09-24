@@ -28,6 +28,12 @@ const albumParamSchema = z.object({ albumId: numericId });
 const genreDiscoverSchema = z.object({
   genre: z.string().trim().min(1, '请提供流派'),
   limit: z.coerce.number().int().min(1).max(60).optional(),
+  /**
+   * online=true = 「从音乐源补」场景（2026-09-24 第十七批）
+   * 有白名单覆盖的流派平时**只用白名单**（用户定调，防"流行乐混进粤语歌手"）；
+   * 但创建页的「从音乐源找歌手」是要**在线补白名单之外的人** —— 这时要放行榜单/关键词源。
+   */
+  online: z.coerce.boolean().optional(),
 });
 const genreWarmSchema = z.object({
   genre: z.string().trim().min(1, '请提供流派'),
