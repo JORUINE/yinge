@@ -30,7 +30,14 @@ const loginSchema = z.object({
 const optionSchema = z.object({
   key: z.string().min(1),
   label: z.string().min(1),
-  score: z.record(z.number()),
+  /**
+   * 2026-09-25：**必须允许缺失/空**。
+   * ⚠️ 写法陷阱：`questionUpdateSchema = questionSchema.partial()` 只让**顶层**字段可选，
+   * 嵌套在 options 里的 score 依旧必填 —— 于是"修改一道题再保存"必然报 `options.N.score Required`
+   * （旧题里"说不上来"这种中立选项本来就没有分数）。
+   * 这里放宽成"可选 + 允许 null"，真正的清洗交给 service 的 cleanOptions()。
+   */
+  score: z.record(z.union([z.number(), z.null()])).optional().default({}),
 });
 const questionSchema = z.object({
   order: z.coerce.number().int().min(1),

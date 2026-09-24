@@ -28,7 +28,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="q in list" :key="q.questionId">
+        <tr v-for="q in list" :key="q.questionId || q._id">
           <td class="num">{{ q.order }}</td>
           <td>
             <span class="tagx" :class="q.type === 'audio' ? 'wn' : 'tp'">{{ q.type === 'audio' ? '听感' : '选择' }}</span>
@@ -155,7 +155,8 @@ function openCreate() {
 }
 
 function openEdit(q) {
-  editing.value = q.questionId;
+  // 兜底：后端若没给 questionId 就退回 _id（宁可显式失败也不要静默走"新建"）
+  editing.value = q.questionId || q._id || null;
   form.order = q.order;
   form.type = q.type || 'choice';
   form.title = q.title;
@@ -172,7 +173,21 @@ function buildPayload() {
     title: form.title.trim(),
     audioRef: form.audioRef || null,
     dims: dims.value,
-    options: form.options.map((o) => ({ key: o.key.trim(), label: o.label.trim(), score: { ...o.score } })),
+    /**
+     * 2026-09-25：空分数不要发出去。
+     * el-input-number 清空后 `o.score[dd]` 会变成 null/''，直接 `{...o.score}` 会带上这些键，
+     * 后端 schema 的 `z.record(z.number())` 会因 null 报错；而"说不上来"这种中立选项本来就该没有分数。
+     * 这里只保留**有效的数字**键。
+     */
+    options: form.options.map((o) => {
+      const score = {};
+      for (const [k, v] of Object.entries(o.score || {})) {
+        if (v === null || v === undefined || v === '') continue;
+        const n = Number(v);
+        if (Number.isFinite(n)) score[k] = n;
+      }
+      return { key: o.key.trim(), label: o.label.trim(), score };
+    }),
   };
 }
 
@@ -209,7 +224,7 @@ async function remove(q) {
     return;
   }
   try {
-    await adminApi.deleteQuestion(q.questionId);
+    await adminApi.deleteQuestion(q.questionId || q._id);
     ElMessage.success('已删除');
     await reload();
   } catch (err) {
