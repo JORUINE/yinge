@@ -192,6 +192,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第十五批</b>（紧跟第十四批）—— ① 分享卡：你圈的"蓝色那个框"（封面容器的渐变底）与第十四批加的 7px 环<b>都删了</b>，恢复"专辑 + 好看的阴影"（实测 .art padding=0、无底色、radius 18，height:auto 仍不裁切）；② 四角"矩形框"：卡片圆角 28→<b>34</b> 并<b>去掉所有内描边/亮线</b>（.scard 上缘反光、::after 内晕），边界只靠亮度过渡；③ <b>首页断层线真因找到</b>：项目在 Edge 走 <code>html.ua-edge</code> 自动降级（防最小化闪屏），降级后的 body 光晕是固定像素径向渐变且 <code>background-repeat</code> 默认 repeat → 页面一长<b>纵向平铺</b>出横向断层线，已改 no-repeat 并统一 --bg-wash；Edge 上没有毛玻璃是<b>降级</b>（ua-edge 关闭全部 backdrop-filter），不是没做；④ 分享卡本色外发光在 Edge 出色带 → Edge 下不画。实测首页在正常浏览器与模拟 ua-edge 两种状态下断层线均消失。vite build 通过、零 JS 运行时错误；上一批（第十四批：大框套小框/音乐海洋/分享卡收环/文字放大）保留）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第十七批</b>：① 修"舞曲查询不到"——<code>discoverGenreArtists</code> 加 <code>online</code> 出口，「从音乐源找歌手」真正在线找候选（组池口径不变）② <b>管理后台新增「按流派手动加歌手」</b>：选流派 → 搜歌手 → 加入该流派并入库专辑（<code>Artist.curatedGenres</code>，流派名单与组池都合并）③ <b>人格 10.4 修复</b>：AUDIO_WHITELIST 40 张气质代表专辑整批入库（seed-audio-whitelist.mjs），气质匹配率 77%→<b>100%</b>；自检口径修正为"命中人工白名单＝匹配" ④ <b>人格 10.5 落地</b>：推荐池候选每型地区配额 西洋≥2/华语≥2/其他≥1（quotaSlot 标占位），手册第 10 节 10.1–10.5 全部实施完毕 ⑤ 分享卡光效恢复（仍一条线不画），mask 雾化保留。自检又抓到 3 个语法检查查不出的 bug（缺导入/相对路径错致模块加载崩/同名遮蔽）并修掉。verify-personality 22/22、runtime 10/10、后端 9 脚本全绿、verify-r26 18/18、vite build 通过）</div>
 </body>
 </html>
