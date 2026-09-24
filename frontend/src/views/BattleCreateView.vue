@@ -439,39 +439,33 @@
             流派 = 曲库里已缓存歌手的 iTunes 流派标签；命中后自动按准入规则过滤，再<b>各歌手轮转抽你选的张数（最多 48 张）</b>入池 —— 不用手动挑，专辑多也不怕。
           </p>
 
-          <!-- 📋 白名单名单（点开即见）· 2026-09-23 第十二批
-               背景：后端 `/api/music/genres/whitelist` 端点早就就绪（返回该流派的白名单歌手
-               + 是否已入库），但前端一直没接 → 用户看不到"这册人是谁、还缺谁"。
-               这里补上：一个按钮，点开即出名单（不点不请求，省流量）。 -->
+          <!-- ⭐ 这册内置歌手 · 2026-09-24 第十三批（用户重新梳理的需求）
+               ────────────────────────────────────────────────────────────
+               用户原话："把你白名单那 19 个流派作为我们默认的流派 里面的歌手就按你名单里的那些
+               一个不要动不要变 …白名单里的全部给我入库内置 你现在这个白名单展开根本不需要，
+               按我说的内置好了 用户点开每一个流派就能看到内置的白名单上的这些歌手 并且也已经全部入库。"
+               所以**去掉"点开即见"按钮**：选中流派就自动取一次（本地毫秒级、不打 iTunes），
+               直接把这一册内置歌手平铺出来。全部已入库时不再提示"还缺谁"。 -->
           <div class="grow">
             <div class="growhd">
-              <b>📋 这个流派的白名单名单（点开即见）</b>
+              <b>这册内置歌手</b>
               <span>
-                组池顺序是「<b>人工白名单 → Apple 榜单 → 关键词</b>」。这里把该流派的
-                <b>白名单歌手</b>全列出来，并标出谁已入库、谁还没补。
+                <template v-if="wlData">
+                  共 <b>{{ wlData.total }}</b> 位 ·
+                  <b>{{ wlData.cached === wlData.total ? '已全部内置入库' : `已入库 ${wlData.cached} 位` }}</b>
+                </template>
+                <template v-else>选中流派后自动列出这一册的歌手</template>
               </span>
             </div>
-            <div class="growrow">
-              <button
-                class="btn ghost sm"
-                type="button"
-                :disabled="!genre.trim() || wlLoading"
-                @click="toggleWhitelist"
-              >
-                {{ wlLoading ? '读取中…' : wlOpen ? '收起名单' : '📋 点开即见白名单名单' }}
-              </button>
-              <span v-if="wlData" class="wlstat">
-                共 <b>{{ wlData.total }}</b> 位 · 已入库 <b>{{ wlData.cached }}</b> 位 ·
-                还缺 <b>{{ wlData.total - wlData.cached }}</b> 位
-              </span>
-            </div>
-            <p v-if="wlOpen && wlData && !wlData.total" class="hint">
-              这个流派暂时没有人工白名单 —— 后端会走 Apple 榜单 + 关键词兜底。
+            <p v-if="wlData && wlData.total && wlData.cached === wlData.total" class="hint">
+              下面这些就是「{{ genre }}」这一册的<b>全部内置歌手</b>，已经在曲库里 ——
+              开局直接从他们名下抽专辑，不用再手动补。
             </p>
-            <p v-if="wlOpen && wlData && wlData.total && wlData.cached < wlData.total" class="hint">
-              还缺的在下面点名字即可勾选补进曲库（也可用上方「一键补知名歌手」批量补）。
+            <p v-if="wlData && wlData.total && wlData.cached < wlData.total" class="hint warnline">
+              这一册还差 {{ wlData.total - wlData.cached }} 位没入库，可用下方「一键补知名歌手」补齐。
             </p>
-            <div v-if="wlOpen && wlData && wlData.total" class="glist wllist">
+            <p v-if="wlLoading" class="hint">读取中…</p>
+            <div v-if="wlData && wlData.total" class="glist wllist">
               <span
                 v-for="a in wlData.artists"
                 :key="a.name"
@@ -483,6 +477,9 @@
                 <i>{{ a.cached ? `已入库 ${a.localAlbumCount} 张` : '未入库' }}</i>
               </span>
             </div>
+            <p v-else-if="!wlLoading && mode === 'genre-era' && genreOrEra === 'genre'" class="hint">
+              这个流派没有人工白名单册（后端会走 Apple 榜单 + 关键词兜底）。
+            </p>
           </div>
 
           <!-- 流派歌手扩充：一个流派本来有几百位艺人，曲库里只有几位就撑不起混战 -->
@@ -835,36 +832,27 @@ const missing = computed(() => discovered.value.filter((a) => !a.cached));
 const warmPick = ref([]);
 
 /**
- * 📋 白名单名单（点开即见）· 2026-09-23 第十二批
- * 后端 `GET /api/music/genres/whitelist?genre=` 一直可用（见 genreExpand.whitelistOfGenre），
- * 前端此前漏接 → 现在补：按钮点击才请求（不点不耗流量），并按名字列出 + 标已入库。
+ * ⭐ 「这册内置歌手」自动取数 · 2026-09-24 第十三批
+ * 用户重新梳理的需求：白名单那 19 册就是默认流派，册里的歌手**全部内置入库**；
+ *   "你现在这个白名单展开根本不需要 … 用户点开每一个流派就能看到内置的白名单上的这些歌手"。
+ * → 去掉按钮，选中流派就自动取一次（`/music/genres/whitelist` 只读本地库，毫秒级、不打 iTunes）。
+ * ⚠️ `watch` 必须放在 `genre`/`genreOrEra` 声明**之后**（放前面命中暂时性死区 → 整页白屏，
+ *    2026-09-23 被 verify-r25 的"零 JS 运行时错误"断言抓到过）。
  */
-const wlOpen = ref(false);
 const wlLoading = ref(false);
 const wlData = ref(null);
-/**
- * ⚠️ 2026-09-23 自检抓到的坑：`watch(genre, …)` **不能放在这里** ——
- *   `genre` 直到本文件下面（流派区）才 `const genre = ref('Pop')` 声明，
- *   在声明之前引用会命中「暂时性死区」，直接抛
- *   `ReferenceError: Cannot access 'genre' before initialization`（整页白屏）。
- *   `node --check` 查不出这种错 —— 只有真的把页面跑起来才炸。
- *   所以 watch 挪到 `genre` 声明之后（见下方 // 换流派收起白名单）。
- */
 
-async function toggleWhitelist() {
-  const g = genre.value.trim();
-  if (!g) return;
-  if (wlOpen.value) {
-    wlOpen.value = false;
+async function loadWhitelistRoster(term) {
+  const g = String(term || '').trim();
+  if (!g) {
+    wlData.value = null;
     return;
   }
   wlLoading.value = true;
   try {
-    const d = await musicApi.genreWhitelist({ genre: g });
-    wlData.value = d || null;
-    wlOpen.value = true;
-  } catch (err) {
-    ElMessage.error(err?.message || '读取白名单失败');
+    wlData.value = (await musicApi.genreWhitelist({ genre: g })) || null;
+  } catch {
+    wlData.value = null; // 取不到就不显示这一块，不弹错（这里是辅助信息）
   } finally {
     wlLoading.value = false;
   }
@@ -1048,13 +1036,14 @@ const genre = ref('Pop');
 const yearStart = ref(2000);
 
 /**
- * 换流派就把「白名单名单」收起并清掉 —— 否则会显示上一个流派的名单（第二个真相源）。
- * ⚠️ 必须放在 `genre` 声明**之后**：放前面会命中暂时性死区（ReferenceError），
- *    整页白屏（2026-09-23 被自检 verify-r25 抓到）。
+ * 「这册内置歌手」自动取数（2026-09-24 第十三批）
+ * 选中的流派变了、或切回「按流派」这一栏 → 自动取一次该册名单（只读本地库，不打 iTunes）。
+ * ⚠️ 必须放在 `genre` / `genreOrEra` 声明**之后**：放前面会命中暂时性死区（ReferenceError），
+ *    整页白屏（2026-09-23 被自检 verify-r25 抓到过，所以这条纪律写在注释里）。
  */
-watch(genre, () => {
-  wlOpen.value = false;
-  wlData.value = null;
+watch([genre, genreOrEra], ([g, ge]) => {
+  if (ge !== 'genre') return;
+  loadWhitelistRoster(g);
 });
 const yearEnd = ref(2020);
 /**
@@ -2342,14 +2331,7 @@ async function onCreate() {
   }
 }
 
-/* 📋 白名单名单（点开即见）· 2026-09-23 第十二批 */
-.wlstat {
-  font-size: var(--fs-sm);
-  color: var(--text2);
-}
-.wlstat b {
-  color: var(--brand-deep);
-}
+/* ⭐ 这册内置歌手（2026-09-24 第十三批）：把这一册人平铺出来，多了就内部滚动 */
 .wllist {
   max-height: 260px;
   overflow-y: auto;

@@ -280,7 +280,24 @@ onMounted(() => {
   background: var(--glass);
   backdrop-filter: blur(22px) saturate(180%);
   -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border-bottom: 1px solid var(--gbd);
+  /**
+   * ⚠️ 2026-09-24 第十三批（用户："ui 线条感太重 分割线太明显 必须做雾化过度处理 体现玻璃质感"）：
+   *   原来是 `border-bottom: 1px solid var(--gbd)` —— `--gbd` 是接近**纯白**的玻璃描边，
+   *   铺在浅色页面上就是顶栏底下一条**亮硬线**（全站每一页都有）。
+   *   现在改成"两端渐隐的柔光细线"（伪元素画 1px 高的渐变，左右 12% 淡出），
+   *   顶栏与内容之间只留一道过渡，不再是一条切割线。
+   */
+  border-bottom: 0;
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--hair) 12%, var(--hair) 88%, transparent 100%);
 }
 
 .bar {

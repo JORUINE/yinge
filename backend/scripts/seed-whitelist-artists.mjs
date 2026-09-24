@@ -17,7 +17,7 @@
  */
 import { connectDb, disconnectDb } from '../src/db/connect.js';
 import { Artist } from '../src/models/index.js';
-import { GENRE_WHITELIST, EXTRA_LISTS, sameArtistName, whitelistNamesFor } from '../src/data/genreWhitelist.js';
+import { GENRE_WHITELIST, EXTRA_LISTS, sameArtistName, artistMatchesWhitelistName, whitelistNamesFor } from '../src/data/genreWhitelist.js';
 import { normalizeGenre } from '../src/modules/music/genreExpand.js';
 import * as itunes from '../src/modules/music/itunes.client.js';
 import * as musicService from '../src/modules/music/music.service.js';
@@ -45,9 +45,10 @@ async function main() {
   const names = targetNames();
   const capped = limit ? names.slice(0, limit) : names;
 
-  // 一次扫描库里已有的歌手，跳过已入库的（宽松名字匹配，与 whitelistOfGenre 同一口径）
-  const existing = await Artist.find({}).select('artistId name albumCount').lean();
-  const todo = capped.filter((n) => !existing.some((a) => sameArtistName(a.name, n)));
+  // 一次扫描库里已有的歌手，跳过已入库的（**别名感知**匹配 —— 2026-09-24 第十三批：
+  // 以前只比 name，"威肯/The Weeknd"、"房东的猫/房東的貓" 这种会被当成"没入库"反复重灌）
+  const existing = await Artist.find({}).select('artistId name albumCount aliases').lean();
+  const todo = capped.filter((n) => !existing.some((a) => artistMatchesWhitelistName(a, n)));
   console.log(`库里现有歌手 ${existing.length} 位；本次待灌 ${todo.length} 位（已入库的跳过）`);
   if (DRY) {
     console.log(`\n[dry] 将尝试灌入：${todo.slice(0, 30).join('、')}${todo.length > 30 ? ' …' : ''}\n`);
@@ -84,20 +85,28 @@ async function main() {
         // eslint-disable-next-line no-await-in-loop
         await musicService.syncArtist(hit.artistId);
         /**
-         * ③ 校验：库里**存下来的名字**能不能跟白名单写法对上。
-         * ⚠️ 2026-09-23 修「假成功」：iTunes hk 区返回当地译名（BTS → 防彈少年團、
-         *    ヨルシカ → Yorushika、宇多田ヒカル → 宇多田光），灌完名字对不上时
-         *    原来照样计 +1 成功 → 页面上仍然显示"未入库"。现在必须真能匹配才算成功。
-         *    （名字变体的正解是 genreWhitelist 的 NAME_ALIAS_GROUPS，与本校验同口径。）
+         * ③ 把**白名单里的写法**记到 `artist.aliases`（2026-09-24 第十三批）
+         * 为什么必须记：iTunes **hk 区**存下来的是本地化名 / 繁简差异写法
+         *   （白名单 `The Weeknd` → 库里 `威肯`；`房東的貓` → `房东的猫`；`萬妮達` → `万妮达`），
+         *   只比 `name` 就会"灌进库了却数不到" —— 正是用户报的那句
+         *   「白名单里说没有 The Weeknd，下面却显示它已入库 168 张」。
+         *   记下别名后，全站统一走 `artistMatchesWhitelistName()` 判定。
          */
         // eslint-disable-next-line no-await-in-loop
-        const stored = await Artist.findOne({ artistId: hit.artistId }).select('name').lean();
-        if (stored && sameArtistName(stored.name, name)) {
+        await Artist.updateOne({ artistId: hit.artistId }, { $addToSet: { aliases: name } });
+        /**
+         * ④ 校验：库里**存下来的名字 / 别名**能不能跟白名单对上。
+         * ⚠️ 2026-09-23 修「假成功」：iTunes hk 区返回当地译名时，原来照样计 +1 成功 →
+         *    页面上仍显示"未入库"。现在必须真能匹配（含刚记的别名）才算成功。
+         */
+        // eslint-disable-next-line no-await-in-loop
+        const stored = await Artist.findOne({ artistId: hit.artistId }).select('name aliases').lean();
+        if (stored && artistMatchesWhitelistName(stored, name)) {
           ok += 1;
           if (ok % 10 === 0) console.log(`  …已灌 ${ok} 位（最近：${name}）`);
         } else {
           failed += 1;
-          failures.push(`${name}（库里存成「${stored?.name || '?'}」，与白名单写法对不上）`);
+          failures.push(`${name}（库里存成「${stored?.name || '?'}」，别名也没记上）`);
         }
       } catch (e) {
         failed += 1;

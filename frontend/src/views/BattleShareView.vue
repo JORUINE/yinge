@@ -274,6 +274,12 @@ const cardStyle = computed(() => {
     '--sa-20': withAlpha(deep, 0.2),
     // 卡片底色：同色相、极低明度（取自冠军专辑）—— 用户："背景色和感觉就让你用专辑 PK 的那套算法"
     '--sa-deep': deepenRgb(ac, { sMin: 32, sMax: 62, lMin: 9, lMax: 18 }),
+    /**
+     * 2026-09-24 第十三批：卡片**外发光**（同色、半透明）。
+     * 用户："你把它和背景融合 线条雾化呀 做成一体的质感" —— 硬边框去掉后，
+     * 靠这层同色外发光把卡片颜色"渗"到页面上，交界处自然雾化。
+     */
+    '--sa-glow': withAlpha(deep, 0.5),
   };
 });
 
@@ -568,14 +574,17 @@ onMounted(load);
   border-radius: 12px;
 }
 .scard.square .roundline {
-  font-size: 12px;
+  /* 13px（2026-09-24 第十三批，原来 12px —— 用户要"下面的小字大一点点"） */
+  font-size: 13px;
+  letter-spacing: 0.02em;
 }
 /* ⚠️ 这里原来有一条 `border-top` —— 那正是用户说的"明显的分割线、像两个矩形框拼在一起"，已去掉。
-   现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。 */
+   现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。
+   2026-09-24 第十三批：小字 12 → 13px、间距略放开（用户："下面的小字体大小大一点点，然后间距合理"）。 */
 .scard.square .sfoot {
-  font-size: 12px;
-  margin-top: 6px;
-  gap: 6px;
+  font-size: 13px;
+  margin-top: 10px;
+  gap: 8px;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。
@@ -591,8 +600,9 @@ onMounted(load);
   opacity: 1;
 }
 .scard .sfoot .sstat {
-  font-size: 12px;
-  opacity: 0.82;
+  /* 2026-09-24 第十三批：12 → 13.5px（用户要"下面的小字大一点点"；统计行是图里最要紧的一行信息） */
+  font-size: 13.5px;
+  opacity: 0.86;
   /* 统计行不折行：一长串「16张专辑 · 6 位歌手 · 15 场决出」一旦在窄处折开就显得"奇怪"，
      现在强制一行（方卡内容宽约 384px，足够放下），字距略放开更好读。 */
   white-space: nowrap;
@@ -616,11 +626,13 @@ onMounted(load);
   font-variant-numeric: tabular-nums;
 }
 .roundline {
-  font-size: 12px;
+  /* 2026-09-24 第十三批：12 → 13px（用户："下面的小字体大小大一点点，然后间距合理"）
+     —— 这是**基准值**，竖版/方版共用；方版那条 .scard.square .roundline 也已是 13px。 */
+  font-size: 13px;
   opacity: 0.78;
   text-align: center;
   /* 轮次路径（八强 → 半决赛 → 决赛）与脚注之间留出呼吸空间，绝不与脚注挤在一起被"遮住" */
-  margin-top: 2px;
+  margin-top: 4px;
   letter-spacing: 0.03em;
 }
 .cap {

@@ -330,9 +330,16 @@
   padding: 2px 0;
 }
 .th {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
+  /**
+   * ⚠️ 2026-09-24 第十三批（用户报"I'm O.K. 这张在榜单列表里图像有 bug"）：
+   * 查实**不是取数 bug** —— 卡片与列表用的是**同一个 artworkUrl**（实测两张都是 600×589）。
+   * 真因是这张封面整幅都是**网点（halftone）图案**，缩到 42px 后网点糊成一团斑点，
+   * 看不出是什么，像是花了/坏了。同类"看不出是专辑"的抱怨在分享卡上也出现过。
+   * 所以把列表缩略图放大到 **52px**（配合已有的圆角与阴影，缩略图才读得出画面）。
+   */
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
   overflow: hidden;
   flex: 0 0 auto;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24), 0 3px 10px var(--acs, rgba(14, 165, 233, 0.18));
@@ -1798,7 +1805,19 @@ html[data-theme='dark'] .v b {
      现在底色改由**冠军专辑主色**推导（页面注入 --sa-deep：同色相、低明度），
      卡片边缘的颜色就跟着专辑走 —— 和 PK 页那套取色是同一个来源（accentStyleOf + deepenRgb）。 */
   background: var(--sa-deep, #0a2438);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow-3);
+  /**
+   * ⚠️ 2026-09-24 第十三批（用户："你把它和背景融合 线条雾化呀 做成一体的质感"）：
+   *   原来是 `inset 0 1px 0 白 + var(--shadow-3)` —— 一道内白线 + 一圈较硬的深色投影，
+   *   卡片边界因此"贴"在页面上，像一块独立的方砖。
+   *   现在改成：① 只留一道很轻的上缘反光；② 深色投影改成**大模糊、负扩散**（边缘化开、不再是硬边）；
+   *   ③ 再加一层**卡片本色的外发光**（用 --sa-deep 同色）—— 卡片的颜色向页面渗出，
+   *   视觉上就成了"从页面里长出来的一块"，而不是贴上去的框。
+   *   ⚠️ 外发光在元素盒子之外，html2canvas 只渲染元素盒子 → **不会被导进图片**（导出仍是实心底）。
+   */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 26px 60px -28px rgba(2, 14, 22, 0.55),
+    0 0 64px -8px var(--sa-glow, rgba(10, 40, 64, 0.55));
   font-family: 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC',
     'Source Han Sans SC', 'Segoe UI', Arial, sans-serif;
 }
@@ -1923,9 +1942,13 @@ html[data-theme='dark'] .v b {
     /* ③ 底部内侧微光（下缘二次反射） */
     radial-gradient(120% 46% at 50% 104%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 62%);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.26),
-    inset 0 0 0 2px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34);
+    /* ⚠️ 2026-09-24 第十三批（用户："你一直没有优化这个方框的过渡线条 你把它和背景融合 线条雾化"）：
+       这里原来是「双内描边」—— inset 0 0 0 1px 白 + inset 0 0 0 2px 黑。
+       它读作"玻璃厚度"，但在浅色页面上就是**一圈硬线**，把卡片切成了一个方框。
+       现在改成**只有上缘一道柔光**（有方向=还有厚度感），不再有一圈闭合的线：
+       卡片与页面的交界由「卡片底色 → 外发光」自然过渡。 */
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.3),
+    inset 0 14px 26px -18px rgba(255, 255, 255, 0.16);
 }
 .scard .stop {
   /* 「音格 · YINGE.APP」水印：用户要求"水印也可以做大一点，字体也是" */
@@ -1996,9 +2019,9 @@ html[data-theme='dark'] .v b {
 }
 .scard .spath {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   justify-content: center;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 .scard .spath div {
   /* 用户红框标"大一点"：32 → 42px（其他专辑缩略图太小，看不出是专辑） */
@@ -2022,10 +2045,12 @@ html[data-theme='dark'] .v b {
      方卡本来就矮、宽度也就 420，链接一长就被挤出可视区。
      改成允许换行 —— 方卡下链接会自己掉到第二行（见 .scard.square .sfoot .sharel）。 */
   flex-wrap: wrap;
-  gap: 2px 10px;
-  font-size: 12px;
+  gap: 6px 12px;
+  /* 2026-09-24 第十三批（用户："这个里面的字体也要优化 尤其是下面的小字体大小大一点点，然后间距合理"）
+     12 → 13px；间距 2px/10px → 6px/12px */
+  font-size: 13px;
   opacity: 0.72;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 /* ============ 夺冠之路：把「谁胜了谁、各得多少票」写清楚 ============ */
@@ -3528,4 +3553,146 @@ html.ua-safe[data-theme='dark'] {
   .tile:hover {
     transform: none;
   }
+}
+
+/* ============================================================================
+ * 雾化分隔线 / 玻璃过渡（2026-09-24 第十三批）
+ * ----------------------------------------------------------------------------
+ * 用户原话："还有这种这里的 ui 线条感太重 分割线太明显 必须做雾化过度处理 体现玻璃质感。
+ *            我们很多界面都有这个问题"
+ * 病因：全站大量用 `border-top/bottom: 1px solid var(--line)` 与 `border: 1px solid var(--gbd)`
+ *   做分隔/描边 —— 1px 实心线在浅色页面上读作**切割线**（而且 `--gbd` 是接近纯白的描边，
+ *   在浅底上就是一条亮线）。玻璃质感靠的是"亮/暗过渡"，不是"闭合的框"。
+ * 做法：
+ *   ① 分隔线 → **两端渐隐的柔光细线**（`.hair-*` 与原地覆盖），不再有闭合的直观边界；
+ *   ② 卡片描边 → 去掉硬 border，改成「上缘受光 + 大模糊阴影」的玻璃过渡。
+ * ⚠️ 这一节放在文件末尾，靠"同优先级、后写胜出"覆盖上面的旧写法；没有删旧规则，
+ *    要回退只需删掉这一节（或从 _backup 取回文件）。
+ * ========================================================================== */
+
+/* ---------- ① 通用柔光细线工具类 ---------- */
+.hair-t,
+.hair-b {
+  position: relative;
+}
+.hair-t::before,
+.hair-b::after {
+  content: '';
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--hair) 20%,
+    var(--hair) 80%,
+    transparent 100%
+  );
+}
+.hair-t::before {
+  top: 0;
+}
+.hair-b::after {
+  bottom: 0;
+}
+
+/* ---------- ② 列表行：行间一条两端渐隐的柔线（原来每行一条硬 border-top） ---------- */
+.list {
+  /* 卡片外框也改玻璃：去掉接近纯白的一圈硬描边 */
+  border: 0;
+  background: var(--glass);
+  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+.list .r {
+  border-top: 0;
+  position: relative;
+}
+.list .r + .r::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--hair) 16%, var(--hair) 84%, transparent 100%);
+}
+
+/* ---------- ③ 顶部导航 / 标签行：底部硬线 → 柔光过渡 ---------- */
+.nav {
+  border-bottom: 0;
+  position: relative;
+}
+.nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--hair) 14%, var(--hair) 86%, transparent 100%);
+}
+.tabline {
+  border-bottom: 0;
+  position: relative;
+}
+.tabline::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--hair) 12%, var(--hair) 88%, transparent 100%);
+}
+/* 对位箱里的虚线行同样雾化 */
+.alignbox .arow {
+  border-top: 0;
+  position: relative;
+}
+.alignbox .arow + .arow::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--hair) 18%, var(--hair) 82%, transparent 100%);
+}
+/* 其余带 --line 分隔线的 p/规则条：统一成柔线（只针对用 --line 的那两处） */
+.vsrow,
+.scorebar {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+/* ---------- ④ 卡片描边 → 玻璃过渡 ----------
+   原来：`border: 1px solid var(--gbd)`（--gbd 接近纯白）→ 浅底上一条亮硬线。
+   现在：不描边，改成「上缘一道受光 + 大模糊阴影」，边界靠亮度过渡读出来。 */
+.tile.ghost,
+.g-card,
+.panel,
+.grow,
+.poolbar,
+.mres,
+.block {
+  border-color: transparent;
+}
+.tile.ghost {
+  box-shadow: var(--shadow-2), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+/* 蓝色那张（.tile.sea）原有一圈半透明白描边 —— 改成纯上缘受光 */
+.tile.sea {
+  border: 0;
+  box-shadow: 0 18px 44px -22px rgba(3, 105, 161, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+/* 共建条（首页那条绿框）—— 去硬框，改同色柔光 */
+.poolbar {
+  border: 0;
+  box-shadow: 0 14px 34px -20px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }

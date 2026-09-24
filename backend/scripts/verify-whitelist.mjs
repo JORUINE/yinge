@@ -22,6 +22,7 @@ import {
   curatedListOf,
   canonicalGenreKey,
   sameArtistName,
+  artistMatchesWhitelistName,
 } from '../src/data/genreWhitelist.js';
 import * as musicService from '../src/modules/music/music.service.js';
 import {
@@ -288,13 +289,18 @@ await okAsync('流派列表只保留白名单覆盖的流派 + 按规范键聚�
 await okAsync('流派池「流行樂」里的人**全在流行乐白名单里**（不再混进华语歌手）', async () => {
   const r = await battleService.resolvePool({ scopeType: 'genre', genre: '流行樂', albumCount: 16 });
   const docs = await Artist.find({ artistId: { $in: r.artists.map((a) => a.artistId) } })
-    .select('name genre')
+    .select('name genre aliases')
     .lean();
   console.log(`     流行樂池 ${r.artists.length} 位：${docs.map((d) => `${d.name}[${d.genre}]`).join('、')}`);
   const wl = whitelistNamesFor('流行樂', normalizeGenre);
   for (const d of docs) {
+    /**
+     * ⚠️ 2026-09-24 第十三批：这里必须用**别名感知**判定 —— 库里存的是 iTunes hk 区的
+     * 本地化名（Maroon 5 → `魔力紅樂團`、The Weeknd → `Abel Tesfaye`），只比 name 会把它
+     * 误判成"混进了非白名单歌手"。判定入口与组池/计数统一走 artistMatchesWhitelistName。
+     */
     assert.ok(
-      wl.some((n) => sameArtistName(d.name, n)),
+      wl.some((n) => artistMatchesWhitelistName(d, n)),
       `${d.name} 不在「流行樂」白名单里 —— 说明池子又回到"按 DB 标签匹配"的老路了`,
     );
   }

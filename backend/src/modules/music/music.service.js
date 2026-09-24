@@ -16,7 +16,7 @@ import { applyAdmission } from './admission.js';
 import {
   canonicalGenreKey,
   whitelistNamesFor,
-  sameArtistName,
+  artistMatchesWhitelistName,
   whitelistGenreEntries,
 } from '../../data/genreWhitelist.js';
 
@@ -259,10 +259,19 @@ export async function listGenres() {
    * 与 resolvePool 组池口径完全一致 —— 否则"chip 显示 3 位"和"池子里 15 位"永远对不上。
    * 展示名固定取自 WHITELIST_GENRE_DISPLAY，不再随库里标签漂移。
    */
-  const all = await Artist.find({}).select('name').lean();
+  const all = await Artist.find({}).select('name aliases').lean();
   return whitelistGenreEntries().map((e) => {
     const names = whitelistNamesFor(e.label, canonicalGenreKey);
-    const artists = all.filter((a) => names.some((n) => sameArtistName(a.name, n))).length;
+    /**
+     * 2026-09-24 第十三批：改**别名感知**匹配（hk 区本地化名/繁简差异 → 以前会少数几位），
+     * 并且计数口径改成**按白名单名字计**，不是按库里的歌手条数计：
+     *   一个名字可能命中库里多位（同名不同 artistId，如 `Queen` 与 `Queen & 亞當藍伯特`），
+     *   按歌手计就会虚高 —— 实测「流行樂 chip 23 位」而那一册只有 20 个名字，
+     *   于是又出现"chip 人数 vs 白名单册人数"两处对不上（用户最反感的那类矛盾）。
+     * 现在：`artists` = 这册里**已经内置到曲库**的名字个数（≤ 册子人数），
+     * 全内置时 === whitelistTotal，与 whitelistOfGenre 的 cached 完全同源。
+     */
+    const artists = names.filter((n) => all.some((a) => artistMatchesWhitelistName(a, n))).length;
     return {
       genre: e.label,
       artists,

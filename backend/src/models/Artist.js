@@ -22,6 +22,16 @@ const artistSchema = new mongoose.Schema(
      */
     imageUrl: { type: String, default: null },
     imageFetchedAt: { type: Date, default: null },
+    /**
+     * 别名 / 白名单写法（2026-09-24 第十三批）
+     * ------------------------------------------------------------
+     * 由 `seed-whitelist-artists.mjs` 在按「人工白名单」灌库时回写：
+     * 白名单写 `BTS` / `The Weeknd` / `房東的貓`，而 iTunes **hk 区**存下来的是
+     * `防彈少年團` / `威肯` / `房东的猫`（本地化 + 繁简差异）——只比 `name` 会漏，
+     * 于是"白名单面板说未入库、别处却说已入库 168 张"（用户报的自相矛盾）。
+     * 有了它，`artistMatchesWhitelistName()` 就能把两边判定统一起来。
+     */
+    aliases: { type: [String], default: [] },
   },
   { timestamps: true },
 );

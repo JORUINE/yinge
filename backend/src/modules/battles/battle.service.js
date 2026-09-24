@@ -26,9 +26,10 @@ import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
 import { ensureEraPool } from '../music/eraExpand.js';
 // 白名单「知名歌手」判定 + 策展流派：流派/年代池轮转取张时让大牌排在前面（只调顺序，不动张数/公式）
+// ⚠️ 2026-09-24 第十三批：判定一律走**别名感知**的入口（hk 区本地化名/繁简差异）
 import {
-  isWhitelistedArtist,
-  sameArtistName,
+  isWhitelistedArtistDoc,
+  artistMatchesAnyWhitelistName,
   canonicalGenreKey,
   whitelistNamesFor,
 } from '../../data/genreWhitelist.js';
@@ -55,9 +56,9 @@ const byReleaseThenId = (a, b) => {
  *
  * ⚠️ 只影响**顺序**：张数、封顶（ERA_MAX_POOL / 32）、赛程公式一律不动。
  * @param {Array<[number, Array]>} entries byArtist 的 [artistId, albums] 列表
- * @param {Map<number,string>} nameById artistId → 歌手名
+ * @param {Map<number,boolean>} famousById artistId → 是否白名单大牌（含别名写法，见 isWhitelistedArtistDoc）
  */
-function orderBucketsForPool(entries, nameById) {
+function orderBucketsForPool(entries, famousById) {
   const famous = [];
   const others = [];
   for (const [id, bucket] of entries) {
@@ -67,7 +68,7 @@ function orderBucketsForPool(entries, nameById) {
      * 这里先洗牌再轮转，于是每次开局抽到的专辑不同（保留"盲盒"手感）。
      * 只影响**选哪张**，不影响歌手轮转的公平性与张数。
      */
-    const target = isWhitelistedArtist(nameById.get(id) || '') ? famous : others;
+    const target = famousById.get(id) ? famous : others;
     target.push(shuffle(bucket));
   }
   const out = [];
@@ -272,10 +273,12 @@ export async function resolvePool(payload) {
      * 表外流派（你手输的、白名单没覆盖的写法）才退回按规范键全等匹配。
      */
     const wlNames = whitelistNamesFor(term, normalizeGenre);
-    const all = await Artist.find({}).select('artistId name genre region').lean();
+    const all = await Artist.find({}).select('artistId name genre region aliases').lean();
     let matched;
     if (wlNames.length) {
-      matched = all.filter((a) => wlNames.some((n) => sameArtistName(a.name, n)));
+      // ⚠️ 2026-09-24 第十三批：改**别名感知**匹配（以前只比 name，hk 区本地化名/繁简差异会漏，
+      //    于是"chip 上人数"与"池子里的人"对不上）
+      matched = all.filter((a) => artistMatchesAnyWhitelistName(a, wlNames));
       if (!matched.length) {
         throw new BadRequestError(
           `「${term}」这册名单里的歌手还没进曲库 —— 先在上方点「一键补知名歌手」把这册人加进曲库再回来`,
@@ -308,6 +311,8 @@ export async function resolvePool(payload) {
     // 各歌手轮转取一张封顶（默认 32）：既压住规模，又保证流派池里歌手足够多、谁也不挤谁
     const cap = Math.max(4, Math.min(Number(payload.albumCount) || ERA_MAX_POOL, ERA_MAX_POOL));
     const nameById = new Map(matched.map((a) => [a.artistId, a.name]));
+    /** 是不是「白名单大牌」（含别名写法）—— 排序用，与 chip 计数/组池同口径 */
+    const famousById = new Map(matched.map((a) => [a.artistId, isWhitelistedArtistDoc(a)]));
     const langById = new Map(matched.map((a) => [a.artistId, languageTagOf(a)]));
 
     /**
@@ -336,7 +341,7 @@ export async function resolvePool(payload) {
      * 轮转取张时让白名单大牌靠前（2:1 交错，见 orderBucketsForPool）。
      * 只调顺序：张数、封顶、赛程公式一律不动。
      */
-    const buckets = orderBucketsForPool(entries, nameById);
+    const buckets = orderBucketsForPool(entries, famousById);
     const picked = [];
     let progressed = true;
     while (picked.length < cap && progressed) {
@@ -394,9 +399,11 @@ export async function resolvePool(payload) {
     // 参赛池封顶 + 歌手均衡：按"各歌手轮转取一张"挑选，专辑多的歌手不会挤掉专辑少的，
     // 既把规模压在 ERA_MAX_POOL 以内，又保证池子里歌手足够多（跨歌手对阵才有得打）。
     const eraDocs = await Artist.find({ artistId: { $in: [...byArtist.keys()] } }).select(
-      'artistId name genre region',
+      'artistId name genre region aliases',
     );
     const eraNameById = new Map(eraDocs.map((d) => [d.artistId, d.name]));
+    /** 同上：白名单大牌判定含别名写法 */
+    const eraFamousById = new Map(eraDocs.map((d) => [d.artistId, isWhitelistedArtistDoc(d)]));
     const eraLangById = new Map(eraDocs.map((d) => [d.artistId, languageTagOf(d)]));
 
     /**
@@ -423,7 +430,7 @@ export async function resolvePool(payload) {
      * 既让大牌进池，又保留 1/3 名额给其余歌手，不至于每次都同一批人。
      * ⚠️ 只调**顺序**：张数、封顶、赛程公式一律不动。
      */
-    const buckets = orderBucketsForPool(eraEntries, eraNameById);
+    const buckets = orderBucketsForPool(eraEntries, eraFamousById);
     const picked = [];
     let progressed = true;
     while (picked.length < cap && progressed) {

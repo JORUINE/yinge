@@ -458,6 +458,38 @@ export function sameAliasGroup(a, b) {
   return x !== undefined && x === y;
 }
 
+/**
+ * ⭐ 「白名单名字 → 已入库歌手」的**唯一判定入口**（2026-09-24 第十三批）
+ * ------------------------------------------------------------
+ * 为什么需要它（用户报「白名单里说没有 The Weeknd，下面却显示它已入库 168 张」）：
+ *   同一个问题在**两处**用了**两种口径**——
+ *     · `discoverGenreArtists` 拿 iTunes 搜到的 **artistId** 去库里查 → 说"已入库"；
+ *     · `whitelistOfGenre` / 流派组池 / listGenres 计数 只比**名字** → 说"未入库"。
+ *   而 iTunes **hk 区会把名字本地化**：The Weeknd→`威肯`、Maroon 5→`魔力紅`、
+ *   房東的貓→`房东的猫`（繁简）、萬妮達→`万妮达`（繁简）……名字对不上就漏。
+ * 做法：灌库脚本（seed-whitelist-artists.mjs）把**白名单里的写法**回写到 `artist.aliases`，
+ *   这里连同 `name` 一起比对 → 全站口径统一，不再自相矛盾。
+ * 注意：只用于"库里的歌手 vs 白名单名字"；iTunes 搜索结果与名字比（不知道 alias）用 `sameArtistName`。
+ */
+export function artistMatchesWhitelistName(artist, name) {
+  if (!artist || !name) return false;
+  if (sameArtistName(artist.name, name)) return true;
+  return (artist.aliases || []).some((x) => sameArtistName(x, name));
+}
+
+/** 库里这位歌手是否命中这册白名单里的任意一个名字 */
+export function artistMatchesAnyWhitelistName(artist, names) {
+  if (!artist || !names || !names.length) return false;
+  return names.some((n) => artistMatchesWhitelistName(artist, n));
+}
+
+/** 库里这位歌手是否算「白名单大牌」（含别名写法）—— 用于流派/年代池的"知名歌手优先"排序 */
+export function isWhitelistedArtistDoc(artist) {
+  if (!artist) return false;
+  if (isWhitelistedArtist(artist.name)) return true;
+  return (artist.aliases || []).some((x) => isWhitelistedArtist(x));
+}
+
 
 /** 白名单全量名字集合（宽松归一化）—— 判定"是不是白名单里的知名歌手"
  *  ⚠️ 2026-09-23：把**别名组里的写法**一并放进集合 —— 库里存的是当地译名（防彈少年團 / Yorushika），

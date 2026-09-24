@@ -17,7 +17,7 @@
 import { Artist } from '../../models/index.js';
 import * as itunes from './itunes.client.js';
 import { looksLikeArtistList } from './admission.js';
-import { whitelistNamesFor, sameArtistName } from '../../data/genreWhitelist.js';
+import { whitelistNamesFor, sameArtistName, artistMatchesWhitelistName } from '../../data/genreWhitelist.js';
 
 /**
  * 流派 → 检索词 + 认可的 iTunes 流派标签关键词。
@@ -285,10 +285,11 @@ function skipArtist(name, genre) {
 export async function whitelistOfGenre(genre) {
   const names = whitelistNamesFor(genre, normalizeGenre);
   if (!names.length) return { genre, total: 0, cached: 0, artists: [] };
-  // 一次扫描库里歌手（本地库千余条，毫秒级），用宽松名字匹配标注已入库
-  const all = await Artist.find({}).select('artistId name albumCount genre').lean();
+  // 一次扫描库里歌手（本地库千余条，毫秒级），用**别名感知**匹配标注已入库
+  // （2026-09-24：以前只比 name，hk 区本地化名/繁简差异会漏 → 与 discover 的口径打架）
+  const all = await Artist.find({}).select('artistId name albumCount genre aliases').lean();
   const artists = names.map((name) => {
-    const hit = all.find((a) => sameArtistName(a.name, name));
+    const hit = all.find((a) => artistMatchesWhitelistName(a, name));
     return {
       name,
       cached: Boolean(hit),
@@ -330,10 +331,10 @@ async function whitelistArtistsOf(genre, { limit, seen }) {
    *    （用户 2026-09-23 抱怨"查找速度太慢"—— 原因是原来每个名字都去 iTunes 搜一遍，
    *     而灌库之后大多数名字其实已经在库里了。）
    */
-  const all = await Artist.find({}).select('artistId name genre').lean();
+  const all = await Artist.find({}).select('artistId name genre aliases').lean();
   const queue = [];
   for (const name of names) {
-    const hit = all.find((a) => sameArtistName(a.name, name));
+    const hit = all.find((a) => artistMatchesWhitelistName(a, name));
     if (hit) {
       if (!seen.has(hit.artistId)) {
         seen.set(hit.artistId, {
