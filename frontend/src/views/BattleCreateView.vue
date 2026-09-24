@@ -487,10 +487,16 @@
             </p>
           </div>
 
-          <!-- 流派歌手扩充：一个流派本来有几百位艺人，曲库里只有几位就撑不起混战 -->
+          <!-- 流派歌手扩充（2026-09-24 第十六批改造）
+               用户："这里的补充功能从音乐源找这个功能你怎么没了 然后既然上面能点开看到
+               下面就没必要再做了 而且你没有做点开后收起来"。
+               → ① 名字改回「从音乐源找歌手」：在线补**非白名单**歌手（来源＝Apple 榜单/关键词，
+                  白名单那册在上面已经列过了，这里不再算它的账）；
+                 ② 列表**只列还没入库的**（上面「这册内置歌手」已把已入库的列过，不重复）；
+                 ③ 按钮＝开关：点开查找、再点收起。 -->
           <div class="grow">
             <div class="growhd">
-              <b>流派歌手不够？一键补知名歌手</b>
+              <b>流派歌手不够？从音乐源补</b>
               <span>
                 被选中的流派：<b>{{ genre || '（还没选）' }}</b>
                 <template v-if="genreCount"> · 曲库里现有 <b>{{ genreCount }}</b> 位歌手</template>
@@ -501,15 +507,15 @@
                 class="btn ghost sm"
                 type="button"
                 :disabled="!genre.trim() || growing || discovering"
-                @click="discoverGenre"
+                @click="toggleDiscover"
               >
-                {{ discovering ? '正在查找…' : '先看看有哪些歌手' }}
+                {{ discovering ? '正在查找…' : discoverOpen ? '收起' : '从音乐源找歌手' }}
               </button>
-              <template v-if="discovered.length">
+              <template v-if="discoverOpen && missing.length">
                 <button
                   class="btn ghost sm"
                   type="button"
-                  :disabled="growing || !missing.length"
+                  :disabled="growing"
                   @click="toggleAllWarm"
                 >
                   {{ warmPick.length === missing.length ? '取消全选' : `全选未入库（${missing.length}）` }}
@@ -525,26 +531,32 @@
               </template>
             </div>
 
-            <p v-if="discoverNote" class="hint">{{ discoverNote }}</p>
-            <p v-if="discovered.length" class="hint pickhint">
-              <b>点名字即可勾选</b>，只把你要的歌手补进曲库（显示「已入库」的不用再选）。
-            </p>
+            <template v-if="discoverOpen">
+              <p v-if="discoverNote" class="hint">{{ discoverNote }}</p>
+              <p v-if="missing.length" class="hint pickhint">
+                这里只列<b>还没入库</b>的歌手（已在库里的，上面「这册内置歌手」列过了，不再重复）——
+                <b>点名字即可勾选</b>补进曲库。
+              </p>
 
-            <div v-if="discovered.length" class="glist">
-              <span
-                v-for="a in discovered"
-                :key="a.artistId"
-                class="chip"
-                :class="{ lock: a.cached, sel: warmPick.includes(a.artistId) }"
-                :title="a.cached ? '已在曲库' : '点击勾选／取消'"
-                role="button"
-                :tabindex="a.cached ? -1 : 0"
-                @click="toggleWarm(a.artistId, a.cached)"
-              >
-                <b>{{ a.name }}</b>
-                <i>{{ a.cached ? `已入库 ${a.localAlbumCount} 张` : a.genre || genre.trim() }}</i>
-              </span>
-            </div>
+              <div v-if="missing.length" class="glist">
+                <span
+                  v-for="a in missing"
+                  :key="a.artistId"
+                  class="chip"
+                  :class="{ sel: warmPick.includes(a.artistId) }"
+                  title="点击勾选／取消"
+                  role="button"
+                  tabindex="0"
+                  @click="toggleWarm(a.artistId, false)"
+                >
+                  <b>{{ a.name }}</b>
+                  <i>{{ a.genre || genre.trim() }}</i>
+                </span>
+              </div>
+              <p v-else-if="discovered.length" class="hint">
+                这一册的歌手都已经入库了，不用补 —— 直接选张数开局就行。
+              </p>
+            </template>
           </div>
         </div>
         <div v-else class="yearrow">
@@ -820,6 +832,14 @@ function normalizeGenreList(list) {
 
 // —— 流派歌手扩充（Apple Music 抓同流派的歌手补进曲库）——
 const discovering = ref(false);
+/** ③ 列表开关（2026-09-24 第十六批：用户"你没有做点开后收起来"）—— 点开查找、再点收起 */
+const discoverOpen = ref(false);
+
+function toggleDiscover() {
+  discoverOpen.value = !discoverOpen.value;
+  // 第一次点开才去查（查过的结果保留，收起再打开不重复请求）
+  if (discoverOpen.value && !discovered.value.length) discoverGenre();
+}
 const growing = ref(false);
 const discovered = ref([]);
 const discoverNote = ref('');
