@@ -192,6 +192,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第十三批</b>：你 5 张截图的反馈全部处理 —— ① 流派按你重新梳理的需求<b>内置化</b>：白名单 <b>23 册 100% 灌进曲库</b>（原来 65 个名字对不上：真没灌的 Oasis/古典乐作曲家 + iTunes hk 区本地化写法 The Weeknd→<code>Abel Tesfaye</code>、Maroon 5→<code>魔力紅樂團</code>、房東的貓→房东的猫），「点开即见」按钮<b>按你说的删掉</b>、改成<b>选中流派即自动列出这一册内置歌手</b>；② 修「白名单说未入库、别处说已入库 168 张」的<b>自相矛盾</b>（两处判定一个按 artistId、一个按名字 → 现在统一走<b>别名感知</b>唯一入口 <code>artistMatchesWhitelistName</code>）；③ <b>全站线条雾化</b>：顶栏/列表行/标签行/卡片描边/分享卡方框硬线，全改成<b>两端渐隐柔光细线</b>或<b>上缘受光+大模糊阴影</b>的玻璃过渡；④ 分享卡底部小字 <b>12→13/13.5px</b>、间距放开；⑤ 你圈的 I'm O.K. 封面<b>查实不是取数 bug</b>（卡片与列表同一 URL），是网点封面缩到 42px 糊成斑点 → 列表缩略图 <b>42→52px</b>。自检 verify-batch13 6/6、verify-batch12 13/13、verify-whitelist 39/39、verify-era 15/15、verify-genre 17/17、verify-pool 17/17、verify-scale 152/152、verify-v2 59/59、verify-modes 22/22、verify-r26 <b>18/18</b>，vite build 通过）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第十四批 · 视觉返工第一刀</b>：按你点名的两份稿子（结构＝<code>音格-UI原型.html</code>、风格＝<code>音格-UI方向v4-音乐海洋.html</code>）并加载 impeccable 技能重做视觉 —— ① 分享卡把内框收成<b>围绕专辑一圈的细环</b>（原来写死 58% 方框，非方形专辑会露一大片渐变底）② 被圈的文字依次放大：冠军徽标 14→16、专辑名 26→28、轮次行与统计行 13/13.5→<b>15px</b>，统一中轴对齐 ③ 页面底色从"一块纯色 #edf6fc"改成<b>"音乐海洋"渐变洗色</b>（新增 --bg-wash，浅/深两套）④ 创建页改成<b>大框套小框</b>：新增 <code>.stage</code> 大圆角玻璃框（radius 34 + 毛玻璃 blur22/saturate160 + 双径向色晕）把模式大厅/各板块/开始条全收进去，框内板块变成 radius 24 的轻质分区面（无描边）。自检 verify-r26 <b>18/18</b>、vite build 通过；⚠️ 其余页面目前跟着全局 token 变，待你确认方向后再逐页做同样的结构改造）</div>
 </body>
 </html>

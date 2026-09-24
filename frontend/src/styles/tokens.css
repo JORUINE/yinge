@@ -11,6 +11,19 @@
 :root {
   /* ===== 新：音乐海洋 · 浅色（与设计稿 :root 逐项一致）===== */
   --bg: #edf6fc;
+  /**
+   * 页面底色洗色（2026-09-24 第十四批）
+   * ------------------------------------------------------------
+   * 用户："我们现在的整体视觉 Ui 就和各种色块拼接到一起的感觉一样，
+   *   之前所说的灵动的音乐海洋 渐变色 毛玻璃质感一个都没做"。
+   * 病根之一：全站底色是**一块纯色**（#edf6fc）—— 没有纵深，
+   *   玻璃面板浮在纯色上只能靠描边读出边界 → 就成了"色块拼接"。
+   * 现在铺三层柔和的海洋渐变（左上泛蓝 / 右上泛青 / 底部再泛蓝），
+   * 玻璃面板压在上面才有"透光"的层次。用法：`background-image: var(--bg-wash)`。
+   */
+  --bg-wash: radial-gradient(124% 82% at 10% -12%, rgba(125, 211, 252, 0.5), transparent 58%),
+    radial-gradient(118% 88% at 98% 4%, rgba(94, 234, 212, 0.4), transparent 56%),
+    radial-gradient(140% 100% at 50% 118%, rgba(147, 197, 253, 0.42), transparent 62%);
   --text: #0b2a42;
   --text2: #46647e;
   --text3: #6d8aa3;
@@ -146,6 +159,10 @@
 :root[data-theme='dark'],
 html[data-theme='dark'] {
   --bg: #04121d;
+  /* 深色主题的海洋洗色（同结构，换成低亮度蓝青） */
+  --bg-wash: radial-gradient(124% 82% at 10% -12%, rgba(14, 165, 233, 0.22), transparent 58%),
+    radial-gradient(118% 88% at 98% 4%, rgba(13, 148, 136, 0.18), transparent 56%),
+    radial-gradient(140% 100% at 50% 118%, rgba(37, 99, 235, 0.16), transparent 62%);
   --text: #e6f2fa;
   --text2: #a5bfd2;
   --text3: #83a1b9; /* 三级文字整体提亮：暗底上小字才看得清 */

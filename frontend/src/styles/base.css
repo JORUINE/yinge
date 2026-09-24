@@ -15,7 +15,15 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg);
+  /**
+   * 2026-09-24 第十四批：底色从「一块纯色」改成「纯色 + 海洋渐变洗色」。
+   * 用户："整体视觉 Ui 就和各种色块拼接到一起的感觉一样，灵动的音乐海洋 渐变色
+   * 毛玻璃质感一个都没做"。纯色底让玻璃面板只能靠描边读出边界 → 像色块拼接；
+   * 有了纵深渐变，面板的透光感才成立（`--bg-wash` 在 tokens.css 里按主题定义）。
+   */
+  background-color: var(--bg);
+  background-image: var(--bg-wash);
+  background-attachment: fixed;
   color: var(--text-1);
   font-family: var(--font-body);
   font-size: var(--fs-body);

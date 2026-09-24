@@ -1971,20 +1971,33 @@ html[data-theme='dark'] .v b {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 11px;
+  /* 2026-09-24 第十四批：11 → 14px。用户要"规整的对齐" —— 统一由这里控制
+     封面/名字/歌手/缩略图/轮次之间的节奏，避免各处 margin 打架。 */
+  gap: 14px;
   min-height: 0;
 }
+/**
+ * 冠军封面 = **一圈环 + 专辑本身**（2026-09-24 第十四批）
+ * ------------------------------------------------------------
+ * 用户原话："像我设计的这样把蓝色那个框缩到红色那个框 围绕专辑一圈就行了"
+ * 病根：原来这里是 `width:58% + aspect-ratio:1` 的**固定方框**，里面用 `contain` 装专辑 ——
+ *   专辑不是正方形时，方框里就空出一大片（露出 `.art` 的蓝色渐变底），看着像"一个大蓝块套着小图"。
+ * 现在：去掉 aspect-ratio，**高度跟专辑走**，四周只留 7px 内边距 —— 于是渐变底变成
+ *   "**围着专辑的一圈细环**"（相框感），专辑有多大，环就贴多紧。
+ */
 .scard .smain .art {
   width: 58%;
-  aspect-ratio: 1;
-  border-radius: 16px;
+  aspect-ratio: auto;
+  padding: 7px;
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.32);
 }
 .scard .smain .art img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  border-radius: 15px;
+  object-fit: contain;
   display: block;
 }
 /* 冠军封面：比例不方的专辑不裁切（contain），留白用冠军主色淡染 —— 
@@ -1996,14 +2009,16 @@ html[data-theme='dark'] .v b {
   object-fit: contain;
 }
 .scard .crown {
-  font-size: 14px;
-  letter-spacing: 3px;
+  /* 2026-09-24 第十四批（用户："被我圈起来的…上面…的字体依次放大然后规整的对齐"）14 → 16px */
+  font-size: 16px;
+  letter-spacing: 4px;
   color: #ffcf66;
   font-weight: 900;
   text-shadow: 0 2px 12px rgba(224, 135, 0, 0.55);
 }
 .scard .cname {
-  font-size: 26px;
+  /* 26 → 28px：与放大后的上下小字保持层级差（名字仍要最抢眼） */
+  font-size: 28px;
   font-weight: 900;
   letter-spacing: -0.02em;
   text-align: center;
@@ -2011,23 +2026,23 @@ html[data-theme='dark'] .v b {
   text-shadow: 0 2px 16px rgba(224, 135, 0, 0.45);
 }
 .scard .cartist {
-  font-size: 13px;
-  opacity: 0.76;
-  margin-top: -6px;
+  font-size: 14px;
+  opacity: 0.78;
+  margin-top: -4px;
   /* 小字放开字距、大字收紧 —— 这是最省力也最有效的层级手段（设计手册：层级靠字重与字距） */
   letter-spacing: 0.08em;
 }
 .scard .spath {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   justify-content: center;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 .scard .spath div {
-  /* 用户红框标"大一点"：32 → 42px（其他专辑缩略图太小，看不出是专辑） */
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  /* 42 → 48px（与上面"小字放大"同级：缩略图也要看得清） */
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
@@ -3695,4 +3710,75 @@ html.ua-safe[data-theme='dark'] {
 .poolbar {
   border: 0;
   box-shadow: 0 14px 34px -20px rgba(13, 148, 136, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* ============================================================================
+ * ⑤ 大框套小框 · 音乐海洋玻璃（2026-09-24 第十四批）
+ * ----------------------------------------------------------------------------
+ * 用户原话："我们现在的整体视觉 Ui 就和各种色块拼接到一起的感觉一样…
+ *   之前的 ui 原型 至少是在一个大框里 有分板块的小框，而且做了边角的圆弧设计 有苹果质感"。
+ * 病根：每个板块各自一张白卡（`--glass` + `1px` 描边）平铺在页面上 —— 块与块之间是"断"的，
+ *   所以读起来像色块拼接。
+ * 改法（对齐用户自己的原型结构）：
+ *   · `.stage` = **一个**大圆角玻璃框（radius 34，苹果质感），把「模式大厅 → 各板块 → 开始条」收进去；
+ *   · 框内每个板块 = **轻质分区面**（radius 24、更亮的白、无描边）—— 有"分板块"，但不是"卡片套卡片"
+ *     （impeccable 手册明确禁"卡片套卡片"，所以内层刻意做轻：靠亮度差 + 圆角读结构，不靠第二层边框）；
+ *   · 与大框之间留 14px 呼吸，块内 18/20px，形成"紧-松"节奏（arrange.md：间距要成体系、要有呼吸）。
+ * ⚠️ 同第十三批：整节追加在文件末尾，靠"同优先级后写胜出"覆盖；删掉本段即回退。
+ * ========================================================================== */
+
+.stage {
+  position: relative;
+  margin-top: 18px;
+  padding: clamp(14px, 1.1vw, 22px);
+  border-radius: 34px;
+  /* 大框本体：薄薄一层白 + 左上泛蓝、右下泛青，压在页面海洋渐变之上 */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.3)),
+    radial-gradient(120% 92% at 4% -14%, rgba(56, 189, 248, 0.18), transparent 58%),
+    radial-gradient(96% 84% at 104% 108%, rgba(45, 212, 191, 0.16), transparent 56%);
+  box-shadow:
+    0 40px 96px -48px rgba(4, 30, 51, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+}
+/* 大框内的板块：轻质分区面（无描边、无第二层边框） */
+.stage .block,
+.stage .alignbox {
+  margin-top: 14px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow:
+    0 12px 30px -26px rgba(4, 30, 51, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+/* 第一个子块贴着大框内边距，不再叠一层 margin */
+.stage > .lobby:first-child,
+.stage > .block:first-child,
+.stage > .alignbox:first-child {
+  margin-top: 0;
+}
+/* 开始条：原来是描边胶囊 —— 去掉那条硬线，改成大框里的一条"承托条" */
+.stage .startbar {
+  margin-top: 18px;
+  border: 0;
+  background: linear-gradient(96deg, rgba(255, 255, 255, 0.74), rgba(186, 230, 253, 0.6));
+  box-shadow:
+    0 18px 44px -30px rgba(3, 105, 161, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+/* 深色主题下把大框/内块的白降下来，避免"发白" */
+html[data-theme='dark'] .stage {
+  background:
+    linear-gradient(180deg, rgba(140, 200, 235, 0.09), rgba(140, 200, 235, 0.04)),
+    radial-gradient(120% 92% at 4% -14%, rgba(56, 189, 248, 0.16), transparent 58%);
+  box-shadow: 0 40px 96px -48px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(140, 200, 235, 0.16);
+}
+html[data-theme='dark'] .stage .block,
+html[data-theme='dark'] .stage .alignbox {
+  background: rgba(140, 200, 235, 0.07);
+  box-shadow: inset 0 1px 0 rgba(140, 200, 235, 0.14);
 }

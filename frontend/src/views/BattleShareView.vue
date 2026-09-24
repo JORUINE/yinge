@@ -537,8 +537,9 @@ onMounted(load);
    修法：把方卡里的几处尺寸各收一点（合计约 21px），让整块真的放得下。
    为什么不靠"再裁一点"兜底：轮次路径是这张图的信息之一，不能靠裁掉它来"看起来没问题"。 */
 .scard.square .crown {
-  font-size: 13px;
-  letter-spacing: 2px;
+  /* 2026-09-24 第十四批：13 → 15px（与竖版同步放大） */
+  font-size: 15px;
+  letter-spacing: 3px;
   margin: 0;
 }
 /* 冠军封面：**按宽度定尺寸**（width + 基类的 aspect-ratio:1 自动出高）。
@@ -574,17 +575,18 @@ onMounted(load);
   border-radius: 12px;
 }
 .scard.square .roundline {
-  /* 13px（2026-09-24 第十三批，原来 12px —— 用户要"下面的小字大一点点"） */
-  font-size: 13px;
-  letter-spacing: 0.02em;
+  /* 2026-09-24 第十四批：13 → 15px（用户："半决赛决赛…字体依次放大"） */
+  font-size: 15px;
+  letter-spacing: 0.04em;
 }
 /* ⚠️ 这里原来有一条 `border-top` —— 那正是用户说的"明显的分割线、像两个矩形框拼在一起"，已去掉。
    现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。
    2026-09-24 第十三批：小字 12 → 13px、间距略放开（用户："下面的小字体大小大一点点，然后间距合理"）。 */
 .scard.square .sfoot {
-  font-size: 13px;
-  margin-top: 10px;
-  gap: 8px;
+  /* 2026-09-24 第十四批：13 → 15px，间距放开（用户要"依次放大 + 规整对齐"） */
+  font-size: 15px;
+  margin-top: 12px;
+  gap: 10px;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。
@@ -600,9 +602,10 @@ onMounted(load);
   opacity: 1;
 }
 .scard .sfoot .sstat {
-  /* 2026-09-24 第十三批：12 → 13.5px（用户要"下面的小字大一点点"；统计行是图里最要紧的一行信息） */
-  font-size: 13.5px;
-  opacity: 0.86;
+  /* 2026-09-24 第十三批 12 → 13.5px；第十四批 13.5 → **15px**
+     （用户："被我圈起来的…下面…的字体依次放大然后规整的对齐"） */
+  font-size: 15px;
+  opacity: 0.9;
   /* 统计行不折行：一长串「16张专辑 · 6 位歌手 · 15 场决出」一旦在窄处折开就显得"奇怪"，
      现在强制一行（方卡内容宽约 384px，足够放下），字距略放开更好读。 */
   white-space: nowrap;
@@ -626,14 +629,13 @@ onMounted(load);
   font-variant-numeric: tabular-nums;
 }
 .roundline {
-  /* 2026-09-24 第十三批：12 → 13px（用户："下面的小字体大小大一点点，然后间距合理"）
-     —— 这是**基准值**，竖版/方版共用；方版那条 .scard.square .roundline 也已是 13px。 */
-  font-size: 13px;
-  opacity: 0.78;
+  /* 2026-09-24 第十三批 12 → 13px；第十四批 13 → **15px**（用户："半决赛决赛…字体依次放大"）
+     —— 基准值，竖版/方版共用。字距略放开、强制居中，与上下的名字/统计同一中轴。 */
+  font-size: 15px;
+  opacity: 0.82;
   text-align: center;
-  /* 轮次路径（八强 → 半决赛 → 决赛）与脚注之间留出呼吸空间，绝不与脚注挤在一起被"遮住" */
-  margin-top: 4px;
-  letter-spacing: 0.03em;
+  margin-top: 6px;
+  letter-spacing: 0.04em;
 }
 .cap {
   font-size: 13px;
