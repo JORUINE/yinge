@@ -49,7 +49,7 @@
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-inner">
-    <span class="tag">进度与执行清单 · 2026-09-24 第二十批（删掉分享卡内层直角矩形）</span>
+    <span class="tag">进度与执行清单 · 2026-09-25 第二十一批（修管理后台两个 bug）</span>
     <h1>音格 · 现在到哪一步了</h1>
     <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节收尾 + 页面/体验补全」</b>阶段。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。<br />
       <b>这次更新到 2026-09-24 第十三批</b>（你 5 张截图给的反馈）——
@@ -67,6 +67,17 @@
 </div>
 
 <div class="wrap">
+
+  <div class="new">
+    <h3>本轮（9/25 第二十一批）—— 修管理后台两个 bug（都先用 curl 打接口复现再改）</h3>
+    <ul>
+      <li><b>① 后台「按流派手动加歌手」页面永远"读取中…"——已修</b>：<code>GET /api/admin/genre-artists</code> 返回 <b>500</b>。真因是 <code>admin.service</code> 里写了 <code>genreExpand.whitelistOfGenre(...)</code>，但这个文件只按名导入了 <code>skipArtist</code>，<b>没有 <code>genreExpand</code> 这个命名空间</b> → 一调用就 ReferenceError（<code>node --check</code> 查不出这类错）。已改为按名导入并直接调用。</li>
+      <li><b>② 编辑题目点保存报「题号 49 已存在」——已修（真因很隐蔽）</b>：题目列表接口直接返回数据库文档，<b>只有 <code>_id</code>、没有 <code>questionId</code></b>，而前端编辑时读的是 <code>q.questionId</code> → 变成 undefined → 保存时判假，<b>走了"新建"分支</b> → 撞题号唯一 → 报"已存在"。<b>删除也是坏的</b>（会请求 <code>/questions/undefined</code>）。已让后端序列化出 <code>questionId</code>，前端三处加兜底。<br>
+        另外顺手修了一个真实隐患：<code>questionSchema.partial()</code> <b>只让顶层字段可选</b>，嵌套的选项分数仍是必填 —— 而"说不上来"这种中立选项本来就没有分数，于是保存必报 <code>options.N.score Required</code>。现在分数放宽为"可缺失/可为空"，落库前统一清洗。</li>
+      <li><b>验证方式</b>：先 curl 直打接口复现（500 / 校验失败），改完再 curl 回归 + 管理端界面实测。结果：流派名单能读到「共 21 位…其中 1 位是你在后台手动加的」（你加的那位其实一直在，只是读不出来）；题目弹窗标题从"新建题目"恢复为<b>「编辑题目」</b>，保存无报错。</li>
+    </ul>
+    <p class="muted" style="margin:10px 0 0">验收：curl 回归全通过｜管理端界面实测通过｜<code>vite build</code> 通过。截图 <code>r33-admin.png</code>。</p>
+  </div>
 
   <div class="new">
     <h3>本轮（9/24 第二十批）—— 删掉分享卡"内层直角矩形"（你圈的青笔层）</h3>

@@ -192,6 +192,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-24（<b>第二十批</b>：删掉分享卡"内层直角矩形"——用户红笔圈外层圆角卡（保留）、青笔圈内层直角矩形（去掉），查实为 <code>.smain::before</code> "中央压暗玻璃板"（inset:-4% -3%、无圆角）形成的方形边界；已整条删除。现在整张卡只有一层外层圆角玻璃卡，背景为连续虚化渐变，金字/白字可读性正常。上一批（第十九批：撤 mask 雾化）保留）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-09-25（<b>第二十一批</b>：修管理后台两个 bug —— ① 「按流派手动加歌手」永远"读取中…"：<code>GET /admin/genre-artists</code> 500，真因是 admin.service 里用了不存在的 <code>genreExpand</code> 命名空间（只按名导入了 skipArtist）；② 编辑题目保存报「题号 49 已存在」：题目列表**没有 <code>questionId</code> 字段**，前端 editing 变 undefined → 走了"新建"分支（删除同理也是坏的）；另修 <code>schema.partial()</code> 只作用于顶层导致的中立选项分数必填问题。两处都先用 curl 复现、改完 curl 回归 + 界面实测；vite build 通过）</div>
 </body>
 </html>
