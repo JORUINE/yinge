@@ -1,5 +1,15 @@
 <template>
-  <div class="result" :style="{ '--pc': pc, '--pc2': pc2 }">
+  <div
+    class="result"
+    :style="{
+      '--pc': pc,
+      '--pc2': pc2,
+      '--pc-light': pal.light,
+      '--pc-deep': pal.deep,
+      '--pc-ink': pal.ink,
+      '--pc-glow': pal.glow,
+    }"
+  >
     <div v-if="loading" class="state muted">正在生成你的音乐人格卡…</div>
 
     <template v-else-if="result">
@@ -148,7 +158,13 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor, normalizeScores, PERSONA_TAGS, TYPE_REPRESENTATIVES } from '@/utils/personality.js';
+import {
+  typeColor,
+  typePalette,
+  normalizeScores,
+  PERSONA_TAGS,
+  TYPE_REPRESENTATIVES,
+} from '@/utils/personality.js';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
@@ -160,6 +176,12 @@ const result = ref(null);
 const albums = ref([]);
 const cardEl = ref(null);
 
+/**
+ * ⭐ 人格色系（2026-09-30 革新）：把整套色系注入成 CSS 变量。
+ * 旧的两个（--pc/--pc2）继续保留，页面零破坏；新增 --pc-light / --pc-deep / --pc-ink / --pc-glow
+ * 供卡面渐变与文字取用（`--pc-ink` 保证浅底配深字、深底配浅字）。
+ */
+const pal = computed(() => typePalette(result.value?.typeCode));
 const pc = computed(() => typeColor(result.value?.typeCode));
 const pc2 = computed(() => {
   const c = pc.value;

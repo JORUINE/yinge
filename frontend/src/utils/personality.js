@@ -10,23 +10,63 @@
  *   页面按"库里实际是什么就显示什么"来渲染 —— 不编造数据。
  */
 
-/** code → 主题色（两套 code 都覆盖，保证任何一套都能正常上色） */
-export const TYPE_COLOR = {
-  // 设计稿那 6 类
-  MEL: '#E0554F',
-  RHY: '#E8873A',
-  LYR: '#C9A227',
-  TMB: '#3F8F7A',
-  CLM: '#5B7FA8',
-  EXP: '#8A6BC1',
-  // 当前库里的 6 类
-  EN: '#E8873A',
-  NT: '#5B7FA8',
-  EX: '#8A6BC1',
-  SO: '#E0554F',
-  CL: '#C9A227',
-  BL: '#3F8F7A',
+/**
+ * ⭐ 人格六型色系（2026-09-30 革新 · 依据用户自制 12 张卡片量化得出）
+ * ------------------------------------------------------------
+ * 来源：`E:\桌面\音乐人格\音乐人格卡片.zip`（长版 6 张）+ `E:\下载\音乐人格方形卡.zip`（方版 6 张），
+ *   逐张采样得出：**每个型一个色系，长版/方版一一对应，稳定**。
+ * ⭐ 最关键的一条：这 6 个色系**明暗分三层**（浅 / 中 / 暗），不是六个平铺色 ——
+ *   旧色板 6 色全在同一明度档（L≈45–55%）所以观感"平均没重点"，这是本次革新要治的根。
+ *   浅：薄荷青 L80 / 暖金 L77　中：烈焰橙 L47 / 宝蓝 L34　暗：深靛蓝 L9 / 深棕橙 L22
+ * 字段：
+ *   base  主色（旧 `typeColor()` 继续返回它，页面零破坏）
+ *   light 浅端（渐变亮部 / 高光）
+ *   deep  深端（渐变暗部 / 压暗）
+ *   ink   该底色上的**文字色**（浅底配深字、深底配浅字，保证对比度）
+ *   glow  光向（top 上亮下暗｜center 中间亮｜bottom 下亮）—— 按型不同，见分析：
+ *         深色卡是"上亮→下暗"，橙/金卡是"中间最亮→两端稍暗"，宝蓝是"越往下越亮"
+ * ⚠️ 色型对应目前是**按气质推断**的（我读不到卡上的字），用户校对后改这里一行即可。
+ */
+export const TYPE_PALETTE = {
+  RHY: { name: '烈焰橙', base: '#e95207', light: '#f9b633', deep: '#de3f05', ink: '#fff8f0', glow: 'center' },
+  MEL: { name: '暖金', base: '#f1d498', light: '#f6e2b8', deep: '#e1ae54', ink: '#3a2408', glow: 'center' },
+  CLM: { name: '深靛蓝', base: '#080b24', light: '#1c1f51', deep: '#060a22', ink: '#eaf2ff', glow: 'top' },
+  EXP: { name: '薄荷青', base: '#b3e8e4', light: '#d7f2ef', deep: '#8dd4d6', ink: '#0d3b39', glow: 'top' },
+  TMB: { name: '宝蓝', base: '#11529a', light: '#287fcb', deep: '#022b66', ink: '#ffffff', glow: 'bottom' },
+  LYR: { name: '深棕橙', base: '#6d3602', light: '#9a5204', deep: '#542801', ink: '#f6e2b8', glow: 'center' },
 };
+
+/**
+ * 取某型的色系（未知 code 用稳定映射兜底，保证不空白也不闪色）
+ */
+export function typePalette(code) {
+  const key = String(code || '').toUpperCase();
+  if (TYPE_PALETTE[key]) return TYPE_PALETTE[key];
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
+  return {
+    name: '自定义',
+    base: `hsl(${h} 78% 46%)`,
+    light: `hsl(${h} 70% 66%)`,
+    deep: `hsl(${h} 85% 20%)`,
+    ink: '#ffffff',
+    glow: 'top',
+  };
+}
+
+/** code → 主色（从色系派生，**不再手写第二份**，避免两处不一致） */
+export const TYPE_COLOR = Object.fromEntries(
+  Object.entries(TYPE_PALETTE).map(([k, v]) => [k, v.base]),
+);
+/** 历史遗留的另 6 个 code（库里已不用，保留兜底防止空白）：按气质映射到同样的色系 */
+Object.assign(TYPE_COLOR, {
+  EN: TYPE_PALETTE.RHY.base,
+  NT: TYPE_PALETTE.CLM.base,
+  EX: TYPE_PALETTE.EXP.base,
+  SO: TYPE_PALETTE.MEL.base,
+  CL: TYPE_PALETTE.LYR.base,
+  BL: TYPE_PALETTE.TMB.base,
+});
 
 /** 维度 key → 中文名（两套维度都覆盖） */
 export const DIM_CN = {
