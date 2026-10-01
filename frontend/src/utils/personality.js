@@ -11,29 +11,36 @@
  */
 
 /**
- * ⭐ 人格六型色系（2026-09-30 革新 · 依据用户自制 12 张卡片量化得出）
+ * ⭐ 人格六型色系（2026-10-02 修正版 · 依据用户 12 张成品卡精确采样）
  * ------------------------------------------------------------
- * 来源：`E:\桌面\音乐人格\音乐人格卡片.zip`（长版 6 张）+ `E:\下载\音乐人格方形卡.zip`（方版 6 张），
- *   逐张采样得出：**每个型一个色系，长版/方版一一对应，稳定**。
- * ⭐ 最关键的一条：这 6 个色系**明暗分三层**（浅 / 中 / 暗），不是六个平铺色 ——
- *   旧色板 6 色全在同一明度档（L≈45–55%）所以观感"平均没重点"，这是本次革新要治的根。
- *   浅：薄荷青 L80 / 暖金 L77　中：烈焰橙 L47 / 宝蓝 L34　暗：深靛蓝 L9 / 深棕橙 L22
+ * ⚠️ 2026-10-02 **修正**：第一版（09-30）的"色型对应"是我按气质**推断**的，用户把成品图发来后
+ *   一对，**错了 3 个型**（音色控/旋律捕手/词句收藏家），安静聆听者也偏了。现在按图取真值：
+ *   采样自 `clipboard-…/12 张成品卡`（长版 1086×1448 + 方版 1024×1024，逐张取背景主色/底部区/最饱和色）。
+ *
+ * | 型 | 卡片画面 | base | 强调色 accent |
+ * |----|---------|------|--------------|
+ * | CLM 安静聆听者 | 深蓝夜空 + 水面月亮（上暗下亮） | #114d94 | #4597d8 |
+ * | TMB 音色控 | 薄荷青发光曲线（浅底深字） | #b5eae8 | #007577 |
+ * | MEL 旋律捕手 | 夜紫蓝 + 音符（强调亮紫） | #111441 | #b29df4 |
+ * | RHY 节拍动物 | 烈焰橙 + 跳跃小人（中段最亮） | #ef5f09 | #f9b633 |
+ * | EXP 探索者 | 暗金棕 + 提灯小人 | #7b3f04 | #e0a63c |
+ * | LYR 词句收藏家 | 暖金旧纸（浅底深褐字） | #f1d398 | #c98a2e |
+ *
  * 字段：
- *   base  主色（旧 `typeColor()` 继续返回它，页面零破坏）
- *   light 浅端（渐变亮部 / 高光）
- *   deep  深端（渐变暗部 / 压暗）
- *   ink   该底色上的**文字色**（浅底配深字、深底配浅字，保证对比度）
- *   glow  光向（top 上亮下暗｜center 中间亮｜bottom 下亮）—— 按型不同，见分析：
- *         深色卡是"上亮→下暗"，橙/金卡是"中间最亮→两端稍暗"，宝蓝是"越往下越亮"
- * ⚠️ 色型对应目前是**按气质推断**的（我读不到卡上的字），用户校对后改这里一行即可。
+ *   base   背景主色（旧 `typeColor()` 继续返回它，页面零破坏）
+ *   light  背景亮端（渐变亮部 / 底部光）
+ *   deep   背景暗端
+ *   ink    该底色上的**文字色**（浅底配深字、深底配浅字，保证对比度）
+ *   accent 强调色（进度条填充 / 高亮数字，卡片上最饱和的那一档）
+ *   glow   光向：top 上亮下暗｜center 中间最亮｜bottom 越往下越亮
  */
 export const TYPE_PALETTE = {
-  RHY: { name: '烈焰橙', base: '#e95207', light: '#f9b633', deep: '#de3f05', ink: '#fff8f0', glow: 'center' },
-  MEL: { name: '暖金', base: '#f1d498', light: '#f6e2b8', deep: '#e1ae54', ink: '#3a2408', glow: 'center' },
-  CLM: { name: '深靛蓝', base: '#080b24', light: '#1c1f51', deep: '#060a22', ink: '#eaf2ff', glow: 'top' },
-  EXP: { name: '薄荷青', base: '#b3e8e4', light: '#d7f2ef', deep: '#8dd4d6', ink: '#0d3b39', glow: 'top' },
-  TMB: { name: '宝蓝', base: '#11529a', light: '#287fcb', deep: '#022b66', ink: '#ffffff', glow: 'bottom' },
-  LYR: { name: '深棕橙', base: '#6d3602', light: '#9a5204', deep: '#542801', ink: '#f6e2b8', glow: 'center' },
+  CLM: { name: '深海蓝', base: '#114d94', light: '#4597d8', deep: '#022963', ink: '#eaf4ff', accent: '#4597d8', glow: 'bottom' },
+  TMB: { name: '薄荷青', base: '#b5eae8', light: '#d3f1ee', deep: '#7fbcb0', ink: '#0d4f4a', accent: '#007577', glow: 'top' },
+  MEL: { name: '夜紫蓝', base: '#111441', light: '#282763', deep: '#090c29', ink: '#e8e6ff', accent: '#b29df4', glow: 'top' },
+  RHY: { name: '烈焰橙', base: '#ef5f09', light: '#f67d10', deep: '#e64906', ink: '#fff6ec', accent: '#f9b633', glow: 'center' },
+  EXP: { name: '暗金棕', base: '#7b3f04', light: '#b36105', deep: '#4b2301', ink: '#ffe9c2', accent: '#e0a63c', glow: 'center' },
+  LYR: { name: '暖金纸', base: '#f1d398', light: '#ffeebb', deep: '#d89e42', ink: '#5a3a06', accent: '#c98a2e', glow: 'top' },
 };
 
 /**
@@ -50,6 +57,7 @@ export function typePalette(code) {
     light: `hsl(${h} 70% 66%)`,
     deep: `hsl(${h} 85% 20%)`,
     ink: '#ffffff',
+    accent: `hsl(${h} 84% 60%)`,
     glow: 'top',
   };
 }

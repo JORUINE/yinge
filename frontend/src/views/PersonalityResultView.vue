@@ -7,6 +7,7 @@
       '--pc-light': pal.light,
       '--pc-deep': pal.deep,
       '--pc-ink': pal.ink,
+      '--pc-accent': pal.accent,
       '--pc-glow': pal.glow,
     }"
   >
