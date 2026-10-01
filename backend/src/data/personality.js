@@ -987,7 +987,8 @@ export const TYPES = [
   {
     code: 'MEL',
     name: '旋律捕手',
-    description: '先记住旋律，再听其他。副歌能不能立住，决定了一切。',
+    // ⚠️ 2026-10-02：改为**用户成品卡上的原文**（他说"文字我已确认好"，以卡片为准）
+    description: '先记住旋律，再把心动哼成歌',
     dims: { melody: 1, rhythm: 0.35, lyric: 0.5, texture: 0.45, novelty: 0.35, calm: 0.4 },
     theory: '偏高 Valence（Greenberg et al., 2016）与 Upbeat & Conventional 的旋律导向（Rentfrow & Gosling, 2003）',
     listeningProfile: '一句话就能哼出来的歌最抓他；不在意是不是最新、是不是最吵，只要旋律立得住。',
@@ -996,7 +997,8 @@ export const TYPES = [
   {
     code: 'RHY',
     name: '节拍动物',
-    description: '身体先有反应，脑子后到。鼓点一进来就想动。',
+    // ⚠️ 2026-10-02：改为**用户成品卡上的原文**（他说"文字我已确认好"，以卡片为准）
+    description: '身体先动，节奏是本能的开关',
     dims: { melody: 0.45, rhythm: 1, lyric: 0.2, texture: 0.35, novelty: 0.4, calm: 0.12 },
     theory: '高 Arousal（Greenberg et al., 2016）＋ Energetic & Rhythmic 偏好（Rentfrow & Gosling, 2003）；主要靠 rhythmic entrainment 起反应（Juslin & Västfjäll, 2008）',
     listeningProfile: '低音和鼓组是主角；安静的歌反而让他坐不住。',
@@ -1005,7 +1007,8 @@ export const TYPES = [
   {
     code: 'LYR',
     name: '词句收藏家',
-    description: '歌词是一首歌的灵魂，会为了一句词反复听同一段。',
+    // ⚠️ 2026-10-02：改为**用户成品卡上的原文**（他说"文字我已确认好"，以卡片为准）
+    description: '歌词是一首歌的灵魂，每句都值得被记住',
     dims: { melody: 0.7, rhythm: 0.25, lyric: 1, texture: 0.5, novelty: 0.35, calm: 0.5 },
     theory: '偏 Reflective & Complex 的文本/叙事取向（Rentfrow & Gosling, 2003），对应高 Depth（Greenberg et al., 2016）',
     listeningProfile: '会为了歌词去查翻译、会截图存句子；歌好不好听的一半在"写没写到我"。',
@@ -1014,7 +1017,8 @@ export const TYPES = [
   {
     code: 'TMB',
     name: '音色控',
-    description: '在意声音本身的质感，合成器、人声处理都能听出来。',
+    // ⚠️ 2026-10-02：改为**用户成品卡上的原文**（他说"文字我已确认好"，以卡片为准）
+    description: '相比于节奏和旋律，我更在乎声音的质感',
     dims: { melody: 0.55, rhythm: 0.35, lyric: 0.3, texture: 1, novelty: 0.6, calm: 0.35 },
     theory: '对应 MUSIC 模型里的 Sophisticated（Rentfrow, Goldberg & Levitin, 2011），高 Depth ＋ 审美判断机制（Juslin 等，2013）',
     listeningProfile: '听的是"怎么录的、怎么混的"；同一首歌换个制作人能听出差别。',
@@ -1023,7 +1027,8 @@ export const TYPES = [
   {
     code: 'CLM',
     name: '安静聆听者',
-    description: '要的是氛围，不是信息量。适合一个人戴耳机听。',
+    // ⚠️ 2026-10-02：改为**用户成品卡上的原文**（他说"文字我已确认好"，以卡片为准）
+    description: '要的是氛围，是情绪的沉浸',
     dims: { melody: 0.5, rhythm: 0.12, lyric: 0.45, texture: 0.4, novelty: 0.25, calm: 1 },
     theory: '对应 MUSIC 模型里的 Mellow（Rentfrow et al., 2011），低 Arousal（Greenberg et al., 2016）',
     listeningProfile: '夜深了才听得进去；音量不大，能一个人待着就好。',
@@ -1032,7 +1037,8 @@ export const TYPES = [
   {
     code: 'EXP',
     name: '探索者',
-    description: '越没听过越有兴趣，重复的歌单会让你难受。',
+    // ⚠️ 2026-10-02：改为**用户成品卡上的原文**（他说"文字我已确认好"，以卡片为准）
+    description: '越没听过越有兴趣，耳朵永远在冒险',
     dims: { melody: 0.5, rhythm: 0.45, lyric: 0.3, texture: 0.6, novelty: 1, calm: 0.18 },
     theory: '两篇 Rentfrow 研究都把音乐偏好与"开放性"绑在一起（Rentfrow & Gosling, 2003；Rentfrow et al., 2011），本型即 Openness to Experience 的音乐侧写',
     listeningProfile: '歌单一直在换；不怕难听，怕的是重复。',
