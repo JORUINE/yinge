@@ -5,7 +5,7 @@
     <div v-if="loading" class="state muted">加载中…</div>
 
     <template v-else-if="type">
-      <div class="ptcard" :style="{ '--pc': pc, '--pc2': pc2 }">
+      <div class="ptcard" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb }">
         <div class="glowc"></div>
         <div class="pthd">
           <div>
@@ -58,7 +58,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor, normalizeScores } from '@/utils/personality.js';
+import { typeColor, typeColorAlpha, typeColorRgb, normalizeScores } from '@/utils/personality.js';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
@@ -69,14 +69,11 @@ const type = ref(null);
 const albums = ref([]);
 
 const pc = computed(() => typeColor(type.value?.code || code));
-const pc2 = computed(() => {
-  const c = pc.value;
-  if (c.startsWith('#')) {
-    const n = parseInt(c.slice(1), 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0.3)`;
-  }
-  return 'rgba(14,165,233,.3)';
-});
+// ⚠️ 2026-10-05 修：同 PersonalityResultView —— 别再自己切十六进制，
+//    typeColor() 返回的是 `var(--tc-XXX)`，切串必然失败并静默掉成兜底蓝。
+const pc2 = computed(() => typeColorAlpha(type.value?.code || code, 0.3));
+/** 品牌色的 rgb 三元组（给 `rgb(var(--pc-rgb) / .12)` 这类半透明用） */
+const pcRgb = computed(() => typeColorRgb(type.value?.code || code));
 const dims = computed(() => normalizeScores(type.value?.dims));
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');

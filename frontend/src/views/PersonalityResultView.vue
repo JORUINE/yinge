@@ -3,6 +3,7 @@
     class="result"
     :style="{
       '--pc': pc,
+      '--pc-rgb': pcRgb,
       '--pc2': pc2,
       '--pc-light': pal.light,
       '--pc-deep': pal.deep,
@@ -17,26 +18,39 @@
       <!-- ⚠️ 2026-09-23：`--pc/--pc2` 提到根 `.result` 上（原来只挂在 `.ptcard`）。
            根因：`.ptcard` **外面**的「同型代表作」网格也用了 `var(--pc)`，
            取不到变量 → 渐变失效退成白底，而字是白色 → 整块"白板看不见"（用户报的空白）。 -->
-      <div ref="cardEl" class="ptcard">
-        <div class="glowc"></div>
-        <div class="pthd">
-          <div>
-            <div class="ptcode">{{ result.typeCode }} · {{ result.typeName }}</div>
-            <div class="ptname">{{ result.typeName }}</div>
-            <div class="accent2"></div>
-            <p class="ptdesc">{{ result.typeDescription }}</p>
-          </div>
+      <div class="pcexport">
+        <!-- ⭐ 2026-10-05：卡面换成**真人格卡**（底图 + 按成品卡标定的字号），
+             组件在 components/PersonalityCard.vue，标定值在 utils/personalityCardConfig.js。
+             原来这里是一整块渐变玻璃 + 竖排文字，和你在 demo 里确认的那版完全不是一回事。
 
-          <div>
-            <div v-for="s in dims" :key="s.key" class="dim2">
-              <div class="lb"><span>{{ s.label }}</span><span>{{ s.ten }} / 10</span></div>
-              <div class="bar2"><i :style="{ width: s.ratio + '%' }"></i></div>
-            </div>
-            <p v-if="!dims.length" class="hint muted">这次没记录维度得分</p>
-          </div>
+             ⚠️ 导出范围 = 这一层 `.cardshot`（**只有卡**），不是外面那一整块。
+                自检实测：拿外面那层导出，出来的是 2264×2374 的一整列网页，根本没法当分享图；
+                这里 520 宽 × scale(max(2, 1080/520)) = **1080×1439**，正是一张分享图该有的样子。 -->
+        <div ref="cardEl" class="cardshot">
+          <PersonalityCard
+            :code="result.typeCode"
+            :name="result.typeName"
+            :desc="result.typeDescription"
+            :dims="dims"
+            mode="long"
+            :max-width="520"
+          />
         </div>
 
-        <!-- 听歌人设标签（D3-C 传播层 · 随卡导出，便于分享"你是哪个型"） -->
+        <!-- 四维明细留在页面上不动：卡面只上 3 根条（与你成品卡一致），
+             多出来的那个维度（编曲层次）不该在这里凭空消失。 -->
+        <div v-if="dims.length" class="dimlist">
+          <h4>完整维度得分</h4>
+          <div v-for="s in dims" :key="s.key" class="dim2">
+            <div class="lb"><span>{{ s.label }}</span><span>{{ s.ten }} / 10</span></div>
+            <div class="bar2"><i :style="{ width: s.ratio + '%' }"></i></div>
+          </div>
+        </div>
+        <p v-else class="hint muted">这次没记录维度得分</p>
+
+        <!-- 听歌人设标签（D3-C 传播层）
+             ⚠️ 2026-10-05：标签**不再随卡导出**（导出范围收成了卡本身，见上）。
+                你原话是"随卡导出，便于分享你是哪个型"——要加回来只需把 .pttags 挪进 .cardshot。 -->
         <div class="pttags" v-if="personaTags.length">
           <span v-for="t in personaTags" :key="t" class="pttag">{{ t }}</span>
         </div>
@@ -161,11 +175,14 @@ import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
 import {
   typeColor,
+  typeColorAlpha,
+  typeColorRgb,
   typePalette,
   normalizeScores,
   PERSONA_TAGS,
   TYPE_REPRESENTATIVES,
 } from '@/utils/personality.js';
+import PersonalityCard from '@/components/PersonalityCard.vue';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
@@ -184,14 +201,13 @@ const cardEl = ref(null);
  */
 const pal = computed(() => typePalette(result.value?.typeCode));
 const pc = computed(() => typeColor(result.value?.typeCode));
-const pc2 = computed(() => {
-  const c = pc.value;
-  if (c.startsWith('#')) {
-    const n = parseInt(c.slice(1), 16);
-    return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, 0.3)`;
-  }
-  return 'rgba(14,165,233,.3)';
-});
+// ⚠️ 2026-10-05 修：原来这里自己切 `pc.value` 的十六进制（`c.startsWith('#')`），
+//    而 typeColor() 改成返回品牌色 `var(--tc-XXX)` 之后，这个分支永远不成立 →
+//    **所有人格的半透明配色统一掉成兜底蓝**，看不出是哪一型（语法检查查不出，只有页面能看出来）。
+//    现在交给 typeColorAlpha()，真值只有一处。
+const pc2 = computed(() => typeColorAlpha(result.value?.typeCode, 0.3));
+/** 品牌色的 rgb 三元组（给 `rgb(var(--pc-rgb) / .12)` 这类半透明用；同样是主题变量） */
+const pcRgb = computed(() => typeColorRgb(result.value?.typeCode));
 
 const dims = computed(() => normalizeScores(result.value?.scores));
 const topDim = computed(() => dims.value.slice().sort((a, b) => b.ten - a.ten)[0] || null);
@@ -272,11 +288,9 @@ onMounted(async () => {
 .hint {
   font-size: var(--fs-sm);
 }
-@media (max-width: 860px) {
-  .pthd {
-    grid-template-columns: 1fr;
-  }
-}
+/* ⚠️ 2026-10-05：原来这里有一条 `@media(max-width:860px){ .pthd{...} }` ——
+   卡面改成 PersonalityCard 组件后已经没有 .pthd 了，留着是一条永远不匹配的死规则。
+   组件自己的响应式由 ResizeObserver 按容器宽算缩放（见 PersonalityCard.vue）。 */
 
 /* 共建推荐池 CTA：一张醒目的玻璃条，看完推荐就能顺手投一票 */
 .joinpool {
@@ -321,9 +335,12 @@ onMounted(async () => {
   line-height: 1;
   padding: 7px 12px;
   border-radius: 999px;
+  /* ⚠️ 标签现在活在**页面底色**上（以前贴在深色卡面里）。
+     半透明底必须用斜杠语法 —— 写 `rgba(var(--pc-rgb), .12)` 会被整条丢掉，
+     标签就变成"没有底的裸字"。 */
   color: var(--pc);
-  background: var(--pc2);
-  border: 1px solid var(--pc2);
+  background: rgb(var(--pc-rgb) / 0.12);
+  border: 1px solid rgb(var(--pc-rgb) / 0.3);
   letter-spacing: 0.2px;
 }
 

@@ -32,16 +32,22 @@
         </div>
       </div>
 
+      <!-- ⭐ 2026-10-05 改：右侧六型预览以前是一条彩色竖线 + 两行字，跟"人格卡"没有视觉关系。
+           现在每格做成一张迷你卡：左边压一张该型**卡面缩略图**（与人格卡同源素材），
+           名字用该型品牌色（六个色全部 ≥4.6 对比，见 tokens.css）。 -->
       <div class="typesprev">
         <div
           v-for="t in types"
           :key="t.code"
           class="tpv"
-          :style="{ '--tc': typeColor(t.code) }"
+          :style="{ '--tc': typeColor(t.code), '--tc-rgb': typeColorRgb(t.code) }"
           @click="$router.push({ name: 'personality-type', params: { code: t.code } })"
         >
-          <b>{{ t.name }}</b>
-          <span>{{ t.description }}</span>
+          <span class="tpvface" :style="{ backgroundImage: thumb(t.code) }"></span>
+          <span class="tpvtx">
+            <b>{{ t.name }}</b>
+            <i>{{ t.description }}</i>
+          </span>
         </div>
       </div>
     </div>
@@ -58,13 +64,15 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor } from '@/utils/personality.js';
+import { typeColor, typeColorRgb } from '@/utils/personality.js';
 
 const types = ref([]);
 const questionCount = ref(12);
 const audioCount = ref(2);
 
 const shortDesc = (d, n = 16) => (d && d.length > n ? d.slice(0, n) + '…' : d || '');
+/** 该型卡面缩略图（人格卡同源素材，288×384） */
+const thumb = (code) => `url(/img/personality/th-${String(code || '').toUpperCase()}.jpg)`;
 
 onMounted(async () => {
   try {

@@ -62,7 +62,62 @@ export function typePalette(code) {
   };
 }
 
-/** code → 主色（从色系派生，**不再手写第二份**，避免两处不一致） */
+/**
+ * ⭐ 品牌色（2026-10-05 新增）—— 「卡片色系」与「品牌色」是两件事，别混用
+ * ------------------------------------------------------------
+ * 上面 `TYPE_PALETTE` 的 base/light/deep 是**卡片背景色**（深底配浅字）。把它们当**文字色**
+ * 用在浅色玻璃卡上就出事 —— 用户 2026-10-05 在「音乐人格图鉴」上看到"旋律捕手是黑的"，
+ * 根因就是这个。实测（`tools/pw/compute-brand-colors.mjs`，白底 WCAG 对比度）：
+ *
+ * | 型 | 旧值（base 当文字色） | 白底对比 | 结论 |
+ * |----|----------------------|---------|------|
+ * | MEL | #111441 | 17.5 | 亮度挤到近乎全黑 —— **就是用户看到的"黑"** |
+ * | TMB | #b5eae8 | 1.32 | 淡薄荷，白底上几乎看不见 |
+ * | LYR | #f1d398 | 1.45 | 淡金，同上 |
+ * | RHY | #ef5f09 | 3.33 | 低于正文 AA 的 4.5 |
+ * | CLM | #114d94 | 8.36 | 达标，但暗到发黑、不像"深海蓝" |
+ * | EXP | #7b3f04 | 8.22 | 达标，但是深褐 |
+ *
+ * 改法：新增「品牌色」= **保持卡片色相与饱和度、只调明度**，压到白底 ≥ 4.5:1（正文 AA）；
+ * 深色主题另给一档（暗底 ≥ 4.5:1）。真值**只写在 `tokens.css` 的 `--tc-<CODE>`**，
+ * 这里只登记数值供查阅，`typeColor()` 返回 `var(--tc-XXX)` ⇒ 自动跟随主题、全站一处真值。
+ *
+ * ⚠️ 已知取舍：烈焰橙压到 4.5 会偏褐，且**探索者/词句收藏家两个暖金压后可读后色相很接近**
+ *   （#9d6e19 / #9e6d24）。试过"压暗时顶饱和度保橙感"，结果三个暖色全部收敛成同一种褐
+ *   （#a26b00 / #a56a00 / #ac6600），**辨识度反而更差**，故放弃。
+ *   ⇒ 结论：**颜色不足以区分六型，页面必须同时给每型配自己的卡片缩略图**。
+ */
+export const TYPE_BRAND = {
+  CLM: { light: '#2470ad', dark: '#4d9bda' }, // 深海蓝
+  MEL: { light: '#625cd3', dark: '#908ce0' }, // 夜紫蓝（用户点名的蓝紫：保持原色不动，对比已 4.63）
+  RHY: { light: '#936304', dark: '#f9b633' }, // 烈焰橙
+  EXP: { light: '#8f6417', dark: '#e0a63c' }, // 暗金棕
+  LYR: { light: '#916321', dark: '#c98a2e' }, // 暖金纸
+  TMB: { light: '#007577', dark: '#00a6a9' }, // 薄荷青
+};
+
+/**
+ * 取某型的**品牌色**（真实色值，不是 `var()`）—— 给需要解析色值/画布/算渐变的场合用。
+ * 只想上色（CSS 内联样式）请用下面的 `typeColor()`，它会跟随主题。
+ */
+export function typeBrand(code) {
+  const key = String(code || '').toUpperCase();
+  if (TYPE_BRAND[key]) return TYPE_BRAND[key].light;
+  let h = 0;
+  for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
+  return `hsl(${h} 62% 40%)`;
+}
+
+/** `#rrggbb` → `rgba(r,g,b,a)`；非 hex（如 `hsl(...)`、`var(...)`）返回 null，调用方自行兜底 */
+export function withAlpha(color, alpha) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(color || '').trim());
+  if (!m) return null;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+/** code → 主色（从色系派生，**不再手写第二份**，避免两处不一致）
+ *  ⚠️ 这是**卡片背景色**，只适合做底/渐变/大色块，**不要拿它当文字色**（见上面 TYPE_BRAND）。 */
 export const TYPE_COLOR = Object.fromEntries(
   Object.entries(TYPE_PALETTE).map(([k, v]) => [k, v.base]),
 );
@@ -90,13 +145,35 @@ export const DIM_CN = {
   calm: '安静倾向',
 };
 
-/** 主题色：已知 code 用固定色，未知 code 用 code 稳定映射一个色相 */
+/** 主题色：已知 code 用固定品牌色（跟随主题的 CSS 变量），未知 code 用 code 稳定映射一个色相
+ *  ⭐ 2026-10-05 修正：原来返回 `TYPE_COLOR[key]`（＝卡片**背景**色）→ MEL 白底上是近乎全黑、
+ *     TMB/LYR 几乎看不见（详见 `TYPE_BRAND` 注释里的实测表）。现在返回 `var(--tc-XXX)`。 */
 export function typeColor(code) {
   const key = String(code || '').toUpperCase();
-  if (TYPE_COLOR[key]) return TYPE_COLOR[key];
+  if (TYPE_BRAND[key]) return `var(--tc-${key})`;
   let h = 0;
   for (let i = 0; i < key.length; i += 1) h = (h * 31 + key.charCodeAt(i)) % 360;
-  return `hsl(${h} 62% 52%)`;
+  return `hsl(${h} 62% 40%)`;
+}
+
+/** 品牌色的** rgb 三元组变量**（同样跟随主题）：给 `rgba(var(--tc-XXX-rgb), .3)` 这
+ *  类需要半透明的场合用。真值仍然只写在 tokens.css，这里只是把变量名拼出来。 */
+export function typeColorRgb(code) {
+  const key = String(code || '').toUpperCase();
+  if (TYPE_BRAND[key]) return `var(--tc-${key}-rgb)`;
+  return '14 165 233';
+}
+
+/** 品牌色的**半透明版**（同样跟随主题）：给标签底色 / 渐变暗端用。
+ *  ⚠️ 别再有人拿 `typeColor()` 的返回值去拼 rgba —— 现在它返回的是 `var(--tc-XXX)`，
+ *     字符串切割必然失败（会静默掉成兜底蓝）。要透明度就用这个函数。
+ *  ⚠️ 2026-10-05 踩过的坑：返回 `rgba(var(--x-rgb), .3)` 是**非法值**
+ *     （空格通道 + 逗号 alpha 不成立）→ 整条声明被丢掉、半透明底色静默消失。
+ *     必须用斜杠语法 `rgb(var(--x-rgb) / .3)`。 */
+export function typeColorAlpha(code, alpha = 0.3) {
+  const key = String(code || '').toUpperCase();
+  if (TYPE_BRAND[key]) return `rgb(var(--tc-${key}-rgb) / ${alpha})`;
+  return `rgba(14, 165, 233, ${alpha})`;
 }
 
 /** 维度中文名：未知 key 原样返回 */

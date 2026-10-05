@@ -2308,25 +2308,69 @@ html[data-theme='dark'] .v b {
   gap: 10px;
 }
 .tpv {
-  padding: 13px 15px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px;
   border-radius: var(--r-s);
   background: var(--glass);
   border: 1px solid var(--gbd);
-  border-left: 3px solid var(--tc);
+  /* 左边原来那根 `border-left: 3px solid var(--tc)` 取消了 —— 现在放的是真人卡面，
+     颜色信息由画面自己承担，再用一根线反而像"彩色便签"。 */
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 .tpv:hover {
   transform: translateY(-3px);
+  /* ⚠️ 不能写 rgba(var(--tc-rgb), .55) —— 那门语法（空格通道 + 逗号 alpha）是非法的，
+     整条声明会被浏览器丢掉、hover 描边静默消失。带变量的半透明一律用斜杠语法。 */
+  border-color: rgb(var(--tc-rgb, 14 165 233) / 0.55);
+  box-shadow: var(--shadow-2);
 }
-.tpv b {
+.tpvface {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
+  background-size: cover;
+  background-position: 50% 30%;
+  box-shadow: 0 2px 7px rgba(8, 58, 92, 0.22);
+  /* 卡面外圈压一圈该型品牌色，跟下面的名字对上 */
+  outline: 1.5px solid rgb(var(--tc-rgb, 14 165 233) / 0.5);
+  outline-offset: -1px;
+}
+.tpvtx {
+  min-width: 0;
+}
+.tpvtx b {
   display: block;
   font-size: 14.5px;
+  font-weight: 600;
   color: var(--tc);
 }
-.tpv span {
+.tpvtx i {
+  display: block;
+  font-style: normal;
   font-size: 12.5px;
   color: var(--text2);
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* ===== 深色主题：给「要用品牌色文字」的卡片压实一层（2026-10-05）=====
+   根因：页面那三团洗色（--bg-wash）在深色主题下会透过玻璃卡体，
+   实测同一排三列的卡体底色是 rgb(20,42,59)/rgb(17,41,54)/rgb(27,63,94) —— **差 1.7 倍亮度**。
+   品牌色如果按最暗那格配，在第三列就掉到 3.73（词句收藏家，AA 不达标）；
+   按最亮那格配，六个色全被洗成粉彩（#ddae69 那一档）。
+   ⇒ 解决办法把变量封在同一处：给卡体额外铺一层同底色的压光，把这 1.7 倍差压平，
+      品牌色就可以保住浓度（实测：最亮那格从 rgb(27,63,94) 压回 rgb(14,38,58)）。
+   ⚠️ 删掉这段之前先看 tools/pw/compute-brand-colors.mjs 里那段说明 —— 删了就得把
+      深色品牌色按 #23496b 重算。 */
+:root[data-theme='dark'] .at,
+:root[data-theme='dark'] .tpv,
+html[data-theme='dark'] .at,
+html[data-theme='dark'] .tpv {
+  background: linear-gradient(rgba(4, 18, 29, 0.55), rgba(4, 18, 29, 0.55)), var(--glass);
 }
 
 .quizwrap {
@@ -2490,7 +2534,11 @@ html[data-theme='dark'] .v b {
   margin-top: 20px;
 }
 
-/* 人格卡 */
+/* 人格卡（类型详情页 PersonalityTypeView 在用 —— 一整块渐变玻璃 + 该型色系）
+   ⚠️ 2026-10-05：原来这里写着 `--pc: #e0554f / --pc-rgb / --pc2` 三个**兜底值**。
+     自定义属性在元素自身上的声明优先于继承 → 详情页根节点 inline 设的 `--pc` 被它盖掉，
+      于是**不管哪个型，这张卡永远是那支红**（六个型同一个色）。已删除，改为继承。
+     同源问题在结果页的 .pcexport 上也犯过一次，一并修掉。 */
 .ptcard {
   border-radius: var(--r);
   padding: 30px 34px;
@@ -2502,8 +2550,6 @@ html[data-theme='dark'] .v b {
   position: relative;
   overflow: hidden;
   margin-top: 22px;
-  --pc: #e0554f;
-  --pc2: rgba(224, 85, 79, 0.3);
 }
 .ptcard .glowc {
   position: absolute;
@@ -2546,6 +2592,45 @@ html[data-theme='dark'] .v b {
   font-size: 14.5px;
   color: var(--text2);
   margin: 0 0 20px;
+}
+
+/**
+ * 结果页的导出容器（2026-10-05 新增，独立于上面的 .ptcard）
+ * ------------------------------------------------------------
+ * ⚠️ 为什么不直接改 `.ptcard`：那个类**类型详情页也在用**。
+ *    本轮先动 `.ptcard` 时，详情页的标题块立刻掉成没有样式的裸文字 —— 教科书式的
+ *    "改一处没改全部引用"。改成给结果页一个自己的容器类，影响面收在单页里。
+ * 这个容器只剩「视觉容器」一个职责，卡面全由 PersonalityCard.vue 提供。
+ *
+ * ⚠️⚠️ 这里**绝不能**再写 `--pc: #e0554f` 这种兜底值！
+ *    自定义属性在"元素自身"上的声明**优先于继承来的值** → 结果页根节点 inline 设的
+ *    `--pc: var(--tc-MEL)` 会被这一层盖掉，页面下方所有用 --pc 的东西统统变回那支红
+ *    （本轮截图实测：完整维度得分整块是红的，六个型都一样）。
+ *    这就是"颜色不跟人格走"的真凶，`.ptcard` 上同一个写法也害了类型详情页（已一并删掉）。
+ */
+.pcexport {
+  margin-top: 22px;
+}
+/* 导出范围（只有卡）：宽度锁 520 = 卡的设计宽，html2canvas 才会按 1080 宽那一档出图。
+   ⚠️ 外面那一整块（.pcexport）**不要**加 ref —— 实测导出成 2264×2374 的一整列网页。 */
+.cardshot {
+  width: 520px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+/* 完整维度得分（页面上的四维明细；卡面只上 3 根条，多出的那个维度在这里交代） */
+.dimlist {
+  margin-top: 18px;
+  padding: 18px 22px;
+  border-radius: var(--r-s);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+}
+.dimlist h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: 1.3px;
+  color: var(--pc);
 }
 .dim2 {
   margin-bottom: 15px;
@@ -2610,39 +2695,94 @@ html[data-theme='dark'] .v b {
   margin-top: 22px;
 }
 .at {
-  padding: 18px;
+  padding: 0;
   border-radius: var(--r-s);
   background: var(--glass);
   border: 1px solid var(--gbd);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
   --tc: #0ea5e9;
+  --tc-rgb: 14 165 233;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 .at:hover {
   transform: translateY(-4px);
-  border-color: var(--tc);
+  border-color: rgb(var(--tc-rgb) / 0.55);
+  box-shadow: var(--shadow-2);
 }
-.at .num {
-  font-size: 26px;
+/* ⭐ 卡面：人格卡用的同一张 3:4 素材，横着取一条。位置统一 `50% 26%`
+   —— 取画面中上部（六张素材的视觉重心都在这一带），避免有的型全取到暗部。 */
+.atart {
+  position: relative;
+  height: 118px;
+  background-size: cover;
+  background-position: 50% 26%;
+}
+/* 画面底部用「接色渐变」化进卡体 —— 硬切会留一道明显横线（守则：线条雾化）
+   ⚠️ 这里是本轮第二个"半透明静默失效"的现场：原来写 `rgba(var(--scrim-rgb), 0)`，
+      空格通道 + 逗号 alpha 是**非法值**，整条 background 被丢掉 → 画面和卡体之间
+      留了一道硬边，还看不出来是"写错了"。带变量的半透明必须用斜杠语法。 */
+.atart::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 48px;
+  background: linear-gradient(to bottom, rgb(var(--scrim-rgb) / 0), rgb(var(--scrim-rgb) / 0.92));
+}
+.atcode {
+  position: absolute;
+  left: 12px;
+  bottom: 9px;
+  z-index: 1;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  border-radius: 999px;
   color: var(--tc);
-  letter-spacing: -0.7px;
+  background: rgb(var(--scrim-rgb) / 0.9);
+  border: 1px solid rgb(var(--tc-rgb) / 0.35);
+}
+.atbody {
+  flex: 1;
+  padding: 13px 16px 15px;
+  display: flex;
+  flex-direction: column;
 }
 .at .nm {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  margin: 8px 0 4px;
+  color: var(--tc);
+  margin: 0 0 5px;
 }
 .at .ds {
   font-size: 13px;
   color: var(--text2);
   line-height: 1.65;
+  /* 描述长短不一会把同一排的卡拉得高高低低 —— 给一个两行底，保证网格等高 */
+  min-height: 43px;
+}
+.atrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+}
+.atrow .bb2 {
+  flex: 1;
+  /* ⭐ 2026-10-05：进度条的基础样式抽到下面的 `.bb2` 基类里了 ——
+     原来只有 `.dist .dr .bb2` 一处写全套（高 8px / 圆角 / 轨道色），
+     图鉴卡想复用就只能再抄一遍。现在一处定义，两处只说自己的差别。 */
 }
 .at .pct {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--tc);
   font-weight: 600;
-  margin-top: 10px;
+  white-space: nowrap;
 }
 .dist {
   margin-top: 22px;
@@ -2667,16 +2807,25 @@ html[data-theme='dark'] .v b {
   flex: 0 0 auto;
   font-weight: 600;
 }
-.dist .dr .bb2 {
-  flex: 1;
+/* 进度条基类（2026-10-05 抽出）：图鉴卡 + 分布列表共用。
+   填充色默认跟 `--tc`（所在卡的品牌色）走；内联 style 指定的优先级更高。 */
+.bb2 {
+  display: block;
   height: 8px;
   border-radius: 99px;
   background: var(--line);
   overflow: hidden;
 }
-.dist .dr .bb2 i {
+.bb2 i {
   display: block;
   height: 100%;
+  border-radius: 99px;
+  background: var(--tc, var(--brand));
+}
+.dist .dr .bb2 {
+  flex: 1;
+}
+.dist .dr .bb2 i {
   border-radius: 99px;
 }
 .dist .dr .vv {

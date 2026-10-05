@@ -13,18 +13,31 @@
     </div>
 
     <template v-else>
+      <!-- ⭐ 2026-10-05 改：每张卡 = 「人格卡的脸」+ 该型品牌色。
+           以前就是一块玻璃 + 一行彩色文字，看不出六个型的区别；
+           现在顶部铺该型卡面底图（`public/img/personality/th-<CODE>.jpg`，即人格卡用的同一张 3:4 素材），
+           型号做成压在画面上的胶囊 —— 一半靠画面、一半靠品牌色去认人。
+           ⚠️ 为什么标题颜色改成品牌色还能读：六个色都按「页面洗色最深的一角 #e6f2fb」
+              二分到 ≥4.6（见 tokens.css 的 --tc-* 注释），不是凭眼睛挑的。 -->
       <div class="atlas">
         <div
           v-for="it in items"
           :key="it.code"
           class="at"
-          :style="{ '--tc': typeColor(it.code) }"
+          :style="{ '--tc': typeColor(it.code), '--tc-rgb': typeColorRgb(it.code) }"
           @click="$router.push({ name: 'personality-type', params: { code: it.code } })"
         >
-          <div class="num">{{ it.code }}</div>
-          <div class="nm">{{ it.name }}</div>
-          <div class="ds">{{ it.description }}</div>
-          <div class="pct">{{ pct(it.ratio) }} · {{ it.count }} 人</div>
+          <div class="atart" :style="{ backgroundImage: thumb(it.code) }">
+            <span class="atcode">{{ it.code }}</span>
+          </div>
+          <div class="atbody">
+            <div class="nm">{{ it.name }}</div>
+            <div class="ds">{{ it.description }}</div>
+            <div class="atrow">
+              <span class="bb2"><i :style="{ width: Math.max(2, Math.round((it.ratio || 0) * 100)) + '%' }"></i></span>
+              <span class="pct">{{ pct(it.ratio) }} · {{ it.count }} 人</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -49,7 +62,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor } from '@/utils/personality.js';
+import { typeColor, typeColorRgb } from '@/utils/personality.js';
 
 const loading = ref(true);
 const types = ref([]);
@@ -72,6 +85,11 @@ const sorted = computed(() => items.value.slice().sort((a, b) => (b.ratio || 0) 
 
 function pct(ratio) {
   return `${Math.round((ratio || 0) * 100)}%`;
+}
+
+/** 该型的卡面底图（人格卡用的同一张 3:4 素材，缩到 288×384） */
+function thumb(code) {
+  return `url(/img/personality/th-${String(code || '').toUpperCase()}.jpg)`;
 }
 
 onMounted(async () => {

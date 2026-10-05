@@ -192,6 +192,7 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-09-25（<b>第二十二批</b>：后台「加流派歌手」两处真因 —— ① 「字段校验未通过」是搜索参数名写错（后端要 <code>term</code>，面板写了 <code>q</code> → 422，每点一次报一次）；② 「加了歌手人数还是20」是统计口径未含 <code>curatedGenres</code>，且查询 <code>select</code> 没放宽导致该字段恒为 undefined；现已改为「22 位，含后台手动加 2」并同步更新自检断言。后端 9 脚本全绿 + verify-r26 18/18 + build 通过）</div>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-06（<b>第二十三批</b>：人格卡真的进音格 —— ① 六张 3:4 底图重采样两套进 <code>public/img/personality/</code>，卡面封成 <code>components/PersonalityCard.vue</code>（demo v8 的标定值原样搬入）；② 修掉「旋律捕手都成黑了」：<code>typeColor()</code> 把<b>卡片底色</b>当文字色用（MEL 白底对比 17.5 / 音色控 1.32 / 词句收藏家 1.45），改为六型各有<b>品牌色</b>，浅深两档全部 ≥4.6:1；③ 图鉴 / 入口 / 详情三页改成「卡面 + 品牌色」；④ 导出图从 2264×2374 的一整列网页收成 <b>1080×1439 的一张卡</b>；⑤ 顺手修掉「详情页那张卡永远是同一支红」。自检 21/21 + 10/10 全绿，build 通过）
+</footer>
 </body>
 </html>
