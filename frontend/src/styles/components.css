@@ -2712,13 +2712,20 @@ html[data-theme='dark'] .tpv {
   border-color: rgb(var(--tc-rgb) / 0.55);
   box-shadow: var(--shadow-2);
 }
-/* ⭐ 卡面：人格卡用的同一张 3:4 素材，横着取一条。位置统一 `50% 26%`
-   —— 取画面中上部（六张素材的视觉重心都在这一带），避免有的型全取到暗部。 */
+/* ⭐ 卡面：`band-<CODE>.jpg` —— 已经从 1080×1440 原图里**逐型裁好的横条带**（800×246）。
+   所以这里只要 `cover` + 居中就行，位置信息已经烘进素材里了。
+   ⚠️ 2026-10-06 之前不是这样：那时挂的是 `th-<CODE>.jpg`（288×384 竖图，六张构图还都不一样），
+      靠 `background-position: 50% 26%` 硬取一条 —— 结果 CLM/EXP/LYR 主体都在 62%~95%，
+      26% 那一带正好是纯色天/纸面，于是"上面三张只有颜色"；同时 288px 去填 384px 是放大
+      1.33 倍 → "下面三张太模糊"。同一个根因不必在 CSS 里修，换素材即可。
+   ⚠️ 如果以后有人把素材换回竖图，就必须同时给**每型各自**的 background-position，
+      统一一个百分比一定会让某几张只剩纯色。 */
 .atart {
   position: relative;
   height: 118px;
   background-size: cover;
-  background-position: 50% 26%;
+  background-position: 50% 50%;
+  background-color: var(--line); /* 素材没加载出来时给条带一个底色，不至于塌成一块白 */
 }
 /* 画面底部用「接色渐变」化进卡体 —— 硬切会留一道明显横线（守则：线条雾化）
    ⚠️ 这里是本轮第二个"半透明静默失效"的现场：原来写 `rgba(var(--scrim-rgb), 0)`，
