@@ -8,10 +8,15 @@
       <!-- ⚠️ 2026-10-06：`.dim2 .bar2` 是**全局类**（结果页也在用），上一轮被改成用图形档
            `var(--pcf)`。自定义属性没有定义时 `var()` 会让整条声明失效 → 进度条静默变透明。
            所以**凡是用了 .dim2/.bar2 的页面都必须注入 --pcf**，漏一处就白改。 -->
-      <!-- ⭐ 2026-10-06 demo：详情页也换成「左人格卡 + 右文字介绍」，与结果页一以贯通。
+      <!-- ⭐ 2026-10-06 demo：详情页换成「左人格卡 + 右文字介绍」，与结果页一以贯通。
            改前是「型号+名字+描述+按钮」在左、4 条维度在右，**完全没有人格卡画面**，
-           和图鉴页/结果页/入口页一比就像另一个世界。改后左边直接放该型的人格卡
-           （4 条维度已经在卡面上，右边不再重复一遍，只留一个只读列表给"精确看数值"用）。
+           和图鉴页/结果页/入口页一比就像另一个世界。 -->
+      <!-- ⚠️ 2026-10-07 第二十九批：右栏那套「这个型看重的四个维度」列表已删除。
+           用户："左边和右边的维度条 为什么这里用户还没测过就有了这个条子 …… 这肯定要优化"：
+             · 卡面上本来就有同一组维度条（连数值一起）→ 右栏再抄一遍是**同一数据画两遍**；
+             · 列表标题写死"四个维度"，而 CLM 这类只配了 3 条 → 标题与数据自相矛盾。
+           只留卡面那套；右栏补一行小字说明"卡面维度 = 这个型的典型画像（后台配置）"，
+           回答用户"还没测为什么有条"这个疑问。
            ⚠️ `.dim2 .bar2` 是全局类，必须注入 --pcf（漏注入进度条会静默变透明）。 -->
       <div class="ptcard ptcard-v2" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb, '--pcf': pcf, '--pcf-rgb': pcfRgb }">
         <div class="glowc"></div>
@@ -31,14 +36,10 @@
             <div class="ptname">{{ type.name }}</div>
             <div class="accent2"></div>
             <p class="ptdesc">{{ type.description }}</p>
-            <div class="ptdims">
-              <div class="ptdims-h">这个型看重的四个维度</div>
-              <div v-for="d in dims" :key="d.label" class="dim2">
-                <div class="lb"><span>{{ d.label }}</span><span>{{ d.ten }} / 10</span></div>
-                <div class="bar2"><i :style="{ width: d.ratio + '%' }"></i></div>
-              </div>
-              <p v-if="!dims.length" class="hint muted">这个类型没有配置维度特征</p>
-            </div>
+            <!-- 原右栏维度列表（.ptdims）已删除 —— 卡面那套就是同一组数据，重复且标题写死"四个维度" -->
+            <p class="ptcap">
+              卡面上的维度条是<b>这个型的典型画像</b>（由后台配置，<b>不是</b>你的测评结果）。
+            </p>
             <div class="btns">
               <RouterLink to="/personality/test" class="btn pri">测测我是哪种</RouterLink>
               <RouterLink to="/personality/types" class="btn ghost">看看其他人格</RouterLink>
@@ -145,6 +146,18 @@ onMounted(async () => {
 }
 .hint {
   font-size: var(--fs-sm);
+}
+/* 右栏那行「卡面维度 = 这个型的典型画像」说明（2026-10-07 第二十九批）
+   —— 回答用户"还没测为什么有条子"：条子讲的是**这个型的画像**，不是你的结果。 */
+.ptcap {
+  margin: 0 0 18px;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+  color: var(--text2);
+}
+.ptcap b {
+  color: var(--text);
+  font-weight: 700;
 }
 @media (max-width: 860px) {
   .pthd {

@@ -2588,19 +2588,11 @@ html[data-theme='dark'] .tpv {
 .ptcard-v2 .ptinfo {
   min-width: 0;
 }
-.ptcard-v2 .ptdims {
-  margin: 18px 0 20px;
-  padding: 16px 18px;
-  border-radius: var(--r-s);
-  background: rgb(var(--scrim-rgb) / 0.5);
-  border: 1px solid var(--gbd);
-}
-.ptcard-v2 .ptdims-h {
-  font-size: 13px;
-  letter-spacing: 1.2px;
-  color: var(--pc);
-  margin-bottom: 12px;
-}
+/* ⚠️ 2026-10-07 第二十九批：右栏「这个型看重的四个维度」列表（.ptdims / .ptdims-h）已删除。
+   用户："左边和右边的维度条 为什么这里用户还没测过就有了这个条子 …… 这肯定要优化"。
+   左边人格卡上已经有这套维度条（连精确数值一起），右栏再抄一遍 = **同一组数据画两遍**；
+   而且列表标题写死"四个维度"，有的型其实只配了 3 条 → 标题和数据对不上（自证是冗余）。
+   现在只留卡面那套；右栏补一行小字说明来源（见 PersonalityTypeView 的 .ptcap）。 */
 @media (max-width: 900px) {
   .pthd-v2 {
     grid-template-columns: minmax(0, 1fr);

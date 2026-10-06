@@ -883,7 +883,12 @@ onUnmounted(() => clearTimeout(cutTimer));
 
 <style scoped>
 .play {
-  padding-bottom: var(--sp-8);
+  /* ⚠️ 2026-10-07 第二十九批：这里原来是 padding-bottom: var(--sp-8) = 64px。
+     用户红圈："试听清单下面这一大块没有内容，直接不要这部分"。
+     它下面还有**站点级**的 .main padding-bottom 40px + 页脚自身 padding-top 24px
+     —— 三层叠加，实测「清单底 → 页脚顶」PK 版 104px、完整版 148px。
+     这里只留 4px 呼吸位，其余交给站点统一节奏（和其它页面的收尾一致）。 */
+  padding-bottom: var(--sp-1);
 }
 
 .crumb {
@@ -1767,5 +1772,82 @@ onUnmounted(() => clearTimeout(cutTimer));
 .duelgrid .alb .art img.fit {
   object-fit: contain;
   background: linear-gradient(160deg, var(--acs, rgba(14, 165, 233, 0.22)), rgba(4, 20, 32, 0.16));
+}
+
+/* =====================================================================
+   2026-10-07 第二十九批 · 矮视口「一屏就能看到投票按钮」
+   ---------------------------------------------------------------------
+   用户："Chrome 进对决右边有滑动条、要再滑一步；Edge 里 100% 缩放就能看到
+        整个专辑 + 下方投票按钮。"
+   实测（1440 宽）：视口高 900 → 投票按钮底边 y=862 ✅ 在视口内；
+                    768 → y=820 ❌ 要滚一步。
+   关键：**Chrome 与 Edge 的布局逐像素一致**（挂不挂 html.ua-edge、同视口下
+   文档高与按钮位置完全相同）→ 差异来自**窗口/视口高度**和「进的是完整版还是 PK 版」，
+   不是浏览器渲染。所以这里按**视口高度**做响应式。
+   做法：矮就把页头/撤销条/进度/竞技场的竖向留白与封面收一档，
+   保证"整张专辑 + 名字 + 试听按钮 + 下方投票按钮"仍在一屏内。
+   ⚠️ 只压留白与封面尺寸；不动字号下限、**不删任何功能块**（进度条、撤销都留着）。
+   ⚠️ ≥880px 高的视口不生效（大屏保持原来的舒展版式）。
+   ===================================================================== */
+@media (max-height: 880px) {
+  .playhd {
+    padding: 10px 16px !important;
+    margin-bottom: 8px !important;
+  }
+  .playhd .phstage {
+    font-size: 19px !important;
+  }
+  .playhd .phhint {
+    font-size: 13px !important;
+  }
+  .playhd .phnum {
+    font-size: 22px !important;
+  }
+  .undobar {
+    padding: 3px 10px !important;
+    margin: 6px 0 4px !important;
+  }
+  .progrow {
+    margin-bottom: 6px !important;
+  }
+  .vstage {
+    padding: 12px 18px 12px !important;
+  }
+  .duelgrid .alb .art {
+    width: min(29vh, 288px) !important;
+    height: min(29vh, 288px) !important;
+  }
+  .duelgrid .alb b {
+    margin-top: 6px !important;
+    font-size: 16.5px !important;
+  }
+  .duelgrid .alb .ar {
+    margin-top: 2px !important;
+  }
+  .duelgrid .alb .plays {
+    margin-top: 6px !important;
+  }
+  .voterow {
+    margin-top: 10px !important;
+    gap: 6px !important;
+  }
+  .nowbar {
+    margin-top: 10px !important;
+  }
+}
+/* 更矮（≤760px，小笔记本 / 未最大化窗口）：再收一档封面，死保"投票按钮在一屏内"
+   实测：26vh 时 700px 视口下按钮底边 707、仍差 7px → 封面改 25vh + 投票行再贴 2px，
+   700px 视口也压进一屏（707 → 698）。 */
+@media (max-height: 760px) {
+  .duelgrid .alb .art {
+    width: min(25vh, 250px) !important;
+    height: min(25vh, 250px) !important;
+  }
+  .vstage {
+    padding: 10px 16px 10px !important;
+  }
+  .voterow {
+    margin-top: 4px !important;
+  }
 }
 </style>
