@@ -29,6 +29,12 @@
               只锁卡 → 1080×1439。AI 解读与维度得分都在 `.cardshot` 之外，所以不会进图。 -->
       <div class="pcexport">
         <div class="ptmain">
+          <!-- ⭐ 2026-10-06 玻璃质感（用户："把这一块的这种设计做出玻璃质感 就像我们专辑获胜卡那样的，
+               让背景带上每一个卡片背景素材的那种图样的模糊质感" + "大面积的白色太多了"）。
+               这一层是该型人格卡底图的**真高斯虚化**（canvas 里糊好再当图片用，
+               跟分享卡同一套做法 —— CSS filter/backdrop-filter 会被 html2canvas 丢掉）。
+               上面再压一层白纱幕：虚化图当"透出来的颜色"，白纱幕保证文字对比度。 -->
+          <div class="ptbg" :style="bgStyle"></div>
           <div class="ptmain-l">
             <div ref="cardEl" class="cardshot">
               <PersonalityCard
@@ -193,6 +199,7 @@ import {
 } from '@/utils/personality.js';
 import PersonalityCard from '@/components/PersonalityCard.vue';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
+import { makeBlurBackdrop } from '@/utils/blurBackdrop.js';
 
 const route = useRoute();
 const id = route.params.id;
@@ -229,6 +236,18 @@ const pcf2 = computed(() => typeColorFillAlpha(result.value?.typeCode, 0.55));
 
 const dims = computed(() => normalizeScores(result.value?.scores));
 const topDim = computed(() => dims.value.slice().sort((a, b) => b.ten - a.ten)[0] || null);
+
+/**
+ * 面板的虚化底（该型人格卡底图 → canvas 真高斯模糊）
+ * ⚠️ 跟"同型代表作"一样是**异步**的：卡先出来，糊好底再自己补上，不会互相卡住。
+ *    糊失败返回 ''，此时面板退回纯玻璃（可读性不受影响，只是少了那层质感）。
+ */
+const blurBg = ref('');
+const bgStyle = computed(() => (blurBg.value ? { backgroundImage: `url(${blurBg.value})` } : {}));
+async function buildBlurBg() {
+  const code = String(result.value?.typeCode || '').toUpperCase();
+  blurBg.value = code ? await makeBlurBackdrop(`/img/personality/bg-${code}.jpg`) : '';
+}
 
 // D3-C 传播层：人设标签 + 同型代表作（按 typeCode 取静态映射）
 const personaTags = computed(() => PERSONA_TAGS[result.value?.typeCode] || []);
@@ -276,6 +295,7 @@ onMounted(async () => {
     result.value = data;
     albums.value = data.recommendAlbums || [];
     primeAccents();
+    buildBlurBg(); // 虚化底异步补上，不阻塞首屏
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {

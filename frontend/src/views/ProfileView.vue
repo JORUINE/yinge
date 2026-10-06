@@ -79,10 +79,17 @@
                 前端再加一层本地映射兜底（typeNameOf）。
              ② **同一行出现了两次缩写** —— 第一行打 name、第二行又直接打 `p.typeCode`。
                 现在第二行只留日期。
-             ③ 色块改用**图形档** typeColorFill()，之前用文字档（压得很暗）当底色，
-                六个缩略图一列看着发黑，跟人格卡面对不上。 -->
+             ③ 缩略图从**纯色方块**换成该型人格卡的方形图（跟入口页同一张素材）。 -->
         <div v-for="p in results" :key="p.resultId" class="r">
-          <div class="th" :style="{ background: typeColorFill(p.typeCode) }" :title="typeNameOf(p.typeCode, p.typeName)"></div>
+          <!-- ⭐ 2026-10-06：原来这里是**纯色方块**（背景取人格色）。用户：「你把这里面的纯色块
+               直接用这里的方形图嵌进去」—— 换成该型人格卡的方形缩略图 th-<CODE>.jpg，
+               和人格入口页那六张迷你卡用的是同一张素材（同源、同取景，视觉才一致）。
+               底色仍留 `linear-gradient` 兜底：图没加载出来时不会塌成一块白。 -->
+          <div
+            class="th thface"
+            :style="{ backgroundImage: `url(/img/personality/th-${String(p.typeCode || '').toUpperCase()}.jpg)` }"
+            :title="typeNameOf(p.typeCode, p.typeName)"
+          ></div>
           <div class="m">
             <b>{{ typeNameOf(p.typeCode, p.typeName) }}</b>
             <span>{{ fmtDate(p.createdAt) }}</span>
@@ -147,7 +154,7 @@ import { ElMessage } from 'element-plus';
 import { authApi, battleApi, personalityApi, favoriteApi, comboApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { fmtDate } from '@/utils/labels';
-import { typeColorFill, typeNameOf } from '@/utils/personality.js';
+import { typeNameOf } from '@/utils/personality.js';
 
 const auth = useAuthStore();
 const user = computed(() => auth.user);

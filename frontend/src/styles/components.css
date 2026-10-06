@@ -2617,21 +2617,63 @@ html[data-theme='dark'] .tpv {
    ⚠️ 导出范围**只锁 `.cardshot`**（只有卡）—— 上一轮实测拿外层导出会得到 2264×2374 的
       一整列网页，根本没法当分享图；只锁卡 → 1080×1439。所以 AI 解读与维度得分都在卡外。 */
 .ptmain {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr);
   gap: 24px 30px;
   align-items: center;
   padding: 24px 26px;
   border-radius: var(--r);
-  background: var(--glass);
+  overflow: hidden;
+  /* 玻璃层：底色交给虚化图 + 白纱幕，这里只保留"透光"的Blur与饱和度，
+     跟类型详情页 .ptcard / 分享卡同一套路（backdrop-filter 让页面极光透上来）。 */
+  background: var(--glass2);
   border: 1px solid var(--gbd);
-  box-shadow: var(--shadow-1);
+  backdrop-filter: blur(26px) saturate(185%);
+  -webkit-backdrop-filter: blur(26px) saturate(185%);
+  box-shadow: var(--shadow-2);
+}
+/* ⭐ 2026-10-06 虚化底：该型人格卡底图的 canvas 真高斯模糊（utils/blurBackdrop.js）
+   ⚠️ 层级纪律：装饰层 absolute 且 z-index:0，内容层 `.ptmain > *:not(.ptbg)` 给 z-index:1。
+      **绝不能**写 `.ptmain > * { position: relative }` —— 那样会把装饰层也拉进文档流、
+      把内容整体挤下去（本项目在 .pcard 上栽过一次同样的错）。 */
+.ptbg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--pcf);
+  background-size: cover;
+  background-position: 50% 26%;
+  background-repeat: no-repeat;
+  /* 不再压暗：洗白已在 canvas 里做完（blurBackdrop 的 wash），
+     这里保持不透明，虚化质感才透得出来。 */
+  opacity: 1;
+}
+/* 白纱幕：虚化图当"透出来的颜色"，这层负责把底色抬到"文字可读"的亮度。
+   ⚠️ 迭代过三轮，每轮都是**在六个型逐个量真实渲染像素**之后定的，不是拍脑袋：
+      ① 0.78/0.88 → 旋律捕手（夜色紫，底图最暗）的维度数值只有 **4.16**，差 0.34；
+      ② 抬到 0.86/0.93 → 数字过了，但虚化底几乎看不见，等于白做（用户要的就是那层质感）；
+      ③ 改成「canvas 里先洗白 + 这里纱幕 0.42/0.56 + 数字用 color-mix 往正文色压一档」，
+         三处一起上，虚化质感透得出来、数字仍 ≥4.5。
+      量测断言在 tools/pw/verify-r26-personality-glass.mjs（六型逐一跑）。 */
+.ptmain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgb(var(--scrim-rgb) / 0.70), rgb(var(--scrim-rgb) / 0.80));
 }
 .ptmain-l {
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 .ptmain-r {
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 .cardshot {
   /* ⚠️ 导出元素。宽度 440 是"左卡右分"布局下的取值：内容区上限 1180，
@@ -2681,7 +2723,11 @@ html[data-theme='dark'] .tpv {
 .dim2 .lb .num {
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--pc);
+  /* ⭐ 2026-10-06：品牌色直接当小字颜色，在"带虚化底的浅玻璃"上不够 —— 最暗那张卡
+     （旋律捕手夜色紫）只能到 4.16。这里把品牌色和正文色按 62:38 混一下：
+     色相还在（还是那个紫/那个金），亮度降下来，对比度上 5 以上。
+     ⚠️ 万一浏览器不支持 color-mix，这条声明被丢掉 → 继承正文色 → 一样读得清，不会出事。 */
+  color: color-mix(in srgb, var(--pc) 62%, var(--text));
 }
 .dim2 .bar2 {
   height: 9px;
@@ -2702,9 +2748,12 @@ html[data-theme='dark'] .tpv {
   margin-top: 0;
   padding: 18px 22px;
   border-radius: var(--r-s);
-  background: var(--glass2);
+  /* AI 解读在玻璃面板里，再给一层更实的底 + 该型色左边框，起到"下面一块"的分区感 */
+  background: rgb(var(--scrim-rgb) / 0.72);
   border: 1px solid var(--gbd);
   border-left: 3px solid var(--pcf, var(--tc, var(--brand)));
+  position: relative;
+  z-index: 1;
 }
 .ai2 h4 {
   margin: 0 0 8px;
@@ -3560,6 +3609,17 @@ html[data-theme='dark'] .tpv {
 }
 .th {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24), 0 3px 10px var(--acs, rgba(14, 165, 233, 0.18));
+}
+/* ⭐ 2026-10-06 「我的测评」的人格方块：纯色 → 该型人格卡的方形缩略图
+   （与入口页 .tpvface 用同一张 th-<CODE>.jpg、同一取景 50% 30%，两处才像一家人）。
+   底色用 linear-gradient 而不是 background-color，是为了让 background-image 失效时
+   仍有一个人格色兜底，不会塌成一块白。 */
+.th.thface {
+  background-color: transparent;
+  background-size: cover;
+  background-position: 50% 30%;
+  background-repeat: no-repeat;
+  box-shadow: 0 4px 12px rgba(8, 58, 92, 0.22), 0 2px 6px var(--acs, rgba(14, 165, 233, 0.16));
 }
 
 /* ============ 浏览器兼容降级（Edge 最小化闪烁 / lite 模式）============

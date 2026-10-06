@@ -27,6 +27,7 @@
       :data-mw="cfg.mw ? '1' : undefined"
       :data-glowbar="t.glowbar ? '1' : undefined"
       :data-keep="cfg.keep ? '1' : undefined"
+      :data-rows="rows.length"
     >
       <img class="bg" :src="bgUrl" :alt="name" crossorigin="anonymous" />
       <div class="tone"></div>
@@ -105,24 +106,28 @@ const cfg = computed(() => t.value[props.mode] || t.value.long);
 const bgUrl = computed(() => `/img/personality/bg-${KEY.value}.jpg`);
 
 /**
- * 卡上只放 3 根条 —— 与你的成品卡一致（你 6 张卡上都是「旋律敏感 / 节奏偏好 / 安静倾向」）。
- * ⚠️ 后端 DISPLAY_DIMS 是 4 个（多一个 `arrangement 编曲层次`）：那个维度**留在页面上**、
- *    不上卡。原因：卡面位置/字号是按 3 行标定的，第 4 行会顶掉与成品卡的对应关系。
- *    缺哪个就用剩下的维度补齐，不会少条。
+ * 卡上的维度条：**与页面右侧「完整维度得分」逐条对齐**（2026-10-06 改）。
+ * ⚠️ 之前这里是 `slice(0, 3)`，只取 melody/rhythm/calm —— 于是卡面 3 条、页面 4 条。
+ *    用户原话：「**为什么左边只有三个参数 右边有四条 这么明显的错误你居然没把逻辑对齐**」。
+ *    当时我的理由是"你的成品卡上就是 3 条"，但**逻辑不对齐本身就是 bug**：
+ *    同一个 `scores` 渲染出两个不同答案，用户没法判断哪个是真的。
+ *    ⇒ 现在两边都按后端 DISPLAY_DIMS 的顺序全量上（通常 4 条）。
+ *    样式语言没变（还是同一套 `.dim / .row / .bar`），只是多一行；
+ *    排版是否挤到插画，由自检 `verify-r26-personality-glass.mjs` 量测兜着。
+ * 缺哪个维度就跳过（不会少条），也不排序 —— 顺序 = 后端给的顺序，页面上同样顺序。
  */
-const CARD_DIM_ORDER = ['melody', 'rhythm', 'calm'];
+const CARD_DIM_ORDER = ['melody', 'rhythm', 'arrangement', 'calm'];
 const rows = computed(() => {
   const all = (props.dims || []).filter((d) => d && d.key != null);
   const picked = [];
   for (const k of CARD_DIM_ORDER) {
     const hit = all.find((d) => d.key === k);
-    if (hit) picked.push(hit);
+    if (hit && !picked.includes(hit)) picked.push(hit);
   }
   for (const d of all) {
-    if (picked.length >= 3) break;
     if (!picked.includes(d)) picked.push(d);
   }
-  return picked.slice(0, 3).map((d) => ({ key: d.key, label: d.label, ten: clamp(d.ten) }));
+  return picked.map((d) => ({ key: d.key, label: d.label, ten: clamp(d.ten) }));
 });
 const clamp = (v) => Math.max(0, Math.min(10, Number(v) || 0));
 
@@ -331,6 +336,27 @@ const cardVars = computed(() => {
   overflow: hidden;
   width: var(--bar-w, 100%);
   margin-top: calc(var(--mt-bar, 10) * 1px * var(--scale));
+}
+/* ⭐ 2026-10-06：维度条从 3 行变 4 行之后（为了和页面右侧「完整维度得分」逐条对齐），
+   标定好的行节奏（mt-row 10 / gap 28 / mt-bar 10）会让维度块**撑出卡片下沿 59px**。
+   实测：卡面 137~723，维度块 354~782。
+   ⇒ 这里**只压缩行与行之间的间距**（不动字号、不动条厚、不动插画），把 4 行塞回卡内。
+      3 行的成品卡标定**一个字都不改**（规则挂在 [data-rows='4'] 上，3 行不命中）。
+   省下的高度（系数 0.42 / 0.38 / 0.38）：gap≈25 + mt-row≈26 + mt-bar≈13 = 64px。
+   实测 4 行比 3 行多出 74px，只省 54px 还差 5px —— 系数再收一档到 0.42/0.38 才够，
+   最终维度块 354~705、离卡底 18px（自检钉着 ≥8px）。
+   ⚠️ **不要**顺手把 metrics 往上提：原来 metTop 37% 换算出来是 354，标题块底是 355，
+      本来就是紧挨着的（上移 20px 会直接压上去 18px —— 自检当场抓到）。
+      3 行时这两块也是这个关系、用户已确认过，所以**保持原位**，只压行距。
+   ⚠️ 自检 verify-r26-personality-glass.mjs 里有"不溢出且不与标题重叠"的断言钉着这条。 */
+.pcard[data-rows='4'] .metrics {
+  gap: calc(var(--gap) * 0.42 * 1px * var(--scale));
+}
+.pcard[data-rows='4'] .dim .row {
+  margin: calc(var(--mt-row, 10) * 0.38 * 1px * var(--scale)) 0;
+}
+.pcard[data-rows='4'] .bar {
+  margin-top: calc(var(--mt-bar, 10) * 0.38 * 1px * var(--scale));
 }
 .bar > i {
   display: block;
