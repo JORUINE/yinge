@@ -64,14 +64,17 @@
             <div class="pttags" v-if="personaTags.length">
               <span v-for="t in personaTags" :key="t" class="pttag">{{ t }}</span>
             </div>
-          </div>
 
-          <div class="ai2" v-if="result.aiComment">
-            <h4>AI 个性解读</h4>
-            <p>{{ result.aiComment }}</p>
-            <span class="src">
-              {{ result.aiCommentSource === 'llm' ? '由大语言模型根据你的作答生成 · 非模板文案' : '当前为模板解读（配置大模型密钥后自动升级为个性化生成）' }}
-            </span>
+            <!-- ⭐ 2026-10-06：AI 解读从"面板下方跨整宽"移到**右栏底部**
+                 （用户示意：人格卡在左，完整得分在右上，AI 解读在右下，三块在同一张面板里紧密排列，
+                  而不是原来那样 AI 单独占一整行、把面板撑得很高、右栏浮在中间）。 -->
+            <div class="ai2" v-if="result.aiComment">
+              <h4>AI 个性解读</h4>
+              <p>{{ result.aiComment }}</p>
+              <span class="src">
+                {{ result.aiCommentSource === 'llm' ? '由大语言模型根据你的作答生成 · 非模板文案' : '当前为模板解读（配置大模型密钥后自动升级为个性化生成）' }}
+              </span>
+            </div>
           </div>
         </div>
       </div>

@@ -28,6 +28,7 @@
       :data-glowbar="t.glowbar ? '1' : undefined"
       :data-keep="cfg.keep ? '1' : undefined"
       :data-rows="rows.length"
+      :data-code="KEY"
     >
       <img class="bg" :src="bgUrl" :alt="name" crossorigin="anonymous" />
       <div class="tone"></div>
@@ -259,6 +260,16 @@ const cardVars = computed(() => {
   color: var(--ink2c, var(--ink));
   opacity: 0.94;
   line-height: 1.5;
+  /* ⭐ 2026-10-06 描述**最多两行**。
+     为什么必须钳：标题块是 `position:absolute` 靠 metTop 定位的，描述一长就把标题块撑高、
+     直接压到下面的维度条上（实测用真实长文案时 CLM/EXP/LYR 三型间距只剩 4/-2/2px）。
+     而描述来自后台、长度不可控 ⇒ 不能靠"文案刚好不长"。
+     两行足够放下六型的一句话简介（最长的探索者那句在 440 宽下正好两行）。 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .hair {
   width: calc(62px * var(--u) * var(--scale));
@@ -351,6 +362,53 @@ const cardVars = computed(() => {
    ⚠️ 自检 verify-r26-personality-glass.mjs 里有"不溢出且不与标题重叠"的断言钉着这条。 */
 .pcard[data-rows='4'] .metrics {
   gap: calc(var(--gap) * 0.42 * 1px * var(--scale));
+}
+/* ⭐⭐ 2026-10-06 竖向节奏（用户：「人格卡你应该把[名字]这个大字和[解释]的小字放在上面位置」
+   「得分的四条…离开底部太近 可读性也很差」，并且「全部有排布问题的卡片都按这个要求重新优化」）。
+
+   先量了六型在 440×586 下的真实数字（tools/pw/probe-card-rhythm.mjs），问题很具体：
+     code | 标题块顶 | 头→条 | 离卡底
+     CLM  |    94   |  13  | 194     ← 标题压太下、标题与条贴太紧
+     MEL  |    50   | 190  |  53
+     RHY  |    65   | 199  |  47
+     EXP  |    56   |  21  | 206
+     LYR  |    97   |  23  |  10     ← ⚠️ 离卡底只有 10px，就是用户说的"离底部太近"
+     TMB  |    50   | 203  |  18     ← ⚠️ 同样贴底
+   判据：标题块顶 ≥40px（名字在上面）｜头→条 ≥18px（不压在一起）｜离卡底 ≥40px（不贴底）。
+   改法（**只在 [data-rows='4'] 下生效，3 行的成品卡标定一个字都不动**）：
+     ① 标题块统一 top:7%（=41px）—— 六型一律把名字放到卡面上方；
+     ② 底锚型（MEL/RHY/TMB）整体上抬 4%（≈23px）；
+     ③ 顶锚型逐型给 metTop —— EXP 的标题特别高（fsTitle 74），30% 会压上去，要 32%；
+        LYR 的条最高（359px），要 28% 才离得开卡底。 */
+.pcard[data-rows='4'] .head {
+  top: 7%;
+}
+.pcard[data-rows='4'][data-anchor='bottom'] .metrics {
+  bottom: calc(var(--met-bottom) + 4%);
+}
+.pcard[data-rows='4'][data-anchor='top'] .metrics {
+  top: 30%;
+}
+.pcard[data-rows='4'][data-code='EXP'] .metrics {
+  top: 32%;
+}
+.pcard[data-rows='4'][data-code='LYR'] .metrics {
+  /* 词句收藏家的条最高（实测 359px），28% 时描述文字底到第一条只剩 2px —— 提到 31% */
+  top: 31%;
+}
+/* 节拍动物：卡面正中是**最亮的一团橙色光晕**（跳舞的小人就在那）。
+   维度条从 3 行变 4 行之后，最后一行无论怎么摆都落在那团光里 ——
+   实测只靠挪位置：+4% 时标签/数值 1.73/1.73，压到 +8% 变成 1.42/1.85，**都过不了 1.8 的判据**
+   （3 行时是 2.65/2.74/2.81，是本轮加第 4 行造成的回归）。
+   ⇒ 给这一型单独加一层**柔和暗底板**：上下淡出、左右也淡出，只把四行文字托住，
+      数字对比度 1.73 → 4.7（实测），构图与配色一字未改。
+      ⚠️ 只给 RHY 加：其余五型不需要（CLM 8.4 / MEL 8.8 / EXP 9.6 / TMB 6.0 / LYR 1.8 是
+      另一个早就挂着的"忠于成品卡"取舍，见 _证据与痕迹/改动记录.md 记录 17）。 */
+.pcard[data-rows='4'][data-code='RHY'] .metrics {
+  padding: calc(10px * var(--scale)) calc(16px * var(--scale)) calc(8px * var(--scale));
+  margin-left: calc(-16px * var(--scale));
+  margin-right: calc(-16px * var(--scale));
+  background: radial-gradient(120% 130% at 50% 50%, rgba(58, 18, 0, 0.42) 0%, rgba(58, 18, 0, 0.3) 62%, rgba(58, 18, 0, 0) 100%);
 }
 .pcard[data-rows='4'] .dim .row {
   margin: calc(var(--mt-row, 10) * 0.38 * 1px * var(--scale)) 0;

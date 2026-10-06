@@ -2620,8 +2620,11 @@ html[data-theme='dark'] .tpv {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr);
-  gap: 24px 30px;
-  align-items: center;
+  gap: 22px 30px;
+  /* ⭐ 2026-10-06：原来是 align-items: center，右栏（得分+标签）浮在 586px 高的卡片中间、
+     上下各留一大片空；AI 解读又单独占一整行 → 面板被撑到 790 高、三块散开。
+     用户示意：「它们就排列在一起而不是现在那种分散的」→ 改成顶对齐 + 右栏自己竖向流。 */
+  align-items: start;
   padding: 24px 26px;
   border-radius: var(--r);
   overflow: hidden;
@@ -2674,6 +2677,10 @@ html[data-theme='dark'] .tpv {
   min-width: 0;
   position: relative;
   z-index: 1;
+  /* 右栏自己竖向流：完整维度得分 → 人设标签 → AI 解读，紧密排列在同一张面板里 */
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 .cardshot {
   /* ⚠️ 导出元素。宽度 440 是"左卡右分"布局下的取值：内容区上限 1180，
@@ -2706,7 +2713,7 @@ html[data-theme='dark'] .tpv {
   border: 0;
 }
 .dim2 {
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 .dim2:last-child {
   margin-bottom: 0;
@@ -2744,11 +2751,11 @@ html[data-theme='dark'] .tpv {
   background: var(--pcf, var(--tc, var(--brand)));
 }
 .ai2 {
-  grid-column: 1 / -1;
+  /* 2026-10-06：从"跨整宽的独立块"改成右栏的最后一块（见 PersonalityResultView 模板注释）。
+     玻璃面板里再给一层更实的底 + 该型色左边框，起到分区感。 */
   margin-top: 0;
-  padding: 18px 22px;
+  padding: 16px 18px;
   border-radius: var(--r-s);
-  /* AI 解读在玻璃面板里，再给一层更实的底 + 该型色左边框，起到"下面一块"的分区感 */
   background: rgb(var(--scrim-rgb) / 0.72);
   border: 1px solid var(--gbd);
   border-left: 3px solid var(--pcf, var(--tc, var(--brand)));
