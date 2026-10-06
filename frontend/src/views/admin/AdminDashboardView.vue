@@ -24,7 +24,11 @@
         <div v-if="typeStats.length" class="bars">
           <div v-for="t in typeStats" :key="t.typeCode" class="bc">
             <div class="bv" :style="{ height: barH(t.count) }"></div>
-            <span class="bl">{{ t.typeCode }}</span>
+            <!-- ⭐ 2026-10-06：原来这里直接打 `t.typeCode`（英文缩写）。
+                 用户要求「全盘所有涉及人格地方」都用中文人格名 —— 后台也算在内。
+                 typeStats 若带 typeName 就优先用后端给的（管理员可能自己改过名字），
+                 否则用前端的本地映射兜底。 -->
+            <span class="bl">{{ typeNameOf(t.typeCode, t.typeName) }}</span>
           </div>
         </div>
         <p v-else class="muted">还没有测评数据。</p>
@@ -86,6 +90,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { adminApi } from '@/api';
+import { typeNameOf } from '@/utils/personality.js';
 import AdminShell from '@/layouts/AdminShell.vue';
 
 const loading = ref(true);

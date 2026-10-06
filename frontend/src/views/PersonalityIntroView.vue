@@ -40,7 +40,12 @@
           v-for="t in types"
           :key="t.code"
           class="tpv"
-          :style="{ '--tc': typeColor(t.code), '--tc-rgb': typeColorRgb(t.code) }"
+          :style="{
+            '--tc': typeColor(t.code),
+            '--tc-rgb': typeColorRgb(t.code),
+            '--tcf': typeColorFill(t.code),
+            '--tcf-rgb': typeColorFillRgb(t.code),
+          }"
           @click="$router.push({ name: 'personality-type', params: { code: t.code } })"
         >
           <span class="tpvface" :style="{ backgroundImage: thumb(t.code) }"></span>
@@ -64,7 +69,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor, typeColorRgb } from '@/utils/personality.js';
+import { typeColor, typeColorRgb, typeColorFill, typeColorFillRgb } from '@/utils/personality.js';
 
 const types = ref([]);
 const questionCount = ref(12);

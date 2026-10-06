@@ -5,7 +5,10 @@
     <div v-if="loading" class="state muted">加载中…</div>
 
     <template v-else-if="type">
-      <div class="ptcard" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb }">
+      <!-- ⚠️ 2026-10-06：`.dim2 .bar2` 是**全局类**（结果页也在用），上一轮被改成用图形档
+           `var(--pcf)`。自定义属性没有定义时 `var()` 会让整条声明失效 → 进度条静默变透明。
+           所以**凡是用了 .dim2/.bar2 的页面都必须注入 --pcf**，漏一处就白改。 -->
+      <div class="ptcard" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb, '--pcf': pcf, '--pcf-rgb': pcfRgb }">
         <div class="glowc"></div>
         <div class="pthd">
           <div>
@@ -58,7 +61,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor, typeColorAlpha, typeColorRgb, normalizeScores } from '@/utils/personality.js';
+import { typeColor, typeColorAlpha, typeColorRgb, typeColorFill, typeColorFillRgb, normalizeScores } from '@/utils/personality.js';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
@@ -74,6 +77,9 @@ const pc = computed(() => typeColor(type.value?.code || code));
 const pc2 = computed(() => typeColorAlpha(type.value?.code || code, 0.3));
 /** 品牌色的 rgb 三元组（给 `rgb(var(--pc-rgb) / .12)` 这类半透明用） */
 const pcRgb = computed(() => typeColorRgb(type.value?.code || code));
+/** 图形档（进度条/描边用）—— `.dim2 .bar2` 是全局类，不注入的话进度条会静默变透明 */
+const pcf = computed(() => typeColorFill(type.value?.code || code));
+const pcfRgb = computed(() => typeColorFillRgb(type.value?.code || code));
 const dims = computed(() => normalizeScores(type.value?.dims));
 
 const year = (d) => (d ? String(d).slice(0, 4) : '');

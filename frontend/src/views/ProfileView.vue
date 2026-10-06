@@ -72,11 +72,20 @@
 
       <!-- 我的测评 -->
       <div v-else-if="tab === 'personality'" class="list">
+        <!-- ⭐ 2026-10-06 修两个用户报的问题：
+             ① 列表里显示的是英文缩写 `LYR`（用户：「测评这里的英文缩写改成我们的中文名字的人格名称」）
+                根因：后端 listMyResults **只返回 typeCode、不返回 typeName**，
+                模板里 `p.typeName || p.typeCode` 永远退化成 code。→ 后端已补 typeName，
+                前端再加一层本地映射兜底（typeNameOf）。
+             ② **同一行出现了两次缩写** —— 第一行打 name、第二行又直接打 `p.typeCode`。
+                现在第二行只留日期。
+             ③ 色块改用**图形档** typeColorFill()，之前用文字档（压得很暗）当底色，
+                六个缩略图一列看着发黑，跟人格卡面对不上。 -->
         <div v-for="p in results" :key="p.resultId" class="r">
-          <div class="th" :style="{ background: typeColor(p.typeCode) }"></div>
+          <div class="th" :style="{ background: typeColorFill(p.typeCode) }" :title="typeNameOf(p.typeCode, p.typeName)"></div>
           <div class="m">
-            <b>{{ p.typeName || p.typeCode }}</b>
-            <span>{{ p.typeCode }} · {{ fmtDate(p.createdAt) }}</span>
+            <b>{{ typeNameOf(p.typeCode, p.typeName) }}</b>
+            <span>{{ fmtDate(p.createdAt) }}</span>
           </div>
           <div class="v">
             <RouterLink :to="{ name: 'personality-result', params: { id: p.resultId } }" class="btn ghost sm">回看</RouterLink>
@@ -138,7 +147,7 @@ import { ElMessage } from 'element-plus';
 import { authApi, battleApi, personalityApi, favoriteApi, comboApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { fmtDate } from '@/utils/labels';
-import { typeColor } from '@/utils/personality.js';
+import { typeColorFill, typeNameOf } from '@/utils/personality.js';
 
 const auth = useAuthStore();
 const user = computed(() => auth.user);

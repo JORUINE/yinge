@@ -2324,7 +2324,7 @@ html[data-theme='dark'] .v b {
   transform: translateY(-3px);
   /* ⚠️ 不能写 rgba(var(--tc-rgb), .55) —— 那门语法（空格通道 + 逗号 alpha）是非法的，
      整条声明会被浏览器丢掉、hover 描边静默消失。带变量的半透明一律用斜杠语法。 */
-  border-color: rgb(var(--tc-rgb, 14 165 233) / 0.55);
+  border-color: rgb(var(--tcf-rgb, var(--tc-rgb, 14 165 233)) / 0.55);
   box-shadow: var(--shadow-2);
 }
 .tpvface {
@@ -2336,7 +2336,7 @@ html[data-theme='dark'] .v b {
   background-position: 50% 30%;
   box-shadow: 0 2px 7px rgba(8, 58, 92, 0.22);
   /* 卡面外圈压一圈该型品牌色，跟下面的名字对上 */
-  outline: 1.5px solid rgb(var(--tc-rgb, 14 165 233) / 0.5);
+  outline: 1.5px solid rgb(var(--tcf-rgb, var(--tc-rgb, 14 165 233)) / 0.5);
   outline-offset: -1px;
 }
 .tpvtx {
@@ -2611,29 +2611,63 @@ html[data-theme='dark'] .tpv {
 .pcexport {
   margin-top: 22px;
 }
-/* 导出范围（只有卡）：宽度锁 520 = 卡的设计宽，html2canvas 才会按 1080 宽那一档出图。
-   ⚠️ 外面那一整块（.pcexport）**不要**加 ref —— 实测导出成 2264×2374 的一整列网页。 */
-.cardshot {
-  width: 520px;
-  max-width: 100%;
-  margin: 0 auto;
-}
-/* 完整维度得分（页面上的四维明细；卡面只上 3 根条，多出的那个维度在这里交代） */
-.dimlist {
-  margin-top: 18px;
-  padding: 18px 22px;
-  border-radius: var(--r-s);
+/* ⭐ 2026-10-06 布局重排（用户原话：「人格卡在左边然后得分在右边，下面是 ai 解读，
+   整个卡片和维度得分就在一个整体的卡片里的样子」）。
+   改前是三段割裂的独立卡片（卡 / 维度得分 / 标签 / AI 解读各占一块），现在收成一张面板。
+   ⚠️ 导出范围**只锁 `.cardshot`**（只有卡）—— 上一轮实测拿外层导出会得到 2264×2374 的
+      一整列网页，根本没法当分享图；只锁卡 → 1080×1439。所以 AI 解读与维度得分都在卡外。 */
+.ptmain {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 24px 30px;
+  align-items: center;
+  padding: 24px 26px;
+  border-radius: var(--r);
   background: var(--glass);
   border: 1px solid var(--gbd);
+  box-shadow: var(--shadow-1);
 }
-.dimlist h4 {
-  margin: 0 0 12px;
+.ptmain-l {
+  min-width: 0;
+}
+.ptmain-r {
+  min-width: 0;
+}
+.cardshot {
+  /* ⚠️ 导出元素。宽度 440 是"左卡右分"布局下的取值：内容区上限 1180，
+     440 + 30 间距 → 右栏还有 638，够放四根条和标签。 */
+  width: 440px;
+  max-width: 100%;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .ptmain {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+  .cardshot {
+    margin: 0 auto;
+  }
+}
+/* 完整维度得分（页面上的四维明细；卡面只上 3 根条，多出的那个维度在这里交代）
+   ⚠️ 2026-10-06：它现在**不再是独立卡片**，只是右栏里的一组内容 —— 独立卡片是这次要消掉的。 */
+.dimlist-h {
+  margin: 0 0 14px;
   font-size: 13px;
   letter-spacing: 1.3px;
   color: var(--pc);
 }
+.dimlist {
+  margin-top: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+}
 .dim2 {
   margin-bottom: 15px;
+}
+.dim2:last-child {
+  margin-bottom: 0;
 }
 .dim2 .lb {
   display: flex;
@@ -2644,25 +2678,33 @@ html[data-theme='dark'] .tpv {
 .dim2 .lb span {
   color: var(--text2);
 }
+.dim2 .lb .num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--pc);
+}
 .dim2 .bar2 {
   height: 9px;
   border-radius: 99px;
   background: var(--line);
   overflow: hidden;
 }
+/* ⭐ 2026-10-06：进度条改用**图形档** `--pcf`，不用文字档 `--pc`。
+   文字档为了 4.6:1 压得很暗，画在 9px 高的条上又暗又闷，跟人格卡面对不上。 */
 .dim2 .bar2 i {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--pc), var(--pc2));
+  background: var(--pcf, var(--tc, var(--brand)));
 }
 .ai2 {
-  margin-top: 22px;
+  grid-column: 1 / -1;
+  margin-top: 0;
   padding: 18px 22px;
   border-radius: var(--r-s);
   background: var(--glass2);
   border: 1px solid var(--gbd);
-  border-left: 3px solid var(--pc);
+  border-left: 3px solid var(--pcf, var(--tc, var(--brand)));
 }
 .ai2 h4 {
   margin: 0 0 8px;
@@ -2709,7 +2751,7 @@ html[data-theme='dark'] .tpv {
 }
 .at:hover {
   transform: translateY(-4px);
-  border-color: rgb(var(--tc-rgb) / 0.55);
+  border-color: rgb(var(--tcf-rgb) / 0.55);
   box-shadow: var(--shadow-2);
 }
 /* ⭐ 卡面：`band-<CODE>.jpg` —— 已经从 1080×1440 原图里**逐型裁好的横条带**（800×246）。
@@ -2752,7 +2794,7 @@ html[data-theme='dark'] .tpv {
   border-radius: 999px;
   color: var(--tc);
   background: rgb(var(--scrim-rgb) / 0.9);
-  border: 1px solid rgb(var(--tc-rgb) / 0.35);
+  border: 1px solid rgb(var(--tcf-rgb) / 0.35);
 }
 .atbody {
   flex: 1;
@@ -2827,7 +2869,7 @@ html[data-theme='dark'] .tpv {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: var(--tc, var(--brand));
+  background: var(--tcf, var(--tc, var(--brand)));
 }
 .dist .dr .bb2 {
   flex: 1;

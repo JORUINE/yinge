@@ -30,7 +30,12 @@
           v-for="it in items"
           :key="it.code"
           class="at"
-          :style="{ '--tc': typeColor(it.code), '--tc-rgb': typeColorRgb(it.code) }"
+          :style="{
+            '--tc': typeColor(it.code),
+            '--tc-rgb': typeColorRgb(it.code),
+            '--tcf': typeColorFill(it.code),
+            '--tcf-rgb': typeColorFillRgb(it.code),
+          }"
           @click="$router.push({ name: 'personality-type', params: { code: it.code } })"
         >
           <div class="atart" :style="{ backgroundImage: band(it.code) }">
@@ -51,7 +56,9 @@
         <h4>各种人格的分布情况</h4>
         <div v-for="it in sorted" :key="it.code" class="dr">
           <b>{{ it.name }}</b>
-          <span class="bb2"><i :style="{ width: Math.max(2, Math.round((it.ratio || 0) * 100)) + '%', background: typeColor(it.code) }"></i></span>
+          <!-- ⭐ 2026-10-06：进度条用**图形档** typeColorFill()，不用文字档 typeColor()。
+               文字档为了 4.6:1 压得很暗，画在 8px 高的条上又暗又闷，跟人格卡面对不上。 -->
+          <span class="bb2"><i :style="{ width: Math.max(2, Math.round((it.ratio || 0) * 100)) + '%', background: typeColorFill(it.code) }"></i></span>
           <span class="vv">{{ pct(it.ratio) }}</span>
         </div>
       </div>
@@ -68,7 +75,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
-import { typeColor, typeColorRgb } from '@/utils/personality.js';
+import { typeColor, typeColorRgb, typeColorFill, typeColorFillRgb } from '@/utils/personality.js';
 
 const loading = ref(true);
 const types = ref([]);

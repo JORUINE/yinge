@@ -4,6 +4,9 @@
     :style="{
       '--pc': pc,
       '--pc-rgb': pcRgb,
+      '--pcf': pcf,
+      '--pcf-rgb': pcfRgb,
+      '--pcf2': pcf2,
       '--pc2': pc2,
       '--pc-light': pal.light,
       '--pc-deep': pal.deep,
@@ -15,52 +18,55 @@
     <div v-if="loading" class="state muted">正在生成你的音乐人格卡…</div>
 
     <template v-else-if="result">
-      <!-- ⚠️ 2026-09-23：`--pc/--pc2` 提到根 `.result` 上（原来只挂在 `.ptcard`）。
-           根因：`.ptcard` **外面**的「同型代表作」网格也用了 `var(--pc)`，
-           取不到变量 → 渐变失效退成白底，而字是白色 → 整块"白板看不见"（用户报的空白）。 -->
+      <!-- ⭐ 2026-10-06 布局重排（用户原话）：
+           「应该是人格卡在左边然后得分在右边，下面是 ai 解读，
+             就和之前的设计思路以一贯通，然后整个卡片和维度得分就在一个整体的卡片里的样子」
+           改前是三段割裂的独立卡片：人格卡（居中）/ 完整维度得分 / 人设标签 / AI 解读。
+           现在：**一张整体面板** = 左边人格卡 + 右边维度得分与人设标签，AI 解读在下面跨整宽。
+
+           ⚠️ 导出范围**仍然只锁 `.cardshot`（只有卡）**，不要把 ref 往上挪 ——
+              上一轮实测：拿外层导出得到的是 2264×2374 的一整列网页，根本没法当分享图；
+              只锁卡 → 1080×1439。AI 解读与维度得分都在 `.cardshot` 之外，所以不会进图。 -->
       <div class="pcexport">
-        <!-- ⭐ 2026-10-05：卡面换成**真人格卡**（底图 + 按成品卡标定的字号），
-             组件在 components/PersonalityCard.vue，标定值在 utils/personalityCardConfig.js。
-             原来这里是一整块渐变玻璃 + 竖排文字，和你在 demo 里确认的那版完全不是一回事。
-
-             ⚠️ 导出范围 = 这一层 `.cardshot`（**只有卡**），不是外面那一整块。
-                自检实测：拿外面那层导出，出来的是 2264×2374 的一整列网页，根本没法当分享图；
-                这里 520 宽 × scale(max(2, 1080/520)) = **1080×1439**，正是一张分享图该有的样子。 -->
-        <div ref="cardEl" class="cardshot">
-          <PersonalityCard
-            :code="result.typeCode"
-            :name="result.typeName"
-            :desc="result.typeDescription"
-            :dims="dims"
-            mode="long"
-            :max-width="520"
-          />
-        </div>
-
-        <!-- 四维明细留在页面上不动：卡面只上 3 根条（与你成品卡一致），
-             多出来的那个维度（编曲层次）不该在这里凭空消失。 -->
-        <div v-if="dims.length" class="dimlist">
-          <h4>完整维度得分</h4>
-          <div v-for="s in dims" :key="s.key" class="dim2">
-            <div class="lb"><span>{{ s.label }}</span><span>{{ s.ten }} / 10</span></div>
-            <div class="bar2"><i :style="{ width: s.ratio + '%' }"></i></div>
+        <div class="ptmain">
+          <div class="ptmain-l">
+            <div ref="cardEl" class="cardshot">
+              <PersonalityCard
+                :code="result.typeCode"
+                :name="result.typeName"
+                :desc="result.typeDescription"
+                :dims="dims"
+                mode="long"
+                :max-width="520"
+              />
+            </div>
           </div>
-        </div>
-        <p v-else class="hint muted">这次没记录维度得分</p>
 
-        <!-- 听歌人设标签（D3-C 传播层）
-             ⚠️ 2026-10-05：标签**不再随卡导出**（导出范围收成了卡本身，见上）。
-                你原话是"随卡导出，便于分享你是哪个型"——要加回来只需把 .pttags 挪进 .cardshot。 -->
-        <div class="pttags" v-if="personaTags.length">
-          <span v-for="t in personaTags" :key="t" class="pttag">{{ t }}</span>
-        </div>
+          <div class="ptmain-r">
+            <h4 class="dimlist-h">完整维度得分</h4>
+            <div v-if="dims.length" class="dimlist">
+              <div v-for="s in dims" :key="s.key" class="dim2">
+                <div class="lb"><span>{{ s.label }}</span><span class="num">{{ s.ten }} / 10</span></div>
+                <div class="bar2"><i :style="{ width: s.ratio + '%' }"></i></div>
+              </div>
+            </div>
+            <p v-else class="hint muted">这次没记录维度得分</p>
 
-        <div class="ai2" v-if="result.aiComment">
-          <h4>AI 个性解读</h4>
-          <p>{{ result.aiComment }}</p>
-          <span class="src">
-            {{ result.aiCommentSource === 'llm' ? '由大语言模型根据你的作答生成 · 非模板文案' : '当前为模板解读（配置大模型密钥后自动升级为个性化生成）' }}
-          </span>
+            <!-- 听歌人设标签（D3-C 传播层）
+                 ⚠️ 2026-10-05：标签**不再随卡导出**（导出范围收成了卡本身，见上）。
+                    你原话是"随卡导出，便于分享你是哪个型"——要加回来只需把 .pttags 挪进 .cardshot。 -->
+            <div class="pttags" v-if="personaTags.length">
+              <span v-for="t in personaTags" :key="t" class="pttag">{{ t }}</span>
+            </div>
+          </div>
+
+          <div class="ai2" v-if="result.aiComment">
+            <h4>AI 个性解读</h4>
+            <p>{{ result.aiComment }}</p>
+            <span class="src">
+              {{ result.aiCommentSource === 'llm' ? '由大语言模型根据你的作答生成 · 非模板文案' : '当前为模板解读（配置大模型密钥后自动升级为个性化生成）' }}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -177,6 +183,9 @@ import {
   typeColor,
   typeColorAlpha,
   typeColorRgb,
+  typeColorFill,
+  typeColorFillRgb,
+  typeColorFillAlpha,
   typePalette,
   normalizeScores,
   PERSONA_TAGS,
@@ -208,6 +217,15 @@ const pc = computed(() => typeColor(result.value?.typeCode));
 const pc2 = computed(() => typeColorAlpha(result.value?.typeCode, 0.3));
 /** 品牌色的 rgb 三元组（给 `rgb(var(--pc-rgb) / .12)` 这类半透明用；同样是主题变量） */
 const pcRgb = computed(() => typeColorRgb(result.value?.typeCode));
+/**
+ * ⭐ 图形档（2026-10-06）：进度条 / 标签底 / 缩略图底一律用这一档，不用文字档。
+ * 根因：文字档为了 4.6:1 压得很暗，画在 8px 高的条上又暗又闷，
+ * 而且**和人格卡面对不上**（用户原话：「词句收藏下面却是红色」，它那张卡是暖金旧纸）。
+ */
+const pcf = computed(() => typeColorFill(result.value?.typeCode));
+const pcfRgb = computed(() => typeColorFillRgb(result.value?.typeCode));
+/** 图形档的半透明版：给渐变暗端 / 占位底用（必须是能解析成颜色的值，不能直接塞 rgb 三元组） */
+const pcf2 = computed(() => typeColorFillAlpha(result.value?.typeCode, 0.55));
 
 const dims = computed(() => normalizeScores(result.value?.scores));
 const topDim = computed(() => dims.value.slice().sort((a, b) => b.ten - a.ten)[0] || null);
@@ -322,12 +340,11 @@ onMounted(async () => {
   color: var(--text2);
 }
 
-/* 听歌人设标签（D3-C · 随卡导出的小药丸，强化"你是哪个型"的分享点） */
+/* 听歌人设标签（D3-C · 强化"你是哪个型"的分享点） */
 .pttags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 18px;
 }
 .pttag {
   font-size: 13px;
@@ -337,11 +354,16 @@ onMounted(async () => {
   border-radius: 999px;
   /* ⚠️ 标签现在活在**页面底色**上（以前贴在深色卡面里）。
      半透明底必须用斜杠语法 —— 写 `rgba(var(--pc-rgb), .12)` 会被整条丢掉，
-     标签就变成"没有底的裸字"。 */
+     标签就变成"没有底的裸字"。
+     ⭐ 2026-10-06：底色与描边改用**图形档** `--pcf-rgb`（更亮更艳，跟人格卡面同一个色相），
+        文字仍用文字档 `--pc`（要读得清）。之前底和字都用文字档 → 标签底灰暗、跟卡面对不上。 */
   color: var(--pc);
-  background: rgb(var(--pc-rgb) / 0.12);
-  border: 1px solid rgb(var(--pc-rgb) / 0.3);
+  background: rgb(var(--pcf-rgb) / 0.14);
+  border: 1px solid rgb(var(--pcf-rgb) / 0.34);
   letter-spacing: 0.2px;
+}
+.pttags {
+  margin-top: 20px;
 }
 
 /* 同型代表作卡片封面：优先真封面（img）；无封面时回退首字占位（.ph，避免空图与版权问题） */
@@ -361,7 +383,10 @@ onMounted(async () => {
   font-size: 30px;
   font-weight: 700;
   color: #fff;
-  background: linear-gradient(135deg, var(--pc), var(--pc2));
+  /* 无封面时的占位底色：用**图形档**（更接近人格卡面），不用文字档。
+     ⚠️ 渐变两端都必须是"能解析成颜色的值" —— `--pcf-rgb` 是 `228 90 9` 这种空格通道三元组，
+        直接塞进 gradient 会让整条声明非法被丢掉（这里已经踩过一次）。 */
+  background: linear-gradient(135deg, var(--pcf), var(--pcf2));
   letter-spacing: 1px;
 }
 

@@ -433,10 +433,22 @@ export async function listMyResults(userId, query) {
     PersonalityResult.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
     PersonalityResult.countDocuments(filter),
   ]);
+  // ⚠️ 2026-10-06 补 typeName：原来只返回 typeCode，前端 `p.typeName || p.typeCode`
+  //    永远退化成英文缩写 —— 用户在「我的 → 我的测评」里看到的是 `LYR` / `RHY` 这种代码。
+  //    一次性把类型表捞出来做 code→name 映射，避免 N+1 查询。
+  const codes = [...new Set(list.map((r) => r.typeCode).filter(Boolean))];
+  const nameOf = new Map(
+    codes.length
+      ? (await PersonalityType.find({ code: { $in: codes } }).select('code name').lean())
+          .map((t) => [t.code, t.name])
+      : [],
+  );
   return {
     list: list.map((r) => ({
       resultId: String(r._id),
       typeCode: r.typeCode,
+      // 查不到就返回 null，前端还有一层本地中文名映射兜底（utils/personality.js 的 TYPE_CN）
+      typeName: nameOf.get(r.typeCode) || null,
       aiCommentSource: r.aiCommentSource,
       createdAt: r.createdAt,
     })),
