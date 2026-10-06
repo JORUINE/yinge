@@ -2568,6 +2568,49 @@ html[data-theme='dark'] .tpv {
   gap: 32px;
   align-items: center;
 }
+/* ── 详情页 v2（2026-10-06 demo）：左人格卡 + 右文字介绍 ──
+   与结果页 .ptmain 同一套路：左栏固定宽（人格卡是 3:4 竖版，不能让它自适应伸缩），
+   右栏吃掉剩余宽度；窄屏堆叠。 */
+.ptcard-v2 {
+  padding: 26px 28px;
+}
+.pthd-v2 {
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 34px;
+  align-items: start;
+}
+.ptcard-v2 .ptface {
+  min-width: 0;
+}
+.ptcard-v2 .ptface .pcwrap {
+  margin: 0;
+}
+.ptcard-v2 .ptinfo {
+  min-width: 0;
+}
+.ptcard-v2 .ptdims {
+  margin: 18px 0 20px;
+  padding: 16px 18px;
+  border-radius: var(--r-s);
+  background: rgb(var(--scrim-rgb) / 0.5);
+  border: 1px solid var(--gbd);
+}
+.ptcard-v2 .ptdims-h {
+  font-size: 13px;
+  letter-spacing: 1.2px;
+  color: var(--pc);
+  margin-bottom: 12px;
+}
+@media (max-width: 900px) {
+  .pthd-v2 {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  .ptcard-v2 .ptface {
+    max-width: 380px;
+    margin: 0 auto;
+  }
+}
 .ptcode {
   font-size: 13px;
   letter-spacing: 2.6px;

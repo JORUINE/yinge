@@ -8,25 +8,41 @@
       <!-- ⚠️ 2026-10-06：`.dim2 .bar2` 是**全局类**（结果页也在用），上一轮被改成用图形档
            `var(--pcf)`。自定义属性没有定义时 `var()` 会让整条声明失效 → 进度条静默变透明。
            所以**凡是用了 .dim2/.bar2 的页面都必须注入 --pcf**，漏一处就白改。 -->
-      <div class="ptcard" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb, '--pcf': pcf, '--pcf-rgb': pcfRgb }">
+      <!-- ⭐ 2026-10-06 demo：详情页也换成「左人格卡 + 右文字介绍」，与结果页一以贯通。
+           改前是「型号+名字+描述+按钮」在左、4 条维度在右，**完全没有人格卡画面**，
+           和图鉴页/结果页/入口页一比就像另一个世界。改后左边直接放该型的人格卡
+           （4 条维度已经在卡面上，右边不再重复一遍，只留一个只读列表给"精确看数值"用）。
+           ⚠️ `.dim2 .bar2` 是全局类，必须注入 --pcf（漏注入进度条会静默变透明）。 -->
+      <div class="ptcard ptcard-v2" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb, '--pcf': pcf, '--pcf-rgb': pcfRgb }">
         <div class="glowc"></div>
-        <div class="pthd">
-          <div>
+        <div class="pthd pthd-v2">
+          <div class="ptface">
+            <PersonalityCard
+              :code="type.code"
+              :name="type.name"
+              :desc="type.description"
+              :dims="dims"
+              mode="long"
+              :max-width="380"
+            />
+          </div>
+          <div class="ptinfo">
             <div class="ptcode">{{ type.code }}</div>
             <div class="ptname">{{ type.name }}</div>
             <div class="accent2"></div>
             <p class="ptdesc">{{ type.description }}</p>
+            <div class="ptdims">
+              <div class="ptdims-h">这个型看重的四个维度</div>
+              <div v-for="d in dims" :key="d.label" class="dim2">
+                <div class="lb"><span>{{ d.label }}</span><span>{{ d.ten }} / 10</span></div>
+                <div class="bar2"><i :style="{ width: d.ratio + '%' }"></i></div>
+              </div>
+              <p v-if="!dims.length" class="hint muted">这个类型没有配置维度特征</p>
+            </div>
             <div class="btns">
               <RouterLink to="/personality/test" class="btn pri">测测我是哪种</RouterLink>
               <RouterLink to="/personality/types" class="btn ghost">看看其他人格</RouterLink>
             </div>
-          </div>
-          <div>
-            <div v-for="d in dims" :key="d.label" class="dim2">
-              <div class="lb"><span>{{ d.label }}</span><span>{{ d.ten }} / 10</span></div>
-              <div class="bar2"><i :style="{ width: d.ratio + '%' }"></i></div>
-            </div>
-            <p v-if="!dims.length" class="hint muted">这个类型没有配置维度特征</p>
           </div>
         </div>
       </div>
@@ -62,6 +78,7 @@ import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
 import { typeColor, typeColorAlpha, typeColorRgb, typeColorFill, typeColorFillRgb, normalizeScores } from '@/utils/personality.js';
+import PersonalityCard from '@/components/PersonalityCard.vue';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();

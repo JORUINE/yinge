@@ -260,15 +260,20 @@ const cardVars = computed(() => {
   color: var(--ink2c, var(--ink));
   opacity: 0.94;
   line-height: 1.5;
-  /* ⭐ 2026-10-06 描述**最多两行**。
-     为什么必须钳：标题块是 `position:absolute` 靠 metTop 定位的，描述一长就把标题块撑高、
+  /* ⭐⭐ 2026-10-06 描述**最多两行**。
+     为什么要钳：标题块是 `position:absolute` 靠 metTop 定位的，描述一长就把标题块撑高、
      直接压到下面的维度条上（实测用真实长文案时 CLM/EXP/LYR 三型间距只剩 4/-2/2px）。
      而描述来自后台、长度不可控 ⇒ 不能靠"文案刚好不长"。
-     两行足够放下六型的一句话简介（最长的探索者那句在 440 宽下正好两行）。 */
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
+
+     ⚠️⚠️ 钳制方式**必须用 max-height，不能用 `-webkit-line-clamp`**：
+       `-webkit-line-clamp` 依赖 `display:-webkit-box`，浏览器渲染没问题，
+       但 **html2canvas 不支持这个显示模式** —— 导出分享图时它把多行文字拆错位，
+       画出来是**明显变形的字形**（用户报的"导出的分享图 文字被压缩了"就是这个）。
+       实测：去掉 -webkit-box 后同一张导出图两行都正常（诊断图见 tools/pw 的输出）。
+       `max-height + overflow:hidden` 是 html2canvas 支持的普通裁切，导出安全。
+     ⚠️ 代价：第三行是硬切、没有省略号。六型描述实测都 ≤2 行（最长的探索者正好两行），
+       这条只是防后台文案变长的兜底。 */
+  max-height: calc(2 * 1.5em);
   overflow: hidden;
 }
 .hair {
