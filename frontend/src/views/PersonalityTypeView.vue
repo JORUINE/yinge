@@ -36,14 +36,35 @@
             <div class="ptname">{{ type.name }}</div>
             <div class="accent2"></div>
             <p class="ptdesc">{{ type.description }}</p>
-            <!-- 原右栏维度列表（.ptdims）已删除 —— 卡面那套就是同一组数据，重复且标题写死"四个维度" -->
-            <p class="ptcap">
-              卡面上的维度条是<b>这个型的典型画像</b>（由后台配置，<b>不是</b>你的测评结果）。
-            </p>
+
+            <!-- ⚠️ 2026-10-07 第三十批：删掉重复维度列表后右栏空了一大块（用户红框）。
+                 这三块**全部面向用户**，不是给开发者看的字段说明：
+                   · 「这类人是谁」= 一句话听众画像（listeningProfile）
+                   · 「他们常听」   = 该型推荐专辑的挑选原则（albumHints，做成词条）
+                   · 「依据」       = 心理学出处（theory，放最下面小字，答辩可讲）
+                 数据 2026-09-22 就写进模型了，但接口这轮才吐出来（见 service.getTypeByCode）。
+                 原 `.ptcap` 那句"由后台配置、不是你的测评结果"是写给开发者看的，已删 ——
+                 卡面维度条的含义改由上面「这类人是谁」自然带出。 -->
+            <section v-if="type.listeningProfile" class="ptblock">
+              <h3 class="ptblock-h">这类人是谁</h3>
+              <p class="ptblock-t">{{ type.listeningProfile }}</p>
+            </section>
+
+            <section v-if="(type.albumHints || []).length" class="ptblock">
+              <h3 class="ptblock-h">他们常听</h3>
+              <div class="pchips">
+                <span v-for="h in type.albumHints" :key="h" class="pchip">{{ h }}</span>
+              </div>
+            </section>
+
             <div class="btns">
               <RouterLink to="/personality/test" class="btn pri">测测我是哪种</RouterLink>
               <RouterLink to="/personality/types" class="btn ghost">看看其他人格</RouterLink>
             </div>
+
+            <p v-if="type.theory" class="pttheory">
+              <span class="pttheory-k">依据</span>{{ type.theory }}
+            </p>
           </div>
         </div>
       </div>
@@ -147,17 +168,52 @@ onMounted(async () => {
 .hint {
   font-size: var(--fs-sm);
 }
-/* 右栏那行「卡面维度 = 这个型的典型画像」说明（2026-10-07 第二十九批）
-   —— 回答用户"还没测为什么有条子"：条子讲的是**这个型的画像**，不是你的结果。 */
-.ptcap {
-  margin: 0 0 18px;
-  font-size: var(--fs-sm);
-  line-height: 1.55;
-  color: var(--text2);
+/* 右栏三块（第三十批）：这类人是谁 / 他们常听 / 依据 —— 全部面向用户 */
+.ptblock {
+  margin: 0 0 20px;
 }
-.ptcap b {
-  color: var(--text);
+.ptblock-h {
+  margin: 0 0 9px;
+  font-size: var(--fs-sm);
   font-weight: 700;
+  letter-spacing: 1.4px;
+  color: var(--pc);
+}
+.ptblock-t {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.pchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pchip {
+  font-size: var(--fs-sm);
+  line-height: 1.4;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: var(--pc);
+  background: rgb(var(--pcf-rgb) / 0.12);
+  border: 1px solid rgb(var(--pcf-rgb) / 0.34);
+}
+.pttheory {
+  margin: 18px 0 0;
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text3);
+}
+.pttheory-k {
+  display: inline-block;
+  margin-right: 7px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--pc);
+  background: rgb(var(--pcf-rgb) / 0.12);
 }
 @media (max-width: 860px) {
   .pthd {

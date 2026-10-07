@@ -477,6 +477,13 @@ export async function getTypeByCode(code) {
     name: type.name,
     description: type.description,
     dims: type.dims,
+    // 2026-10-07 第三十批：详情页右栏删掉维度列表后要放**面向用户**的内容，
+    // 这三个字段模型里 2026-09-22 就加了（"这个类型凭什么这样定义"可追溯），
+    // 但接口一直没吐出来 → 前端只能空着。口径：listeningProfile 一句话听众画像、
+    // albumHints 该型推荐专辑的挑选原则、theory 心理学出处（页脚小字，答辩可讲）。
+    listeningProfile: type.listeningProfile || null,
+    albumHints: type.albumHints || [],
+    theory: type.theory || null,
     recommendAlbums: albums.map(musicService.serializeAlbum),
   };
 }

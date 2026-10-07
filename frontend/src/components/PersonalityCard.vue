@@ -256,7 +256,11 @@ const cardVars = computed(() => {
   font-weight: 450;
   font-size: calc(var(--fs-desc) * 1px * var(--scale));
   letter-spacing: var(--ls-desc, 0.04em);
-  margin: calc(var(--mt-desc, 12) * 1px * var(--scale)) 0 0;
+  /* ⚠️ 2026-10-07 第三十批：这里原来是 12 → 渲染出来只有 **10px**（还要再乘 --scale≈0.85），
+     用户看着"标题和副标题挤在一起"（导出图 48% 预览里最明显）。
+     提到 17（渲染 ≈14px），副标题与下方维度条的余量仍够 ——
+     实测六型"副标题→第一条维度条"最紧的是探索者 17px，减 4px 后还有 13px（+行盒底部空白≈18px 视觉）。 */
+  margin: calc(var(--mt-desc, 17) * 1px * var(--scale)) 0 0;
   color: var(--ink2c, var(--ink));
   opacity: 0.94;
   line-height: 1.5;
@@ -395,7 +399,7 @@ const cardVars = computed(() => {
   top: 30%;
 }
 .pcard[data-rows='4'][data-code='EXP'] .metrics {
-  top: 32%;
+  top: 33.5%;
 }
 .pcard[data-rows='4'][data-code='LYR'] .metrics {
   /* 词句收藏家的条最高（实测 359px），28% 时描述文字底到第一条只剩 2px —— 提到 31% */
@@ -413,7 +417,28 @@ const cardVars = computed(() => {
   padding: calc(10px * var(--scale)) calc(16px * var(--scale)) calc(8px * var(--scale));
   margin-left: calc(-16px * var(--scale));
   margin-right: calc(-16px * var(--scale));
-  background: radial-gradient(120% 130% at 50% 50%, rgba(58, 18, 0, 0.42) 0%, rgba(58, 18, 0, 0.3) 62%, rgba(58, 18, 0, 0) 100%);
+  /* 2026-10-07 第三十批：0.42 → 0.58 → 0.66（三轮）。实测这条带里白字最差底色 #ba7b13，
+     求解器给的硬指标是"底色亮度必须 ≤0.178"：0.58 时标签/数值 4.30，还差 0.2 → 再加一档。 */
+  background: radial-gradient(120% 130% at 50% 50%, rgba(58, 18, 0, 0.66) 0%, rgba(58, 18, 0, 0.5) 62%, rgba(58, 18, 0, 0) 100%);
+}
+/* ⚠️⚠️ 2026-10-07 第三十批：RHY 的**标题区**也必须压暗（原来只有下面那块指标区有）。
+   求解器给的结论是硬的：白字（标题 #ffffff / 副题 #ffeccc）落在 RHY 卡片最差底色
+   （亮橙 #f77408，亮度 0.34）上时，**文字色本身无解** —— 纯白最高也只有 3.28，
+   要 4.6 就必须把底色亮度压到 ≤0.178。所以只能加暗底板，且只盖标题+副标题、不动中部插画。 */
+.pcard[data-code='RHY'] .head::before {
+  content: '';
+  position: absolute;
+  left: calc(-12px * var(--scale));
+  right: calc(-12px * var(--scale));
+  top: calc(-20px * var(--scale));
+  bottom: calc(-14px * var(--scale));
+  z-index: 0;
+  background: radial-gradient(118% 132% at 50% 45%, rgba(52, 14, 0, 0.66) 0%, rgba(52, 14, 0, 0.54) 58%, rgba(52, 14, 0, 0) 100%);
+  pointer-events: none;
+}
+.pcard[data-code='RHY'] .head > * {
+  position: relative;
+  z-index: 1;
 }
 .pcard[data-rows='4'] .dim .row {
   margin: calc(var(--mt-row, 10) * 0.38 * 1px * var(--scale)) 0;

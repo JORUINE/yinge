@@ -65,11 +65,15 @@ export const CARD_TYPES = {
     desc: '歌词是一首歌的灵魂，每句都值得被记住',
     fam: 'C',
     ink: '#7a4e07',
-    ink2: '#8a5c14',
+    /* ⚠️ 2026-10-07 第三十批：ink2 / lb / vl 是**实测反解**出来的，不是拍脑袋加深 ——
+       在最差真实渲染底色（浅金 #f0ce8e）上，原值只有 3.76 / 3.84 / 1.89（全线不达标），
+       保持色相只压明度到刚好 ≥4.6（见 tools/pw/solve-r30-ink.mjs，网格取样取最差底色）。
+       vl 原来是 #c2912c（亮金），在浅金底上几乎看不见 —— 现在是 #72551a（仍是金调但压得下）。 */
+    ink2: '#6e4910',
     accent: '#d4a53f',
     track: 'rgba(255,255,255,.62)',
-    lb: '#8a5c14',
-    vl: '#c2912c',
+    lb: '#7a5112',
+    vl: '#72551a',
     div: 'none',
     tsh: '0 1px 0 rgba(255,250,235,.55),0 2px 12px rgba(120,80,20,.22)',
     stack: 1,
@@ -87,7 +91,10 @@ export const CARD_TYPES = {
     desc: '相比于节奏和旋律，我更在乎声音的质感',
     fam: 'B',
     ink: '#12615f',
-    ink2: '#2d7773',
+    /* ⚠️ 2026-10-07 第三十批：副题色从 #2d7773 压到 #225a57 ——
+       实测在卡面最差底色（浅青 #88def8）上原值只有 3.46，标题下那行"相比节奏和旋律…"发虚读不清。
+       保持青绿色相只压明度到 ≥4.6。ink（标题/维度条色）本来就 5.96 达标，不动。 */
+    ink2: '#225a57',
     accent: '#2e908b',
     track: 'rgba(18,97,95,.16)',
     div: 'none',
@@ -98,7 +105,7 @@ export const CARD_TYPES = {
     long: { headTop: '8.5%', anchor: 'bottom', metBottom: '3%', pad: 78, mx: 52, fsTitle: 74, gap: 20, barW: '58%', panelPad: '20px 24px', bgpos: '50% 50%' },
     sq: {
       headTop: '6.5%', anchor: 'bottom', metBottom: '1%', pad: 56, mx: 39, fsTitle: 59.8, gap: 6,
-      fsDesc: 11.5, fsLb: 12.5, fsVl: 16, fsVi: 10, fsBar: 6.5, barW: '58%', mtBar: 3, mtRow: 3, mtDesc: 7, lh: 1.15,
+      fsDesc: 11.5, fsLb: 12.5, fsVl: 16, fsVi: 10, fsBar: 6.5, barW: '58%', mtBar: 3, mtRow: 3, mtDesc: 12, lh: 1.15,
       panelPad: '10px 14px', bgpos: '50% 45%',
     },
   },
@@ -132,7 +139,12 @@ export const CARD_TYPES = {
  * 方版 = 长版 × 0.808（令牌 --u），12 × 0.808 = 9.7px，与用户方版卡实测 10px 一致。
  */
 export const LONG_TYPO = {
-  fsDesc: 18.5, fsLb: 18, fsVl: 21, fsVi: 15, fsBar: 12, mtBar: 10, mtDesc: 12,
+  fsDesc: 18.5, fsLb: 18, fsVl: 21, fsVi: 15, fsBar: 12, mtBar: 10,
+  /* ⚠️ 2026-10-07 第三十批：12 → 17。渲染出来是 12×--scale(≈0.85) ≈ 10px，
+     用户看着"标题和副标题挤在一起"。⚠️ 这个值之前一直是 12，所以 CSS 里
+     `var(--mt-desc, 17)` 的新默认值被它盖掉了（自定义属性一旦有值，fallback 就不生效）——
+     改这类"藏在 config 兜底里的值"时记得：CSS 的 fallback 只是兜底，不是覆盖。 */
+  mtDesc: 17,
   lh: 1.15, lsDesc: '0.04em', lsLb: '0.04em',
 };
 
