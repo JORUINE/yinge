@@ -482,8 +482,19 @@ export async function getTypeByCode(code) {
     // 但接口一直没吐出来 → 前端只能空着。口径：listeningProfile 一句话听众画像、
     // albumHints 该型推荐专辑的挑选原则、theory 心理学出处（页脚小字，答辩可讲）。
     listeningProfile: type.listeningProfile || null,
+    // 2026-10-07 第三十二批：右栏结构按用户要求定稿 = 这类人是谁 / 他们的特征 / 他们常听，
+    //   专业出处（theory）只作页脚一行小注释 —— 不再单独放"研究怎么说"那一块。
+    traits: type.traits || [],
     albumHints: type.albumHints || [],
     theory: type.theory || null,
+    // 2026-10-07 第三十一批：用户要"结合音乐心理学和真实网上数据，给出更多元化丰满的人物描述"。
+    //   原先右栏只有一句话画像 + 三条词条，太单薄。这里把"研究证据"也透出到前端：
+    //   evidence[] —— 每条都是可查的公开研究结论（大五人格映射 / MUSIC 五因素 / STOMP 量表等），
+    //   dailyUse   —— 这个人格在**什么时候、什么场合**听（音乐心理学里"功能使用"的实证结论）。
+    //   ⚠️ 措辞守则：研究显示的是**相关**（association），不是因果、体检报告式的"判定"。
+    //     所以每条都写成"偏好 X 的人往往/更可能…"，并在页面上标注这是研究里的**平均倾向**。
+    evidence: type.evidence || null,
+    dailyUse: type.dailyUse || null,
     recommendAlbums: albums.map(musicService.serializeAlbum),
   };
 }

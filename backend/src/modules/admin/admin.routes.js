@@ -56,9 +56,18 @@ const typeSchema = z.object({
   name: z.string().trim().min(1, '类型名不能为空'),
   description: z.string().min(1, '描述不能为空'),
   dims: z.record(z.number()),
-  /** 2026-09-22 新增：文献依据 / 听众画像 / 推荐专辑的挑选原则（答辩要讲得出来源） */
+  /**
+   * 详情页「文案」四件套 —— 2026-10-07 第三十二批起**后台可编辑**：
+   *   listeningProfile 这类人是谁（一段人话描述）
+   *   traits           他们的特征（4 条短句）
+   *   albumHints       他们常听（词条）
+   *   theory           页脚「依据」小注释（文献出处，答辩用）
+   * ⚠️ 措辞守则（用户要求）：不用绝对词（必／永远／只在意／一定／肯定…），
+   *    写成真人日常会说的话。
+   */
   theory: z.string().optional().nullable(),
   listeningProfile: z.string().optional().nullable(),
+  traits: z.array(z.string()).optional(),
   albumHints: z.array(z.string()).optional(),
   recommendAlbumIds: z.array(objectId).optional(),
 });

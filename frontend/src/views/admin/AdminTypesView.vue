@@ -82,6 +82,46 @@
         <el-form-item label="描述" required>
           <el-input v-model="form.description" type="textarea" :rows="3" placeholder="一句话描述这个人格" />
         </el-form-item>
+        <!-- ⭐ 2026-10-07 第三十二批：详情页文案**后台可编辑**。
+             用户要求："在后台加上管理者可以编辑详情页这里的文案"。
+             长文本与列表统一用「一行一条」的多行输入框 —— 管理员不用学复杂控件。
+             ⚠️ 措辞守则（也写在表单提示里）：不要绝对词（必／永远／只在意／一定／肯定），
+                写成真人日常会说的话。 -->
+        <el-form-item label="详情页 · 这类人是谁">
+          <el-input
+            v-model="form.listeningProfile"
+            type="textarea"
+            :rows="3"
+            maxlength="220"
+            show-word-limit
+            placeholder="一段人话描述。例：低音和鼓组是主角，安静的歌容易听不进去……（避免「必须」「永远」这类绝对词）"
+          />
+        </el-form-item>
+        <el-form-item label="详情页 · 他们的特征（一行一条）">
+          <el-input
+            v-model="form.traits"
+            type="textarea"
+            :rows="5"
+            placeholder="例：&#10;听歌先听鼓&#10;走路时脚会跟着打拍子&#10;运动或开车时更爱放歌"
+          />
+        </el-form-item>
+        <el-form-item label="详情页 · 他们常听（一行一条）">
+          <el-input
+            v-model="form.albumHints"
+            type="textarea"
+            :rows="4"
+            placeholder="例：&#10;律动强、低频扎实&#10;舞曲／R&B／放克／摇滚"
+          />
+        </el-form-item>
+        <el-form-item label="详情页 · 依据（页脚小注释）">
+          <el-input
+            v-model="form.theory"
+            type="textarea"
+            :rows="2"
+            placeholder="例：高 Arousal（Greenberg et al., 2016）＋ Energetic & Rhythmic 偏好（Rentfrow & Gosling, 2003）"
+          />
+        </el-form-item>
+
         <el-form-item label="维度分（四个键，值可正可负）">
           <div class="dimgrid">
             <label v-for="k in DIM_KEYS" :key="k" class="dimrow">
@@ -190,6 +230,12 @@ const form = reactive({
   name: '',
   description: '',
   dims: { melody: 0, rhythm: 0, arrangement: 0, calm: 0 },
+  // 详情页文案（第三十二批）：列表类字段在表单里是「一行一条」的字符串，
+  // 提交时再 split 成数组 —— 这样管理员不用操作动态增删控件
+  listeningProfile: '',
+  traits: '',
+  albumHints: '',
+  theory: '',
 });
 
 const boundCount = computed(
@@ -204,6 +250,10 @@ function resetForm() {
   form.code = '';
   form.name = '';
   form.description = '';
+  form.listeningProfile = '';
+  form.traits = '';
+  form.albumHints = '';
+  form.theory = '';
   DIM_KEYS.forEach((k) => {
     form.dims[k] = 0;
   });
@@ -219,6 +269,10 @@ function openEdit(t) {
   form.code = t.code;
   form.name = t.name;
   form.description = t.description;
+  form.listeningProfile = t.listeningProfile || '';
+  form.traits = (t.traits || []).join('\n');
+  form.albumHints = (t.albumHints || []).join('\n');
+  form.theory = t.theory || '';
   DIM_KEYS.forEach((k) => {
     form.dims[k] = Number(t.dims?.[k]) || 0;
   });
@@ -251,6 +305,11 @@ async function save() {
       description: form.description.trim(),
       // 只提交非零维度，库里的 dims 保持干净
       dims: Object.fromEntries(DIM_KEYS.filter((k) => Number(form.dims[k]) !== 0).map((k) => [k, Number(form.dims[k])])),
+      // 详情页文案（第三十二批）：多行输入 → 数组；空行丢掉
+      listeningProfile: form.listeningProfile.trim() || null,
+      traits: form.traits.split('\n').map((x) => x.trim()).filter(Boolean),
+      albumHints: form.albumHints.split('\n').map((x) => x.trim()).filter(Boolean),
+      theory: form.theory.trim() || null,
     };
     if (editing.value) await adminApi.updateType(editing.value, payload);
     else await adminApi.createType(payload);

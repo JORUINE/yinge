@@ -18,7 +18,12 @@
            只留卡面那套；右栏补一行小字说明"卡面维度 = 这个型的典型画像（后台配置）"，
            回答用户"还没测为什么有条"这个疑问。
            ⚠️ `.dim2 .bar2` 是全局类，必须注入 --pcf（漏注入进度条会静默变透明）。 -->
+      <!-- ⭐ 2026-10-07 第三十一批：质感改成**照抄「我的测评回看页」（结果页 .ptmain）的做法**：
+           虚化底 `.ptbg` 铺在**面板内部**，靠面板自己的 `border-radius` + `overflow:hidden` 裁边。
+           ⚠️ 上一版把它铺在整页 `.detail` 上（inset:0 的矩形）→ 就出现了用户两次指出的
+              "嵌套的矩形方框直角边"。铺在面板内部、由圆角裁掉，才不会有硬边。 -->
       <div class="ptcard ptcard-v2" :style="{ '--pc': pc, '--pc2': pc2, '--pc-rgb': pcRgb, '--pcf': pcf, '--pcf-rgb': pcfRgb }">
+        <div class="ptbg" :style="bgStyle" aria-hidden="true"></div>
         <div class="glowc"></div>
         <div class="pthd pthd-v2">
           <div class="ptface">
@@ -45,9 +50,21 @@
                  数据 2026-09-22 就写进模型了，但接口这轮才吐出来（见 service.getTypeByCode）。
                  原 `.ptcap` 那句"由后台配置、不是你的测评结果"是写给开发者看的，已删 ——
                  卡面维度条的含义改由上面「这类人是谁」自然带出。 -->
+            <!-- ⭐ 2026-10-07 第三十二批（按用户要求定稿）：
+                 右栏三块 =「这类人是谁」（人格描述）+「他们的特征」+「他们常听」；
+                 专业出处不再单独开一块，只作页脚一行小注释（.pttheory）。
+                 用户原话："介绍我让你丰满对这个人格的描述和它们的特征 还有常听，
+                 不是让你加一个研究怎么说，你这些专业数据放在最底下的注释那种就好"。 -->
             <section v-if="type.listeningProfile" class="ptblock">
               <h3 class="ptblock-h">这类人是谁</h3>
               <p class="ptblock-t">{{ type.listeningProfile }}</p>
+            </section>
+
+            <section v-if="(type.traits || []).length" class="ptblock">
+              <h3 class="ptblock-h">他们的特征</h3>
+              <ul class="ptlist">
+                <li v-for="t in type.traits" :key="t">{{ t }}</li>
+              </ul>
             </section>
 
             <section v-if="(type.albumHints || []).length" class="ptblock">
@@ -101,6 +118,7 @@ import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
 import { typeColor, typeColorAlpha, typeColorRgb, typeColorFill, typeColorFillRgb, normalizeScores } from '@/utils/personality.js';
 import PersonalityCard from '@/components/PersonalityCard.vue';
+import { makeBlurBackdrop } from '@/utils/blurBackdrop.js';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 
 const route = useRoute();
@@ -121,6 +139,17 @@ const pcf = computed(() => typeColorFill(type.value?.code || code));
 const pcfRgb = computed(() => typeColorFillRgb(type.value?.code || code));
 const dims = computed(() => normalizeScores(type.value?.dims));
 
+/* 整页底色晕染：canvas 画虚化（html2canvas 不支持 CSS filter / backdrop-filter） */
+const blurBg = ref('');
+const bgStyle = computed(() => (blurBg.value ? { backgroundImage: `url(${blurBg.value})` } : {}));
+async function buildBlurBg() {
+  const c = String(type.value?.code || code || '').toUpperCase();
+  if (!c) return;
+  try {
+    blurBg.value = await makeBlurBackdrop(`/img/personality/bg-${c}.jpg`, { long: 420, blurDiv: 26, wash: 0.6 });
+  } catch { /* 没底图就退回纯色 */ }
+}
+
 const year = (d) => (d ? String(d).slice(0, 4) : '');
 /** 专辑主色走 coverColor（读封面真色），不再用 albumId 满饱和哈希色（守则规则 ⑤） */
 function accentStyle(album) {
@@ -136,6 +165,7 @@ onMounted(async () => {
     type.value = data;
     albums.value = data.recommendAlbums || [];
     primeAccents();
+    buildBlurBg();
   } catch (err) {
     ElMessage.error(err?.message || '加载失败');
   } finally {
@@ -146,7 +176,63 @@ onMounted(async () => {
 
 <style scoped>
 .detail {
+  position: relative;
   padding-bottom: var(--sp-7);
+}
+/* ⭐ 照抄「我的测评回看页」（结果页 .ptmain）的做法，四件套：
+   ① 面板自己圆角 + overflow:hidden ⇒ 内部那层虚化图的**四边被裁成圆角**，不会出现直角矩形；
+   ② 虚化底 .ptbg 铺在面板内部（尺寸交给下面的 .ptcard-v2 .ptbg）；
+   ③ 白纱幕 ::after 把底色抬到"文字可读"的亮度；
+   ④ 文字层 z-index 抬到纱幕之上。
+   ⚠️ 这就是"不要嵌套矩形直角边"的正解：靠父级圆角裁，而不是给色块自己描边或羽化。 */
+.ptcard-v2 {
+  overflow: hidden;
+  background: var(--glass2);
+}
+.ptcard-v2 .ptbg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--pcf, transparent);
+  background-size: cover;
+  background-position: 50% 26%;
+  background-repeat: no-repeat;
+  opacity: 0.9;
+}
+.ptcard-v2::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(160deg, rgb(var(--scrim-rgb) / 0.72), rgb(var(--scrim-rgb) / 0.82));
+}
+.ptcard-v2 > .glowc,
+.ptcard-v2 > .pthd {
+  position: relative;
+  z-index: 1;
+}
+
+/* 研究证据列表 */
+.ptlist {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--text2);
+}
+.ptlist li { margin-bottom: 7px; }
+.ptlist li::marker { color: var(--pc); }
+.ptnote {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text3);
+}
+.ptev {
+  padding-top: 14px;
+  border-top: 1px solid rgb(var(--pcf-rgb) / 0.28);
 }
 .back {
   display: inline-block;

@@ -271,15 +271,14 @@ async function download() {
   if (!cardEl.value) return;
   exporting.value = true;
   try {
-    const { default: html2canvas } = await import('html2canvas');
-    const canvas = await html2canvas(cardEl.value, {
-      scale: Math.max(2, 1080 / cardEl.value.offsetWidth),
-      backgroundColor: null,
-      useCORS: true,
-      logging: false,
-    });
+    /* ⚠️ 2026-10-07 第三十一批：导出从 html2canvas 换成「内联样式 + foreignObject」。
+       html2canvas 有自己的布局引擎（不渲染真 DOM），标题↔副标题的间距在导出图里会整个丢掉
+       （实测 7 种写法、导出图 md5 与改前完全一致）。新方案把浏览器算好的最终样式内联后
+       交给**浏览器自己渲染**，所见即所得。详见 utils/cardExport.js 顶部注释。 */
+    const { exportNodeToPng } = await import('@/utils/cardExport.js');
+    const dataUrl = await exportNodeToPng(cardEl.value, { targetWidth: 1080 });
     const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
+    a.href = dataUrl;
     a.download = `音格-音乐人格-${result.value?.typeName || '结果'}.png`;
     document.body.appendChild(a);
     a.click();
