@@ -476,7 +476,17 @@ export async function getTypeByCode(code) {
     code: type.code,
     name: type.name,
     description: type.description,
-    dims: type.dims,
+    /**
+     * ⚠️ 2026-10-10 第三十四批修：
+     *   原来这里直接吐 `type.dims`（库里存的是**6 维画像** melody/rhythm/lyric/texture/novelty/calm），
+     *   前端 `normalizeScores()` 会把对象里**每个键**都画成一根条 ——
+     *   于是详情页人格卡出现「库里存了几维就画几条」：库里只有 3 维时卡面只有 3 条，
+     *   与结果页的 4 条不一致（用户早就投诉过"左边三个参数右边四条"）。
+     *   口径统一到 `toDisplayDims()`：arrangement ← (lyric + texture)/2，
+     *   novelty 不进展示（塞进任何一根条都会让那根条含义变模糊）。
+     *   这个映射 scoring.js 里写死了，就是为了「别在各页面各写一份」，所以在这里转、前端零改动。
+     */
+    dims: toDisplayDims(type.dims),
     // 2026-10-07 第三十批：详情页右栏删掉维度列表后要放**面向用户**的内容，
     // 这三个字段模型里 2026-09-22 就加了（"这个类型凭什么这样定义"可追溯），
     // 但接口一直没吐出来 → 前端只能空着。口径：listeningProfile 一句话听众画像、
