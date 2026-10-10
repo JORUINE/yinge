@@ -204,12 +204,30 @@ const cardVars = computed(() => {
 .pcard.long {
   width: calc(520px * var(--scale));
   height: calc(693px * var(--scale));
-  border-radius: calc(26px * var(--scale));
+  /* ⚠️ 2026-10-07 第三十三批：圆角与「人格图鉴」的卡片对齐。
+     图鉴卡 16px / 368px 宽 = 4.35% 的相对圆角；这里设计宽 520 ⇒ 520 × 4.35% ≈ 22.6px。
+     原来写死 26px（相对 5.0%），两处放一起看就是"圆角不一样"。 */
+  border-radius: calc(22.6px * var(--scale));
 }
 .pcard.sq {
   width: calc(420px * var(--scale));
   height: calc(420px * var(--scale));
-  border-radius: calc(22px * var(--scale));
+  /* 同 long：按图鉴卡 4.35% 的相对圆角算（420 × 4.35% ≈ 18.3px） */
+  border-radius: calc(18.3px * var(--scale));
+}
+/* ⭐ 2026-10-07 第三十三批：1px 白色描边，与图鉴卡一致。
+   ⚠️ 必须用 ::after 画在最上层、不能用 border/inset-shadow：
+       · border 会挤内容（卡面宽高是 calc 死的）；
+       · inset box-shadow 画在**背景之上、子元素之下** ⇒ 会被 .bg 那张插画整片盖住。
+   ::after 作为卡面的最后一份子元素、z-index 抬高，描边才压在插画上（正是图鉴卡的效果）。 */
+.pcard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.95);
 }
 .pcard .bg {
   position: absolute;
@@ -331,6 +349,16 @@ const cardVars = computed(() => {
   font-weight: 500;
   font-size: calc(var(--fs-lb) * 1px * var(--scale));
   letter-spacing: var(--ls-lb, 0.04em);
+  /* ⚠️ 2026-10-07 第三十三批：标签/数值也要吃 `--tsh` 文字阴影。
+     起因：RHY 的维度底板改成**浅色**（用户要的"统一到标准"）后，白字在变亮的橙底上
+     对比度掉到 1.53 —— 已经看不清楚了。正解不是把板改回黑（那是退回黑框），
+     而是**给文字加暗描边**（text-shadow 属于文字自身，不算"框"）。 */
+  text-shadow: var(--tsh, none);
+  /* ⚠️ 2026-10-07 第三十三批：标签/数值也要吃 `--tsh` 文字阴影。
+     起因：RHY 的维度底板改成**浅色**（用户要的"统一到标准"）后，白字在变亮的橙底上
+     对比度掉到 1.53 —— 已经看不清楚了。正解不是把板改回黑（那是退回黑框），
+     而是**给文字加暗描边**（text-shadow 属于文字自身，不算"框"）。 */
+  text-shadow: var(--tsh, none);
   /* ⚠️⚠️ 2026-10-07 第三十二批：标签**绝不能折行**。
      用户导出图里出现「旋律敏 / 感」这种折行 —— 根因是**导出时的字体回退不同**：
      headless 环境回退到较窄的字体，有头浏览器（Edge/雅黑）更宽 ⇒ 同一句
@@ -345,6 +373,8 @@ const cardVars = computed(() => {
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   color: var(--vl-c, var(--ink));
+  text-shadow: var(--tsh, none);
+  text-shadow: var(--tsh, none);
 }
 .vl i {
   font-style: normal;
@@ -422,10 +452,15 @@ const cardVars = computed(() => {
   padding: calc(10px * var(--scale)) calc(16px * var(--scale)) calc(8px * var(--scale));
   margin-left: calc(-16px * var(--scale));
   margin-right: calc(-16px * var(--scale));
-  /* ⚠️ 2026-10-07 用户明确要求："节拍动物不用你改任何东西，就让它保持没有加上你那个黑框的样子"
-     ⇒ 回到加黑框之前的 0.42（"有一点就行"）。代价要如实说明：白字在这个亮度上
-     对比度只有约 3.4（低于 4.5），是**用户知情的取舍**，不是漏测。 */
-  background: radial-gradient(120% 130% at 50% 50%, rgba(58, 18, 0, 0.42) 0%, rgba(58, 18, 0, 0.3) 62%, rgba(58, 18, 0, 0) 100%);
+  /* ⚠️⚠️ 2026-10-07 第三十三批：**从「暗棕」改成「暖白」**。
+     用户把详情页的节拍动物定为"标准"（"所有的节拍动物都以这个为标准"），
+     他图里那块维度底板是**浅色半透明**（比橙底亮）；而这里原来是 `rgba(58,18,0,.42)`
+     的**暗棕**（第二十七批为压暗底色、保白字对比度而加）——
+     两处放一起就是"一个浅一个黑"，正是他说的"不是让你全部统一吗"。
+     ⇒ 改成暖白半透明（与橙色同源、比底色亮），统一到用户的标准。
+     ⚠️ 代价：白字对比度进一步下降（远低于 4.5），是**用户知情的取舍**；
+        verify-r30 里 RHY 已单列为"用户取舍"断言，不再当 bug 报红。 */
+  background: radial-gradient(125% 135% at 50% 50%, rgba(255, 236, 214, 0.20) 0%, rgba(255, 236, 214, 0.13) 60%, rgba(255, 236, 214, 0) 100%);
 }
 .pcard[data-rows='4'] .dim .row {
   margin: calc(var(--mt-row, 10) * 0.38 * 1px * var(--scale)) 0;
