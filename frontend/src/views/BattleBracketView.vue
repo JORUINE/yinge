@@ -66,7 +66,13 @@
           专辑名被省略成「…」——用户的原话是"扩展宽一点，这样里面专辑的字就能展现出来了"。
           树状图左浅右深、每个节点自带专辑名（最多两行），多轮次也只是变宽，不会挤掉信息。
         -->
-        <BracketTree :matches="matches" :champion="champion" />
+        <BracketTree
+          :matches="matches"
+          :champion="champion"
+          initial-dir="v"
+          :total-albums="poolCount"
+          :total-artists="artistCount"
+        />
       </div>
 
       <p v-if="!groups.length && !rounds.length" class="note">

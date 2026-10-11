@@ -61,10 +61,12 @@ async function inlineImages(srcEl, dstEl) {
 /**
  * 导出为 PNG dataURL。
  * @param {HTMLElement} el 要导出的元素（必须是页面里已渲染的）
- * @param {{targetWidth?: number, fallback?: boolean}} opts
+ * @param {{targetWidth?: number, fallback?: boolean, bg?: string}} opts
+ *   bg —— 实心底色。**分享图必须实心底**（透明底的 PNG 发到朋友圈/小红书会变成黑块或灰块）；
+ *   不传就保持透明（原来的行为）。
  * @returns {Promise<string>} dataURL
  */
-export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true } = {}) {
+export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true, bg = null } = {}) {
   try {
     const W = el.offsetWidth;
     const H = el.offsetHeight;
@@ -84,6 +86,10 @@ export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true 
     c.width = Math.round(W * SC);
     c.height = Math.round(H * SC);
     const g = c.getContext('2d');
+    if (bg) {
+      g.fillStyle = bg;
+      g.fillRect(0, 0, c.width, c.height);
+    }
     g.scale(SC, SC);
     g.drawImage(img, 0, 0);
     const out = c.toDataURL('image/png');
@@ -95,7 +101,7 @@ export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true 
     // 兜底：老的 html2canvas（已知会丢部分间距，但总比导出失败好）
     const canvas = await html2canvas(el, {
       scale: Math.max(2, targetWidth / el.offsetWidth),
-      backgroundColor: null,
+      backgroundColor: bg || null,
       useCORS: true,
       logging: false,
     });

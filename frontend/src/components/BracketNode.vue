@@ -1,6 +1,6 @@
 <template>
   <!-- 种子：还没打过，直接显示专辑 -->
-  <div v-if="node && node.seed" class="bnode" :class="{ compact }">
+  <div v-if="node && node.seed" class="bnode" :class="{ compact, vert: vertical }">
     <div class="bcard seed">
       <img v-if="node.album.artworkUrl" :src="node.album.artworkUrl" alt="" loading="lazy" />
       <span class="tn">{{ node.album.name }}</span>
@@ -8,10 +8,19 @@
   </div>
 
   <!-- 一场对阵：左边是产出两侧专辑的两场（递归下去），右边是本场卡片 -->
-  <div v-else-if="node && node.match" class="bnode" :class="{ compact }">
+  <div v-else-if="node && node.match" class="bnode" :class="{ compact, vert: vertical }">
     <div v-if="node.left || node.right" class="bkids">
-      <div class="w"><BracketNode :node="node.left" :compact="compact" /></div>
-      <div class="w"><BracketNode :node="node.right" :compact="compact" /></div>
+      <div class="w">
+        <BracketNode :node="node.left" :compact="compact" :vertical="vertical" />
+        <!-- 竖排专用的"下落竖线"：横排用不到（横排的孩子在 .w 里是垂直居中的，
+             一条 .w::after 就够；竖排的孩子是顶部对齐的，两棵子树高度不等，
+             必须让竖线自己 flex:1 撑满，才能都落到底部那条母线） -->
+        <i v-if="vertical" class="stem" aria-hidden="true"></i>
+      </div>
+      <div class="w">
+        <BracketNode :node="node.right" :compact="compact" :vertical="vertical" />
+        <i v-if="vertical" class="stem" aria-hidden="true"></i>
+      </div>
     </div>
     <div class="bcard" :class="{ live: isLive, bye: node.match.isBye }">
       <span class="rnd">{{ ROUND_CN[node.match.roundName] || node.match.roundName }}</span>
@@ -60,6 +69,11 @@ const props = defineProps({
   node: { type: Object, default: null },
   /** 紧凑版（结果页折叠里用）：小封面 + 小字，整棵树矮一截（2026-09-19 用户要求） */
   compact: { type: Boolean, default: false },
+  /**
+   * 竖排（2026-10-11 第三十六批）—— 用户："完整晋级图能不能做成竖版的，像音乐世界杯那个一样"。
+   * 横排是「轮次从左往右」；竖排整个转 90°：轮次**从上往下**，决赛在下、冠军在最下面。
+   */
+  vertical: { type: Boolean, default: false },
 });
 
 const isLive = computed(() => {
@@ -121,6 +135,66 @@ function sideClass(album) {
   height: 50%;
   width: 2px;
   background: var(--bkl, var(--line));
+}
+
+/* ══════════════════ 竖排（2026-10-11 第三十六批）══════════════════
+   横排的镜像：整棵树转 90° —— 轮次从上往下，决赛在下、冠军在最下面。
+   为什么不能"照抄横排的写法"：
+     横排的母线画在 25%~75% 高度上，靠的是「两个孩子各自在 .w 里**垂直居中**」
+     （.w 高度不等时误差只有几 px，肉眼看不出）。
+     竖排要的是「两个孩子**水平居中**」，而两棵子树的**宽度**可能差很多
+     （左侧三轮 4 张卡 ≈ 620px、右侧只有 1 张 ≈ 148px）⇒ 用 flex 各占一半会严重错位。
+     所以竖排的 .bkids 改用 **grid `1fr 1fr`**：两列强制等宽（都取较大的那个），
+     孩子的水平中线才真的落在 25% / 75% 上。
+   连接件：
+     ① 每个孩子一条**下落竖线**（.stem，flex:1 自己撑满）—— 两棵子树高度不等也能都落到母线；
+     ② 一条**水平母线**（.bkids::after）把两条竖线连起来。 */
+.bnode.vert {
+  flex-direction: column;
+  align-items: center;
+}
+.bnode.vert .bkids {
+  --bkgap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--bkgap);
+  /* 横排那条"向右伸 20px 的水平短线"在竖排里不存在，由 .stem 取代 */
+  margin-right: 0;
+  margin-bottom: 16px;
+}
+.bnode.vert .bkids > .w {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  /* 横排的 .w 是 flex:1 撑高再居中；竖排改成 grid item（自动拉伸到行高） */
+  flex: initial;
+}
+.bnode.vert .bkids > .w::after {
+  display: none;
+}
+.bnode.vert .bkids > .w > .stem {
+  display: block;
+  width: 2px;
+  flex: 1 1 auto;
+  min-height: 12px;
+  background: var(--bkl, var(--line));
+}
+/* 水平母线：从左孩子的中线到右孩子的中线。
+   有 column-gap 时中线不再是 25%/75%，按 gap 精确算：
+     左中线 = (100% - gap)/4 ；右中线 = 3(100% - gap)/4 + gap
+     ⇒ 起点 (100%-gap)/4，宽度 (100%-gap)/2 + gap  */
+.bnode.vert .bkids::after {
+  top: 100%;
+  height: 2px;
+  left: calc((100% - var(--bkgap)) / 4);
+  width: calc((100% - var(--bkgap)) / 2 + var(--bkgap));
+}
+/* 紧凑版（结果页折叠）也走竖排时，整体再收一档 */
+.bnode.compact.vert .bkids {
+  --bkgap: 10px;
+  margin-bottom: 12px;
 }
 
 .bcard {

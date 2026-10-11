@@ -341,14 +341,23 @@
           </div>
         </details>
 
-        <!-- 完整晋级图（紧凑版）：默认收起，点开才是"小封面 + 小字 + 横向拖动"的树，不再一屏铺满 -->
+        <!-- 完整晋级图（紧凑版）：默认收起，点开才是"小封面 + 小字"的树，不再一屏铺满。
+             2026-10-11 第三十六批：默认改成**竖版**（用户："做成竖版的，像音乐世界杯那个一样"），
+             并可一键导出分享图。 -->
         <details v-if="koRounds.length" class="fold">
           <summary class="foldhd">
             <b>完整晋级图</b>
-            <span>横向拖动看完整条淘汰赛路径 · 小封面小字</span>
+            <span>竖版看完整条淘汰赛路径 · 小封面小字 · 可导出分享</span>
             <i class="chev" aria-hidden="true"></i>
           </summary>
-          <BracketTree :matches="allMatches" :champion="champion" compact />
+          <BracketTree
+            :matches="allMatches"
+            :champion="champion"
+            compact
+            initial-dir="v"
+            :total-albums="battlePool"
+            :total-artists="battleArtists"
+          />
         </details>
       </template>
 
@@ -530,6 +539,14 @@ const championMeta = computed(() => {
 
 /** 全部场次（排除轮空，轮空没有对手也没有比分） */
 const allMatches = computed(() => (detail.value?.matches || []).filter((m) => !m.isBye));
+
+/**
+ * 整局的专辑数 / 歌手数 —— 给晋级图导出海报的页脚用。
+ * ⚠️ 不能从淘汰赛场次里去数：8 张专辑的局常常只有 4 张打进淘汰赛，
+ *    数出来会和页面其它地方「8 张专辑」的口径打架（"4 张专辑"看着像数据错了）。
+ */
+const battlePool = computed(() => data.value?.battle?.poolTarget || 0);
+const battleArtists = computed(() => (data.value?.battle?.artists || []).length);
 
 /** 某张专辑在所有场次里拿到的累计票数 */
 function albumTotalVotes(albumId) {
