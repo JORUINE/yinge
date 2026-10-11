@@ -213,7 +213,12 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
       ⑦ <b>验证</b>：新增 <code>probe-r36-bracket.mjs</code> 真链路全绿（竖版结构 / 两列等宽 0px / 竖线够到母线 0px /
       母线误差 0.5px / 导出非白板 / 横版未破坏 / 0 JS 错误）；回归 <code>r31-export</code> 6/6、
       <code>r30</code> 43/43、<code>r29</code> 39/39、结果页 12/12、<code>r26</code> 22/22、<code>r32-admin</code> 4/4、
-      人格页 22/22、条带与配色 9/9、品牌对比度 24 组全一致、卡面统一 13/13、真库六型全过；<code>vite build</code> 通过。<br>
+      人格页 22/22、条带与配色 9/9、品牌对比度 24 组全一致、卡面统一 13/13、真库六型全过；<code>vite build</code> 通过。
+      ⑧ <b>顺带修掉一个 HTML 正确性问题（零视觉影响）</b>：门户本页的 <code>.wrap</code> 一直没显式闭合
+      （浏览器在 <code>&lt;/body&gt;</code> 自动闭合所以没露馅）。按本项目《进度与执行清单.html》的写法
+      （footer 在 <code>.wrap</code> 内、然后显式 <code>&lt;/div&gt;</code>）在 <code>&lt;/footer&gt;</code> 之后补上；
+      实测 <b>312 个元素的标签+类名+位置+尺寸逐项一致</b> ⇒ 零视觉影响。
+      ⚠️ 判据教训：别拿 <code>body.innerHTML</code> 字符串当判据（多一个标签必然多一个空白文本节点，会造出<b>假失败</b>）。<br>
       上一批（10-11 第三十五批）：冠军结算分享卡 —— 底部两行字号缩小 + 背景更透 ——
       ① <b>绿圈那两行 18px → 16px</b>（<code>.roundline</code> 轮次路径 / <code>.sstat</code> 统计行）。
       18px 是第十八批按用户自制竖版反推的，但那两行压在卡底、字又大，整张卡显得挤；
@@ -297,5 +302,6 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 再上一批（第二十四批）：图鉴卡条带取景 + 三个暖色撞色 —— 图鉴卡顶部画面原来「上排三张只剩纯色、下排三张发糊」，改成逐型裁好的 800×246 横条带（缩小 0.48 倍），结构能量 CLM 0.91→13.5 / EXP 1.55→17.8 / LYR 3.91→8.2。<br>
 再再上一批（第二十三批）：人格卡真的进音格 —— 卡面封成 <code>components/PersonalityCard.vue</code>（demo v8 的标定值原样搬入）；修掉「旋律捕手都成黑了」：<code>typeColor()</code> 把<b>卡片底色</b>当文字色用（MEL 白底对比 17.5 / 音色控 1.32 / 词句收藏家 1.45）；导出图从 2264×2374 的一整列网页收成 <b>1080×1439 的一张卡</b>）
 </footer>
+</div>
 </body>
 </html>

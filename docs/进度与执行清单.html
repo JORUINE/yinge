@@ -234,6 +234,16 @@
         <code>verify-band-and-colors</code> 9/9、<code>check-brand-contrast</code> 24 组 rgb 全一致、
         <code>probe-r34-card-unify</code> 13/13、<code>probe-r34-e2e-real</code> 六型全过、
         <code>probe-r35-share-card</code> 全过；<code>vite build</code> 通过。</li>
+      <li><b>⑧ 顺带修掉一个 HTML 正确性问题（零视觉影响，已实测）</b>：门户 <code>docs/index.html</code> 的
+        <code>.wrap</code> <b>一直没显式闭合</b>（浏览器在 <code>&lt;/body&gt;</code> 处自动闭合，所以一直没露馅）。
+        本项目另一份文档《进度与执行清单.html》的写法是 <b>footer 在 <code>.wrap</code> 里面、然后显式 <code>&lt;/div&gt;</code></b>
+        ⇒ 正确形态 = 在 <code>&lt;/footer&gt;</code> <b>之后</b>补 <code>&lt;/div&gt;</code>。
+        新增 <code>tools/pw/probe-r36-indexdiv.mjs</code> 做<b>同输入 A/B</b>：改前/改后各渲染一遍，
+        比<b>每个元素的标签 + 类名 + 位置 + 尺寸</b> —— 实测 <b>312 个元素逐项一致</b>，
+        footer 父级都是 <code>DIV.wrap</code>、盒 <code>{x:292, y:2456.77, w:856, h:2054}</code> 完全相同 ⇒ <b>零视觉影响</b>。<br>
+        <span class="muted">⚠️ 判据教训：我第一版拿 <code>body.innerHTML</code> <b>字符串</b>比 ⇒ 报 ❌。
+        原因是多一个 <code>&lt;/div&gt;</code> <b>必然多一个纯空白文本节点，字符串本来就不可能相同</b> ——
+        拿它当判据等于<b>自造假失败</b>。判"零视觉影响"必须比<b>元素树 + 几何</b>。</span></li>
     </ul>
   </div>
 
