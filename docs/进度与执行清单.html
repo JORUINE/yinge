@@ -49,10 +49,43 @@
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-inner">
-    <span class="tag">进度与执行清单 · 2026-10-11 第三十七批（晋级图合入正式版 + 布局审计 + 导出图可读性修复）</span>
+    <span class="tag">进度与执行清单 · 2026-10-11 第三十八批（对位赛名/专辑一致 + 战报分享图预览上移 + 竖版排布方案对照）</span>
     <h1>音格 · 现在到哪一步了</h1>
     <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节收尾 + 页面/体验补全」</b>阶段。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。<br />
-      <b>这次更新到 2026-10-11 第三十七批</b>（你说的「备份旧版 → 晋级图合入正式版 → 验布局 → 验分享图可视性」）——
+      <b>这次更新到 2026-10-11 第三十八批</b>（你给的三件事）——
+      ① <b>「对位赛自检下显示周杰伦和陶喆、下面出来的专辑却是李克勤和王菲」——查清了，真凶是我自己的旧自检脚本</b>：
+      <code>tools/pw/verify-r20.mjs</code> 里硬编码了 <code>{artistId:368904535,name:'周杰伦'}</code>、
+      <code>{artistId:41760704,name:'陶喆'}</code>，而实测这两个 id 其实是 <b>李克勤</b>（111 张）和 <b>王菲</b>（71 张）
+      ⇒ <b>它每跑一次就往库里塞一个"名字与 id 打架"的组合</b>（现存 3 个）。
+      界面按 <code>name</code> 显示、专辑池按 <code>artistId</code> 取 ⇒ 两边打架。
+      <b>你手动建的对位赛正常，正因为手建时名与 id 同源</b> —— 这反证了 App 代码没问题。
+      修了三处：<b>(a)</b> 前端 <code>applyCombo</code> 改成<b>拿 artistId 回源问真名</b>（失败才退回快照），
+      标签与专辑池从此永远同源；<b>(b)</b> 掐断污染源 —— 旧脚本改成 <b>写前回源核实</b>（id 的真名必须等于要写的名字，核不过拒绝写入），
+      并把原来 <code>picked &gt;= 0</code> 这种<b>恒真的假绿断言</b>换成真断言；
+      <b>(c)</b> 把库里 3 个脏组合按<b>名字</b>为准改成 <code>300117743</code>(周杰倫) / <code>16789930</code>(陶喆)，
+      改完 id↔名 全部一致。<br>
+      · <b>自检（真库 + 真后端 + 真产物，已跑全绿）</b>：A 段点开组合 → <code>已选 chips = [陶喆, 周杰倫]</code>
+      与回源真名一致 ✅；<b>A2 段现场复现你报的场景</b>（造一个 name 写「周杰伦」、id 却是李克勤的组合）→
+      <code>chips = [李克勤, 王菲]</code>、<b>下面专辑卡的歌手 = [李克勤, 王菲]</b> ⇒ <b>上下一致，打架消除</b> ✅（临时组合测完即删）。<br>
+      · <span class="muted">踩坑留痕：取专辑卡歌手名第一版用了 <code>querySelector('span')</code>，抓到的其实是封面上的勾选图标 <code>.ck</code>，
+      采出来全是空串 —— <b>又是"用错指标 = 白测"</b>，改成 <code>:scope &gt; span</code> 才对。</span><br>
+      ② <b>对位赛战报：「分享图预览」上移</b> —— 从<b>整页最底部</b>移到操作条「这一局打完了」<code>.actbar</code>
+      <b>正下方</b>、逐行对照战报之前，保持"折叠子菜单"形态不变。
+      <b>实测</b>：<code>.sharefold</code> 数量 <b>1</b>；操作条底边 183px → 预览 top <b>201px（间距 18px）</b>；
+      <code>.reportwrap</code> top 258px（在其下）✅；页面级 JS 运行时错误 <b>0</b>。<br>
+      ③ <b>竖版排布：查清了，方案等你拍板（本轮不动代码）</b> ——
+      几何实测（32 张）：<code>.bshot</code> = <b>3088 × 634</b>（宽高比 <b>4.87</b>），内容区只有 1094px
+      ⇒ <b>一次只看得见 35%，要横滚 2002px</b>；<b>连线数学没错</b>（决赛中心 1801 == 两个半决赛中心 1025/2577 的中点，误差 <b>0px</b>）
+      ⇒ 毛病在<b>构图</b>。你真正下载到的那张导出图：竖版 <b>6296 × 1538（比例 4.09，宽横幅）</b>、横版 <b>2720 × 1696（1.60）</b>；
+      方案「一轮一块、每场一行」清单版实测 <b>820 × 1066（0.77，真竖图）</b>。
+      对照材料：<code>人格卡demo/_对照图/R38-竖版排布-方案对照.html</code>。
+      <br>
+      <span class="muted">⚠️ <b>我自己纠正过一次错判</b>：先前用元素截图得到"右侧 56% 全空"，以为导出有空白 bug ——
+      实测是<b>截图被 <code>.btscroll{overflow-x:auto}</code> 裁到滚动口</b>的假象（同一次运行里几何明明说卡片跨到 3345px）；
+      放开 overflow 重截后内容铺满全宽，App 真实导出图逐带统计也均匀铺满。⇒ <b>没有空白 bug，只是宽。</b></span>
+      <br>
+      <span style="opacity:.6">（以下为上一批摘要）</span><br>
+      <b>上一批（10-11 第三十七批）</b>（你说的「备份旧版 → 晋级图合入正式版 → 验布局 → 验分享图可视性」）——
       ① <b>先备份，两层</b>：git 注释标签 <code>backup-before-bracket</code> → <code>2098b6d</code>
       （<code>git checkout backup-before-bracket</code> 一键回退）＋ <b>文件级完整快照</b>
       <code>_backup/2026-10-11_1200_晋级图合入正式版前/</code>（281 个文件，<b>不依赖 git 也能拿回</b>）。
@@ -240,7 +273,49 @@
 <div class="wrap">
 
   <div class="new">
-    <h3>本轮（10/11 第三十七批）—— 晋级图合入正式版 + 布局审计 + 导出图可读性修复</h3>
+    <h3>本轮（10/11 第三十八批）—— 对位赛「名字与专辑打架」修复 + 战报分享图预览上移 + 竖版排布方案对照</h3>
+    <ul>
+      <li><b>① 对位赛：名与专辑打架 —— 真凶是我自己的旧自检脚本，不是 App</b>
+        <table style="width:auto;margin:6px 0">
+          <tr><th>项</th><th>内容</th></tr>
+          <tr><td>污染源</td><td><code>tools/pw/verify-r20.mjs</code> 第 255 行硬编码
+            <code>{artistId:368904535,name:'周杰伦'}</code> / <code>{artistId:41760704,name:'陶喆'}</code></td></tr>
+          <tr><td>真相</td><td><code>/api/music/artists/368904535</code> → <b>李克勤</b>；<code>/41760704</code> → <b>王菲</b></td></tr>
+          <tr><td>后果</td><td>每跑一次自检就多一个「名与 id 打架」的组合（现存 3 个：自检-对位组合-83553 / 90548 / 18470）</td></tr>
+        </table>
+        修法三处：<b>(a)</b> <code>BattleCreateView.vue</code> 的 <code>applyCombo</code> 改成<b>拿 artistId 回源问真名</b>（失败才退回快照）；
+        <b>(b)</b> 旧脚本改成<b>写前回源核实 + 落库后回源一致</b>两条真断言；<b>(c)</b> 库里 3 个脏组合按<b>名字</b>为准改对 id。
+        <br><b>自检数字</b>：A 段 <code>chips = [陶喆, 周杰倫]</code> == 回源真名 ✅；
+        <b>A2 复现段</b>（现场造错配组合）<code>chips = [李克勤, 王菲]</code> 且<b>专辑卡歌手 = [李克勤, 王菲]</b> ⇒ 上下一致 ✅；
+        临时组合已删 ✅；页面 JS 错误 <b>0</b>。</li>
+
+      <li><b>② 战报：分享图预览移到「这一局打完了」正下方</b><br>
+        <code>BattleResultView.vue</code>：<code>.sharefold</code> 从整页底部移到 <code>.actbar</code> 之后、<code>.reportwrap</code> 之前，
+        折叠子菜单形态不变，原位置只留注释（避免两个入口）。
+        <br><b>实测</b>：<code>.sharefold</code> 数量 <b>1</b>；操作条 top 94 / h 89（底边 183）→ 预览 top <b>201</b>（<b>间距 18px</b>）；
+        战报 top <b>258</b>（在其下方）✅；0 JS 错误。</li>
+
+      <li><b>③ 竖版排布：查清原因 + 出了对照方案，<span style="color:#c0392b">等你拍板（本轮没动这块代码）</span></b>
+        <table style="width:auto;margin:6px 0">
+          <tr><th>版本（32 张专辑）</th><th>真实导出尺寸</th><th>宽高比</th></tr>
+          <tr><td>现状 · 竖版</td><td>6296 × 1538</td><td><b style="color:#c0392b">4.09</b>（宽横幅）</td></tr>
+          <tr><td>现状 · 横版（你说没问题，不动）</td><td>2720 × 1696</td><td>1.60</td></tr>
+          <tr><td>方案 · 清单版竖版</td><td>820 × 1066</td><td><b style="color:#0f8a4a">0.77</b>（真竖图）</td></tr>
+        </table>
+        <b>页面里为什么看着错位 + 一片空</b>：整棵树 3088px 宽、内容区只有 1094px ⇒ 一次只见 <b>35%</b>，要横滚 <b>2002px</b>。
+        <b>连线本身没错</b>（决赛中心 1801 == 左右半决赛中心 1025/2577 的中点，误差 <b>0px</b>）⇒ 问题在构图。
+        <br><span class="muted">⚠️ 我先误判过一次："右侧 56% 全空"是<b>元素截图被 <code>overflow-x:auto</code> 裁掉</b>的假象，
+        不是导出 bug（放开 overflow 重截 + 真实导出图逐带统计都证明内容铺满）。</span>
+        <br>对照材料：<code>人格卡demo/_对照图/R38-竖版排布-方案对照.html</code>
+        （甲：保留树状只做微调 ／ <b>乙（建议）：竖版换清单版、横版原样不动</b>）。</li>
+
+      <li><b>④ 交付四件套</b>：本页已更新（顶部日期徽标 + 本轮新修）｜门户 <code>docs/index.html</code> 时间戳已改｜
+        <code>dist</code> 已重建 ｜ 已 <code>git commit</code> ｜ <b>请在 GitHub Desktop 里点 Push</b>（沙箱连不上 github.com，push 只能你手动做）。</li>
+    </ul>
+  </div>
+
+  <div class="new" style="opacity:.85">
+    <h3>上一批（10/11 第三十七批）—— 晋级图合入正式版 + 布局审计 + 导出图可读性修复</h3>
     <ul>
       <li><b>① 备份「没有加完整晋级图的版本」——两层保险，都验过</b>
         <table style="width:auto;margin:6px 0">

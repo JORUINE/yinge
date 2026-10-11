@@ -1439,7 +1439,26 @@ async function applyCombo(c) {
     }
     let found = [];
     if (c.artists && c.artists.length) {
-      found = c.artists.map((a) => ({ artistId: a.artistId, name: a.name }));
+      /**
+       * ⚠️ 2026-10-11 第三十八批修 bug
+       * 用户："对位赛自检下显示的周杰伦和陶喆，为什么下面出来的专辑是李克勤和王菲的"
+       * 根因：组合里存的 `name` 只是**冗余快照**，它和 `artistId` 可能对不上
+       *       （历史自检组合就是 name 写「周杰伦」、artistId 却是李克勤的 `368904535`；
+       *        实测 `/api/music/artists/368904535` → 李克勤，`41760704` → 王菲）。
+       *       而专辑池是按 **artistId** 取的 ⇒ 标签写周杰伦、专辑出李克勤，两边打架。
+       * 正解：**一律回源核准** —— 拿 artistId 去问一次真名；问不到（网络/接口失败）才退回快照。
+       *       这样以后任何组合里的快照过期都不会再让"名字与专辑对不上"。
+       */
+      found = await Promise.all(
+        c.artists.map(async (a) => {
+          try {
+            const d = await musicApi.getArtist(a.artistId);
+            return { artistId: a.artistId, name: d?.name || a.name };
+          } catch {
+            return { artistId: a.artistId, name: a.name };
+          }
+        }),
+      );
     } else {
       for (const name of c.names || []) {
         // eslint-disable-next-line no-await-in-loop

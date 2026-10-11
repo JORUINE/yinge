@@ -35,6 +35,33 @@
           </div>
         </div>
 
+        <!-- ══════════ 分享图预览（2026-10-11 第三十八批上移）══════════
+             用户："还有对位赛战报这里 分享图预览应该放到最上面 放在这一局打完了下面。"
+             以前它在整页最底部（要看完 N 组逐行对照表滚到底才看得到）⇒
+             再上移一次：放在操作条（.actbar）**正下方**、逐行对照战报**之前**。
+             仍然保持"折叠子菜单"形态（用户 2026-09-22："分享图预览做成子菜单那种形式"）。 -->
+        <details class="sharefold">
+          <summary class="sffhd">
+            <b>分享图预览</b>
+            <span>简洁版 · 大比分 + 每组一行，适合直接发群里 / 朋友圈</span>
+            <i class="sfarrow">展开</i>
+          </summary>
+          <div class="sfbody">
+            <!-- ⚠️ 2026-09-22 关键修复（用户："你的对位赛简洁战报依然是有空白"／"你是直接截图的这个部分吧"）：
+                 真凶就在这个 wrapper —— 它是个**块级 div**，宽度＝父容器全宽（1200px+），
+                 而卡片本身只有 720px。html2canvas 截的是这个 div，于是右边多出一大片空白被一起导出去。
+                 修法：`width: fit-content` 让它贴合卡片，再加 `margin: 0 auto` 让预览居中。 -->
+            <div ref="shareEl" class="shareElBox">
+              <AlignedMiniCard
+                :names="alignedSideNames"
+                :score="alignedScore"
+                :leader-text="miniLeaderText"
+                :rows="data.rows || []"
+              />
+            </div>
+          </div>
+        </details>
+
         <!-- 同款签表：生成后直接露在操作条下面，不用再往下找 -->
         <div v-if="invite.code" class="invitebox">
           <div class="ibhd">
@@ -134,30 +161,9 @@
         </div>
         </div>
 
-        <!-- 分享图预览 + 详细战报的导出入口已全部上移到战报**上方**（见 .actbar）；
-             这里只留一个折叠入口，需要时再展开看效果 —— 
-             用户："这种重要功能请你放在上面而不是最底下，分享图预览做成子菜单那种形式"。 -->
-        <details class="sharefold">
-          <summary class="sffhd">
-            <b>分享图预览</b>
-            <span>简洁版 · 大比分 + 每组一行，适合直接发群里 / 朋友圈</span>
-            <i class="sfarrow">展开</i>
-          </summary>
-          <div class="sfbody">
-            <!-- ⚠️ 2026-09-22 关键修复（用户："你的对位赛简洁战报依然是有空白"／"你是直接截图的这个部分吧"）：
-                 真凶就在这个 wrapper —— 它是个**块级 div**，宽度＝父容器全宽（1200px+），
-                 而卡片本身只有 720px。html2canvas 截的是这个 div，于是右边多出一大片空白被一起导出去。
-                 修法：`width: fit-content` 让它贴合卡片，再加 `margin: 0 auto` 让预览居中。 -->
-            <div ref="shareEl" class="shareElBox">
-              <AlignedMiniCard
-                :names="alignedSideNames"
-                :score="alignedScore"
-                :leader-text="miniLeaderText"
-                :rows="data.rows || []"
-              />
-            </div>
-          </div>
-        </details>
+        <!-- 分享图预览已在 2026-10-11 第三十八批**再上移一次**：现在紧跟在操作条（.actbar）
+             下面、逐行对照战报之前（用户："分享图预览应该放到最上面 放在这一局打完了下面"）。
+             这里不再重复渲染，避免出现两个一模一样的折叠入口。 -->
       </template>
 
       <!-- 冠军 -->
