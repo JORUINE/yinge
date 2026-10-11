@@ -39,7 +39,14 @@
           <span>我的专辑对决 · 完整晋级图</span>
         </div>
         <div :class="dir === 'v' ? 'btcol' : 'btrow'">
-          <BracketNode :node="tree" :compact="compact" :vertical="dir === 'v'" />
+          <!-- 竖版 = 「一轮一块、每场一行」清单版（2026-10-11 第三十八批，用户拍板选「乙」）。
+               横版 = 原来的树状，**一行没动**。
+               为什么不给竖版继续用树：树宽 = 「第一轮并排几张卡」× 卡宽，32 张专辑时 3088px、
+               高只有 634px ⇒ 实测比例 4.87，导出是一条 6296×1538 的宽横幅，
+               页面里一次只看得见 35%、要横滚 2002px。而父节点必须画在两孩子正中，
+               这是树的定义、少不了一列 —— 树状**在数学上做不出窄而高的竖版**。 -->
+          <BracketListView v-if="dir === 'v'" :rounds="koRounds" :compact="compact" />
+          <BracketNode v-else :node="tree" :compact="compact" :vertical="false" />
           <div class="champcard" :class="{ empty: !champion, mini: compact }">
             <span class="ct">★ 冠军 ★</span>
             <img v-if="champion" :src="champion.artworkUrl" :alt="champion.name" />
@@ -50,13 +57,17 @@
           </div>
         </div>
         <div v-if="exporting" class="bpf">
-          {{ albums }} 张专辑 · {{ artists }} 位歌手 · {{ nodes }} 场淘汰赛
+          {{ albums }} 张专辑 · {{ artists }} 位歌手 · {{ koTotal }} 场淘汰赛
         </div>      </div>
     </div>
 
+    <!-- 场次数用 `koTotal`（= 清单真正渲染出的行数）而不是 `nodes`（树里数出来的）。
+         原因：竖版现在渲染的是清单，用户能数的就是行数；如果用树的口径显示，
+         一旦两者不等，页面就会自己打自己（数出来 16 行、提示写"共 12 场"）。
+         自检里断言 `koListCount === nodes`，不等就是有一方漏场。 -->
     <p class="bthint">
-      完整晋级图：共 <b>{{ nodes }}</b> 场淘汰赛，
-      <template v-if="dir === 'v'">从上往下看 —— 每往下一格，就是上一轮的两个胜者相遇。</template>
+      完整晋级图：共 <b>{{ koTotal }}</b> 场淘汰赛，
+      <template v-if="dir === 'v'">从上往下按轮次读 —— 每轮一块，每场一行。</template>
       <template v-else>从左往右看 —— 每往右一格，就是上一轮的两个胜者相遇。</template>
       <template v-if="!compact">内容较多时可滑动查看；点「保存晋级图」可存成图片分享。</template>
     </p>
@@ -79,7 +90,8 @@
 import { computed, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import BracketNode from './BracketNode.vue';
-import { buildBracketTree, countNodes } from '@/utils/bracketTree.js';
+import BracketListView from './BracketListView.vue';
+import { KO_ORDER, buildBracketTree, countNodes } from '@/utils/bracketTree.js';
 
 const props = defineProps({
   matches: { type: Array, default: () => [] },
@@ -99,6 +111,27 @@ const props = defineProps({
 const tree = computed(() => buildBracketTree(props.matches));
 const nodes = computed(() => countNodes(tree.value));
 const year = (d) => (d ? String(d).slice(0, 4) : '');
+
+/**
+ * 清单版竖版用的轮次分组：**只取淘汰赛**（与树同一口径），
+ * 按轮次由浅到深（KO_ORDER）、同一轮内按场序排。
+ * ⚠️ 与 `nodes`（树里数出来的场数）应当相等 —— 探针里有断言，不等就说明有一方漏场。
+ */
+const koRounds = computed(() =>
+  KO_ORDER.map((name) => ({
+    name,
+    list: (props.matches || [])
+      .filter((m) => m.roundName === name)
+      .sort((a, b) => (Number(a.matchOrder) || 0) - (Number(b.matchOrder) || 0)),
+  })).filter((r) => r.list.length),
+);
+/** 清单里实际渲染的场数 */
+const koListCount = computed(() => koRounds.value.reduce((n, r) => n + r.list.length, 0));
+/**
+ * 页脚与提示里显示的场次数：**以清单真正渲染出来的行数为准**（用户看到几行就是几场）。
+ * 树里数出来的 `nodes` 只作对照 —— 自检里断言两者相等，不等就说明有一方漏场。
+ */
+const koTotal = computed(() => koListCount.value || nodes.value);
 
 /** 页脚统计：参赛专辑数与歌手数从淘汰赛里出现过的专辑去重得到 */
 const albumSet = computed(() => {
@@ -217,6 +250,13 @@ async function save() {
    但在近白底上它只是把文字**冲淡** ⇒ 导出时归位，靠颜色本身区分胜负就够了。 */
 .bshot.exporting :deep(.bcard .row.lose .tn),
 .bshot.exporting :deep(.bcard .row.lose .sc) {
+  opacity: 1;
+}
+/* ⚠️ 清单版竖版（BracketListView）用的是 `.blist .lside.lose`，类名与树不同名，
+   上面那条 `:deep(.bcard …)` 选不到它 —— 漏了这条，竖版导出图里的落败专辑名
+   会带着 `opacity:.85` 一起被冲淡（实测对比度掉到 2.85:1，正是第三十七批修过的同一个坑）。 */
+.bshot.exporting :deep(.blist .lside.lose .lnm),
+.bshot.exporting :deep(.blist .lside.lose .lsc) {
   opacity: 1;
 }
 .bphd {

@@ -4,6 +4,10 @@ node_modules/
 
 # ---- 构建产物 ----
 dist/
+# dist-before/ = 「改前基线」产物：由 `git show HEAD:frontend/src/components/BracketTree.vue`
+# 覆盖源码后重建出来的那一份，只用于「同输入 A/B」比对（见 tools/pw/probe-r38b-list.mjs）。
+# ⚠️ 它是**临时基线**，每次做 A/B 前必须重新构建，否则会拿旧代码当"改前"（假对照）。
+dist-before/
 build/
 out/
 *.tsbuildinfo
