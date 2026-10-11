@@ -197,6 +197,28 @@ async function save() {
   background: var(--bpex-bg, #f7fbff);
   border-radius: 18px;
 }
+/* ── 导出态的配色兜底（2026-10-11 第三十七批）────────────────────────────
+   问题：导出图的底是**固定的浅色** `#f7fbff`（分享图不能透明，否则社交平台显示成黑/灰块），
+   而页面上这几个颜色是**为"底不是纯白"而定的**：
+     · `--text3` #6d8aa3 → 在 #f7fbff 上只有 **3.35:1**（轮次标签、页脚统计行）；
+       落败行还叠了 `opacity:.85` ⇒ 再降到 **2.85:1**；
+     · `--gold` #e08700 → 冠军格的"★ 冠军 ★ / 冠军名"，
+       压在冠军格那层金色渐变上只有 **2.2~2.6:1**。
+   在页面上它们没问题（压玻璃卡 / 深色氛围），搬到近白底上就集体读不清。
+   ⇒ 只在 `.exporting` 作用域内把这两个变量换成"在这块浅底上达标"的深色档。
+     自定义属性会**继承**，所以能一路传进子组件 BracketNode，不需要 :deep 去捅。
+     页面观感**一点不变**（`.exporting` 只在导出那一瞬间存在）。
+   实测（导出 PNG 真像素）：--text3 3.35 → 5.23；--gold 2.16 → 5.03。 */
+.bshot.exporting {
+  --text3: #4e6b85;
+  --gold: #8a5100;
+}
+/* 落败行原本整行 `opacity:.85`，用意是"在深色氛围里退后一点"；
+   但在近白底上它只是把文字**冲淡** ⇒ 导出时归位，靠颜色本身区分胜负就够了。 */
+.bshot.exporting :deep(.bcard .row.lose .tn),
+.bshot.exporting :deep(.bcard .row.lose .sc) {
+  opacity: 1;
+}
 .bphd {
   display: flex;
   align-items: baseline;

@@ -49,10 +49,59 @@
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div>
   <div class="hero-inner">
-    <span class="tag">进度与执行清单 · 2026-10-11 第三十六批（完整晋级图：竖版 + 可导出分享）</span>
+    <span class="tag">进度与执行清单 · 2026-10-11 第三十七批（晋级图合入正式版 + 布局审计 + 导出图可读性修复）</span>
     <h1>音格 · 现在到哪一步了</h1>
     <p>一句话：<b>框架和玩法主线已经跑通</b>（创建 → 4选2 → 复活 → 淘汰 → 冠军 → 分享，端到端实测过），当前处于<b>「玩法细节收尾 + 页面/体验补全」</b>阶段。本页把完成度、已做、未做、以及"前端页面什么时候产出"一次讲清。<br />
-      <b>这次更新到 2026-10-11 第三十六批</b>（你要的「完整晋级图做成竖版 + 能导出分享」）——
+      <b>这次更新到 2026-10-11 第三十七批</b>（你说的「备份旧版 → 晋级图合入正式版 → 验布局 → 验分享图可视性」）——
+      ① <b>先备份，两层</b>：git 注释标签 <code>backup-before-bracket</code> → <code>2098b6d</code>
+      （<code>git checkout backup-before-bracket</code> 一键回退）＋ <b>文件级完整快照</b>
+      <code>_backup/2026-10-11_1200_晋级图合入正式版前/</code>（281 个文件，<b>不依赖 git 也能拿回</b>）。
+      <b>两层都验过</b>：快照里「<code>BracketTree.vue</code> = 130 行、<code>vertical</code> 命中 0、<code>保存晋级图</code> 命中 0」
+      ⇒ 确认就是「没有晋级图」的那一版。
+      ② <b>「加入正式版」的真相</b>：正式版<b>不是</b>另一个工程副本，<b>就是构建产物 <code>frontend/dist</code></b>
+      （<code>start-prod.bat</code> 用 <code>vite preview</code> 起在 5173）。晋级图源码本来就在 <code>frontend/src</code>，
+      所以「加入正式版」＝<b>把 dist 重建一遍</b>。已重建，并把链条<b>验通</b>（不是"构建成功"就算）：
+      <code>dist/index.html</code> → 入口 js → 动态 import <code>BracketTree</code> 的 js/css → 该 css 里<b>确实含本轮新样式</b>。
+      ⇒ 你重跑 <code>start-prod.bat</code>（它会重建）拿到的一定是带晋级图的版本。
+      ③ <b>布局审计（真机 + 真产物）</b>：2 局（8 / 16 张专辑）× 5 视口（1920→768）× 竖/横版，
+      页面级横向溢出 <b>全 0</b>、对局卡两两重叠 <b>0px²</b>、卡内文字 <b>≥12px</b>、
+      竖版母线对齐两卡中线最差 <b>0.5px</b>、两列等宽差 <b>0px</b>、导出按钮已渲染 <b>100×37px</b>、
+      横版是「可滚不被裁」（16 张 @768 可滚 117px）、<b>0 JS 错误</b>。⇒ <b>布局合理，验完了。</b>
+      ④ <b>导出图可读性 —— 第一遍审计是「红」的，我把它拆成了两件事来办</b>：<br>
+      · <b>(a) 先修我自己的判据（3 处，都是"假红/假绿"的来源）</b>：
+      <b>①</b> 判「按钮可见」用的是「<b>此刻在视口里</b>」，但晋级图在结果页一个<b>折叠的
+      <code>&lt;details&gt;</code></b> 里（远在首屏之下），而自动化点击会<b>自动滚动</b>所以一直点得到
+      ⇒ 全 10 组<b>假报「看不到按钮」</b>；改成「<b>已渲染且有尺寸</b>且非 CSS 隐藏」。
+      <b>②</b> 量文字用的是<b>元素</b>的包围盒，可页脚统计行是<b>整宽块</b>、文字只占左边一小段
+      ⇒ 取样取到<b>空白</b>、量出一个<b>假的 1.24:1</b>；改成用 <code>Range</code> 取<b>字形框</b>。
+      <b>③</b> 判「这块字画出来了没」用的是<b>相对</b>阈值（比底色亮/暗），文字色 ≈ 底色时<b>恒成立</b>、
+      空白区域也能「通过」⇒ 改成<b>绝对</b>阈值（亮度 &lt; 0.5 的像素占比 ≥5%）。<br>
+      · <b>(b) 再修真缺陷（12 块低于 4.5:1，最差 1.24:1）</b>：肉眼在导出 PNG 里确认
+      轮次标签、专辑名、比分、「★ 冠军 ★」、页脚行<b>一起发虚</b>。根因<b>先量后说</b>
+      （逐文字节点打印导出态的计算色与背景链，<b>不是猜</b>）：
+      导出图的底是<b>固定浅色 <code>#f7fbff</code></b>（分享图<b>必须实心</b> ——
+      透明 PNG 发到社交平台会显示成黑/灰块），而 <code>--text3 #6d8aa3</code> 是<b>为「底不是纯白」的页面氛围定的</b>
+      ⇒ 在 <code>#f7fbff</code> 上只有 <b>3.35:1</b>（落败行还叠了 <code>opacity:.85</code> ⇒ 再降到 <b>2.85:1</b>）；
+      <code>--gold #e08700</code> 压在冠军格那层金色渐变上只有 <b>2.16~2.6:1</b>。
+      ⇒ 只在<b>导出那一瞬间</b>的 <code>.exporting</code> 作用域里，把这两个变量换成「在这块浅底上达标」的深色档
+      （自定义属性会<b>继承</b>、能一路传进子组件，不必 <code>:deep</code> 去捅；<b>页面观感一点不变</b>），
+      并把落败行的 <code>opacity</code> 归位（近白底上它只是把字<b>冲淡</b>，靠颜色本身区分胜负就够了）。<br>
+      · <b>修复后（在导出 PNG 的真实像素上量）</b>：低于 4.5:1 的块 <b>12 → 0</b>、
+      最差对比度 <b>1.24 → 5.11:1</b>、25/25 块都<b>有墨</b>（最低墨密度 <b>16.8%</b>）、
+      最小 alpha <b>255</b>（<b>完全不透明</b>）、最小有效字号 <b>24px</b>；
+      竖版导出 <b>1442×1182</b>（2.000× 缩放，362KB）、横版导出 <b>1388×664</b>。
+      最紧的 5 块：「★ 冠军 ★」5.11:1 ｜「8 张专辑 · 1 位歌手 · 3」5.36:1 ｜「半决赛」5.48:1。
+      ⑤ ⚠️ <b>顺带查出一个「死类」（本轮没改，等你拍板）</b>：竖版容器上绑了 <code>vscroll</code> 类，
+      但全前端（<code>src/**</code>）<b>没有任何对应的 CSS 规则</b>（5 组命中）——
+      看起来原本想给竖版加「纵向滚动」却没写规则。按「删除必须保守」，<b>没擅自动</b>：
+      补规则还是删绑定，等你一句话。
+      ⑥ ⚠️ <b>仍然要说清的老事实（比例，等你拍板）</b>：导出图 <b>1442×1182（比例 0.82）</b>，
+      <b>接近方形、不是竖长图</b> —— 树状布局的宽度由「第一轮并排几张卡」决定（8 张＝4 张并排），
+      深度只有 4 层；张数越多越宽（16 张 ≈0.6、<b>40 张 ≈0.35 反而是明显横图</b>）
+      ⇒ 要真「竖长」得换<b>「一轮一块、每场一行」的清单版式</b>，调树状参数救不回来。
+      <br>
+      <span style="opacity:.6">（以下为上一批摘要）</span><br>
+      <b>上一批（10-11 第三十六批）</b>（你要的「完整晋级图做成竖版 + 能导出分享」）——
       ① <b>完整晋级图现在默认竖版</b>：轮次自上而下、冠军在最下方，像音乐世界杯那种对阵图；
       右上角有个 <b>竖版 / 横版</b> 切换，老版式原样保留（没删任何东西）。
       ② <b>可导出成分享图</b>：点「保存晋级图」出 <b>1442×1190 PNG</b>，带页眉（音格 · YINGE.APP / 我的专辑对决 · 完整晋级图）
@@ -188,7 +237,103 @@
 <div class="wrap">
 
   <div class="new">
-    <h3>本轮（10/11 第三十六批）—— 完整晋级图：竖版（默认）+ 可导出分享</h3>
+    <h3>本轮（10/11 第三十七批）—— 晋级图合入正式版 + 布局审计 + 导出图可读性修复</h3>
+    <ul>
+      <li><b>① 备份「没有加完整晋级图的版本」——两层保险，都验过</b>
+        <table style="width:auto;margin:6px 0">
+          <tr><th>层</th><th>位置</th><th>校验</th></tr>
+          <tr><td>git 注释标签</td><td><code>backup-before-bracket</code> → <code>2098b6d</code>（第三十五批）</td>
+              <td><code>git checkout backup-before-bracket</code> 一键回退</td></tr>
+          <tr><td>文件级完整快照</td><td><code>_backup/2026-10-11_1200_晋级图合入正式版前/</code>（<code>git archive</code> 导出，<b>281 个文件</b>）</td>
+              <td><b>不依赖 git</b> 也能拿回；净验：<code>BracketTree.vue</code> = <b>130 行</b>、<code>vertical</code> 命中 <b>0</b>、<code>保存晋级图</code> 命中 <b>0</b> ✅</td></tr>
+        </table>
+        「加竖版后」的 <code>BracketTree.vue</code> 是 <b>341 行</b> —— 两个数字对得上，确认快照内容正确。</li>
+      <li><b>② 「加入正式版」——先说清一件事：正式版不是一个单独的工程副本</b><br>
+        <b>正式版 = 构建产物 <code>frontend/dist</code></b>（由 <code>start-prod.bat</code> 用 <code>vite preview</code> 起在 5173）。
+        晋级图源码本来就在 <code>frontend/src</code> 里（第三十六批已提交 <code>770866b</code>），
+        所以「加入正式版」＝<b>把新的 <code>dist</code> 重新构建出来</b>。<br>
+        已重建（<code>vite build --emptyOutDir false</code>，构建通过；<code>dist/index.html</code> mtime <code>2026-10-11 12:05</code>），
+        并把<b>引用链条验通</b>（不是"构建成功"就算）：
+        <code>dist/index.html</code> → <code>assets/index-w4Q3bU8T.js</code> → 动态 import
+        <code>BracketTree-5iR9ZMWu.js</code> + <code>BracketTree-ofroxZTF.css</code>
+        → 该 css 里<b>确实含本轮修复</b>（<code>.bshot.exporting{--text3:#4e6b85;--gold:#8a5100}</code>）。
+        ⇒ 用户重新跑 <code>start-prod.bat</code> 拿到的一定是带新功能的版本。<br>
+        <span class="muted">⚠️ <code>--emptyOutDir false</code> 是项目既定写法（<code>rm -rf dist</code> 会撞沙箱的批量删除保护），
+        代价是 <code>dist/assets</code> 会<b>累积历史 hash 的旧 chunk</b>。无害 ——
+        <code>index.html</code> + 入口 manifest 只引用当前那几个，旧 chunk 是死文件。记在这里免得以后误判成"打包出错了"。</span></li>
+      <li><b>③ 布局审计（真链路：mongod ＋ 真后端反代 <code>/api</code> ＋ 真 <code>dist</code> 产物）</b><br>
+        新增 <code>tools/pw/probe-r37-bracket-audit.mjs</code>：2 局（8 张 / 16 张专辑）× 5 视口（1920 / 1440 / 1280 / 1024 / 768）× 竖/横版。
+        <table style="width:auto;margin:6px 0">
+          <tr><th>断言</th><th>结果</th></tr>
+          <tr><td>任何视口下<b>页面级</b>横向溢出</td><td>✅ 全部 <b>0px</b>（10 组 × 2 局）</td></tr>
+          <tr><td>对局卡两两不重叠（矩形交面积）</td><td>✅ 全部 <b>0px²</b></td></tr>
+          <tr><td>卡内所有文字 ≥12px（设计守则硬下限）</td><td>✅ 最小 <b>12px</b></td></tr>
+          <tr><td>竖版母线端点对齐两卡中线（≤2px）</td><td>✅ 最差 <b>0.5px</b>（16 张那局 1px）</td></tr>
+          <tr><td>竖版根节点两列等宽（≤1px）</td><td>✅ 全部 <b>0px 差</b></td></tr>
+          <tr><td>「保存晋级图」按钮已渲染且有尺寸</td><td>✅ 全部已渲染，实测 <b>100×37px</b></td></tr>
+          <tr><td>横版超宽时是"可横向滚动"不是"被裁掉"</td><td>✅ <code>overflow-x:auto</code>；16 张 @768 可滚 <b>117px</b></td></tr>
+          <tr><td>页面级 JS 运行时错误</td><td>✅ <b>0</b></td></tr>
+        </table>
+        <span class="muted">⚠️ <code>.btscroll</code> 的 <code>overflow-x:auto</code> 是<b>故意的</b>（横向树本来就要滚），
+        它的 <code>scrollWidth &gt; clientWidth</code> <b>不是</b>布局缺陷 —— 判据只针对<b>页面级</b>溢出。
+        一开始把它误报成「组件溢出」，已改判据。</span></li>
+      <li><b>④ 导出图可读性 —— 第一遍审计是「红」的，我把「我的判据错」和「真缺陷」分成两件事办</b><br>
+        <b>(a) 先修我自己的判据（3 处）</b>
+        <table style="width:auto;margin:6px 0">
+          <tr><th>我的判据</th><th>错在哪</th><th>改成</th></tr>
+          <tr><td>按钮「在视口里」＝<code>rect.top &lt; innerHeight</code></td>
+              <td>晋级图在结果页一个<b>折叠的 <code>&lt;details&gt;</code></b> 里（远在首屏之下）；而自动化点击<b>会自动滚</b>，按钮一直点得到 ⇒ 全 10 组<b>假报「看不到按钮」</b></td>
+              <td>「<b>已渲染且有尺寸</b>且非 CSS 隐藏」（<code>w&gt;0 &amp;&amp; h&gt;0 &amp;&amp; display!=='none' &amp;&amp; visibility!=='hidden' &amp;&amp; opacity&gt;0</code>）</td></tr>
+          <tr><td>文字取样用元素 <code>getBoundingClientRect()</code></td>
+              <td>页脚统计行是<b>整宽块</b>、文字只占左边一小段 ⇒ 5% 分位取到<b>空白</b>，量出<b>假的 1.24:1</b></td>
+              <td><code>Range.selectNodeContents(el).getBoundingClientRect()</code>（真正的<b>字形框</b>）</td></tr>
+          <tr><td>墨密度用<b>相对</b>阈值 <code>lum &lt; (bg+fg)/2</code></td>
+              <td>文字 ≈ 背景时 <code>bg ≈ fg</code> ⇒ 阈值<b>恒成立</b>，<b>空白区域也能「通过」</b></td>
+              <td><b>绝对</b>阈值 <code>lum &lt; 0.5</code>，占比 ≥5% 才算「这块字真的画出来了」</td></tr>
+        </table>
+        <b>(b) 再修真缺陷</b>：判据修正后仍有 <b>12 块</b>低于 4.5:1（最差 1.24:1），
+        肉眼在 <code>R37-晋级图-导出.png</code> 里确认轮次标签、专辑名、比分、「★ 冠军 ★」、页脚行<b>一起发虚</b>。
+        根因<b>先量后说</b>（<code>probe-r37-colors.mjs</code> 逐文字节点打印导出态计算色 + 背景链，<b>不猜</b>）：<br>
+        <code>rnd rgb(109,138,163) ← --text3 #6d8aa3 在 #f7fbff 上 = 3.35:1</code>（落败行再叠 <code>opacity:.85</code> ⇒ 2.85:1）；<br>
+        <code>ct/cn rgb(224,135,0) ← --gold #e08700 压在冠军格金色渐变上 = 2.16~2.6:1</code>。<br>
+        <b>根因</b>：导出图的底是<b>固定的浅色 <code>#f7fbff</code></b>（分享图<b>必须实心</b>，透明 PNG 发社交平台会变黑/灰块），
+        而这两个变量是<b>为「底不是纯白」的页面氛围定的</b> ⇒ 搬到近白底上就集体读不清。<br>
+        <b>修法</b>：只在 <code>.exporting</code> 作用域里换色（自定义属性会<b>继承</b>，能一路传进子组件 <code>BracketNode</code>，
+        不需 <code>:deep</code>；<b>页面观感一点不变</b>，因为 <code>.exporting</code> 只在导出那一瞬间存在）：
+        <pre style="margin:6px 0;font-size:12px;background:rgba(11,42,66,.05);padding:8px 10px;border-radius:8px;overflow:auto"><code>.bshot.exporting { --text3: #4e6b85; --gold: #8a5100; }
+.bshot.exporting :deep(.bcard .row.lose .tn),
+.bshot.exporting :deep(.bcard .row.lose .sc) { opacity: 1; }</code></pre>
+        （落败行整行 <code>opacity:.85</code> 的用意是「在深色氛围里退后一点」，近白底上它只是把字<b>冲淡</b>，导出时归位。）
+        <table style="width:auto;margin:6px 0">
+          <tr><th>指标</th><th>修前</th><th>修后</th></tr>
+          <tr><td>低于 4.5:1 的文字块</td><td>12 块</td><td><b>0 块</b></td></tr>
+          <tr><td>最差对比度</td><td>1.24:1</td><td><b>5.11:1</b></td></tr>
+          <tr><td>有墨文字块 / 总块数</td><td>—</td><td><b>25 / 25</b>，最低墨密度 <b>16.8%</b></td></tr>
+          <tr><td>不透明度</td><td>—</td><td>最小 alpha <b>255</b>（完全不透明）</td></tr>
+          <tr><td>最小有效字号</td><td>—</td><td><b>24px</b></td></tr>
+          <tr><td>导出尺寸（竖版 / 横版）</td><td>—</td><td><b>1442×1182</b>（2.000×，362KB）/ <b>1388×664</b></td></tr>
+        </table>
+        最紧的 5 块：「★ 冠军 ★」5.11:1/26px ｜「8 张专辑 · 1 位歌手 · 3」5.36:1/26px ｜
+        「半决赛」5.48:1/24px ｜「By My Side」5.48:1/27px ｜「0」5.48:1/25px。</li>
+      <li><b>⑤ ⚠️ 顺带查出一个「死类」（本轮没改，等你拍板）</b>：<code>BracketTree.vue</code> 的竖版容器上绑了
+        <code>:class="{ vscroll: dir === 'v' }"</code>，但<b>全前端（<code>src/**</code>）没有任何 <code>vscroll</code> 的 CSS 规则</b>
+        ⇒ <b>死类</b>（5 组命中，各视口都命中）。看起来原本想给竖版加「纵向滚动」却没写规则。
+        按「新增可以激进、删除必须保守」，<b>没擅自动</b> —— 要不要补规则、还是删掉绑定，等你一句话。</li>
+      <li><b>⑥ ⚠️ 仍然要说清的老事实（比例，等你拍板）</b>：导出图 <b>1442×1182（比例 0.82）</b>，
+        <b>接近方形、不是竖长图</b>。树状布局的宽度由「第一轮并排几张卡」决定（8 张＝4 张并排），深度只有 4 层；
+        张数越多越宽（16 张 ≈0.6、<b>40 张 ≈0.35 反而明显横图</b>）⇒
+        要真「竖长」得换<b>「一轮一块、每场一行」的清单版式</b>，调树状参数救不回来。</li>
+    </ul>
+    <p class="muted" style="margin:10px 0 0">
+      备份脚本 <code>_tmp_r37_backup.sh</code>、审计脚本 <code>probe-r37-bracket-audit.mjs</code> 与
+      <code>probe-r37-colors.mjs</code> 均在仓库 <code>tools/pw/</code> 下。<br>
+      本轮产品代码<b>只改了 1 个文件</b>（<code>frontend/src/components/BracketTree.vue</code>，+22 行，全是 <code>.exporting</code> 作用域内的配色兜底）
+      ⇒ 对既有页面<b>零影响</b>；回退＝<code>git checkout -- frontend/src/components/BracketTree.vue</code>。
+    </p>
+  </div>
+
+  <div class="new" style="opacity:.85">
+    <h3>上一批（10/11 第三十六批）—— 完整晋级图：竖版（默认）+ 可导出分享</h3>
     <ul>
       <li><b>① 竖版晋级图</b>：轮次<b>自上而下</b>排，冠军在最下方，跟音乐世界杯那种对阵图一个读法。
         右上角加了 <b>竖版 / 横版</b> 切换 —— <b>老版式原样保留</b>（按"默认保留、删除须问"的规矩，
