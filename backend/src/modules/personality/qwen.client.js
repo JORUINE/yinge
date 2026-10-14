@@ -17,11 +17,56 @@ const SYSTEM_PROMPT =
   '你是一位既懂音乐又懂心理的乐评人。请用亲切、具体、不堆术语的中文，' +
   '为用户的音乐人格写一段 120 字以内的个性化解读，落到"听歌习惯"上，不要说空话套话。';
 
+/* ── 熔断器（2026-10-14 第三十九批 · 开放给公众前必须补）─────────────────
+   为什么要它：厂商侧故障（限流 / 超时 / 5xx）时，如果每个请求都照发，
+   ① 用户那边每次都要干等 15 秒超时；② 失败请求同样在消耗配额与连接。
+   连续失败达到阈值就"断开"一段时间，期间直接走模板，冷却结束再放行一次试探。
+   状态存在进程内存里：单机部署（PM2 单实例）够用；若将来多实例，
+   各实例各自熔断、互不影响，最坏情况是"有的实例还在试探"，不会更坏。 */
+const breaker = { fails: 0, openedAt: 0, warned: false };
+
+function breakerOpen() {
+  if (breaker.fails < config.qwen.circuitThreshold) return false;
+  // 冷却已过 → 归零，放行一次试探
+  if (Date.now() - breaker.openedAt >= config.qwen.circuitCooldownMs) {
+    breaker.fails = 0;
+    breaker.warned = false;
+    return false;
+  }
+  return true;
+}
+function recordFailure() {
+  breaker.fails += 1;
+  breaker.openedAt = Date.now();
+  breaker.warned = false;
+}
+function recordSuccess() {
+  breaker.fails = 0;
+  breaker.openedAt = 0;
+  breaker.warned = false;
+}
+/** 供自检读取当前熔断状态 */
+export function breakerState() {
+  return { ...breaker, open: breakerOpen() };
+}
+
 /**
- * @returns {Promise<string|null>} 成功返回解读文本；未配置密钥或调用失败返回 null
+ * @returns {Promise<string|null>} 成功返回解读文本；未配置密钥、熔断中、调用失败均返回 null
  */
 export async function generateComment({ typeName, description, scores, nickname }) {
   if (!config.qwen.apiKey) return null;
+
+  if (breakerOpen()) {
+    // 只在状态变化时打日志，避免熔断期间每个请求都刷一行
+    if (!breaker.warned) {
+      logger.warn('通义千问连续失败，已熔断，期间解读走模板文案', {
+        fails: breaker.fails,
+        cooldownMs: config.qwen.circuitCooldownMs,
+      });
+      breaker.warned = true;
+    }
+    return null;
+  }
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 15000);
@@ -53,17 +98,25 @@ export async function generateComment({ typeName, description, scores, nickname 
 
     if (!res.ok) {
       logger.warn('通义千问返回异常，将降级为模板文案', { status: res.status });
+      recordFailure();
       return null;
     }
     const json = await res.json();
     const text = json?.choices?.[0]?.message?.content?.trim();
-    return text || null;
+    if (!text) {
+      logger.warn('通义千问返回空内容，将降级为模板文案');
+      recordFailure();
+      return null;
+    }
+    recordSuccess();
+    return text;
   } catch (err) {
     logger.warn('通义千问调用失败，将降级为模板文案', { error: err.message });
+    recordFailure();
     return null;
   } finally {
     clearTimeout(timer);
   }
 }
 
-export default { generateComment };
+export default { generateComment, breakerState };

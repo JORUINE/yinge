@@ -2,8 +2,9 @@
  * 人格测评服务
  * 对应接口：P-01 ~ P-07
  */
-import { PersonalityQuestion, PersonalityType, PersonalityResult, Album, AlbumTagVote, Track } from '../../models/index.js';
+import { PersonalityQuestion, PersonalityType, PersonalityResult, Album, AlbumTagVote, Track, User } from '../../models/index.js';
 import { BadRequestError, NotFoundError } from '../../shared/errors.js';
+import config from '../../config/index.js';
 import { parsePagination } from '../../shared/http.js';
 import * as musicService from '../music/music.service.js';
 import {
@@ -303,6 +304,52 @@ export async function getQuestions(resumeIds) {
   };
 }
 
+/** 今日 0 点（服务器本地时间）—— 用于"每日上限"按天计数 */
+function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * 该用户今天还能真调几次千问（≤0 表示今天只能走模板）。
+ * 用 PersonalityResult 里已有的 (userId, createdAt) 索引数，不新建集合、不加字段。
+ */
+async function llmQuotaLeft(userId) {
+  const used = await PersonalityResult.countDocuments({
+    userId,
+    createdAt: { $gte: startOfToday() },
+    aiCommentSource: 'llm',
+  });
+  // ⚠️ 配置段的键叫 `qwen`（不是 `llm`）—— 写错会在提交测评时抛 TypeError，
+  //    而这条路径只在"真去调大模型"时才走到，平时完全测不出来。
+  return Math.max(0, config.qwen.dailyLimit - used);
+}
+
+/**
+ * 找"同用户 + 同类型 + 归一化六维完全一致"的历史解读，用来复用。
+ * ⚠️ 逐个数值键比，**不直接比对象** —— MongoDB 的嵌子文档相等是对键序敏感的，
+ *    而 norm 的键序取决于构建顺序，直接比会偶发不命中（等于白写）。
+ */
+async function findReusableComment(userId, typeCode, norm) {
+  const recent = await PersonalityResult.find({
+    userId,
+    typeCode,
+    aiCommentSource: 'llm',
+  })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .select('aiComment scores');
+  const keys = Object.keys(norm || {});
+  if (!keys.length) return null;
+  for (const r of recent) {
+    const n = r.scores && r.scores._norm;
+    if (!n || typeof n !== 'object') continue;
+    if (keys.every((k) => Number(n[k]) === Number(norm[k]))) return r.aiComment;
+  }
+  return null;
+}
+
 /**
  * 提交作答
  * ------------------------------------------------------------
@@ -344,14 +391,36 @@ export async function submit(userId, answers) {
   const matched = matchedInfo.type;
   const display = toDisplayDims(norm);
 
-  // AI 解读：用归一化后的 6 维（比原始分更能说明"你在哪一维突出"）；失败静默降级
-  let aiComment = await generateComment({
-    typeName: matched.name,
-    description: matched.description,
-    scores: norm,
-    nickname: null,
-  });
-  let source = 'llm';
+  // ── AI 解读：三道闸（2026-10-14 第三十九批 · 开放给公众前必须补）────────────
+  // 背景：这个接口只受全局 300 请求/分钟 限流，而**每一次提交都会真的去调千问**。
+  //   有人循环打它，会把免费 token 额度吃光，然后所有真人用户都降级成模板文案
+  //   —— 功能看起来"坏了"，其实是被刷爆了。所以调用前先过三道闸：
+  //   闸 1 · 复用：同用户 + 同类型 + 归一化六维完全一致 ⇒ 直接复用上次的解读
+  //           （重测得到同样结果时，解读本来就应该一样，顺手省一次调用）
+  //   闸 2 · 每日上限：每用户每天最多真调 N 次（默认 5），超过走模板（功能不报错）
+  //           （用 PersonalityResult 已有的 (userId, createdAt) 索引数，不新建集合）
+  //   闸 3 · 熔断：在 qwen.client.js 里，连续失败就断开一段时间
+  // ⚠️ 三条都不会让功能报错 —— 最坏情况只是解读变成模板文案，测评照样出结果。
+  let aiComment = null;
+  let source = 'template';
+
+  const reusable = await findReusableComment(userId, matched.code, norm);
+  if (reusable) {
+    aiComment = reusable;
+    source = 'llm';
+  } else if (await llmQuotaLeft(userId) > 0) {
+    // 只有真要去调大模型时才查昵称（省一次无用查询）
+    const user = await User.findById(userId).select('nickname');
+    aiComment = await generateComment({
+      typeName: matched.name,
+      description: matched.description,
+      scores: norm,
+      // 传昵称 ⇒ 解读里能直接称呼用户，这才是"定制化人格"该有的样子
+      nickname: user?.nickname || null,
+    });
+    if (aiComment) source = 'llm';
+  }
+
   if (!aiComment) {
     aiComment = buildTemplateComment({
       typeName: matched.name,

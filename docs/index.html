@@ -192,18 +192,21 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-14（<b>第三十九批 · 部署准备</b>：你选了「先部署上云」——
-      我把能替你做的全做完了：<b>后端查清一行代码都不用改</b>（PORT/CORS 全是环境变量、无磁盘写入、无硬编码 localhost）；
-      <b>数据迁移脚本写好并真跑通</b>（45064 条 / 14 个集合 / 条条一致 / 外键抽检 5 条全中）；
-      <b>云环境行为逐条实测</b>（/health 200、/ready 200 或 503、缺密钥 fail fast、CORS 预检分正反）；
-      <b>《部署执行手册》写好了</b>（四步 + 10 条排错表 + 11 条验收清单）。
-      <b>只剩三件事只能你本人做：注册 Atlas / Render / Vercel、授权 GitHub、点最后几下部署。</b><br>
-      新页 <code>docs/部署执行手册.html</code>（四步 + 环境变量对照表 + 10 条排错表 + 11 条验收清单）；
-      数据迁移脚本 <code>backend/scripts/migrate-to-atlas.mjs</code>（默认只读演练、非空拒绝覆盖、保留 _id、写后核对）；
-      前端托管配置 <code>frontend/vercel.json</code>（SPA 路由兜底 + 资源长效缓存）。<br>
-      上一轮（10-14 第三十八批之后）：全量盘点 + 排期 —— 代码主线已全部收尾（70 个后端路由 / 21 个页面全通），
-      剩余代码项全是 P2、不挡答辩；真正卡着毕业的是<b>部署上云、演示视频、论文正文</b>这三件 0% 的事。
-      新页 <code>docs/项目进度与排期.html</code>。<br>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-14（<b>第三十九批 · 续二</b>：千问三道闸真机验证 + 部署全家桶 + 阿里云连号操作单 ——
+      方向已一起定：<b>路线 D（香港先上 + 备案同步办）+ 阿里云</b>（国内用户访问 Vercel/Render 经常慢甚至打不开，
+      而 ICP 备案有 7~20 个工作日不可压缩的等待，两边并行才不浪费时间）。
+      ① <b>千问三道闸</b>（每日上限 / 结果复用 / 熔断）已用<b>自己数被调次数的假 DashScope</b> 真机验证，13 项断言全绿
+      —— 这是开放给公众前必须补的窟窿：接口被刷爆后所有真人用户都会降级成模板文案；
+      ② <b>部署全家桶</b>：<code>deploy/nginx.conf</code>、<code>deploy/ecosystem.config.cjs</code>（PM2 守护）、
+      <code>deploy/deploy.sh</code>（一键部署）、<code>.github/workflows/deploy.yml</code>（<b>push 即自动上线</b>）
+      —— 正面回答"功能没做完就上线，以后怎么更新"；
+      ③ <b>《阿里云连号操作单》</b>：从实名认证一路写到提交 ICP 备案，含三个最常见的驳回原因。<br>
+      此前的部署准备也都已完成并真机验证：<code>backend/scripts/migrate-to-atlas.mjs</code>（数据迁移，
+      默认只读演练、非空拒绝覆盖、保留 _id，实测搬 <b>45064</b> 条、14 个集合条条一致、外键抽检 5 条全中）；
+      <code>docs/部署执行手册.html</code>（四步 + 环境变量对照表 + 10 条排错表 + 11 条验收清单）；
+      <code>frontend/vercel.json</code>（SPA 路由兜底 + 资源长效缓存）。<br>
+      上一轮（10-14 第三十九批）：摸清国内云真实门槛（ICP 备案硬约束）+ 查当日价格 +
+      新建《服务器选型与执行路线》《项目进度与排期》。<br>
       上一轮（10-11 第三十八批 · 续）：竖版晋级图换成「清单版」· 横版原样不动 · 同输入 A/B 验通 ——
       ① <b>竖版 = 「一轮一块、每场一行」清单版</b>（你拍板选「乙」）：新建 <code>frontend/src/components/BracketListView.vue</code>；
       <code>BracketTree.vue</code> 里 <code>dir==='v'</code> 走清单版，<code>dir==='h'</code> <b>仍走原来那棵树</b>（<code>BracketNode</code> 这个组件一字未改）。

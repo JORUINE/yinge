@@ -1,0 +1,205 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 阿里云连号操作单（实名 → 学生认证 → 买机 → 备案）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:880px;opacity:.94}
+  .pre{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .pre span{background:rgba(255,255,255,.9);border-radius:99px;padding:5px 13px;font-size:12.5px;font-weight:700;color:#0369A1}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:24px;height:24px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .warn{background:#fff8ec;border-left-color:#e08700}
+  .good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .bad{background:#fdeaea;border-left-color:#c0392b}
+  ol.steps{margin:8px 0 0;padding-left:0;list-style:none;counter-reset:s}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 36px;border-left:2px solid #dbeaf6;margin-left:12px}
+  ol.steps>li:last-child{border-left:2px solid transparent;padding-bottom:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:-13px;top:-2px;width:25px;height:25px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  ol.steps>li b{color:#0369A1}
+  ol.steps>li .d{font-size:13.5px;color:#46647E;margin-top:3px}
+  ol.steps>li .fill{font-size:13px;color:#0B2A42;background:#f4faff;border:1px dashed #a9d6f2;border-radius:8px;padding:6px 10px;margin-top:6px}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:4px 0;font-size:13.5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .kv{display:grid;grid-template-columns:132px 1fr;gap:4px 12px;font-size:13.5px;margin-top:6px}
+  .kv dt{color:#0369A1;font-weight:700}
+  .kv dd{margin:0}
+  .blank{display:inline-block;min-width:210px;border-bottom:1px dashed #7d97ab;color:#7d97ab}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  @media(max-width:900px){.two{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+  <span class="tag">阿里云连号操作单 · 2026-10-14 · 你说"我也没有做过，也不太懂"</span>
+  <h1>照着点，就能把音格放上互联网</h1>
+  <p>你已经有阿里云账号但<b>还没实名</b>。这份单子从实名开始，一路到<b>提交备案</b>，每一步写清了"点什么、填什么、怎么算成功"。
+  全程大概分两个晚上：第一晚实名+领券+买机器，第二晚备案填报。</p>
+  <div class="pre">
+    <span>① 实名认证</span><span>② 学生认证领 300 元</span><span>③ 买香港机器（先让人玩）</span>
+    <span>④ 买国内机器 + 域名</span><span>⑤ 提交 ICP 备案</span><span>⑥ 接上千问</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="note warn"><b>先记住三条，能省掉你80%的返工：</b>
+  <br>① <b>实名信息必须全程一致</b> —— 身份证上的姓名，就是备案主体、域名实名、服务器购买要用同一个名字，错一个字就得重新提交。
+  <br>② <b>密码别用特殊字符</b> —— 数据库密码若含 <code>@ # / ? :</code>，写进连接串会直接被截断，表现为"连不上但看不出原因"。
+  <br>③ <b>备案期间网站必须是关着的</b> —— 审核时打不开没关系，通过了才会放行；提前解析反而可能被驳回。</div>
+</div>
+
+<h2><span class="n">1</span>实名认证（第一晚，约 15 分钟）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>登录阿里云</b>
+      <div class="d">打开 <code>aliyun.com</code>，用你已有的账号登录。鼠标移到右上角头像 → <b>实名认证</b>。</div></li>
+    <li><b>选"个人"类型</b>
+      <div class="d">选<b>个人支付宝授权认证</b>最快（扫个码），或者<b>身份证照片认证</b>（传正反面 + 人脸）。
+      <br>⚠️ 你是学生、没有营业执照，<b>一定选"个人"</b>，别选企业。</div></li>
+    <li><b>等审核</b>
+      <div class="d">支付宝授权方式通常几分钟就好；身份证方式一般当天。</div></li>
+  </ol>
+  <div class="note"><b>怎么算成功：</b>右上角头像点开，显示"已实名认证"。</div>
+</div>
+
+<h2><span class="n">2</span>学生认证 + 领 300 元抵扣金（约 10 分钟）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>进学生专区</b>
+      <div class="d">打开 <code>university.aliyun.com</code>（阿里云"云工开物"），点<b>高校学生实名认证</b>。</div></li>
+    <li><b>填学籍信息</b>
+      <div class="d">学校选<b>四川电影电视学院</b>、学历选本科、入学年份按你实际填，通常还要传<b>学生证或学信网截图</b>。</div></li>
+    <li><b>领券</b>
+      <div class="d">认证通过后领 <b>300 元无门槛抵扣金</b>（1 年内有效）。
+      <br>另外页面里有个<b>「毕业设计 · 一包管到底」</b>：339 元得 850 元 ECS 额度（可叠 300 元学生券）——
+      如果你打算这台机器用满一年，这个更划算；先用免费额度也行，不着急。</div></li>
+  </ol>
+  <div class="note good"><b>怎么算成功：</b>账号里能看到"300 元代金券"（路径：费用 → 卡券管理）。</div>
+  <div class="note"><b>顺手把千问的免费额度也领了：</b>打开 <code>bailian.aliyun.com</code>（阿里云百炼）→ 开通服务 →
+  页面里能领 <b>7000 万+ 免费 tokens</b>。人格解读单次约 300~500 token，等于几乎不要钱。
+  开通后到"API-KEY 管理"新建一个 Key 复制走 —— <b>这个 Key 就是我们要接千问用的东西</b>。</div>
+</div>
+
+<h2><span class="n">3</span>第一台机器：香港（先让人玩起来，不等备案）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>进轻量应用服务器购买页</b>
+      <div class="d">控制台搜索<b>轻量应用服务器</b> → 点击<b>创建服务器</b>。</div></li>
+    <li><b>按这个选（照抄即可）</b></li>
+  </ol>
+  <table>
+    <thead><tr><th style="width:150px">选项</th><th>选什么</th><th style="width:110px">为什么</th></tr></thead>
+    <tbody>
+      <tr><td>地域</td><td><b>中国香港</b></td><td>免备案、国内访问快</td></tr>
+      <tr><td>镜像</td><td><b>宝塔 Linux 面板</b>（应用镜像里找）</td><td>装 Nginx/MongoDB 是点鼠标</td></tr>
+      <tr><td>套餐</td><td>最便宜的档（新用户常见 60~100 元/年）</td><td>我们数据只有 18MB</td></tr>
+      <tr><td>系统盘</td><td>默认（40GB 以上）</td><td>够</td></tr>
+      <tr><td>购买时长</td><td>1 个月先试，顺手再买一年</td><td>先确认好用</td></tr>
+    </tbody>
+  </table>
+  <ol class="steps" style="counter-reset:s 5">
+    <li><b>付费，等 1~3 分钟</b>
+      <div class="d">在"服务器列表"里能看到状态变成<b>运行中</b>，记下<b>公网 IP</b>。</div></li>
+    <li><b>放行端口</b>
+      <div class="d">服务器详情 → <b>防火墙</b> → 添加规则：放行 <code>80</code>、<code>443</code>、<code>8080</code>、<code>3000</code>。
+      <br>⚠️ 不放行的话，外面打不开，而且不会有任何提示。</div></li>
+  </ol>
+  <div class="note good"><b>怎么算成功：</b>浏览器打开 <code>http://你的公网IP:8080</code>，能看到宝塔面板的登录页。
+  到这步先停手，把 IP 记在下面，等我把部署脚本跑通再继续。</div>
+  <div class="kv">
+    <dt>香港机器 IP</dt><dd><span class="blank">__________________________</span></dd>
+    <dt>宝塔面板入口</dt><dd><span class="blank">http://________________:8888</span></dd>
+    <dt>千问 API-Key</dt><dd><span class="blank">sk-________________________</span></dd>
+  </div>
+</div>
+
+<h2><span class="n">4</span>第二台机器 + 域名（备案用，可与第 3 步同晚做）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>买国内轻量服务器</b>
+      <div class="d">同样进轻量应用服务器购买页，这次地域选<b>华东/华南任意国内节点</b>（别选香港），
+      镜像照样选<b>宝塔面板</b>，套餐选最便宜的（新用户常见 38~99 元/年）。
+      <br>⚠️ <b>国内节点时长 ≥3 个月才能办备案</b> —— 所以这台建议直接买一年。</div></li>
+    <li><b>买域名</b>
+      <div class="d">控制台搜索<b>域名注册</b>，搜一个你喜欢的名字。<code>.cn</code> 约 29 元/年、<code>.com</code> 约 55~75 元/年。
+      <br>⚠️ 域名买完要<b>实名认证</b>（用同一个身份证），通常几小时过。</div></li>
+    <li><b>先别解析</b>
+      <div class="d">域名先挂着，<b>等备案通过再解析到服务器</b>。提前解析会被监测到未备案而阻断。</div></li>
+  </ol>
+  <div class="kv">
+    <dt>国内机器 IP</dt><dd><span class="blank">__________________________</span></dd>
+    <dt>域名</dt><dd><span class="blank">____________.______</span></dd>
+  </div>
+</div>
+
+<h2><span class="n">5</span>提交 ICP 备案（关键路径，越早越好）</h2>
+<div class="card">
+  <div class="note bad"><b>这是整条路线上唯一"花钱也买不到速度"的环节：管局审核 7~20 个工作日</b>
+  （北京/上海/广东可能 20~30 天）。所以第 4 步买完国内机器，<b>当晚就把备案提交掉</b>，然后该干嘛干嘛。</div>
+  <ol class="steps">
+    <li><b>进备案系统</b>
+      <div class="d">打开 <code>beian.aliyun.com</code> → 用买了国内服务器的那个阿里云账号登录 → <b>开始备案</b>。</div></li>
+    <li><b>填主体信息（个人）</b>
+      <div class="d">主办者性质选<b>个人</b>；证件类型选身份证；姓名/证件号按身份证填；
+      <b>通信地址</b>要详细到门牌号（能收到快递的地址）。</div></li>
+    <li><b>填网站信息</b>
+      <div class="d">网站名称：<b>别用"中国""中华""音乐"这类可能被要求前置审批的词</b>，
+      用「音格 · 个人音乐作品」这类描述性名字最稳；服务内容选<b>个人/非经营性</b>；
+      域名填你刚买的那个。</div></li>
+    <li><b>上传材料 + 人脸核验</b>
+      <div class="d">身份证正反面、<b>网站负责人当面核验照</b>（用阿里云 APP 或它的网页拍照，按提示做动作）、
+      部分地区要<b>幕布背景照</b>（按页面提示办，现在多数省份已改成手机 APP 人脸识别，不用买幕布）。</div></li>
+    <li><b>阿里云初审（1~2 个工作日）</b>
+      <div class="d">会有<b>人工电话核验</b>，问你"这个网站是不是你本人的、做什么用"——
+      照实说"个人毕业设计作品，音乐主题的互动网页"就行。⚠️ <b>这个电话一定要接</b>，漏接会被退回。</div></li>
+    <li><b>工信部短信核验（24 小时内）</b>
+      <div class="d">会收到一条带验证码的短信，<b>24 小时内必须按短信里的链接回去确认</b>，超时自动退回。</div></li>
+    <li><b>管局审核（7~20 个工作日）</b>
+      <div class="d">这期间什么都做不了，等。可以在 <code>beian.aliyun.com</code> 查进度。</div></li>
+    <li><b>备案成功</b>
+      <div class="d">拿到备案号（形如 <code>粤ICP备2026XXXXXX号</code>）。<b>把备案号挂在网站页脚</b>
+      （我加到前端页脚，你告诉我是哪个号就行），然后才能把域名解析到国内服务器、开放访问。</div></li>
+  </ol>
+  <div class="note warn"><b>最常见的三个驳回原因（避开就能一次过）：</b>
+  ① 网站名称太"大"（含中国/中华/最/第一这类词）→ 用描述性名字；
+  ② 地址不详细 → 写到门牌号；
+  ③ 电话没接 / 短信超时 → 保持手机畅通。</div>
+</div>
+
+<h2><span class="n">6</span>备案下来之前，我们在干什么</h2>
+<div class="card">
+  <div class="two">
+    <div>
+      <b style="color:#0369A1">已经做完的（代码侧）</b>
+      <ul>
+        <li>千问三道闸：每日上限、结果复用、连续失败熔断 —— <b>已真机验证</b></li>
+        <li>解读会带上你的昵称（这才是"定制化"）</li>
+        <li>部署全家桶：Nginx 配置、PM2 守护、一键部署脚本、push 自动部署</li>
+        <li>数据库迁移脚本：默认只读演练、非空拒绝覆盖、保留外键</li>
+      </ul>
+    </div>
+    <div>
+      <b style="color:#c0392b">等你给一样东西就能接上千问</b>
+      <ul>
+        <li>第 2 步在百炼拿到的 <b>API-Key</b></li>
+        <li>拿到后发我，我改完会先本地真机跑一遍再提交</li>
+        <li>不填也能跑（自动走模板文案），只是没那么个性化</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note good"><b>所以现在的时间线是：</b>你去实名/领券/买机器/提备案（两个晚上），
+  我同时把深色模式、响应式 375/768/1024/1440 逐页验收、剩余小功能做完。
+  备案一通过，当晚就能把域名解析上去正式开放。</div>
+</div>
+
+<div class="foot">音格 · 阿里云连号操作单 · 2026-10-14 · 与《部署执行手册》《服务器选型与执行路线》配套 · 价格以官网当日活动为准</div>
+</div></body></html>

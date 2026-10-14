@@ -64,6 +64,24 @@ export const config = {
     apiKey: optional('DASHSCOPE_API_KEY', ''),
     model: optional('QWEN_MODEL', 'qwen-plus'),
     baseUrl: optional('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1'),
+    /**
+     * 大模型调用的三道闸（2026-10-14 第三十九批 · 开放给公众前必须补）
+     * ------------------------------------------------------------
+     * 背景：`POST /personality/submit` 只受全局 300 请求/分钟 限流，
+     * 没有针对"每一次都会真调千问"的配额。有人循环打这个接口，
+     * 会把免费 token 额度瞬间吃光，然后**所有真人用户都降级成模板文案**
+     * —— 功能看起来"坏了"，其实是被刷爆了。
+     *
+     * ① dailyLimit：每用户每天最多真调几次，超过走模板（功能不报错）。
+     *    用 PersonalityResult 里已有的 (userId, createdAt) 索引数，不新建集合。
+     * ② circuitThreshold / circuitCooldownMs：连续失败这么多次就熔断这么久，
+     *    避免厂商故障时把请求全堵死、继续白烧配额。
+     * ③ 「同用户 + 同类型 + 归一化六维完全一致」直接复用上次解读
+     *    （见 personality.service.js，重测得到同样结果时解读本来就应该一样）。
+     */
+    dailyLimit: intEnv('LLM_DAILY_LIMIT', 5),
+    circuitThreshold: intEnv('LLM_CIRCUIT_THRESHOLD', 3),
+    circuitCooldownMs: intEnv('LLM_CIRCUIT_COOLDOWN_MS', 10 * 60 * 1000),
   },
 
   itunes: {

@@ -1,0 +1,48 @@
+# 音格 · 自动部署（push 即上线）
+# ------------------------------------------------------------------
+# 触发条件：main 分支被 push（或手动点 Actions 页面的 Run workflow）。
+# 干什么：SSH 登上你的服务器，执行 `bash deploy/deploy.sh`
+#   （拉代码 → 装依赖 → 重建前端 → pm2 无缝重启后端 → 自检 /health /ready）。
+#
+# 要配的三个 Secret（仓库页面 → Settings → Secrets and variables → Actions → New repository secret）：
+#   SSH_HOST  服务器公网 IP
+#   SSH_USER  登录用户名（阿里云轻量默认 root；腾讯云轻量默认 root 或 lighthouse）
+#   SSH_KEY   **私钥**全文。生成方式见下。
+#
+# 生成部署专用密钥（在你电脑的 Git Bash 里跑）：
+#   ssh-keygen -t ed25519 -f ~/.ssh/yinge_deploy -N "" -C "yinge-deploy"
+# 然后把**公钥**内容追加到服务器的授权文件里：
+#   cat ~/.ssh/yinge_deploy.pub >> ~/.ssh/authorized_keys      # 在服务器上执行
+# 最后把**私钥**（cat ~/.ssh/yinge_deploy 的全文，含首尾行）粘成 SSH_KEY。
+#
+# ⚠️ 私钥只会出现一次，粘进 Secret 后本地文件可以留着备用（别提交进仓库）。
+# ⚠️ 这套流程只解决"自动跑部署脚本"，不替代阿里云安全组 / 防火墙放行 80 端口。
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}          # 允许在 Actions 页面手动点一次
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false      # 不取消：两个部署并发跑会互相踩
+
+jobs:
+  deploy:
+    name: 部署到阿里云/腾讯云服务器
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码（用于确认提交信息）
+        uses: actions/checkout@v4
+
+      - name: 连上服务器执行部署脚本
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/yinge
+            bash deploy/deploy.sh
