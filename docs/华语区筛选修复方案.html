@@ -1,0 +1,212 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 华语区筛选修复方案（等你批准）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1140px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:900px;opacity:.94}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:24px;height:24px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .warn{background:#fff8ec;border-left-color:#e08700}
+  .good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .bad{background:#fdeaea;border-left-color:#c0392b}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:4px 0;font-size:13.5px}
+  .x{color:#c0392b;font-weight:800}
+  .v{color:#0f8a4a;font-weight:800}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:13.5px}
+  .flow span{background:#f4faff;border:1px solid #dbeaf6;border-radius:8px;padding:5px 11px}
+  .flow i{color:#7d97ab;font-style:normal;font-weight:700}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .p0{background:#fdeaea;color:#c0392b}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  @media(max-width:900px){.two{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+  <span class="tag">华语区筛选修复方案 · 2026-10-14 · 等你批准才动代码</span>
+  <h1>华语区为什么会混进欧美歌手 —— 根因 + 两个修法</h1>
+  <p>你用截图复现了，我把它挖到了底：<b>不是筛选逻辑写错，是"语种判定"把港区返回的中文译名当成了华语。</b>
+  根因已用库内原始数据钉死，修法也验证过会不会误伤真华语。下面全部是方案，<b>一行代码都还没动</b>。</p>
+</div>
+
+<h2><span class="n">1</span>根因：iTunes 港区的「中文译名联合署名」被当成了华语</h2>
+<div class="card">
+  <div class="note bad"><b>你截图里那 4 张专辑，我从库里挖出了它们的真实归属：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:250px">专辑（截图里显示的）</th><th>库里的 artist 记录</th><th style="width:100px">流派</th><th style="width:70px">判定</th></tr></thead>
+    <tbody>
+      <tr><td>A Love Letter To The Army</td><td><b>Michael Bublé &amp; 平克勞斯貝</b><br><span style="font-size:12px;color:#46647E">= Michael Bublé &amp; Bing Crosby</span></td><td>節慶</td><td class="x">✗ 判成华语</td></tr>
+      <tr><td>In Waves Radio Presents…</td><td><b>吉爾史考特海隆 &amp; Jamie xx</b><br><span style="font-size:12px;color:#46647E">= Gil Scott-Heron &amp; Jamie xx</span></td><td>電子音樂</td><td class="x">✗ 判成华语</td></tr>
+    </tbody>
+  </table>
+  这两条是**铁证** —— 就是你截图里「平克勞斯貝」和「Jamie xx」的来源。</div>
+
+  <b>出问题的规则（<code>src/data/languageTag.js</code> 的 <code>languageTagOf</code>）：</b>
+  <div class="flow">
+    <span>① 看流派标签</span><i>→</i>
+    <span>② 看名字表（NAME_LANG）</span><i>→</i>
+    <span style="background:#fdeaea;border-color:#f5b7b1"><b>③ 名字含汉字 ⇒ 直接判华语</b></span><i>→</i>
+    <span>④ 拉丁名才看地区</span>
+  </div>
+  <div class="note">第 ③ 步的本意是好的（汉字名 → 华语，覆盖绝大多数情况）。
+  但 iTunes 港区会给欧美艺人**配上中文译名**，尤其是合作署名 ——
+  「Michael Bublé &amp; 平克勞斯貝」「Queen &amp; 亞當藍伯特」「Lady Gaga &amp; 畢烈谷巴」。
+  这些名字里有汉字 ⇒ 被判华语 ⇒ 顺利通过「华语区」筛选。</div>
+
+  <b>污染面有多大（全库实测）：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th>项</th><th>数字</th></tr></thead>
+    <tbody>
+      <tr><td>库里"名字中英混排"的歌手</td><td><b>36 位</b></td></tr>
+      <tr><td>其中**真欧美、会被误判成华语**的</td><td><b>约 17~21 位</b>（如 Lady Gaga &amp; 畢烈谷巴、Queen &amp; 亞當藍伯特、Michael Bublé &amp; 平克勞斯貝、馬友友 &amp; Kathryn Stott、Pat Metheny &amp; 克羅諾斯四重奏、Tony Bennett &amp; 戴安娜克瑞兒…）</td></tr>
+      <tr><td>用户参数（2025-2026 · 华语区 · 48 张）实测池内</td><td>48 位里<b>检出 6 位真欧美</b>（Michael Bublé &amp; 平克勞斯貝 / 吉爾史考特海隆 &amp; Jamie xx / Lady Gaga &amp; 畢烈谷巴 / Queen &amp; 亞當藍伯特 / 樂洛伊小子 &amp; Justin Bieber / John Legend…）</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">2</span>⚠️ 我上一轮为什么说"没复现"——我的探针犯了循环论证</h2>
+<div class="card">
+  <div class="note warn"><b>我上轮的诊断脚本是这么写的：</b>
+  <code>if (languageTagOf(artist) !== 'mandarin' &amp;&amp; !== 'cantonese') 记为漏筛</code>。<br>
+  <b>而 <code>languageTagOf</code> 正是被怀疑的那条规则本身。</b>
+  ⇒ 这些欧美歌手被它判成 <code>mandarin</code>，于是我的脚本认为"它们是华语、没漏筛"。
+  <b>拿嫌疑规则当裁判，必然查不出问题。</b>这和本项目栽过的"用错指标＝白测"是同一类错误，
+  只是这次更隐蔽：**判据不是写错了，而是"太可信"了**。<br><br>
+  <b>这轮换了独立判据</b>：不看语言标签，直接把池内 48 个歌手名打出来、标出含拉丁字母的 —— 污染立刻现形。
+  <b>教训已记进项目备忘：验证"分类是否正确"时，不能用被验证的那个分类器当裁判。</b></div>
+</div>
+
+<h2><span class="n">3</span>修法 A：改语种判定（核心修复）</h2>
+<div class="card">
+  <b>提案规则（只动第 ③ 步，前两步与第 ④ 步不变）：</b>
+  <div class="flow">
+    <span>名字含汉字 且 <b>不含拉丁字母</b></span><i>→</i><span class="v">判华语（不变）</span>
+  </div>
+  <div class="flow">
+    <span>名字含汉字 且 <b>含拉丁字母</b>（中英混排）</span><i>→</i>
+    <span>看流派：带「華語 / 國語 / 粵語 / 廣東歌 / 香港流行」标记</span><i>→</i><span class="v">判华语</span>
+  </div>
+  <div class="flow">
+    <span style="padding-left:118px">└ 没有华语标记</span><i>→</i><span class="x">按拉丁名处理（判西方/日韩）</span>
+  </div>
+  <div class="note good"><b>已在全库上模拟跑过（36 位中英混排歌手）：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:110px">结果</th><th style="width:60px">人数</th><th>例子</th></tr></thead>
+    <tbody>
+      <tr><td class="v">修正为西方</td><td>21 位</td><td>Michael Bublé &amp; 平克勞斯貝、吉爾史考特海隆 &amp; Jamie xx、Queen &amp; 亞當藍伯特、Lady Gaga &amp; 畢烈谷巴、馬友友 &amp; Kathryn Stott、Pat Metheny &amp; 克羅諾斯四重奏</td></tr>
+      <tr><td class="v">仍判华语（正确保住）</td><td>15 位</td><td>JOLIN蔡依林、MC 張天賦、頑童MJ116、艾志恆Asen、徐夢圓 &amp; 楊和蘇KeyNG、Anson Lo 盧瀚霆、陳零九 &amp; 邱鋒澤、那吾克熱-NW</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note bad"><b>⚠️ 但会误伤 4 位真华语，必须一并补救：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:250px">被误伤</th><th>流派</th><th>真实身份</th></tr></thead>
+    <tbody>
+      <tr><td>布瑞吉Bridge</td><td>饒舌</td><td>中国说唱歌手</td></tr>
+      <tr><td>Know Know &amp; AR劉夫陽</td><td>Hip-Hop/Rap</td><td>中国说唱歌手（KnowKnow 是 Higher Brothers 成员）</td></tr>
+      <tr><td>NINEONE趙馨玥</td><td>Hip-Hop/Rap</td><td>中国说唱女歌手（乃万）</td></tr>
+      <tr><td>落日飛車 Sunset Rollercoaster</td><td>成人當代</td><td>中国台湾乐队</td></tr>
+    </tbody>
+  </table>
+  <b>补救：把这 4 组加进「华语白名单」</b>（白名单优先级最高，进了名单就永远判华语）。
+  这属于<b>加数据、不改逻辑</b>，风险远低于改规则。<br>
+  <span style="font-size:12.5px">说明：`Hip-Hop/Rap` 这个流派在库里既有华语说唱（高爾宣、熊仔、KnowKnow）也有欧美，
+  本身分不开，所以只能靠白名单兜。这不是取巧 —— 项目 2026-09-23 就定过口径「流派 = 白名单这一册人」，同一套思路。</span></div>
+</div>
+
+<h2><span class="n">4</span>修法 B：「全部语种」的文案与交互（你说的歧义）</h2>
+<div class="card">
+  <div class="note"><b>你的原话：</b>"我明明选择的是华语、华语区全部语种，按照用户的理解，应该就是只会出现中文专辑，可以有粤语，
+  但你这个确实有点歧义，<b>全部语种</b>看起来有点像会是、会不会有英语，所以必须要做优化。"</div>
+  <b>问题在于这个按钮组的两层含义没说清：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:120px">第一层「地区」</th><th style="width:200px">第二层「语种」</th><th>实际行为</th><th style="width:130px">用户现在会怎么想</th></tr></thead>
+    <tbody>
+      <tr><td>不限</td><td>（灰掉）</td><td>全部混着打</td><td>清楚</td></tr>
+      <tr><td rowspan="3">华语区</td><td><b>全部语种</b>（默认选中）</td><td class="v">只要华语（国语 + 粤语）交替均衡</td><td class="x">"全部语种"是不是含英语？</td></tr>
+      <tr><td>国语</td><td>只要国语</td><td>清楚</td></tr>
+      <tr><td>粤语</td><td>只要粤语</td><td>清楚</td></tr>
+      <tr><td rowspan="3">外语区</td><td><b>全部语种</b></td><td class="v">只要外语（日/韩/欧美）</td><td class="x">同样的歧义</td></tr>
+      <tr><td>…</td><td>…</td><td>清楚</td></tr>
+    </tbody>
+  </table>
+  <b>建议改法（二选一，我倾向第 1 个）：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:60px">方案</th><th>改什么</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr><td><b>1</b>（推荐）</td><td>把「<b>全部语种</b>」改成「<b>全部华语</b>」/「<b>全部外语</b>」—— 随上面的选择联动变字；<br>
+        下面那行说明改成一句白话：<b>"只出中文专辑（国语 + 粤语），不会混进英文歌"</b></td><td>按钮文字直接说出结果，不再需要用户猜；改动小、不动逻辑</td></tr>
+      <tr><td>2</td><td>保留「全部语种」字样，但在它下面常驻一行小字解释 + 在开始对局的确认处再提示一次</td><td>改动更小，但"全部语种"这四个字本身还在误导</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>顺带确认一件事（避免我理解错你的意思）：</b>你希望"华语区"= <b>只出中文专辑（可含粤语）</b>，
+  这个我已经按这个目标在修法 A 里落实了。如果你其实想要"华语区也能混一点英文合作曲"，
+  那是另一种口径 —— 说一声我改方向。</div>
+</div>
+
+<h2><span class="n">5</span>改动清单与验收标准</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:44px">#</th><th>改什么</th><th style="width:150px">文件</th><th style="width:90px">风险</th><th style="width:90px">工作量</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>语种判定第 ③ 步：中英混排时按流派华语标记决定</td><td><code>src/data/languageTag.js</code></td><td>中（影响面在筛选）</td><td>0.3 天</td></tr>
+      <tr><td>2</td><td>华语白名单补 4 组（补救误伤）</td><td>白名单数据文件 / 后台</td><td>低（只加数据）</td><td>0.1 天</td></tr>
+      <tr><td>3</td><td>「全部语种」→「全部华语 / 全部外语」+ 白话说明</td><td><code>BattleCreateView.vue</code></td><td>低</td><td>0.2 天</td></tr>
+      <tr><td>4</td><td>回归自检（用独立判据，不再用被验证的规则当裁判）</td><td>新增 <code>verify-language-filter.mjs</code></td><td>—</td><td>0.3 天</td></tr>
+      <tr><td colspan="4" style="text-align:right"><b>合计</b></td><td><b>约 0.9 天</b></td></tr>
+    </tbody>
+  </table>
+  <b>验收标准（都能跑出数字）：</b>
+  <ul>
+    <li>用户参数（2025-2026 · 华语区 · 48 张）池内<b>名字含拉丁字母的条目 = 0 个真欧美</b>（Kolor / MC 張天賦 / 頑童MJ116 这类真华语不算）</li>
+    <li>全库 36 位中英混排歌手里，<b>21 位修正为西方、15 位仍判华语</b>；被误伤的 4 组因进白名单仍判华语</li>
+    <li>外语区反向检查：<b>池内华语歌手 = 0</b></li>
+    <li>纯汉字名歌手（周杰倫 / 陳奕迅 / 譚詠麟…）判定<b>一个都不变</b></li>
+    <li>"华语区"下 3 个语种按钮 × "外语区"下 3 个 = 6 种组合逐个复验</li>
+  </ul>
+  <div class="note warn"><b>为什么这一条要你批准：</b>它动的是「语种怎么判」这个底层规则，
+  会影响年代模式与流派模式的取池结果。按项目规矩，<b>底层逻辑由我定稿、但大改动先出方案给你审</b>；
+  而且你刚说过"不能把已经好的东西修坏"，所以我把<b>误伤名单和补救办法</b>都先摆出来了，不藏着。</div>
+</div>
+
+<h2><span class="n">6</span>另外三件事（你的原话，我记下了）</h2>
+<div class="card">
+  <div class="two">
+    <div>
+      <b style="color:#0369A1">① UI 升级 = 把"没做对的地方"修掉</b>
+      <ul>
+        <li>你的原话：<b>"其实就是把之前一些没有对的设计的地方给它修复掉。目前整体的 UI 其实还是可以的，就是毛玻璃质感和我要的那种音乐海洋的质感"</b></li>
+        <li>⇒ 所以 <b>UI 升级不是重做，是"修不对的 + 补深色模式"</b>。方向记下了：
+        <b>保留并强化毛玻璃 + 音乐海洋调性</b>，不是换一套风格。</li>
+        <li><b>深色模式没加进去</b> —— 这条列入 UI 升级的必做项。</li>
+      </ul>
+    </div>
+    <div>
+      <b style="color:#0369A1">② Edge 闪屏：按你说的搁置</b>
+      <ul>
+        <li>你的情况：隐私模式正常；<b>普通模式把所有扩展禁用了还是有问题</b>；没有第二台机器可对照。</li>
+        <li>⇒ 这排除了"扩展"这一条（我上轮的推论不成立，改口）。
+        剩下的可能是 Edge 自身的硬件加速 / 显卡驱动 / WebView2 层。</li>
+        <li><b>按你的决定：搁置</b>，等上线后看真实反馈再定，<b>不再占用排期</b>。</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note bad"><b>③ 你特别强调的一条，我记进项目备忘了：</b>
+  "移动端一定不能再出现这种类似的问题" —— 指的是<b>「界面显示的选择」与「实际出来的结果」不一致</b>这类
+  一眼就能看穿的逻辑错误。所以 T2 移动端的验收里加一条硬判据：
+  <b>每一个筛选/开关控件，都要有"选了什么 → 出了什么"的对应断言</b>，不能只看"页面好不好看"。</div>
+</div>
+
+<div class="foot">音格 · 华语区筛选修复方案 · 2026-10-14 · 诊断脚本可复跑：<code>backend/scripts/diag-language-leak.mjs</code>（另见 <code>diag-pool-filter.mjs</code>）· <b>尚未修改任何代码，等你批准</b></div>
+</div></body></html>

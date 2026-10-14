@@ -55,13 +55,15 @@
   <table>
     <thead><tr><th style="width:44px">#</th><th style="width:150px">事项</th><th>实测结论</th><th style="width:76px">判定</th></tr></thead>
     <tbody>
-      <tr><td>T1</td><td>对决筛选 Bug</td><td><b>症状②「重复匹配同一批歌手」复现且严重。</b>两轮独立验证：<br>
-        · 轮 A（真建 5 局端到端）：5 局华语区 1990-2000，<b>歌手重合 16/16（100%）</b>，只是顺序不同<br>
-        · 轮 B（直调 <code>resolvePool</code> 真函数）：<b>三种模式各连取 5 次，歌手集合全部 100% 相同</b>（32 人），专辑重叠 0%<br>
-        根因同一处：<code>orderBucketsForPool()</code> 只洗了<b>每位歌手内部的专辑</b>，<b>歌手顺序从没洗过</b>。<br>
-        <b>症状①「华语区混入欧美」未复现</b>：轮 A 建 5 局歌手全是张国荣/谭咏麟/张学友；对照组（不传 zone）才出现 ROSALÍA、Fleetwood Mac
-        ⇒ <b>zone 筛选生效</b>。轮 B 加测语言分布：华语区 48 位 = 粤语 33 + 国语 15，<b>零欧美</b>；外语区零华语。
-        另抽查 150 个歌手语种判定，无误判。</td><td><span class="pill p0">真 Bug</span></td></tr>
+      <tr><td>T1</td><td>对决筛选 Bug</td><td><b class="x">症状①② 都复现了，而且根因是同一个。</b>（2026-10-14 晚你截图复现了症状①）<br>
+        · <b>症状①「华语区混入欧美」—— 已复现，根因钉死</b>：iTunes 港区给欧美艺人配了<b>中文译名联合署名</b>，
+        如库里真实记录 <b><code>Michael Bublé &amp; 平克勞斯貝</code></b>（= Michael Bublé &amp; Bing Crosby）、
+        <b><code>吉爾史考特海隆 &amp; Jamie xx</code></b>（= Gil Scott-Heron &amp; Jamie xx，<b>就是你截图里那个 Jamie xx</b>）。
+        而 <code>languageTagOf()</code> 的规则是「<b>名字含汉字 → 直接判华语</b>」⇒ 这些欧美歌手顺利通过华语区筛选。<br>
+        用户参数（2025-2026 · 华语区 · 48 张）实测池内 <b>48 位里检出 6 位真欧美</b>。<br>
+        · <b>症状②「重复匹配同一批歌手」</b>：两轮验证（真建 5 局重合 16/16；直调真函数三种模式各 5 次歌手集合 100% 相同）。
+        根因 <code>orderBucketsForPool()</code> 只洗桶内专辑、没洗桶的集合。<br>
+        ⇒ <b>两个 bug 都要修</b>，方案见《华语区筛选修复方案》。</td><td><span class="pill p0">真 Bug</span></td></tr>
       <tr><td>T2</td><td>移动端适配</td><td><b>实测基本已可用 —— 是"补缺 + 逐页验收"，不是从零做。</b><br>
         · 18 个静态页面 × 375/768/1024 三视口：<b>零横向溢出、零破图、零 &lt;12px 文字</b><br>
         · 375 下<b>真点了一遍</b>：建局 → 投票卡点得动 → 投 11 场到夺冠 → 播放条渲染 → 零 JS 错误<br>
@@ -79,10 +81,16 @@
         <b>关键差异：轻量应用服务器不支持升降配，ECS 支持弹性升配</b> —— 这直接决定"能不能平滑扩容"。</td><td><span class="pill p1">待你拍板</span></td></tr>
     </tbody>
   </table>
-  <div class="note warn"><b>⚠️ 一条判据我自己写错了，说明一下（不影响上面结论）：</b>
-  诊断脚本里我断言"没有『华语地区 + 拉丁名』被误判为欧美"，拿 <code>region=hk</code> 当"华语地区"的证据 —— <b>错了</b>。
-  库里 <code>region</code> 记的是<b>"这条数据从哪个 iTunes 区抓的"</code>，不是歌手国籍</b>：Michael Jackson / Billie Holiday 的 region 都是 <code>hk</code>（从港区抓的），
-  它们被判为欧美<b>是正确的</b>。这条断言已作废。</div>
+  <div class="note warn"><b>⚠️ 一条我自己写错的判据，以及一个更严重的错误：</b><br>
+  <b>(1) 判据错：</b>诊断脚本里我断言"没有『华语地区 + 拉丁名』被误判为欧美"，拿 <code>region=hk</code> 当"华语地区"的证据 —— <b>错了</b>。
+  库里 <code>region</code> 记的是<b>"这条数据从哪个 iTunes 区抓的"</b>，不是歌手国籍：Michael Jackson / Billie Holiday 的 region 都是 <code>hk</code>（从港区抓的），
+  它们被判为欧美<b>是正确的</b>。这条断言已作废。<br>
+  <b>(2) 更严重 —— 循环论证：</b>我上一轮判定"有没有漏筛"用的判据是
+  <code>if (languageTagOf(x) !== 'mandarin') 记为漏筛</code>，而 <code>languageTagOf</code> <b>正是被怀疑的那条规则本身</b>。
+  它把这些欧美歌手判成 <code>mandarin</code>，于是我的脚本认为"没漏筛" ⇒ <b>必然查不出问题</b>。
+  这和"用错指标＝白测"是同一类错误，但更隐蔽：<b>判据不是写错了，而是"太可信"了</b>。<br>
+  这轮改用独立判据（不看语言标签，直接把池内 48 个歌手名打出来标含拉丁字母的），污染立刻现形。
+  <b>规矩：验证"分类是否正确"时，不能用被验证的那个分类器当裁判。</b></div>
 </div>
 
 <h2><span class="n">1</span>任务清单（按优先级排序）</h2>
@@ -125,7 +133,24 @@
 <h2><span class="n">3</span>逐项详情与验收标准</h2>
 
 <div class="task">
-  <h3>T1 · 修对决筛选「重复匹配同一批歌手」<span class="pill p0">P0</span><span class="blk">阻塞上线</span></h3>
+  <h3>T1 · 修对决筛选（两个 Bug：欧美混入 + 重复匹配）<span class="pill p0">P0</span><span class="blk">阻塞上线</span></h3>
+  <div class="meta"><span>工作量 <b>0.9 天</b>（原估 0.5，因多出一个语种判定修复）</span><span>依赖 <b>需你批准方案</b></span><span>风险 <b>中（动语种判定）</b></span></div>
+  <b>Bug ①「华语区混入欧美」—— 你截图复现，根因已钉死：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:250px">专辑</th><th>库里的 artist 记录</th><th style="width:90px">流派</th></tr></thead>
+    <tbody>
+      <tr><td>A Love Letter To The Army</td><td><b>Michael Bublé &amp; 平克勞斯貝</b>（= Bing Crosby）</td><td>節慶</td></tr>
+      <tr><td>In Waves Radio Presents…</td><td><b>吉爾史考特海隆 &amp; Jamie xx</b>（就是你截图那个 Jamie xx）</td><td>電子音樂</td></tr>
+    </tbody>
+  </table>
+  规则 <code>languageTagOf()</code> 第 ③ 步「名字含汉字 → 判华语」把这些港区中文译名署名当成了华语。
+  用户参数实测池内 48 位里检出 <b>6 位真欧美</b>。全库 36 位中英混排歌手中<b>约 17~21 位</b>属此类。
+  <div class="fin"><b>修法与验收：</b>见《华语区筛选修复方案》（含误伤名单与白名单补救）。<br>
+  <b>顺带修文案：</b>「全部语种」→「全部华语 / 全部外语」+ 白话说明"只出中文专辑（国语+粤语），不会混进英文歌"。</div>
+</div>
+
+<div class="task">
+  <h3>T1-b · 修「重复匹配同一批歌手」<span class="pill p0">P0</span><span class="blk">阻塞上线</span></h3>
   <div class="meta"><span>工作量 <b>0.5 天</b></span><span>依赖 <b>无</b></span><span>风险 <b>低（改 3 行）</b></span></div>
   <b>实测证据（两轮独立验证）：</b>
   <table style="margin-top:6px">
