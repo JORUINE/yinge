@@ -1,0 +1,348 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 阿里云上线全流程手册（选机 / 备案 / 登服务器 / 部署 / 域名 / HTTPS）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1140px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:880px;opacity:.94}
+  .verdict{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin:16px 0}
+  .verdict .q{font-size:15px;font-weight:800;color:#0369A1;margin-bottom:6px}
+  .verdict .a{font-size:15px;color:#0B2A42}
+  .verdict .a b{color:#0f8a4a}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:24px;height:24px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  pre{background:#0B2A42;color:#dbeafe;border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.65;margin:8px 0}
+  pre .c{color:#7dd3fc}
+  pre .g{color:#86efac}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .warn{background:#fff8ec;border-left-color:#e08700}
+  .good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .bad{background:#fdeaea;border-left-color:#c0392b}
+  ol.steps{margin:8px 0 0;padding-left:0;list-style:none;counter-reset:s}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 14px 36px;border-left:2px solid #dbeaf6;margin-left:12px}
+  ol.steps>li:last-child{border-left:2px solid transparent;padding-bottom:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:-13px;top:-2px;width:25px;height:25px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  ol.steps>li b{color:#0369A1}
+  ol.steps>li .d{font-size:13.5px;color:#46647E;margin-top:3px}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:4px 0;font-size:13.5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:10px}
+  .three .c{border:1px solid #dbeaf6;border-radius:12px;padding:12px 13px;background:#fff}
+  .three .c b{display:block;font-size:13.5px;color:#0369A1;margin-bottom:4px}
+  .three .c span{font-size:12.5px;color:#46647E;line-height:1.5}
+  .blank{display:inline-block;min-width:200px;border-bottom:1px dashed #7d97ab;color:#7d97ab}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .must{background:#fdeaea;color:#c0392b}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  .mid{background:#fff3e0;color:#b06a00}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  @media(max-width:900px){.two,.three{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+  <span class="tag">阿里云上线全流程手册 · 2026-10-14 · 从选机器到 HTTPS 全覆盖</span>
+  <h1>没做过部署也能照着走完</h1>
+  <p>这份比《连号操作单》更细：<b>选服务器怎么选、备案每步填什么、怎么登上服务器（你没用过 SSH 也写得看得懂）、
+  怎么装环境、怎么把音格放上去、域名怎么解析、HTTPS 怎么开</b>。九章，按顺序做。</p>
+</div>
+
+<div class="verdict">
+  <div class="q">先回答你问的那个我没答好的问题：「还没做的玩法、UI 修复，是先部署还是先修好再部署？」</div>
+  <div class="a">
+    <b>先部署，修复滚动跟上。</b>理由是三条，都不是"图省事"：<br>
+    ① <b>"修完再上线"是个陷阱</b> —— 没做的玩法 + UI 修复是个<b>开放清单</b>（7 个 P2 小项 + 深色模式 + 响应式逐页验收），
+    永远还有下一项。等"全部做完"的那天永远不会来。<br>
+    ② <b>现在部署的成本接近零</b> —— 已经有 <code>push → 自动部署</code>，你改完推一次，几分钟后线上就是新版。部署不是终点，是起点。<br>
+    ③ <b>备案那 2~5 周不能空着</b> —— 管局审核时间花钱买不到。那段时间网站应该在<b>给人玩</b>，而不是关着等。<br><br>
+    <b>而且我刚才真机量过了：现在就已经达到"敢发链接"的标准。</b>39 项断言全绿 ——
+    注册 → 建局 → 投票 11 场 → 夺冠 → 晋级图导出成 PNG（1760×1372）→ 测评提交出结果 → 榜单有数据 → 6 型都有推荐专辑；
+    6 个页面 + 375 手机视口<b>零横向溢出、零破图、零 JS 错误</b>。<br><br>
+    <b>所以顺序是：</b>香港机器先上（第 1~7 章）→ 上线后每修一项就 push 一次 → 备案下来迁国内（第 8 章）。
+  </div>
+</div>
+
+<div class="card">
+  <b style="color:#0369A1">附一条你能自己判断的标准（以后每次想上线前都问自己）</b>
+  <div class="three">
+    <div class="c"><b>✅ 可以上线</b><span>主流程走得通（注册→建局→投票→夺冠→分享→测评）；没有白屏/破图/404；文字读得清；手机上能走通。</span></div>
+    <div class="c"><b>❌ 不该上线</b><span>一开局就报错；封面全是破图；分享图存不下来；测评提交失败；手机上页面撑爆。</span></div>
+    <div class="c"><b>💡 不影响上线</b><span>某个锦上添花的小功能没做；某页配色还想再调；某个动画不顺手。<b>这些上线后照样能改。</b></span></div>
+  </div>
+</div>
+
+<h2><span class="n">1</span>选服务器：三个决策，照抄就行</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:130px">决策点</th><th>选什么</th><th style="width:250px">为什么</th></tr></thead>
+    <tbody>
+      <tr><td><b>地域</b></td><td>先买<b>中国香港</b>，再买一台<b>国内</b>（如华东/华南）</td><td>香港免备案、当天能上；国内要备案但速度最快，两台分工</td></tr>
+      <tr><td><b>镜像</b></td><td><b>宝塔 Linux 面板</b>（应用镜像分类里）</td><td>装 Nginx / Node / MongoDB 全是点鼠标，不用记命令</td></tr>
+      <tr><td><b>配置</b></td><td><b>2核2G</b>，系统盘 40GB 以上，带宽/流量选最便宜的档</td><td>实测我们数据才 18MB、后端很轻；2核2G 带 Nginx+Node+Mongo 毫无压力</td></tr>
+      <tr><td>购买时长</td><td>香港先买 1 个月试；<b>国内直接买一年</b></td><td>国内节点时长 ≥3 个月才能办备案</td></tr>
+      <tr><td>数量</td><td>各 1 台</td><td>一台生产一台备案用，不需要集群</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>预算合计约 134 元/年</b>：服务器（阿里云轻量新用户 38~99 元/年）+ 域名（.cn 约 29 元/年）。
+  数据库用服务器上自建的 MongoDB，<b>不用另买云数据库</b>。你有学生认证的 300 元抵扣金，基本等于白嫖。</div>
+  <div class="note warn"><b>下单后立刻做的一件事：放行端口。</b>服务器详情 → <b>防火墙</b> → 添加规则，放行
+  <code>80</code>、<code>443</code>、<code>8888</code>（宝塔面板）、<code>22</code>（SSH）、<code>3000</code>。
+  <b>不放行的话外面打不开，而且不会有任何提示</b> —— 这是新手最常卡住的地方。</div>
+</div>
+
+<h2><span class="n">2</span>登上服务器（你没用过 SSH，从这里看起）</h2>
+<div class="card">
+  <div class="note"><b>两条路，选一条就行。完全不想碰命令行 → 走路 B（网页远程连接）。</b></div>
+  <div class="two">
+    <div>
+      <b style="color:#0369A1">路 A · SSH（推荐，后面部署要用）</b>
+      <ol class="steps">
+        <li><b>拿到 root 密码</b>
+          <div class="d">阿里云控制台 → 轻量服务器 → 你的实例 → <b>重置密码</b>（或查看初始密码）。用户名叫 <code>root</code>。</div></li>
+        <li><b>打开终端</b>
+          <div class="d">Windows 10/11 自带：按 <code>Win</code> 搜 <b>PowerShell</b> 或 <b>终端</b>，打开。</div></li>
+        <li><b>连接</b>
+          <div class="d">输入 <code>ssh root@你的公网IP</code> 回车，第一次问 <code>yes/no</code> 输 <code>yes</code>，
+          然后粘密码。<br>⚠️ <b>输密码时屏幕上一个字都不显示，这是正常的</b>，不是卡住了，输完直接回车。</div></li>
+        <li><b>成功的样子</b>
+          <div class="d">命令行前缀变成 <code>[root@xxx ~]#</code>，这就说明你已经在服务器里了。之后所有命令都在这个窗口里执行。</div></li>
+      </ol>
+    </div>
+    <div>
+      <b style="color:#0369A1">路 B · 网页远程连接（零门槛）</b>
+      <ol class="steps">
+        <li><b>入口</b>
+          <div class="d">阿里云控制台 → 你的实例 → 右上角 <b>远程连接</b> → 选 <b>通过网页 SSH 连接</b>（或 VNC）。</div></li>
+        <li><b>登录</b>
+          <div class="d">用同样的 <code>root</code> + 密码。浏览器里直接开一个黑窗口，效果和 SSH 一样。</div></li>
+        <li><b>注意</b>
+          <div class="d">网页连接<b>粘贴不方便</b>（有的浏览器要 <code>Ctrl+Shift+V</code>），
+          长命令建议先用记事本改好再贴。想长期用还是建议学会路 A，就四步。</div></li>
+      </ol>
+      <div class="note good"><b>已经能登上服务器了？先记下来：</b>
+      <br>公网 IP：<span class="blank">________________</span>
+      <br>root 密码：<span class="blank">________________</span></div>
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">3</span>装环境（宝塔面板，全是点鼠标）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>进宝塔面板</b>
+      <div class="d">浏览器开 <code>http://你的公网IP:8888</code>。如果进不去，先看防火墙有没有放行 8888。
+      <br>⚠️ 刚买的宝塔镜像可能要求你先在阿里云控制台"远程连接"里执行它给的一条命令来初始化面板，按提示做。</div></li>
+    <li><b>装三个软件（面板左侧「软件商店」→ 搜索 → 安装）</b>
+      <div class="d">
+        ① <b>Nginx</b>（选最新稳定版，如 1.24）<br>
+        ② <b>Node.js</b>（版本选 <b>20 或 22</b>，**别选 18**——后端要求 <code>&gt;=20</code>）<br>
+        ③ <b>PM2 管理器</b>（在 Node 分类里，装了它会自动带上 PM2）
+      </div></li>
+    <li><b>装 MongoDB</b>
+      <div class="d">软件商店搜 <b>MongoDB</b>，选 <b>6.0 或 7.0</b> 安装。
+      <br>⚠️ 装完默认只监听 127.0.0.1，<b>这正是我们要的</b>（数据库不该暴露到公网），不要改。</div></li>
+    <li><b>确认版本</b>
+      <div class="d">在 SSH 窗口里跑下面三条，看到版本号就行：</div></li>
+  </ol>
+<pre><span class="c"># 在服务器的 SSH 窗口里执行</span>
+nginx -v          <span class="c"># 应显示 nginx/1.xx</span>
+node -v           <span class="c"># 必须是 v20 或更高</span>
+pm2 -v            <span class="c"># 应显示 5.x</span>
+mongod --version  <span class="c"># 或：mongo --version</span></pre>
+  <div class="note warn"><b>如果 <code>node -v</code> 显示 v18：</b>去宝塔"软件商店 → 已安装"找到 Node，卸载后重装 20+。
+  后端 <code>package.json</code> 里写了 <code>"node": "&gt;=20"</code>，用 18 跑可能莫名报错。</div>
+</div>
+
+<h2><span class="n">4</span>把代码放上服务器</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>clone 仓库</b>
+      <div class="d">在 SSH 窗口里执行（仓库是公开的，不用密码）：</div></li>
+  </ol>
+<pre><span class="c"># 1) 把仓库克隆到 /opt/yinge</span>
+mkdir -p /opt &amp;&amp; cd /opt
+git clone https://github.com/JORUINE/yinge.git
+cd yinge
+
+<span class="c"># 2) 建后端环境变量（密钥只在这里，不会进 git）</span>
+cp backend/.env.example backend/.env</pre>
+  <ol class="steps" style="counter-reset:s 2">
+    <li><b>填 <code>backend/.env</code></b>
+      <div class="d">用宝塔面板左边的<b>「文件」</b>打开 <code>/opt/yinge/backend/.env</code> 编辑（比 vim 好用），按下面填：</div></li>
+  </ol>
+  <table>
+    <thead><tr><th style="width:210px">填什么</th><th>值</th></tr></thead>
+    <tbody>
+      <tr><td><code>NODE_ENV</code></td><td><code>production</code></td></tr>
+      <tr><td><code>MONGODB_URI</code></td><td><code>mongodb://127.0.0.1:27017/yinge</code>（数据库就在本机，不用 Atlas）</td></tr>
+      <tr><td><code>JWT_SECRET</code></td><td><b>新生成的随机串</b>，别用本地那个。生成命令见下</td></tr>
+      <tr><td><code>CORS_ORIGINS</code></td><td>先填 <code>http://你的公网IP</code>；有域名后改成 <code>https://你的域名</code></td></tr>
+      <tr><td><code>DASHSCOPE_API_KEY</code></td><td>有千问 Key 就填；没有就留空（自动走模板文案，功能不报错）</td></tr>
+      <tr><td>其它（ITUNES_* / CACHE_* / VOTE_*）</td><td>用默认值，不用改</td></tr>
+    </tbody>
+  </table>
+<pre><span class="c"># 生成 JWT_SECRET（输出整串复制走）</span>
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"</pre>
+  <div class="note warn"><b>千万不手动加 <code>PORT</code>。</b>部署脚本会通过 PM2 注入 <code>3000</code>，
+  你手写一个反而会冲突。也<b>不要把 <code>.env</code> 提交进 git</b>（仓库的 <code>.gitignore</code> 已经排除了，别手动 <code>git add</code> 它）。</div>
+</div>
+
+<h2><span class="n">5</span>配 Nginx + 首次部署</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>放 Nginx 配置</b>
+      <div class="d">仓库里已经写好了 <code>deploy/nginx.conf</code>，只需改两处路径/域名：</div></li>
+  </ol>
+<pre><span class="c"># 1) 复制配置</span>
+cp /opt/yinge/deploy/nginx.conf /etc/nginx/conf.d/yinge.conf
+
+<span class="c"># 2) 改两处（用宝塔「文件」打开 /etc/nginx/conf.d/yinge.conf）</span>
+<span class="c">#    server_name _;            →  server_name 你的域名;   （没域名就先留着 _）</span>
+<span class="c">#    root /opt/yinge/frontend/dist;  →  按实际路径，通常不用改</span>
+
+<span class="c"># 3) 验语法再重载（不验就 reload，配置写错会让整个 Nginx 起不来）</span>
+nginx -t &amp;&amp; nginx -s reload</pre>
+  <ol class="steps" style="counter-reset:s 2">
+    <li><b>跑一键部署</b>
+      <div class="d">它会自动：拉代码 → 装依赖 → 重建前端 → 启动/重载后端 → 自检。第一次要 2~5 分钟。</div></li>
+  </ol>
+<pre><span class="c"># 在 /opt/yinge 下执行</span>
+cd /opt/yinge
+bash deploy/deploy.sh
+
+<span class="c"># 看到这两行就算成功：</span>
+<span class="g">· /health → {"status":"ok"}</span>
+<span class="g">· /ready  → {"status":"ok","db":"connected"}</span>
+
+<span class="c"># 设为开机自启（服务器重启也不用你管）</span>
+pm2 startup &amp;&amp; pm2 save</pre>
+  <div class="note good"><b>怎么算成功：</b>浏览器打开 <code>http://你的公网IP/</code>，能看到音格首页，点进去能注册、能建局。
+    到这一步，<b>香港机器已经算上线了</b>，链接可以发给人玩了。</div>
+  <div class="note"><b>以后每次更新：</b>你电脑上 <code>git push</code> → 服务器上 <code>bash deploy/deploy.sh</code>（或配了 GitHub Actions 就全自动）。
+    零停机，用户无感。</div>
+</div>
+
+<h2><span class="n">6</span>把数据搬上服务器</h2>
+<div class="card">
+  <div class="note bad"><b>不做这一步，线上就是个空站</b>：能打开、能注册，但一开局就没专辑、测评没题目、榜单是空的。
+  因为服务器上刚装的 MongoDB 是<b>全新的空库</b>，你电脑本地那个才有 45064 条数据。</div>
+  <p style="font-size:13.5px;margin:10px 0 0">在<b>你电脑</b>的 Git Bash 里跑（把引号换成你服务器的 IP）：</p>
+<pre><span class="c"># 先只读演练，看会搬什么</span>
+cd /e/桌面/毕业设计/yinge/backend
+node scripts/migrate-to-atlas.mjs --from "mongodb://127.0.0.1:27017/yinge"
+
+<span class="c"># 确认无误后真搬到服务器（默认只读演练，加 --apply 才写）</span>
+node scripts/migrate-to-atlas.mjs "mongodb://root:你的SSH密码@你的公网IP:27017/yinge" --apply</pre>
+  <div class="note warn"><b>两个坑：</b>① 如果 MongoDB 只监听 127.0.0.1，外网连不上 —— 临时把
+  <code>/etc/mongod.conf</code> 的 <code>bind_ip</code> 改成 <code>0.0.0.0</code>，搬完<b>立刻改回来</b>（数据库暴露在公网很危险）；
+  ② 更稳的做法是<b>在服务器本地跑</b>：把本地数据 <code>mongodump</code> 出来传上去，或用宝塔自带的数据库备份恢复。
+  <b>嫌麻烦就用第一种，但记得搬完把 bind_ip 改回 127.0.0.1 并重启 mongod。</b></div>
+  <div class="note"><b>实测参考：</b>14 个集合、45064 条，脚本会逐个核对条数并做外键抽检
+  （对局 _id、albumIds、userId、冠军专辑、淘汰赛胜方专辑在目标库全能找到才算过）。</div>
+</div>
+
+<h2><span class="n">7</span>域名解析 + HTTPS</h2>
+<div class="card">
+  <div class="two">
+    <div>
+      <b style="color:#0369A1">域名解析（10 分钟，随时可做）</b>
+      <ol class="steps">
+        <li><b>进域名控制台</b>
+          <div class="d">阿里云控制台 → <b>域名</b> → 你的域名 → <b>解析</b>。</div></li>
+        <li><b>加两条 A 记录</b>
+          <div class="d">记录类型 <code>A</code>；主机记录一条填 <code>@</code>、一条填 <code>www</code>；
+          解析值都填<b>服务器公网 IP</b>；TTL 默认。</div></li>
+        <li><b>等生效</b>
+          <div class="d">通常 10 分钟内。生效后 <code>http://你的域名/</code> 能打开。</div></li>
+        <li><b>改 Nginx 与 CORS</b>
+          <div class="d">把 <code>nginx.conf</code> 的 <code>server_name _</code> 改成你的域名，
+          <code>reload</code>；再把 <code>backend/.env</code> 的 <code>CORS_ORIGINS</code> 改成 <code>https://你的域名</code>，
+          然后 <code>pm2 reload yinge-api</code>。</div></li>
+      </ol>
+    </div>
+    <div>
+      <b style="color:#0369A1">HTTPS（备案通过后才能做）</b>
+      <ol class="steps">
+        <li><b>为什么必须等备案</b>
+          <div class="d">中国大陆服务器 + 域名 + 443 端口，<b>没备案会被厂商阻断</b>。</div></li>
+        <li><b>用宝塔一键签证书</b>
+          <div class="d">宝塔面板 → <b>网站</b> → 你的站 → <b>设置</b> → <b>SSL</b> → 选 <b>Let's Encrypt</b> →
+          勾选域名 → 申请。全程点鼠标，免费。</div></li>
+        <li><b>开强制 HTTPS</b>
+          <div class="d">同一个页面打开 <b>强制 HTTPS</b> 开关，之后 http 会自动跳 https。</div></li>
+        <li><b>验收</b>
+          <div class="d">地址栏出现小锁，<code>https://你的域名/</code> 正常打开。</div></li>
+      </ol>
+      <div class="note warn"><b>香港机器可以跳过本章</b>：用 IP + 端口先跑着，等备案下来、迁到国内再补域名和 HTTPS。</div>
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">8</span>备案（与上面并行，越早提交越好）</h2>
+<div class="card">
+  <div class="note bad"><b>这是唯一"花钱也买不到速度"的环节：管局审核 7~20 个工作日</b>（京沪粤可能 20~30 天）。
+  <b>买完国内机器当天就提交</b>，然后该干嘛干嘛。详细每步填什么见《阿里云连号操作单》，这里只提醒最容易翻车的四点。</div>
+  <table>
+    <thead><tr><th style="width:170px">环节</th><th>要点</th><th style="width:96px">时长</th></tr></thead>
+    <tbody>
+      <tr><td>实名 + 买国内机器 + 买域名</td><td>三个实名主体必须是<b>同一个名字</b>；域名也要实名</td><td>当天</td></tr>
+      <tr><td>填备案信息</td><td>网站名称别用"中国/中华/最"这类词；地址写到门牌号；性质选个人/非经营</td><td>30 分钟</td></tr>
+      <tr><td>阿里云初审 + 电话核验</td><td><b>电话一定要接</b>，照实说"个人毕业设计作品"；漏接直接退回</td><td>1~2 工作日</td></tr>
+      <tr><td>工信部短信核验</td><td>短信里的链接 <b>24 小时内</b>必须点回去确认，超时自动退回</td><td>24 小时</td></tr>
+      <tr><td>管局审核</td><td>干等。期间可以正常开发，但网站不能开放</td><td><b>7~20 工作日</b></td></tr>
+      <tr><td>备案成功</td><td>拿到备案号，挂到网站页脚，然后才能解析域名 + 开 HTTPS</td><td>—</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">9</span>上线后：剩下的功能怎么排</h2>
+<div class="card">
+  <div class="note good"><b>原则：上线不是终点。每修好一项就 <code>git push</code> 一次，用户看得见地在变好。</b>
+  下面是我建议的顺序，你也可以打乱。</div>
+  <table>
+    <thead><tr><th style="width:56px">顺序</th><th>事项</th><th style="width:90px">优先级</th><th>为什么要这个顺序</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>接千问</b>（你实名后去百炼领 Key 发我）</td><td><span class="pill must">P0</span></td><td>人格解读从模板变成真定制化，是产品的核心差异点；三道闸已就位，不怕被刷</td></tr>
+      <tr><td>2</td><td><b>深色模式逐页验收</b></td><td><span class="pill must">P0</span></td><td>守则里明确"未逐页验收"，属于欠账；晚上用的人多，体验差一半</td></tr>
+      <tr><td>3</td><td><b>响应式 375/768/1024/1440 逐页过</b></td><td><span class="pill must">P0</span></td><td>手机上才是"更多人愿意玩"的主战场；就绪检查里只测了 375 三个页</td></tr>
+      <tr><td>4</td><td>榜单「地区/年代/周期」筛选</td><td><span class="pill mid">P1</span></td><td>需要后端加接口；有了它榜单才真有用，不然只是摆着</td></tr>
+      <tr><td>5</td><td>分享图方形版重做</td><td><span class="pill mid">P1</span></td><td>方形图在朋友圈/小红书更好发，直接影响传播</td></tr>
+      <tr><td>6</td><td>大逃杀 100 张彩蛋</td><td><span class="pill" style="background:#eef4f9;color:#4b6b86">P2</span></td><td>你说过"正式版做完再议"，现在就是那时候</td></tr>
+      <tr><td>7</td><td>专辑/艺术家介绍二级菜单</td><td><span class="pill" style="background:#eef4f9;color:#4b6b86">P2</span></td><td>你自己说的"整个版本做完再做"</td></tr>
+      <tr><td>8</td><td>设计稿 p4/p5/p6 按 v2 重绘</td><td><span class="pill" style="background:#eef4f9;color:#4b6b86">P2</span></td><td>纯文档对齐，不影响用户</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>每做完一项的标准动作：</b>本地自检跑绿 → <code>git push</code> → 服务器自动部署 →
+  用手机流量打开线上地址走一遍那项功能。<b>别只在本地看</b>，线上路径和本地不一样（CDN、HTTPS、跨域）。</div>
+</div>
+
+<h2><span class="n">10</span>排错对照表</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:250px">现象</th><th>八成是这个原因</th><th>怎么办</th></tr></thead>
+    <tbody>
+      <tr><td>SSH 连不上 / 超时</td><td>防火墙没放行 22；或密码错</td><td>阿里云控制台放行 22；用"重置密码"重设</td></tr>
+      <tr><td>输密码时光标不动</td><td><b>正常</b>，Linux 输密码不显示任何字符</td><td>直接输完回车</td></tr>
+      <tr><td><code>http://IP:8888</code> 打不开</td><td>防火墙没放行 8888；或面板未初始化</td><td>放行 8888；按阿里云"远程连接"里给的命令初始化</td></tr>
+      <tr><td><code>nginx -t</code> 报错</td><td>配置文件写错（路径/分号/花括号）</td><td>看报错行号；先 <code>nginx -t</code> 通过再 reload，别跳过</td></tr>
+      <tr><td>网站能开但接口全 404</td><td>Nginx 的 <code>/api/</code> 反没配对，或后端没起</td><td><code>pm2 status</code> 看 yinge-api 是否 online；<code>pm2 logs yinge-api</code> 看报错</td></tr>
+      <tr><td>能注册但一开局就没专辑</td><td>第 6 章数据没搬</td><td>跑 <code>migrate-to-atlas.mjs</code>；搬完在 mongo 里数 albums 条数</td></tr>
+      <tr><td><code>/health</code> 通但 <code>/ready</code> 503</td><td>数据库连不上</td><td>看 <code>MONGODB_URI</code>；确认 mongod 在跑（<code>systemctl status mongod</code>）</td></tr>
+      <tr><td>接口报 CORS</td><td><code>CORS_ORIGINS</code> 没填当前访问的域名/IP</td><td>改 <code>.env</code> 后 <code>pm2 reload yinge-api</code></td></tr>
+      <tr><td>刷新页面 404</td><td>SPA 兜底没生效</td><td>确认 <code>try_files $uri $uri/ /index.html;</code> 在 <code>location /</code> 里</td></tr>
+      <tr><td>部署脚本中途失败</td><td>依赖没装上前端构建失败</td><td>看脚本输出；它会在"构建后找不到 index.html"时中止且不重启后端</td></tr>
+      <tr><td>想回退到上一个版本</td><td>—</td><td>服务器上 <code>cd /opt/yinge &amp;&amp; git log --oneline -5</code>，<code>git checkout &lt;commit&gt;</code> 再跑 deploy.sh</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="foot">音格 · 阿里云上线全流程手册 · 2026-10-14 · 与《阿里云连号操作单》《部署执行手册》《服务器选型与执行路线》配套 · 价格以官网当日活动为准</div>
+</div></body></html>
