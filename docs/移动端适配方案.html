@@ -1,0 +1,312 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 移动端适配方案（设想与布局 · 等你批准）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1140px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:920px;opacity:.94}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:24px;height:24px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .warn{background:#fff8ec;border-left-color:#e08700}
+  .good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .bad{background:#fdeaea;border-left-color:#c0392b}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:4px 0;font-size:13.5px}
+  .x{color:#c0392b;font-weight:800}.v{color:#0f8a4a;font-weight:800}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .p0{background:#fdeaea;color:#c0392b}.p1{background:#fff8ec;color:#b06a00}.p2{background:#eef2f6;color:#5b7286}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+
+  /* ── 手机线框 ─────────────────────────────── */
+  .phones{display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+  .ph{flex:0 0 auto;text-align:center}
+  .ph b{display:block;font-size:13px;color:#0369A1;margin-top:9px}
+  .ph span{display:block;font-size:12px;color:#7d97ab;margin-top:2px;max-width:212px}
+  .phone{width:212px;background:#0B2A42;border-radius:26px;padding:8px;box-shadow:0 10px 26px rgba(8,58,92,.24)}
+  .scr{background:#f2f8fd;border-radius:20px;height:392px;overflow:hidden;display:flex;flex-direction:column;text-align:left}
+  .stt{height:16px;background:#dbeaf6;display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:9px;color:#7d97ab}
+  .top{height:30px;background:#fff;border-bottom:1px solid #dbeaf6;display:flex;align-items:center;justify-content:space-between;padding:0 9px;font-size:10.5px;font-weight:700;color:#0369A1}
+  .body{flex:1;padding:8px;overflow:hidden;display:flex;flex-direction:column;gap:7px}
+  .bx{background:#fff;border:1px solid #dbeaf6;border-radius:9px;padding:7px 8px;font-size:10.5px;color:#46647E}
+  .bx.t{background:#e8f4fd;border-color:#bcdff5;color:#0369A1;font-weight:700}
+  .cov{height:74px;border-radius:7px;background:linear-gradient(135deg,#7DD3FC,#0EA5E9);display:flex;align-items:flex-end;padding:6px;color:#fff;font-size:10.5px;font-weight:700}
+  .cov.g{background:linear-gradient(135deg,#FDBA74,#EA580C)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .vs{text-align:center;font-size:12px;font-weight:800;color:#0EA5E9;line-height:22px}
+  .tab{height:46px;background:#fff;border-top:1px solid #dbeaf6;display:flex;align-items:stretch;padding-bottom:4px}
+  .tab i{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9.5px;font-style:normal;color:#7d97ab;gap:1px}
+  .tab i.on{color:#0EA5E9;font-weight:800}
+  .tab i em{display:block;width:15px;height:15px;border-radius:4px;background:#cfe4f2}
+  .tab i.on em{background:#0EA5E9}
+  .cta{margin:0 8px 8px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:800}
+  .cta.gh{background:#fff;color:#0369A1;border:1.5px solid #0EA5E9}
+  .safe{height:12px;background:#0B2A42;opacity:.25;border-radius:0 0 8px 8px;margin:0 8px}
+  .hintline{font-size:9.5px;color:#7d97ab;text-align:center;padding:2px 0}
+  .chips{display:flex;gap:5px;flex-wrap:wrap}
+  .chips i{font-size:10px;font-style:normal;background:#f0f7fc;border:1px solid #dbeaf6;border-radius:99px;padding:3px 8px;color:#46647E}
+  .chips i.on{background:#0EA5E9;color:#fff;border-color:#0EA5E9;font-weight:700}
+  .sheet{background:#fff;border-radius:12px 12px 0 0;border:1px solid #dbeaf6;border-bottom:0;padding:8px;margin-top:auto}
+  .sheet .hd{font-size:10.5px;font-weight:800;color:#0369A1;display:flex;justify-content:space-between}
+  @media(max-width:900px){.two{grid-template-columns:1fr}}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="blob"></div>
+  <span class="tag">移动端适配方案 · 2026-10-15 · 设想与布局（批准后才动代码）</span>
+  <h1>音格在手机上应该长什么样</h1>
+  <p>你说"移动端一定不能再出现这种类似的问题"——我先把<b>别人已经跑通的成熟做法</b>和<b>我们自己实测出来的真缺口</b>摆在一起，
+  再把<b>布局设想画成手机线框</b>给你看。这一版<b>没有动任何代码</b>，等你点头再开工。</p>
+</div>
+
+<h2><span class="n">1</span>先看别人怎么做的：音乐世界杯的成熟落地版</h2>
+<div class="card">
+  <div class="note"><b>我找到的参照不是"世界杯竞猜"，而是真正同类的产品：<code>MUSIC CUP（musiccup.app）</code></b>
+  —— 2026 年 7 月发布、新加坡团队做的<b>歌曲世界杯生成器</b>。它的赛制跟音格几乎一模一样：
+  <b>小组赛 4 选 2 → 遗珠复活赛 → 淘汰赛 1v1 → 冠军 → 自动画出「晋级之路」分享图 → 匿名进公开排行榜</b>，
+  最多 48 首参赛。它明写着 <b>"14 種語言，手機優先"</b>，移动端是被当成主阵地的。</div>
+
+  <table>
+    <thead><tr><th style="width:210px">它做了什么</th><th style="width:80px">我们有吗</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>不注册、不下载、无付费墙，打开网页就能开赛</td><td class="v">已有</td><td>音格"不注册也能玩全部主线"，同一条路</td></tr>
+      <tr><td>搜歌手 → 自动组参赛名单</td><td class="v">已有</td><td>音格更进一步：还能按流派/年代组局</td></tr>
+      <tr><td>三种曲库（热门/随机/自选），规模自动配对</td><td class="v">已有</td><td>音格有歌手/多歌手/自选/流派/年代/对位六种</td></tr>
+      <tr><td>试听片段："选不下手就先听一段"</td><td class="v">已有</td><td>音格的"试听 30 秒"</td></tr>
+      <tr><td>进度自动存浏览器，退出随时回来接着打</td><td class="v">已有</td><td>音格 localStorage 存局 id + 每次回服务端校验</td></tr>
+      <tr><td><b>「加到主画面」：像 App 一样全屏开启</b></td><td class="x">没有</td><td><b>缺 PWA manifest / 主题色 / 全屏 meta</b>，这条是它拉留存的关键动作</td></tr>
+      <tr><td><b>"手機優先" 的一整套规范</b></td><td class="x">没有</td><td>我们有响应式，但<b>断点 7 种各写各的、热区普遍不到 44px、安全区一处没用</b></td></tr>
+    </tbody>
+  </table>
+
+  <div class="note warn"><b>结论：音格在"玩法"上已经不输它，缺的是"手机上用起来顺手"这一层。</b>
+  所以 T2 不是"补一个移动端"，而是把<b>手机当成第一屏幕</b>重新收一遍口子 —— 这也是它跟你说"手机优先"完全对得上的地方。</div>
+
+  <b>通用规范里可以直接抄的数字（业界共识，不是我编的）：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:170px">项</th><th style="width:150px">通行标准</th><th>为什么</th></tr></thead>
+    <tbody>
+      <tr><td>可点区域</td><td><b>Apple ≥44×44pt；Material ≥48×48dp</b></td><td>成人指尖接触面约 8~10mm；WCAG 2.2 的 24px 只是"底线"，不是"舒服"</td></tr>
+      <tr><td>相邻间距</td><td><b>≥8px</b></td><td>两个按钮挤一起必然误触，跟尺寸同等重要</td></tr>
+      <tr><td>输入框字号</td><td><b>≥16px</b></td><td>iOS Safari 小于 16px 会在聚焦时<b>自动放大页面</b></td></tr>
+      <tr><td>主操作位置</td><td><b>屏幕下半部（拇指热区）</b></td><td>单手时拇指能舒服够到的只有下 1/3；左上角最难够</td></tr>
+      <tr><td>底部固定条</td><td><b>高度 ≤56px</b>＋留出安全区</td><td>太高会挤压内容；不留安全区会被 iPhone 底部手势条压住</td></tr>
+      <tr><td>安全区</td><td><code>env(safe-area-inset-*)</code></td><td>刘海、圆角、底部手势条都会遮住贴边元素</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">2</span>我们现在到底什么样（375 手机视口，真库 + 真后端实测）</h2>
+<div class="card">
+  <div class="note good"><b>先说好消息：布局没崩。</b>18 条路由逐条测（<code>probe-r40-mobile-inventory.mjs</code>）：
+  <b>横向溢出 0/18 页</b>、<b>正文小于 12px 的字 0/18 页</b>、<b>页面级 JS 错误 0 条</b>。
+  也就是说不是"手机上没法用"，而是"能用但不够顺手"。</div>
+
+  <table>
+    <thead><tr><th style="width:200px">项</th><th style="width:130px">实测</th><th>判定</th></tr></thead>
+    <tbody>
+      <tr><td>横向溢出</td><td class="v">0 / 18 页</td><td>好，不用重排</td></tr>
+      <tr><td>正文 &lt;12px</td><td class="v">0 / 18 页</td><td>好，符合你的字号下限</td></tr>
+      <tr><td>页面级 JS 错误</td><td class="v">0 条</td><td>好</td></tr>
+      <tr><td><b>可点区域 &lt;44px</b></td><td class="x"><b>138 个 / 18 页</b></td><td><b>要改</b>。分布：顶部导航每页 4~5 个（logo 29×23、退出 28×22、头像 32×32）、
+        主按钮普遍 37~42px、创建页 24 个、排行榜 25 个</td></tr>
+      <tr><td><b>断点</b></td><td class="x"><b>7 种</b></td><td><b>要收口</b>：980 / 900 / 860 / 760 / 720 / 640 / 560 各写各的，
+        同一个宽度下不同页面表现不一致</td></tr>
+      <tr><td><b>安全区适配</b></td><td class="x"><b>0 处</b></td><td><b>要补</b>：全前端没用过 <code>env(safe-area-inset-*)</code>；
+        iPhone 上吸底按钮会被底部手势条压住</td></tr>
+      <tr><td><b>PWA（加到主画面）</b></td><td class="x"><b>没有</b></td><td><b>建议补</b>：无 manifest、无 theme-color、无 apple-mobile-web-app meta</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note bad"><b>顺带修了我自己上一版探针的两个毛病（不然上面的数字不可信）：</b>
+  ① 旧探针报"18/18 页有问题"其实<b>夸大</b>了——它把<b>同一个顶部导航</b>在每页各计一次；
+  ② 它的汇总行模板字符串没被替换，直接印出「N 个可点元素 &lt;Npx」，<b>输出本身就是坏的</b>。
+  新探针改成<b>只跑 375</b>＋<b>把每个小热区归类并点名</b>（顶栏 / 页脚 / 卡片内），才有了上面这张表。</div>
+</div>
+
+<h2><span class="n">3</span>布局设想：四张关键页的手机线框</h2>
+<div class="card">
+  <div class="note"><b>总原则：主操作沉到拇指区，筛选收起来，一屏只做一件事。</b>
+  下面四张线框是"改完之后"的样子，左边标注了每一处为什么这么放。</div>
+
+  <div class="phones">
+    <div class="ph">
+      <div class="phone"><div class="scr">
+        <div class="stt"><span>9:41</span><span>●●●</span></div>
+        <div class="top"><span>音格</span><span>游</span></div>
+        <div class="body">
+          <div class="bx t">快速开赛</div>
+          <div class="row2"><div class="bx">歌手对决</div><div class="bx">年代混战</div></div>
+          <div class="row2"><div class="bx">流派对决</div><div class="bx">自定义</div></div>
+          <div class="bx">上一局：周杰伦 · 进行到第 3 场 ›</div>
+          <div class="bx">我的音乐人格：未测 ›</div>
+        </div>
+        <div class="tab">
+          <i class="on"><em></em>首页</i><i><em></em>开赛</i><i><em></em>人格</i><i><em></em>我的</i>
+        </div>
+        <div class="safe"></div>
+      </div></div>
+      <b>① 全局壳</b>
+      <span>顶部只留 logo + 头像；<b>导航沉到底部 Tab（4 项）</b>，拇指够得到。底部留出<b>安全区</b>，不被手势条压。</span>
+    </div>
+
+    <div class="ph">
+      <div class="phone"><div class="scr">
+        <div class="stt"><span>9:41</span><span>●●●</span></div>
+        <div class="top"><span>‹ 第 3 场 / 共 15 场</span><span>3/15</span></div>
+        <div class="body">
+          <div class="cov">范特西 · 周杰伦 · 2001</div>
+          <div class="vs">VS</div>
+          <div class="cov g">七里香 · 周杰伦 · 2004</div>
+          <div class="bx">试听 30 秒 · 已播 0:12</div>
+        </div>
+        <div class="cta">选这张获胜 ↑</div>
+        <div class="safe"></div>
+      </div></div>
+      <b>② 对战 / PK 页</b>
+      <span>两张卡<b>上下堆叠</b>（860px 以下现在已经是单列，保留）；<b>投票按钮吸底在拇指区</b>，
+        且必须<b>先选后投</b>——按钮默认禁用，避免"手快误投"。</span>
+    </div>
+
+    <div class="ph">
+      <div class="phone"><div class="scr">
+        <div class="stt"><span>9:41</span><span>●●●</span></div>
+        <div class="top"><span>‹ 创建对局</span><span>?</span></div>
+        <div class="body">
+          <div class="bx t">① 选模式</div>
+          <div class="chips"><i class="on">歌手</i><i>年代</i><i>流派</i><i>对位</i></div>
+          <div class="bx t">② 选参数</div>
+          <div class="chips"><i>1980s</i><i class="on">1990s</i><i>2000s</i><i>2010s</i></div>
+          <div class="bx">32 张 · 预计 15 场 · 命中 24 位歌手</div>
+        </div>
+        <div class="sheet">
+          <div class="hd"><span>地区 / 语种</span><span>华语区 · 全部华语 ✓</span></div>
+          <div class="chips" style="margin-top:5px"><i class="on">华语区</i><i>外语区</i><i>不限</i></div>
+        </div>
+        <div class="cta">开始对局</div>
+        <div class="safe"></div>
+      </div></div>
+      <b>③ 创建页</b>
+      <span>筛选<b>不再堆在页面里</b>：二级筛选用<b>底部弹层</b>（选完自动收起并显示"你选了什么"）；
+        档位按钮加大到 ≥48px、一行最多 3 个。<b>选了什么要看得见</b>——这正是你点出的那类问题。</span>
+    </div>
+
+    <div class="ph">
+      <div class="phone"><div class="scr">
+        <div class="stt"><span>9:41</span><span>●●●</span></div>
+        <div class="top"><span>‹ 战报</span><span>分享</span></div>
+        <div class="body">
+          <div class="cov">冠军 · 范特西</div>
+          <div class="bx t">晋级之路（清单版）</div>
+          <div class="bx">小组赛 › 复活赛 › 半决赛 › 决赛</div>
+          <div class="bx">32 张专辑 · 24 位歌手 · 15 场决出</div>
+        </div>
+        <div class="cta">保存晋级图</div>
+        <div class="cta gh" style="margin-top:0">再来一局</div>
+        <div class="safe"></div>
+      </div></div>
+      <b>④ 结果 / 分享页</b>
+      <span>竖版继续走<b>已定稿的清单版</b>（不用横滚）；<b>保存图按钮吸底</b>，
+        次要的"再来一局"放在它上面一层，避免误点。</span>
+    </div>
+  </div>
+</div>
+
+<h2><span class="n">4</span>六条硬规范（每条都能跑出数字验收）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:44px">#</th><th style="width:230px">规范</th><th>验收方式</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>可点区域 ≥44×44</b>，间距 ≥8px</td><td>探针遍历所有页面，把每个可点元素的实测尺寸打出来，<b>小于 44 的必须为 0</b>（现在 138 个）</td></tr>
+      <tr><td>2</td><td><b>输入类字号 ≥16px</b></td><td>量所有 <code>input/textarea/select</code> 的 computed fontSize，防 iOS 聚焦自动放大</td></tr>
+      <tr><td>3</td><td><b>断点收成 3 档</b>：≤640 手机 / 641–1024 平板 / &gt;1024 桌面</td><td>全仓 <code>@media</code> 只剩这 3 个宽度（现在是 7 种）</td></tr>
+      <tr><td>4</td><td><b>吸底元素必须留安全区</b></td><td>注入刘海/手势条尺寸后量：吸底按钮底边与视口底边距离 ≥ <code>env(safe-area-inset-bottom)</code>，且不被遮挡</td></tr>
+      <tr><td>5</td><td><b>主 CTA 在屏幕下半部</b></td><td>主按钮中心 y &gt; 视口高度 50%（投票、开始对局、保存图）</td></tr>
+      <tr><td>6</td><td><b>筛选必须"选了什么看得见"</b></td><td>见下一节的断言表 —— 这是你特别强调的那条</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">5</span>验收判据：每个筛选都要有「选了什么 → 出了什么」</h2>
+<div class="card">
+  <div class="note bad"><b>你的原话："移动端一定不能再出现这种类似的问题"</b>——指的是<b>界面显示的选择与实际结果不一致</b>。
+  所以 T2 的验收<b>不能只看"页面好不好看"</b>，每一个筛选/开关都要配一条断言。下面这张表就是验收单，改完逐条跑。</div>
+  <table>
+    <thead><tr><th style="width:44px">#</th><th style="width:210px">控件</th><th>断言（选了什么 → 必须出什么）</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>模式（歌手/年代/流派/对位/自选）</td><td>选"年代" ⇒ 出现年份区间控件；选"歌手" ⇒ 出现搜索框。<b>选中的那颗 chip 必须是高亮态</b>，且页面下方的参数区随模式变化</td></tr>
+      <tr><td>2</td><td>年代区间</td><td>选 1990–1999 ⇒ 结果里<b>每张专辑的发行年份都落在区间内</b>（逐张解析年份断言，不能只信标签）</td></tr>
+      <tr><td>3</td><td><b>地区 / 语种</b></td><td>选"华语区 + 全部华语" ⇒ 池内<b>不出现</b>专辑标题几乎全拉丁且流派无华语标记的歌手（沿用第四十批改好的判据）</td></tr>
+      <tr><td>4</td><td>参赛张数档位</td><td>选 16/24/32/48 ⇒ 实际池子张数 ≤ 该档，且<b>页面显示的"预计 N 场"与真实赛程场数一致</b></td></tr>
+      <tr><td>5</td><td>试听开关</td><td>点"试听 30 秒" ⇒ 音频真的开始播（<code>currentTime</code> 在推进），不是只有个图标</td></tr>
+      <tr><td>6</td><td>投票按钮</td><td>未选任何一张时按钮<b>禁用</b>；选了之后才可点；点了之后<b>进入下一场且计数 +1</b></td></tr>
+      <tr><td>7</td><td>底部 Tab</td><td>4 个 tab 逐个点，路由真的切换，且<b>当前 tab 是高亮态</b></td></tr>
+      <tr><td>8</td><td>登录 / 游客态</td><td>未登录时底部 Tab 不报错、能继续玩；游客标识与"注册/登录"入口都在可见区</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">6</span>改动清单与工作量</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:44px">#</th><th>改什么</th><th style="width:150px">范围</th><th style="width:70px">优先级</th><th style="width:80px">工作量</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>统一断点</b>：7 种 → 3 档（640 / 1024），把散在各 view 的媒体查询收口</td><td>24 处 <code>@media (max-width)</code></td><td><span class="pill p0">P0</span></td><td>0.4 天</td></tr>
+      <tr><td>2</td><td><b>热区补足 44px</b>：顶部导航、主按钮、档位 chip、榜单行</td><td>138 处（多为全局组件，改一处全覆盖）</td><td><span class="pill p0">P0</span></td><td>0.6 天</td></tr>
+      <tr><td>3</td><td><b>安全区 + 吸底 CTA</b>：投票/开始/保存图沉到底部并留 <code>safe-area</code></td><td>对战 / 创建 / 结果 / 分享 4 页</td><td><span class="pill p0">P0</span></td><td>0.5 天</td></tr>
+      <tr><td>4</td><td><b>底部 Tab 导航</b>（4 项）＋ 顶部精简为 logo + 头像</td><td><code>AppShell.vue</code></td><td><span class="pill p0">P0</span></td><td>0.5 天</td></tr>
+      <tr><td>5</td><td><b>创建页筛选改底部弹层</b>＋"已选"常驻显示</td><td><code>BattleCreateView.vue</code></td><td><span class="pill p0">P0</span></td><td>0.6 天</td></tr>
+      <tr><td>6</td><td><b>验收探针</b>：上面第 5 节 8 条断言 + 热区/字号/安全区/断点</td><td>新增 <code>probe-r40-mobile-*</code></td><td><span class="pill p0">P0</span></td><td>0.5 天</td></tr>
+      <tr><td>7</td><td><b>PWA：加到主画面</b>（manifest + 主题色 + 全屏 meta + 图标）</td><td><code>index.html</code> + <code>public/</code></td><td><span class="pill p1">P1</span></td><td>0.3 天</td></tr>
+      <tr><td>8</td><td>逐页走查（18 页 × 375/768）＋ 真实点一局到夺冠</td><td>—</td><td><span class="pill p1">P1</span></td><td>0.4 天</td></tr>
+      <tr><td colspan="4" style="text-align:right"><b>P0 合计</b></td><td><b>约 3.1 天</b></td></tr>
+      <tr><td colspan="4" style="text-align:right">加上 P1</td><td><b>约 3.8 天</b></td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>为什么这版不写"1~1.5 天"了：</b>上次我估 1~1.5 天，是因为只按"补缺"算。
+  这次把<b>断点收口</b>和<b>热区补足</b>按实测数量（7 种断点 / 138 个热区）重新排，P0 是 3.1 天。
+  <b>如果只做 P0 的前 3 项（断点 + 热区 + 安全区，约 1.5 天）</b>，也已经能满足"手机上顺手、不误触"，
+  底部 Tab 和筛选弹层可以放到上线后滚动做 —— 这两种节奏你选一个。</div>
+</div>
+
+<h2><span class="n">7</span>三件要你拍板的</h2>
+<div class="card">
+  <div class="two">
+    <div>
+      <b style="color:#0369A1">① 导航：底部 Tab 还是保留顶部？</b>
+      <ul>
+        <li><b>底部 Tab（推荐）</b>：拇指区、符合手机习惯；代价是顶部导航要精简，桌面端观感会变</li>
+        <li><b>保留顶部</b>：改动最小，但手机上要点左上角，单手不方便</li>
+        <li><b>分端：手机用底部、桌面用顶部</b>（工作量 +0.2 天，两边都舒服）</li>
+      </ul>
+    </div>
+    <div>
+      <b style="color:#0369A1">② 创建页的筛选：收进弹层还是原地展开？</b>
+      <ul>
+        <li><b>收进底部弹层（推荐）</b>：一屏只做一件事，选完看得见"你选了什么"</li>
+        <li><b>原地展开</b>：熟悉感强，但手机上要滚动很久才看得到全貌</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note"><b>③ 要不要做「加到主画面」（PWA）？</b>
+  MUSIC CUP 把它当成拉留存的关键动作（不用过应用商店就能像 App 全屏开）。
+  成本很低（0.3 天），但需要你提供/确认<b>一个图标</b>（现在 <code>public/</code> 下只有 img 目录，没有 manifest）。
+  另外<b>微信内置浏览器不能安装</b>，只能提示"用浏览器打开"——这点 MUSIC CUP 也是这么处理的，不是我们的问题。</div>
+  <div class="note good"><b>我的建议</b>：① 选"分端"（手机底部、桌面顶部），② 选"收进弹层"，③ 做 PWA。
+  节奏上 <b>P0 前 3 项先做（1.5 天）→ 你验收 → 再决定要不要继续做 Tab 和弹层</b>，这样你能早点看到效果。</div>
+</div>
+
+<div class="foot">音格 · 移动端适配方案 · 2026-10-15 · <b>尚未修改任何代码，等你批准</b> ·
+  实测工具：<code>tools/pw/probe-r40-mobile-inventory.mjs</code>（375 现状清单）·
+  参照：<code>MUSIC CUP（musiccup.app）</code> + Apple HIG / Material / WCAG 2.2 通行标准</div>
+</div></body></html>
