@@ -1,0 +1,177 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 项目进度与排期（2026-10-14）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.65}
+  .wrap{max-width:1080px;margin:0 auto;padding:30px 22px 64px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:820px;opacity:.94}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:16px}
+  .kpi{background:rgba(255,255,255,.9);border-radius:12px;padding:12px 14px}
+  .kpi b{display:block;font-size:24px;color:#0369A1;line-height:1.15;font-variant-numeric:tabular-nums}
+  .kpi span{font-size:12.5px;color:#46647E}
+  h2{font-size:18px;margin:30px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:23px;height:23px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:4px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  .bar{display:flex;align-items:center;gap:8px;min-width:170px}
+  .bar i{display:block;height:9px;border-radius:99px;background:linear-gradient(90deg,#38BDF8,#0EA5E9);flex:0 0 auto}
+  .bar .bg{width:78px;height:9px;border-radius:99px;background:#e3eef7;overflow:hidden;flex:0 0 auto}
+  .bar em{font-style:normal;font-size:12.5px;color:#46647E;font-variant-numeric:tabular-nums;min-width:34px}
+  .mono{font-variant-numeric:tabular-nums}
+  .pill{display:inline-block;font-size:12px;border-radius:99px;padding:2px 9px;font-weight:700;white-space:nowrap}
+  .p0{background:#fdeaea;color:#c0392b}
+  .p1{background:#fff3e0;color:#b06a00}
+  .p2{background:#eef4f9;color:#4b6b86}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .rec{background:#f2fbf6;border-left-color:#0f8a4a}
+  .warn{background:#fff8ec;border-left-color:#e08700}
+  .tl{display:flex;gap:0;margin-top:10px;overflow-x:auto;padding-bottom:6px}
+  .tl .it{flex:1 1 0;min-width:104px;position:relative;padding:0 8px 0 0}
+  .tl .it b{display:block;font-size:12px;color:#0369A1}
+  .tl .it span{display:block;font-size:12px;color:#46647E;line-height:1.4;margin-top:2px}
+  .tl .it::before{content:"";display:block;width:10px;height:10px;border-radius:99px;background:#0EA5E9;margin-bottom:6px;box-shadow:0 0 0 3px rgba(14,165,233,.18)}
+  .tl .it.dim::before{background:#b9d6ea;box-shadow:none}
+  .tl .it.dim b,.tl .it.dim span{color:#7d97ab}
+  .steps{margin-top:8px}
+  .steps .st{display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:start;padding:11px 0;border-bottom:1px solid #e6f0f8}
+  .steps .st:last-child{border-bottom:0}
+  .steps .no{width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  .steps .st b{font-size:14.5px}
+  .steps .st p{margin:3px 0 0;font-size:13.5px;color:#46647E}
+  .steps .st .who{font-size:12.5px;color:#0369A1;white-space:nowrap;text-align:right}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:4px 0;font-size:14px}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px}
+  .foot{margin-top:26px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+  <span class="tag">进度与排期 · 2026-10-14 · 第三十八批之后</span>
+  <h1>音格 · 现在到哪一步了</h1>
+  <p><b>一句话：玩法主线已经全部跑通并打磨完，代码进入"剩一堆可做可不做的小项"阶段；
+  真正卡着毕业的是两件 0% 的事 —— <u>部署上云</u> 和 <u>论文正文</u>。</u></p>
+  <div class="kpis">
+    <div class="kpi"><b>165</b><span>git 提交（09-14 起，整一个月）</span></div>
+    <div class="kpi"><b>70</b><span>后端接口（9 大模块全部可用）</span></div>
+    <div class="kpi"><b>27</b><span>前端路由 / 21 个页面</span></div>
+    <div class="kpi"><b style="color:#c0392b">0%</b><span>部署上云 / 演示视频 / 论文正文</span></div>
+  </div>
+</div>
+
+<h2><span class="n">1</span>完成度仪表盘（数字已重新核对，不是抄旧文档）</h2>
+<div class="card">
+<table>
+  <thead><tr><th>模块</th><th style="width:200px">完成度</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td>后端接口</td><td><div class="bar"><div class="bg"><i style="width:100%"></i></div><em>98%</em></div></td><td><b>70 个路由</b>实测可用：对决/投票/榜单/人格/收藏/后台/组合/音乐检索</td></tr>
+    <tr><td>对决玩法（v2 赛制）</td><td><div class="bar"><div class="bg"><i style="width:94%"></i></div><em>94%</em></div></td><td>规模自选 → 小组 4选2 → 遗珠复活 → 1v1 淘汰 → 跨歌手配对 → 冠军；指定对决/对位赛/好友同玩均已补</td></tr>
+    <tr><td>前端页面还原</td><td><div class="bar"><div class="bg"><i style="width:95%"></i></div><em>95%</em></div></td><td>21 页全部按设计系统还原（对决主线 5 屏 + 人格线 5 页 + 首页/登录/个人中心/排行榜/收藏/后台 6 页）</td></tr>
+    <tr><td>人格线（玩法二）</td><td><div class="bar"><div class="bg"><i style="width:90%"></i></div><em>90%</em></div></td><td>5 页 1:1 + 六型画像 6 维补齐 + AI 解读（无密钥时模板降级）</td></tr>
+    <tr><td>数据质量</td><td><div class="bar"><div class="bg"><i style="width:92%"></i></div><em>92%</em></div></td><td>准入 8 条规则 + 流派白名单逐个点选入库 + 歌手真图（og:image 缓存 30 天）</td></tr>
+    <tr><td>分享 / 传播</td><td><div class="bar"><div class="bg"><i style="width:80%"></i></div><em>80%</em></div></td><td>冠军分享卡 + 完整晋级图（横版树/竖版清单 + 导出 PNG）+ 战报图 + 复制链接</td></tr>
+    <tr><td>自检 / 回归</td><td><div class="bar"><div class="bg"><i style="width:85%"></i></div><em>85%</em></div></td><td>20+ 个 verify/probe 脚本，真库 + 真后端 + 真产物链路；缺"一次性全量回归"</td></tr>
+    <tr><td><b>部署上云</b></td><td><div class="bar"><div class="bg"><i style="width:0%;background:#e6a23c"></i></div><em style="color:#c0392b">0%</em></div></td><td><b>方案已定</b>（Vercel + Render + Atlas），指南已写，<b>一行都没执行</b></td></tr>
+    <tr><td><b>演示视频</b></td><td><div class="bar"><div class="bg"><i style="width:0%;background:#e6a23c"></i></div><em style="color:#c0392b">0%</em></div></td><td>未开始（要求 1~3 分钟，1920×1080 MP4）</td></tr>
+    <tr><td><b>论文正文</b></td><td><div class="bar"><div class="bg"><i style="width:0%;background:#e6a23c"></i></div><em style="color:#c0392b">0%</em></div></td><td>开题报告已完成；<b>正文 8000 字未动笔</b>（参考文献库已备 48 条带来源链接）</td></tr>
+  </tbody>
+</table>
+<div class="note">对比旧文档的变化：后台 3 页、6 型推荐专辑池、好友同玩、分享页布局、流派白名单 —— 这些以前标"未做"的，<b>现在全部做完并实测过了</b>。本页按仓库真实代码重新核对，不是照抄。</div>
+</div>
+
+<h2><span class="n">2</span>这一个月干了什么（时间线）</h2>
+<div class="card">
+  <div class="tl">
+    <div class="it"><b>09-14</b><span>立项 + iTunes API 接线</span></div>
+    <div class="it"><b>09-17</b><span>赛制 v2 定稿</span></div>
+    <div class="it"><b>09-18~21</b><span>玩法补全 + 全站玻璃质感</span></div>
+    <div class="it"><b>09-22~24</b><span>分享卡真高斯模糊 + 人格系统</span></div>
+    <div class="it dim"><b>10-02</b><span>人格色调革新</span></div>
+    <div class="it dim"><b>10-05</b><span>人格卡网页版 v8 标定</span></div>
+    <div class="it dim"><b>10-10/11</b><span>导出图重做 + 文案补库</span></div>
+    <div class="it dim"><b>10-11</b><span>晋级图进正式版 + 竖版清单版</span></div>
+    <div class="it"><b>10-14</b><span>进度盘点 + 排期（今天）</span></div>
+  </div>
+  <div class="note">最近 4 批（第三十五~三十八批）集中在"分享与呈现"：冠军分享卡通透化 → 完整晋级图（横版树 + 竖版清单 + 导出）→ 合入正式版 dist + 导出图配色兜底 → 对位赛"名/id 打架"修复（真凶是我自己的旧自检脚本）+ 战报预览上移。</div>
+</div>
+
+<h2><span class="n">3</span>还剩下什么（分两类，别混）</h2>
+<div class="two">
+  <div class="card">
+    <b style="color:#0369A1">A · 代码小项（全是 P2，不做也能答辩）</b>
+    <table style="margin-top:8px">
+      <thead><tr><th>事项</th><th style="width:56px">级别</th></tr></thead>
+      <tbody>
+        <tr><td>榜单「地区 / 年代 / 周期」筛选</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>设计稿 p4/p5/p6 按 v2 赛制重绘</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>大逃杀 100 张彩蛋</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>分享图方形版重做（并到 UI 最终大改）</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>专辑 / 艺术家介绍二级菜单</td><td><span class="pill p2">P2</span></td></tr>
+        <tr><td>Edge 闪屏复验（我这边没 Edge，<b>需要你点一下</b>）</td><td><span class="pill p1">P1</span></td></tr>
+        <tr><td><code>vscroll</code> 死类 / 分享卡 A 方案（两个待你拍板）</td><td><span class="pill p1">P1</span></td></tr>
+      </tbody>
+    </table>
+    <div class="note">这 7 项你以前都明确说过"正式版做完再议"或"整个版本做完再做"—— 现在就是那个"做完"的时刻，但<b>它们不挡答辩</b>。</div>
+  </div>
+  <div class="card">
+    <b style="color:#c0392b">B · 硬门槛（0%，没做就不能交）</b>
+    <table style="margin-top:8px">
+      <thead><tr><th>事项</th><th style="width:56px">状态</th></tr></thead>
+      <tbody>
+        <tr><td><b>部署上云</b><br><span style="font-size:12.5px;color:#46647E">毕业规范要求"线上演示地址"；现在只有 localhost，别人打不开</span></td><td><span class="pill p0">0%</span></td></tr>
+        <tr><td><b>演示视频</b><br><span style="font-size:12.5px;color:#46647E">1~3 分钟，前后台操作，1920×1080</span></td><td><span class="pill p0">0%</span></td></tr>
+        <tr><td><b>论文正文</b><br><span style="font-size:12.5px;color:#46647E">8000 字（7500~10000），查重 ≤25%，AIGC ≤40%</span></td><td><span class="pill p0">0%</span></td></tr>
+      </tbody>
+    </table>
+    <div class="note warn"><b>为什么这三件排最前：</b>代码再打磨，边际收益已经很低；而这三件任意一件缺着，答辩当场就交不出去。特别是部署 —— 没有线上地址，答辩时只能抱着电脑现场跑本地。</div>
+  </div>
+</div>
+
+<h2><span class="n">4</span>排期建议（相对工作日，可按你的节奏压）</h2>
+<div class="card">
+  <div class="steps">
+    <div class="st"><div class="no">1</div><div>
+      <b>部署上云</b> <span class="pill ok">建议第一件</span>
+      <p>Vercel（前端 dist）+ Render（后端）+ MongoDB Atlas（库）。我出《部署执行手册》：每一步点什么、环境变量填什么、CORS 与种子数据怎么带；<b>账号注册和最后确认只能你来做</b>（沙箱连不上外网）。</p></div>
+      <div class="who">我做手册 + 你执行<br><b>1~2 天</b></div></div>
+
+    <div class="st"><div class="no">2</div><div>
+      <b>演示视频</b>
+      <p>我写分镜脚本（哪几屏、每屏说什么、多少秒）+ 录屏注意事项；你按脚本录一遍剪一下。<b>必须在部署之后录</b> —— 视频里放的应该是线上地址，不是 localhost。</p></div>
+      <div class="who">我写脚本 + 你录<br><b>0.5 天</b></div></div>
+
+    <div class="st"><div class="no">3</div><div>
+      <b>论文正文</b>
+      <p>参考文献库已备好 48 条（带来源链接、检索词、年份）。我按学校格式起草：需求分析 → 系统设计 → 实现 → 测试；你改口吻、补真实感受，过查重和 AIGC 检测。</p></div>
+      <div class="who">我起草 + 你定稿<br><b>3~5 天</b></div></div>
+
+    <div class="st"><div class="no">4</div><div>
+      <b>代码 P2 小项</b>（有余力才做）
+      <p>榜单筛选 / 设计稿重绘 / 大逃杀彩蛋 / 二级菜单。这些是"加分项"不是"必需项"，<b>别让它们挤占前三步</b>。</p></div>
+      <div class="who">我做<br><b>1~2 天</b></div></div>
+
+    <div class="st"><div class="no">5</div><div>
+      <b>全量回归 + 答辩彩排</b>
+      <p>把 20+ 个自检脚本串成"一键全跑"，确认线上版和本地版一致；按论文/视频/线上地址三件套对一遍时间。</p></div>
+      <div class="who">我做 + 你对<br><b>1 天</b></div></div>
+  </div>
+</div>
+
+<h2><span class="n">5</span>我的判断（你可以否掉）</h2>
+<div class="card">
+  <div class="note rec"><b>先部署，别先写论文，也别再抠代码细节。</b>
+  理由三条：① 代码主线已收尾，继续打磨的边际收益低；② 部署是唯一"缺它就交不出去"的项，而且它<b>卡着后面两步</b>
+  （视频要录线上地址、论文要写真实部署架构）；③ 部署只要 1~2 天，却能把"整个项目能不能真的用起来"这件事从"我这边跑过"变成"任何人点开就能用"。</div>
+  <div class="note warn"><b>要提醒你一件事：</b>部署这步<b>我没法替你点完</b> —— Vercel / Render / Atlas 都要你本人注册授权，沙箱连不上那些网站。
+  我能做到的是：把所有命令、配置、环境变量、踩坑点写成"照着做就不会错"的手册，你照着点。如果你不想现在注册账号，我们可以先把论文起草往前挪。</div>
+</div>
+
+<div class="foot">音格 · 项目进度与排期 · 2026-10-14 · 数据按仓库真实代码核对（165 commits / 70 路由 / 21 页）· 与《进度与执行清单》配套</div>
+</div></body></html>
