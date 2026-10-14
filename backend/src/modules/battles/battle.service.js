@@ -71,12 +71,27 @@ function orderBucketsForPool(entries, famousById) {
     const target = famousById.get(id) ? famous : others;
     target.push(shuffle(bucket));
   }
+  /**
+   * ⭐ 第四十批（2026-10-14）· 修「歌手重复出现」
+   * ------------------------------------------------------------
+   * 上面只洗了**每一位歌手自己那摞专辑**，歌手之间的先后**从来没洗过**。
+   * 而 `entries` 来自 `byArtist`（按专辑发行时间升序插入），顺序**完全确定**；
+   * 后面 `while (picked.length < cap)` 又是**从第一个桶开始轮转**，
+   * 于是一旦歌手数多于张数，被选中的永远是排在最前面那几位 ——
+   * 实测（scripts/diag-pool-filter.mjs）：3 种模式 × 各跑 5 次，**歌手集合 100% 相同**。
+   * 用户看到的就是"怎么每次都是这几个人"。
+   *
+   * 修法：把两组歌手各洗一次牌。⚠️ 只调**顺序** ——
+   * 张数、封顶、2:1 的大牌配比、赛程公式一律不动（修 bug 不许顺手改玩法）。
+   */
   const out = [];
+  const fam = shuffle(famous);
+  const oth = shuffle(others);
   let fi = 0;
   let oi = 0;
-  while (fi < famous.length || oi < others.length) {
-    for (let k = 0; k < 2 && fi < famous.length; k += 1) out.push(famous[fi++]);
-    if (oi < others.length) out.push(others[oi++]);
+  while (fi < fam.length || oi < oth.length) {
+    for (let k = 0; k < 2 && fi < fam.length; k += 1) out.push(fam[fi++]);
+    if (oi < oth.length) out.push(oth[oi++]);
   }
   return out;
 }
@@ -321,7 +336,20 @@ export async function resolvePool(payload) {
     const nameById = new Map(matched.map((a) => [a.artistId, a.name]));
     /** 是不是「白名单大牌」（含别名写法）—— 排序用，与 chip 计数/组池同口径 */
     const famousById = new Map(matched.map((a) => [a.artistId, isWhitelistedArtistDoc(a)]));
-    const langById = new Map(matched.map((a) => [a.artistId, languageTagOf(a)]));
+    /**
+     * ⭐ 第四十批：把「这位歌手在本次池子里的专辑标题」一起交给语种判定当第二证据。
+     * 名字含汉字不再单独算华语证据（iTunes 港区会给欧美艺人配中文译名），
+     * 详见 src/data/languageTag.js 的 ZH_TITLE_MIN 注释。
+     */
+    const langById = new Map(
+      matched.map((a) => [
+        a.artistId,
+        languageTagOf(
+          a,
+          (byArtist.get(a.artistId) || []).map((al) => al.name),
+        ),
+      ]),
+    );
 
     /**
      * 地区/语种筛选（2026-09-23 用户拍板「两级：华语区/外语区 → 再分语种」，不勾＝混着打）。
@@ -412,7 +440,16 @@ export async function resolvePool(payload) {
     const eraNameById = new Map(eraDocs.map((d) => [d.artistId, d.name]));
     /** 同上：白名单大牌判定含别名写法 */
     const eraFamousById = new Map(eraDocs.map((d) => [d.artistId, isWhitelistedArtistDoc(d)]));
-    const eraLangById = new Map(eraDocs.map((d) => [d.artistId, languageTagOf(d)]));
+    /** ⭐ 第四十批：同流派分支 —— 专辑标题作为第二证据（详见 languageTag.js） */
+    const eraLangById = new Map(
+      eraDocs.map((d) => [
+        d.artistId,
+        languageTagOf(
+          d,
+          (byArtist.get(d.artistId) || []).map((al) => al.name),
+        ),
+      ]),
+    );
 
     /**
      * 地区/语种筛选（2026-09-23 用户拍板）。年代区间横跨所有地区，本地库里港台歌手格外多，

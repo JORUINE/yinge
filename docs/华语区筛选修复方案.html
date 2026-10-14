@@ -1,11 +1,13 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
-<title>音格 · 华语区筛选修复方案（等你批准）</title>
+<title>音格 · 华语区筛选修复方案（已实施并通过验收）</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
   .wrap{max-width:1140px;margin:0 auto;padding:30px 22px 70px}
   .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
   .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  h2 .tag{display:inline-block;font-size:12px;font-weight:800;padding:3px 11px;border-radius:999px;margin-left:10px;vertical-align:middle}
+  h2 .tag.done{background:rgba(15,118,110,.12);color:var(--ok);border:1px solid rgba(15,118,110,.28)}
   .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
   .hero p{margin:0;font-size:14.5px;max-width:900px;opacity:.94}
   h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
@@ -35,7 +37,7 @@
 </style></head><body><div class="wrap">
 
 <div class="hero">
-  <span class="tag">华语区筛选修复方案 · 2026-10-14 · 等你批准才动代码</span>
+  <span class="tag">华语区筛选修复方案 · 2026-10-14 · 已实施 · 验收 12 项断言全绿</span>
   <h1>华语区为什么会混进欧美歌手 —— 根因 + 两个修法</h1>
   <p>你用截图复现了，我把它挖到了底：<b>不是筛选逻辑写错，是"语种判定"把港区返回的中文译名当成了华语。</b>
   根因已用库内原始数据钉死，修法也验证过会不会误伤真华语。下面全部是方案，<b>一行代码都还没动</b>。</p>
@@ -70,7 +72,8 @@
     <thead><tr><th>项</th><th>数字</th></tr></thead>
     <tbody>
       <tr><td>库里"名字中英混排"的歌手</td><td><b>36 位</b></td></tr>
-      <tr><td>其中**真欧美、会被误判成华语**的</td><td><b>约 17~21 位</b>（如 Lady Gaga &amp; 畢烈谷巴、Queen &amp; 亞當藍伯特、Michael Bublé &amp; 平克勞斯貝、馬友友 &amp; Kathryn Stott、Pat Metheny &amp; 克羅諾斯四重奏、Tony Bennett &amp; 戴安娜克瑞兒…）</td></tr>
+      <tr><td>其中<b>真外语、会被误判成华语</b>的</td><td>上轮估"约 17~21 位"；<b>本轮全库实测为 29 位</b>（含久石讓、喜多郎、菅野洋子这几位被判成粤语的日本音乐人）——
+        如 Lady Gaga &amp; 畢烈谷巴、Queen &amp; 亞當藍伯特、Michael Bublé &amp; 平克勞斯貝、馬友友 &amp; Kathryn Stott、Pat Metheny &amp; 克羅諾斯四重奏、Tony Bennett &amp; 戴安娜克瑞兒…</td></tr>
       <tr><td>用户参数（2025-2026 · 华语区 · 48 张）实测池内</td><td>48 位里<b>检出 6 位真欧美</b>（Michael Bublé &amp; 平克勞斯貝 / 吉爾史考特海隆 &amp; Jamie xx / Lady Gaga &amp; 畢烈谷巴 / Queen &amp; 亞當藍伯特 / 樂洛伊小子 &amp; Justin Bieber / John Legend…）</td></tr>
     </tbody>
   </table>
@@ -88,41 +91,76 @@
   <b>教训已记进项目备忘：验证"分类是否正确"时，不能用被验证的那个分类器当裁判。</b></div>
 </div>
 
-<h2><span class="n">3</span>修法 A：改语种判定（核心修复）</h2>
+<h2><span class="n">3</span>修法 A：改语种判定（核心修复）<span class="tag done">已按下面的通用方案实施</span></h2>
 <div class="card">
-  <b>提案规则（只动第 ③ 步，前两步与第 ④ 步不变）：</b>
-  <div class="flow">
-    <span>名字含汉字 且 <b>不含拉丁字母</b></span><i>→</i><span class="v">判华语（不变）</span>
-  </div>
-  <div class="flow">
-    <span>名字含汉字 且 <b>含拉丁字母</b>（中英混排）</span><i>→</i>
-    <span>看流派：带「華語 / 國語 / 粵語 / 廣東歌 / 香港流行」标记</span><i>→</i><span class="v">判华语</span>
-  </div>
-  <div class="flow">
-    <span style="padding-left:118px">└ 没有华语标记</span><i>→</i><span class="x">按拉丁名处理（判西方/日韩）</span>
-  </div>
-  <div class="note good"><b>已在全库上模拟跑过（36 位中英混排歌手）：</b>
+  <div class="note bad"><b>❌ 上一版提案（已被你否决，作废）：</b>
+  "名字含汉字 且含拉丁字母 → 看流派有没有华语标记 → 没有就判西方"，
+  再把被误伤的 4 组（布瑞吉Bridge / Know Know &amp; AR劉夫陽 / NINEONE趙馨玥 / 落日飛車）
+  <b>加进华语白名单</b>兜底。<br>
+  <b>你的原话：</b>"按你这样的新规则，岂不是还会有很多不在白名单的歌手出问题，或者外国歌手混入内地，
+  你必须好好思考优化这种问题。"<br>
+  <b>你说得对</b> —— 补丁只对<b>已被发现的那几个人</b>有效：库里没进名单的、以后新入库的，照样会判错。
+  这一节已重写。</div>
+
+  <b>✅ 采用方案：多证据 + 保守默认（不依赖任何白名单兜底）</b>
+  <div class="note"><b>关键认知（全库 485 位歌手 / 6738 张专辑实测）：</b>
+  「名字里有汉字」<b>根本不能</b>证明歌手是华语 —— iTunes 港区会给欧美艺人配中文译名：
+  <b>平克勞斯貝</b>=Bing Crosby、<b>甸馬田</b>=Dean Martin、<b>馬友友</b>=Yo-Yo Ma、
+  <b>猶太祭司合唱團</b>=Judas Priest、<b>綠洲樂隊</b>=Oasis。
+  所以必须再找一条<b>对任何歌手都成立</b>的通用证据。</div>
+
+  <b>新增的第 ② 条证据：这位歌手名下的专辑标题，到底是不是中文标题</b>
   <table style="margin-top:6px">
-    <thead><tr><th style="width:110px">结果</th><th style="width:60px">人数</th><th>例子</th></tr></thead>
+    <thead><tr><th style="width:170px">歌手</th><th style="width:90px">汉字标题占比</th><th>专辑标题实例</th><th style="width:80px">结论</th></tr></thead>
     <tbody>
-      <tr><td class="v">修正为西方</td><td>21 位</td><td>Michael Bublé &amp; 平克勞斯貝、吉爾史考特海隆 &amp; Jamie xx、Queen &amp; 亞當藍伯特、Lady Gaga &amp; 畢烈谷巴、馬友友 &amp; Kathryn Stott、Pat Metheny &amp; 克羅諾斯四重奏</td></tr>
-      <tr><td class="v">仍判华语（正确保住）</td><td>15 位</td><td>JOLIN蔡依林、MC 張天賦、頑童MJ116、艾志恆Asen、徐夢圓 &amp; 楊和蘇KeyNG、Anson Lo 盧瀚霆、陳零九 &amp; 邱鋒澤、那吾克熱-NW</td></tr>
-    </tbody>
-  </table></div>
-  <div class="note bad"><b>⚠️ 但会误伤 4 位真华语，必须一并补救：</b>
-  <table style="margin-top:6px">
-    <thead><tr><th style="width:250px">被误伤</th><th>流派</th><th>真实身份</th></tr></thead>
-    <tbody>
-      <tr><td>布瑞吉Bridge</td><td>饒舌</td><td>中国说唱歌手</td></tr>
-      <tr><td>Know Know &amp; AR劉夫陽</td><td>Hip-Hop/Rap</td><td>中国说唱歌手（KnowKnow 是 Higher Brothers 成员）</td></tr>
-      <tr><td>NINEONE趙馨玥</td><td>Hip-Hop/Rap</td><td>中国说唱女歌手（乃万）</td></tr>
-      <tr><td>落日飛車 Sunset Rollercoaster</td><td>成人當代</td><td>中国台湾乐队</td></tr>
+      <tr><td>周杰倫</td><td class="v">1.00</td><td>范特西 / 七里香 / 十一月的蕭邦</td><td class="v">华语</td></tr>
+      <tr><td>平克勞斯貝（Bing Crosby）</td><td class="x">0.00</td><td>Bing &amp; Ella / Bing &amp; Satchmo</td><td class="x">欧美</td></tr>
+      <tr><td>吉爾史考特海隆 &amp; Jamie xx</td><td class="x">0.00</td><td>In Waves / In Colour</td><td class="x">欧美</td></tr>
+      <tr><td>馬友友（Yo-Yo Ma）</td><td class="x">0.00</td><td>Beethoven: Complete Cello Sonatas</td><td class="x">欧美</td></tr>
     </tbody>
   </table>
-  <b>补救：把这 4 组加进「华语白名单」</b>（白名单优先级最高，进了名单就永远判华语）。
-  这属于<b>加数据、不改逻辑</b>，风险远低于改规则。<br>
-  <span style="font-size:12.5px">说明：`Hip-Hop/Rap` 这个流派在库里既有华语说唱（高爾宣、熊仔、KnowKnow）也有欧美，
-  本身分不开，所以只能靠白名单兜。这不是取巧 —— 项目 2026-09-23 就定过口径「流派 = 白名单这一册人」，同一套思路。</span></div>
+
+  <div class="note warn"><b>⚠️ 这条证据不能单独用 —— 实测会误伤陈奕迅（这就是必须"多证据"的原因）：</b>
+  粤语歌手大量用英文专辑名：<b>陳奕迅 0.43</b>、張敬軒 0.10、衛蘭 0.07、陳柏宇 0.00、MC 張天賦 0.00。
+  只看标题会把陈奕迅踢出华语区。<br>
+  <b>解法：标题只作第二条证据，且排在「流派语种标记」之后。</b>
+  陳奕迅的流派就是「廣東歌/香港流行樂」，第 ① 步已经判对，根本走不到标题这一步。
+  实测真欧美（流派无标记者）全部 ≤ 0.08，真华语 0.17~0.29 ⇒ 阈值取中间 <b>0.15</b>，两侧都不误伤。</div>
+
+  <b>最终判定顺序（保守：不确定 ⇒ 不算华语）</b>
+  <div class="flow"><span>① 流派带语种标记（華語/國語/廣東/粵語/中文…）</span><i>→</i><span class="v">直接定语种（最准）</span></div>
+  <div class="flow"><span>② 人工名单册归属（含<b>别名</b>，如 防彈少年團↔BTS）</span><i>→</i><span class="v">按册定语种</span></div>
+  <div class="flow"><span>③ 名字带假名 / 谚文</span><i>→</i><span class="v">日语 / 韩语</span></div>
+  <div class="flow"><span>④ 名字含汉字 <b>+ 专辑标题汉字占比 ≥ 0.15</b></span><i>→</i><span class="v">华语（国语 / 港澳为粤语）</span></div>
+  <div class="flow"><span>⑤ 名字含汉字 但 <b>专辑几乎全是拉丁标题</b></span><i>→</i><span class="x">不算华语，退回外语区</span></div>
+  <div class="flow"><span>⑥ 纯拉丁名</span><i>→</i><span>欧美（region 为 jp/kr 时判日/韩）</span></div>
+
+  <div class="note good"><b>为什么这样就"不会有很多不在白名单的歌手出问题"：</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:200px">你担心的</th><th>新规则怎么处理</th></tr></thead>
+    <tbody>
+      <tr><td>不在白名单的歌手会判错</td><td>判定<b>不再依赖白名单</b>。一个从没进过任何名单的新歌手，
+        只要有专辑，就按「流派 → 专辑标题」两条<b>对他本人成立</b>的证据判，不需要谁事先认识他。</td></tr>
+      <tr><td>外国歌手混入内地</td><td><b>保守默认</b>：证据不足或互相矛盾时一律<b>不算华语</b>。
+        代价是少数华语歌手可能被排除（见下），但他们仍在"不限"和其它模式里，且可被人工纠偏。</td></tr>
+      <tr><td>以后新入库的歌手</td><td>不需要改代码 —— 规则读的是<b>他自己的数据</b>，不是名单。</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note"><b>实测：全库 29 位歌手被改判为"非华语"（此前全都漏在华语区）</b><br>
+  平克勞斯貝、吉爾史考特海隆 &amp; Jamie xx、甸馬田、馬友友、王羽佳、Queen &amp; 亞當藍伯特、
+  綠洲樂隊、猶太祭司合唱團、魔力紅樂團、諾拉·瓊斯、Tony Bennett &amp; 戴安娜克瑞兒、
+  Lady Gaga &amp; 畢烈谷巴、樂洛伊小子 &amp; Justin Bieber、Bob Seger、西蒙和加芬克爾、
+  添麥格羅、納斯‧小子、米蘭達・藍珀特、Pat Metheny、John Legend、防彈少年團、
+  久石讓、喜多郎、菅野洋子，以及 <span style="font-size:12.5px">（属于保守误伤，见下）</span>
+  溫室雜草、觸執毛、NINEONE趙馨玥、馬友友 &amp; Kathryn Stott。</div>
+
+  <div class="note bad"><b>⚠️ 保守策略的代价（如实列出，共 4 位）：</b>
+  溫室雜草（台团）、觸執毛（港团 Chochukmo）、NINEONE趙馨玥（乃万）、高爾宣 ——
+  他们<b>只有 1 张专辑在库且是英文标题</b>，拿不到华语证据 ⇒ 被排除出华语区。
+  这是"宁可漏、不可错"的必然代价：<b>漏掉一个华语歌手是小事，让欧美混进华语区是事故</b>。
+  要捞回来的正路是给这几位<b>补专辑 / 补流派标记 / 收进名单册</b>（加数据，不是改规则），
+  脚本 <code>verify-language-filter.mjs</code> 第【7】节每次都会把这类名单打印出来供复核。</div>
 </div>
 
 <h2><span class="n">4</span>修法 B：「全部语种」的文案与交互（你说的歧义）</h2>
@@ -150,7 +188,15 @@
       <tr><td>2</td><td>保留「全部语种」字样，但在它下面常驻一行小字解释 + 在开始对局的确认处再提示一次</td><td>改动更小，但"全部语种"这四个字本身还在误导</td></tr>
     </tbody>
   </table>
-  <div class="note good"><b>顺带确认一件事（避免我理解错你的意思）：</b>你希望"华语区"= <b>只出中文专辑（可含粤语）</b>，
+  <div class="note good"><b>✅ 你的决定：按<b>方案一</b>实施（已落地）</b> —— 按钮文字随上层联动：
+  华语区下显示「<b>全部华语</b>」，外语区下显示「<b>全部外语</b>」；下面那行说明改成一句白话，
+  随选择变化：<br>
+  · 华语区：「只出中文专辑（国语 + 粤语），<b>不会混进英文歌</b>；池子按语种交替均衡，不会一边倒向粤语。」<br>
+  · 外语区：「只出外语专辑（日语 / 韩语 / 欧美），不会混进中文歌。」<br>
+  · 选了具体语种：「只出国语专辑，不会有别的语种。」<br>
+  <span style="font-size:12.5px">已验证进了构建产物：<code>dist/index.html → assets/index-*.js → BattleCreateView-*.js</code>
+  里能搜到「全部华语 / 全部外语 / 不会混进英文歌」，旧的「全部语种」已为 0 处。</span></div>
+  <div class="note"><b>顺带确认一件事（避免我理解错你的意思）：</b>你希望"华语区"= <b>只出中文专辑（可含粤语）</b>，
   这个我已经按这个目标在修法 A 里落实了。如果你其实想要"华语区也能混一点英文合作曲"，
   那是另一种口径 —— 说一声我改方向。</div>
 </div>
@@ -160,24 +206,44 @@
   <table>
     <thead><tr><th style="width:44px">#</th><th>改什么</th><th style="width:150px">文件</th><th style="width:90px">风险</th><th style="width:90px">工作量</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td>语种判定第 ③ 步：中英混排时按流派华语标记决定</td><td><code>src/data/languageTag.js</code></td><td>中（影响面在筛选）</td><td>0.3 天</td></tr>
-      <tr><td>2</td><td>华语白名单补 4 组（补救误伤）</td><td>白名单数据文件 / 后台</td><td>低（只加数据）</td><td>0.1 天</td></tr>
-      <tr><td>3</td><td>「全部语种」→「全部华语 / 全部外语」+ 白话说明</td><td><code>BattleCreateView.vue</code></td><td>低</td><td>0.2 天</td></tr>
-      <tr><td>4</td><td>回归自检（用独立判据，不再用被验证的规则当裁判）</td><td>新增 <code>verify-language-filter.mjs</code></td><td>—</td><td>0.3 天</td></tr>
-      <tr><td colspan="4" style="text-align:right"><b>合计</b></td><td><b>约 0.9 天</b></td></tr>
+      <tr><td>1</td><td>语种判定加「专辑标题」这条通用证据 + 保守默认；名单归属支持<b>别名</b></td><td><code>src/data/languageTag.js</code></td><td>中（影响面在筛选）</td><td>0.4 天</td></tr>
+      <tr><td>2</td><td>流派模式 / 年代模式把歌手在本次池子里的专辑标题传进判定</td><td><code>src/modules/battles/battle.service.js</code></td><td>中</td><td>0.2 天</td></tr>
+      <tr><td>3</td><td><b>修歌手重复出现</b>：此前只洗了每位歌手自己的专辑、没洗歌手之间的先后 ⇒ 每次都是同一批人</td><td><code>battle.service.js · orderBucketsForPool</code></td><td>低（只调顺序）</td><td>0.1 天</td></tr>
+      <tr><td>4</td><td>「全部语种」→「全部华语 / 全部外语」+ 一句白话说明（<b>按你拍板的方案一</b>）</td><td><code>BattleCreateView.vue</code></td><td>低</td><td>0.2 天</td></tr>
+      <tr><td>5</td><td>回归自检（用独立判据，不再用被验证的规则当裁判）</td><td>新增 <code>verify-language-filter.mjs</code></td><td>—</td><td>0.4 天</td></tr>
+      <tr><td colspan="4" style="text-align:right"><b>合计</b></td><td><b>约 1.3 天</b></td></tr>
     </tbody>
   </table>
-  <b>验收标准（都能跑出数字）：</b>
-  <ul>
-    <li>用户参数（2025-2026 · 华语区 · 48 张）池内<b>名字含拉丁字母的条目 = 0 个真欧美</b>（Kolor / MC 張天賦 / 頑童MJ116 这类真华语不算）</li>
-    <li>全库 36 位中英混排歌手里，<b>21 位修正为西方、15 位仍判华语</b>；被误伤的 4 组因进白名单仍判华语</li>
-    <li>外语区反向检查：<b>池内华语歌手 = 0</b></li>
-    <li>纯汉字名歌手（周杰倫 / 陳奕迅 / 譚詠麟…）判定<b>一个都不变</b></li>
-    <li>"华语区"下 3 个语种按钮 × "外语区"下 3 个 = 6 种组合逐个复验</li>
-  </ul>
-  <div class="note warn"><b>为什么这一条要你批准：</b>它动的是「语种怎么判」这个底层规则，
-  会影响年代模式与流派模式的取池结果。按项目规矩，<b>底层逻辑由我定稿、但大改动先出方案给你审</b>；
-  而且你刚说过"不能把已经好的东西修坏"，所以我把<b>误伤名单和补救办法</b>都先摆出来了，不藏着。</div>
+  <b>验收标准 —— 已全部跑通，<span class="v">12/12 全绿</span>（<code>node scripts/verify-language-filter.mjs</code>）</b>
+  <table style="margin-top:6px">
+    <thead><tr><th style="width:44px">#</th><th>判据（全部独立于被测规则）</th><th style="width:120px">实测结果</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>黄金集：<b>67 位人工常识标注</b>的歌手（不调用被测规则产出标签）逐条对判定</td><td class="v">67/67 全对</td></tr>
+      <tr><td>2</td><td>你截图点名的两位（Bing Crosby / Jamie xx）必须挡在华语区外</td><td class="v">均为 western</td></tr>
+      <tr><td>3</td><td>你的原始参数（2025-2026 · 华语区 · 48 张）池内可疑欧美数</td><td class="v">0（改前 6）</td></tr>
+      <tr><td>4</td><td>外语区池内「流派带华语标记」的歌手数（流派是 iTunes 第三方数据）</td><td class="v">0</td></tr>
+      <tr><td>5</td><td>拿不到专辑数据时行为不变（人格画像 / 搜索歌手这两处不传专辑）</td><td class="v">不变</td></tr>
+      <tr><td>6</td><td>歌手重复：同一参数跑 6 次，歌手集合种类 / 每次人数</td><td class="v">6 种 / 恒 32 位</td></tr>
+      <tr><td>7</td><td>别名覆盖率（②-2 规则的数据基础，不能是死代码）</td><td class="v">75 / 485</td></tr>
+      <tr><td>8</td><td>欧美专辑的日本盘特供名不得把歌手判成日语（魔力紅樂團 = Maroon 5）</td><td class="v">判 western</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>自检过程中我自己抓到并修掉的 5 个坑（都是"看似通过实则假绿"）：</b>
+  <ul style="margin-top:4px">
+    <li><b>取样坑</b>：库里同名歌手有多个 doc（「馬友友」一个有 53 张专辑、一个 0 张），
+      取到 0 张的那个 ⇒ 拿不到证据 ⇒ 假失败。改为取专辑最多的 doc。</li>
+    <li><b>断言写错</b>：region='hk' 下汉字名是 <b>cantonese</b> 不是 mandarin，我却写死了 mandarin ⇒ 假红。
+      改成比"大区"而不是写死语种。</li>
+    <li><b>没东西可洗</b>：第一次用「搖滾」流派测重复 bug，池内只有 1 位歌手 ⇒ 6 次跑出 1 种集合，
+      看着像 shuffle 没生效。换成歌手上百位的年代模式才测出真差别。</li>
+    <li><b>边界没覆盖</b>：年代模式传的是<b>该区间内</b>的专辑，很多歌手只有 1 张；
+      原本要求 ≥2 张才下结论 ⇒ 喜多郎 / Lady Gaga 等 5 位<b>照样漏进华语区</b>。改成 ≥1 张。</li>
+    <li><b>被数据证伪的判据</b>：我本想用"专辑标题带假名 ⇒ 日语"，实测
+      米津玄師 0.00、星野源 0.00 <b>vs</b> 魔力紅樂團 0.08 —— 两组重叠、分不开，<b>整条删掉</b>。</li>
+  </ul></div>
+  <div class="note"><b>备份与回退：</b>改动前已备份至
+  <code>_backup/20261014-2329_T1语种通用修复/</code>（languageTag.js / battle.service.js 原文件）。
+  回退：把备份里两个文件覆盖回去，再重跑一次验收脚本即可。</div>
 </div>
 
 <h2><span class="n">6</span>另外三件事（你的原话，我记下了）</h2>
@@ -208,5 +274,5 @@
   <b>每一个筛选/开关控件，都要有"选了什么 → 出了什么"的对应断言</b>，不能只看"页面好不好看"。</div>
 </div>
 
-<div class="foot">音格 · 华语区筛选修复方案 · 2026-10-14 · 诊断脚本可复跑：<code>backend/scripts/diag-language-leak.mjs</code>（另见 <code>diag-pool-filter.mjs</code>）· <b>尚未修改任何代码，等你批准</b></div>
+<div class="foot">音格 · 华语区筛选修复方案 · 2026-10-14 定稿并实施 · 可复跑：<code>backend/scripts/verify-language-filter.mjs</code>（验收，12 项断言）· <code>diag-album-script.mjs</code>（信号可分性测量）· <code>diag-language-leak.mjs</code>（漏筛诊断）· 备份 <code>_backup/20261014-2329_T1语种通用修复/</code></div>
 </div></body></html>

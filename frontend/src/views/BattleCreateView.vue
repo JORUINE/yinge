@@ -614,7 +614,11 @@
             <button type="button" :class="{ on: zoneFilter === 'foreign' }" @click="setZone('foreign')">外语区</button>
           </div>
           <div v-if="zoneFilter" class="seg" style="margin-top: 8px">
-            <button type="button" :class="{ on: langFilter === '' }" @click="langFilter = ''">全部语种</button>
+            <!-- 第四十批：用户指出「全部语种」有歧义 —— 选了华语区，字面却像"含英语"。
+                 改成随上层联动：华语区 →「全部华语」，外语区 →「全部外语」。 -->
+            <button type="button" :class="{ on: langFilter === '' }" @click="langFilter = ''">
+              {{ allLangLabel }}
+            </button>
             <button
               v-for="l in langOptions"
               :key="l.value"
@@ -625,9 +629,8 @@
               {{ l.label }}
             </button>
           </div>
-          <p class="hint">
-            选「华语区」但不选具体语种时，池子会按语种<b>交替均衡</b> —— 不会一边倒向粤语。
-          </p>
+          <!-- 第四十批：把"到底会出现什么"写成白话，别让用户猜 -->
+          <p class="hint">{{ zoneHint }}</p>
         </div>
         <p class="hint">命中的合格专辑会各歌手轮转抽，最多取你选的张数；流派 / 年代歌手越多，越能凑出跨歌手对阵（先点上方"一键补知名歌手"把该流派的大牌加进曲库）。</p>
       </div>
@@ -1106,6 +1109,32 @@ const LANG_BY_ZONE = {
 };
 /** 子语种只列当前大区下的，避免出现"外语区 + 粤语"这种自相矛盾的组合 */
 const langOptions = computed(() => LANG_BY_ZONE[zoneFilter.value] || []);
+/**
+ * 第四十批（2026-10-14）· 消歧义
+ * ------------------------------------------------------------
+ * 用户：「全部语种看起来有点像会不会有英语，所以必须要做优化」。
+ * 按钮文字随上层联动 —— 华语区下叫「全部华语」，外语区下叫「全部外语」，
+ * 再把"到底会出现什么"用一句白话讲明白，不靠用户猜。
+ */
+const LANG_CN_LABEL = {
+  mandarin: '国语',
+  cantonese: '粤语',
+  japanese: '日语',
+  korean: '韩语',
+  western: '欧美',
+};
+const allLangLabel = computed(() => (zoneFilter.value === 'foreign' ? '全部外语' : '全部华语'));
+const zoneHint = computed(() => {
+  if (zoneFilter.value === 'zh') {
+    if (langFilter.value) return `只出${LANG_CN_LABEL[langFilter.value] || ''}专辑，不会有别的语种。`;
+    return '只出中文专辑（国语 + 粤语），不会混进英文歌；池子按语种交替均衡，不会一边倒向粤语。';
+  }
+  if (zoneFilter.value === 'foreign') {
+    if (langFilter.value) return `只出${LANG_CN_LABEL[langFilter.value] || ''}专辑，不会有别的语种。`;
+    return '只出外语专辑（日语 / 韩语 / 欧美），不会混进中文歌。';
+  }
+  return '不勾就是各地专辑混着打。';
+});
 function setZone(z) {
   zoneFilter.value = z;
   langFilter.value = '';
