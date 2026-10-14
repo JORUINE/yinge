@@ -1,0 +1,279 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 部署执行手册（照着做就能上线）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:860px;opacity:.94}
+  .chain{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-top:18px}
+  .chain .n{background:rgba(255,255,255,.92);border-radius:12px;padding:11px 13px}
+  .chain .n b{display:block;font-size:14px;color:#0369A1}
+  .chain .n span{display:block;font-size:12px;color:#46647E;margin-top:2px;line-height:1.45}
+  .chain .n i{display:block;font-style:normal;font-size:11.5px;color:#0f8a4a;font-weight:700;margin-top:4px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:24px;height:24px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:8px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  pre{background:#0B2A42;color:#dbeafe;border-radius:10px;padding:12px 14px;overflow-x:auto;font-size:12.5px;line-height:1.6;margin:8px 0}
+  pre .c{color:#7dd3fc}
+  pre .g{color:#86efac}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .warn{background:#fff8ec;border-left-color:#e08700}
+  .good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .bad{background:#fdeaea;border-left-color:#c0392b}
+  ol.steps{margin:8px 0 0;padding-left:0;list-style:none;counter-reset:s}
+  ol.steps>li{counter-increment:s;position:relative;padding:0 0 12px 34px;border-left:2px solid #dbeaf6;margin-left:11px}
+  ol.steps>li:last-child{border-left:2px solid transparent;padding-bottom:0}
+  ol.steps>li::before{content:counter(s);position:absolute;left:-13px;top:-2px;width:24px;height:24px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  ol.steps>li b{color:#0369A1}
+  ol.steps>li .d{font-size:13.5px;color:#46647E;margin-top:2px}
+  .kv{display:grid;grid-template-columns:150px 1fr;gap:4px 12px;font-size:13.5px;margin-top:6px}
+  .kv dt{color:#0369A1;font-weight:700}
+  .kv dd{margin:0}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .must{background:#fdeaea;color:#c0392b}
+  .opt{background:#eef4f9;color:#4b6b86}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  ul{margin:6px 0 0;padding-left:20px}
+  li{margin:4px 0;font-size:13.5px}
+  .blank{display:inline-block;min-width:180px;border-bottom:1px dashed #7d97ab;color:#7d97ab}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:860px){.chain{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}.kv{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+  <span class="tag">部署执行手册 · 2026-10-14 · 你选了「先部署上云」</span>
+  <h1>音格 · 照着做就能上线</h1>
+  <p>这份手册把每一步<b>点什么、填什么、怎么算成功</b>都写死了。你只需要做三件事：<b>注册三个平台的账号</b>、<b>把下面的值粘进去</b>、<b>点几下鼠标</b>。所有命令我已经在你机器上真跑过（数字见每步的「实测」）。</p>
+  <div class="chain">
+    <div class="n"><b>① MongoDB Atlas</b><span>存数据的云数据库</span><i>免费 512MB，够用</i></div>
+    <div class="n"><b>② Render</b><span>跑后端 API（Node）</span><i>免费档会休眠，见 §6</i></div>
+    <div class="n"><b>③ Vercel</b><span>托管前端网页（静态）</span><i>免费，全球 CDN</i></div>
+    <div class="n"><b>④ GitHub</b><span>三个平台都从这儿拉代码</span><i>你已经 push 过了</i></div>
+  </div>
+</div>
+
+<div class="card">
+  <b style="color:#0369A1">先看清全貌：上线后数据怎么流</b>
+  <div class="note" style="margin-top:8px">
+    <b>别人手机/电脑</b> → 打开 <b>Vercel 网址</b>（网页）→ 网页里的按钮调用 <b>Render 网址的 /api</b>（后端）→ 后端读 <b>Atlas</b>（数据库）。
+    <br>对应到你现在本机：<code>localhost:5173</code>（网页）→ <code>localhost:3000</code>（后端）→ <code>localhost:27017</code>（库）。
+    <br><b>所以顺序不能乱：必须先有 Atlas（库）→ 再有 Render（后端）→ 最后 Vercel（前端）</b>，因为后一步要用前一步的地址。
+  </div>
+</div>
+
+<h2><span class="n">1</span>第一步 · MongoDB Atlas（先把云库建好）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>注册并登录</b>
+      <div class="d">打开 <code>mongodb.com/atlas</code>，用邮箱或 Google 账号注册（免费，不用信用卡）。</div></li>
+    <li><b>建一个免费集群</b>
+      <div class="d">登录后它通常直接弹「Create a cluster」。选 <b>M0 Free</b>（512MB，我们数据只有 17.87MB，绰绰有余），
+      提供商和地区随便选一个<b>离你近的</b>（如 Singapore / Tokyo），名字默认 <code>Cluster0</code> 即可，点 Create。
+      <br>⏱ 这一步要等 1~3 分钟，它在 Provision。</div></li>
+    <li><b>建一个数据库用户（重要，不是登录账号）</b>
+      <div class="d">左侧 <b>Database Access</b> → Add New Database User →
+      <b>Username</b> 填 <code>yinge</code>、<b>Password</b> 点 <b>Autogenerate Secure Password</b>，
+      <span class="pill must">立刻复制保存</span>（只显示这一次，忘了只能重置）。
+      Privilege 选 <b>Read and write to any database</b>。</div>
+    <li><b>放开网络访问（关键，不然后端连不上）</b>
+      <div class="d">左侧 <b>Network Access</b> → Add IP Address → 选 <b>Allow Access from Anywhere</b>（就是 <code>0.0.0.0/0</code>）。
+      <br>⚠️ 为什么必须放开：Render 每次请求的出网 IP 都不固定，写死某一个 IP 明天就连不上了。这是免费档的常规做法。</div></li>
+    <li><b>拿连接串</b>
+      <div class="d">回到集群页点 <b>Connect</b> → <b>Drivers</b> → 复制那串 <code>mongodb+srv://…</code>。
+      它长这样（把尖括号换成你的）：</div></li>
+  </ol>
+<pre><span class="c"># Atlas 连接串模板（密码里的特殊字符要先 URL 编码，见下）</span>
+mongodb+srv://<span class="g">yinge</span>:<span class="g">你的密码</span>@cluster0.xxxxx.mongodb.net/<span class="g">yinge</span>?retryWrites=true&amp;writesConcern=majority</pre>
+  <div class="note warn"><b>⚠️ 密码编码这条最容易栽：</b>如果 Autogenerate 出来的密码里带 <code>@ # / ? % :</code> 这些字符，
+  直接粘进连接串会把串截断，表现为「连 Atlas 超时 / bad auth」。替换表：<code>@</code>→<code>%40</code>、<code>#</code>→<code>%23</code>、
+  <code>/</code>→<code>%2F</code>、<code>:</code>→<code>%3A</code>、<code>%</code>→<code>%25</code>、<code>?</code>→<code>%3F</code>。
+  嫌麻烦就在 Database Access 里把密码改成<b>只用字母和数字</b>。</div>
+  <div class="note"><b>本步验收：</b>不用敲命令也能验 —— 集群页左边出现 <b>Collections</b> 菜单、Connect 按钮能点出连接串，就算建好了。</div>
+</div>
+
+<h2><span class="n">2</span>第二步 · 把数据搬到 Atlas（不搬就是空站）</h2>
+<div class="card">
+  <div class="note bad"><b>为什么必须有这一步：</b>Atlas 是台<b>新数据库，里面一条数据都没有</b>。
+  你现在本机库里有 <b>45064 条</b>（33428 张专辑、485 位歌手、350 局对战、3746 票、50 道题、6 型人格…）。
+  不搬的话，线上能打开、能注册，但<b>一开局就没专辑、测评没题目、榜单是空的</b>。</div>
+  <p style="font-size:13.5px;margin:10px 0 0">搬数据用仓库里现成的脚本（我已经写好并真跑过）。先<b>只读演练</b>看一遍会搬什么，再真搬：</p>
+<pre><span class="c"># 1) 只读演练：只报"会搬什么"，一个字节都不写。先跑这个。</span>
+cd E:\桌面\毕业设计\yinge\backend
+node scripts/migrate-to-atlas.mjs
+
+<span class="c"># 2) 确认无误后真搬（把引号里换成你在上一步复制的 Atlas 连接串）</span>
+node scripts/migrate-to-atlas.mjs "mongodb+srv://yinge:你的密码@cluster0.xxxxx.mongodb.net/yinge?retryWrites=true&amp;writesConcern=majority" --apply</pre>
+  <div class="note"><b>本步实测（我在你机器上真跑到临时库的结果）：</b>14 个集合全部成功、条条一致 ——
+  albums 33428 / tracks 3570 / votes 3746 / battlematches 2047 / battlegroups 1165 / battles 350 / artists 485 /
+  users 73 / personalityquestions 50 / personalityresults 36 / albumtagvotes 66 / favorites 26 / combos 16 /
+  personalitytypes 6，<b>合计 45064 条</b>。<br>
+  脚本还会做<b>外键抽检</b>（证明 _id 原样搬过来、关联没烂），实测 5 条全中：对局 _id、albumIds[0]、userId、
+  championAlbumId、淘汰赛胜方专辑，在目标库全能找到。✅</div>
+  <div class="note good"><b>安全设计（防止误操作）：</b>① 默认<b>只读演练</b>，不加 <code>--apply</code> 什么都不写；
+  ② 目标集合<b>非空时默认拒绝覆盖</b>（防止冲掉线上已有数据，要覆盖得显式加 <code>--force</code>）；
+  ③ 全程<b>保留 <code>_id</code></b> —— 库里 albumId / userId / winnerAlbumId 全是 ObjectId 外键，重新生成 id 会让关联瞬间全烂。</div>
+  <div class="note warn"><b>索引不用搬。</b>后端的 Model 里都写了索引定义，连上 Atlas 时会自动建（实测启动日志 <code>MongoDB 已连接</code> 即就绪）。</div>
+</div>
+
+<h2><span class="n">3</span>第三步 · Render（把后端部署上去）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>注册 Render</b>
+      <div class="d">打开 <code>render.com</code>，<b>用 GitHub 账号登录</b>（这样它才能拉你的仓库）。</div></li>
+    <li><b>新建 Web Service</b>
+      <div class="d">Dashboard → <b>New +</b> → <b>Web Service</b> → 找到 <code>JORUINE/yinge</code> → Connect。
+      找不到仓库的话，点 <b>Configure account</b> 给 Render 授权访问那个仓库。</div></li>
+    <li><b>按下表填设置</b>（这几项填错是部署失败的最常见原因）</li>
+  </ol>
+  <table>
+    <thead><tr><th style="width:190px">字段</th><th>填什么</th><th style="width:96px">为什么</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td><code>yinge-api</code>（随便起，会成为域名一部分）</td><td></td></tr>
+      <tr><td>Region</td><td>Singapore（离你近）</td><td></td></tr>
+      <tr><td>Branch</td><td><code>main</code></td><td></td></tr>
+      <tr><td><b>Root Directory</b></td><td><code>backend</code></td><td><span class="pill must">必填</span>仓库根目录没有 package.json</td></tr>
+      <tr><td>Runtime</td><td>Node</td><td></td></tr>
+      <tr><td>Build Command</td><td><code>npm install</code></td><td>装依赖</td></tr>
+      <tr><td>Start Command</td><td><code>npm start</code></td><td>跑 <code>node src/server.js</code></td></tr>
+      <tr><td>Instance Type</td><td>Free</td><td>0 元</td></tr>
+      <tr><td>Health Check Path</td><td><code>/health</code></td><td>后端已实现</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13.5px;margin:12px 0 0"><b>环境变量</b>（同一页往下拉 <b>Environment Variables</b>，逐条加）：</p>
+  <table>
+    <thead><tr><th style="width:200px">Key</th><th>Value 填什么</th><th style="width:80px">必需</th></tr></thead>
+    <tbody>
+      <tr><td><code>MONGODB_URI</code></td><td>第 1 步那个 Atlas 连接串</td><td><span class="pill must">必填</span></td></tr>
+      <tr><td><code>JWT_SECRET</code></td><td><b>新生成的随机串</b>，别用本地那个。生成命令见下</td><td><span class="pill must">必填</span></td></tr>
+      <tr><td><code>CORS_ORIGINS</code></td><td>你的 Vercel 域名，如 <code>https://yinge.vercel.app</code><br><b>先留空也行</b>，等第 4 步拿到域名再回来补</td><td><span class="pill must">必填</span></td></tr>
+      <tr><td><code>DASHSCOPE_API_KEY</code></td><td>有通义千问密钥就填；<b>不填也能跑</b>（人格解读自动走模板文案）</td><td><span class="pill opt">选填</span></td></tr>
+      <tr><td><code>NODE_ENV</code></td><td>Render 会自动设成 <code>production</code>，<b>不用手动加</b></td><td><span class="pill opt">自动</span></td></tr>
+      <tr><td><code>PORT</code></td><td><b>千万不要手动加</b> —— Render 自己会注入，手写反而会冲突</td><td><span class="pill must">别填</span></td></tr>
+    </tbody>
+  </table>
+<pre><span class="c"># 生成 JWT_SECRET（在任意目录跑，输出复制走）</span>
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"</pre>
+  <div class="note"><b>本步实测（我用生产配置在你机器上真跑过）：</b>
+  <code>/health</code> → <code>{"status":"ok"}</code>；
+  <code>/ready</code> → HTTP 200 <code>{"status":"ok","db":"connected"}</code>；
+  <code>/api/rank/albums?limit=2</code> → <code>{"code":0,…}</code> 真返回数据（榜单第一名陶喆同名專輯 72 票）。
+  另外验证过：库连不上时 <code>/health</code> 仍是 200（服务活着），<code>/ready</code> 返回 <b>503</b> —— 这就是排错的信号灯。</div>
+  <div class="note warn"><b>部署完先做这个验收：</b>浏览器打开
+  <code>https://你的服务名.onrender.com/health</code>，看到 <code>{"status":"ok"}</code> 就算后端活了。
+  再打开 <code>/ready</code>，必须显示 <code>"db":"connected"</code>；如果是 <code>"connecting"</code> 或 503，说明库没连上，直接去看 §5 排错表。</div>
+</div>
+
+<h2><span class="n">4</span>第四步 · Vercel（把前端部署上去）</h2>
+<div class="card">
+  <ol class="steps">
+    <li><b>注册 Vercel</b>
+      <div class="d">打开 <code>vercel.com</code>，<b>用 GitHub 账号登录</b>。</div></li>
+    <li><b>导入仓库</b>
+      <div class="d">Dashboard → <b>Add New…</b> → <b>Project</b> → 找到 <code>JORUINE/yinge</code> → Import。</div></li>
+    <li><b>按下表填</b></li>
+  </ol>
+  <table>
+    <thead><tr><th style="width:190px">字段</th><th>填什么</th><th style="width:96px">为什么</th></tr></thead>
+    <tbody>
+      <tr><td><b>Root Directory</b></td><td><code>frontend</code></td><td><span class="pill must">必填</span>网页工程在这层</td></tr>
+      <tr><td>Framework Preset</td><td>Vite</td><td>自动识别</td></tr>
+      <tr><td>Build Command</td><td><code>npm run build</code></td><td>默认就是</td></tr>
+      <tr><td>Output Directory</td><td><code>dist</code></td><td>默认就是</td></tr>
+      <tr><td>Install Command</td><td><code>npm install</code></td><td>默认就是</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:13.5px;margin:12px 0 0"><b>环境变量</b>（Expand 那个 Environment Variables 区，加一条）：</p>
+  <div class="kv">
+    <dt>Key</dt><dd><code>VITE_API_BASE_URL</code></dd>
+    <dt>Value</dt><dd><code>https://你的服务名.onrender.com/api</code>　<span class="pill must">结尾必须带 /api</span></dd>
+  </div>
+  <div class="note warn"><b>这条是构建时变量：加完之后必须点一次 Redeploy 才生效</b>，光保存不重新构建，页面还会继续打旧地址（表现为"接口全 404 / Network Error"）。</div>
+  <div class="note warn"><b>还有一件事必须回 Render 做：</b>Vercel 部署完会给你一个域名（如 <code>https://yinge.vercel.app</code>）。
+  拿着它回 Render → 你的服务 → <b>Environment</b> → 把 <code>CORS_ORIGINS</code> 填成这个域名 → 保存（Render 会自动重启）。
+  <br><b>两边都配，浏览器才不会拦跨域请求。</b>只配一边的典型症状：网页能打开，但一调接口就红字 <code>CORS policy</code> / <code>Network Error</code>。</div>
+  <div class="note good"><b>仓库里已经放好了 <code>frontend/vercel.json</code></b>，它干两件事：① 把所有未知路径都指回 <code>index.html</code>
+  —— 否则你在 <code>/battle/xxx/bracket</code> 这种地址<b>刷新会 404</b>；② 给 <code>/assets/</code> 下的文件加一年长效缓存。
+  你不用改它。</div>
+  <div class="note"><b>本步实测：</b>我重新构建过 <code>dist</code> 并验通引用链（<code>index.html</code> → 入口 js →
+  动态 import 的 <code>BracketTree</code> chunk → 里面确实含本轮新代码），<code>vercel.json</code> 也验证是合法 JSON。
+  仓库 283 个文件 / 24MB、<b>没有任何 >2MB 的文件、node_modules 没入库</b> —— 克隆和构建都不会被拖垮。</div>
+</div>
+
+<h2><span class="n">5</span>排错对照表（出问题先查这里）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:250px">你看到的现象</th><th>八成是这个原因</th><th>怎么办</th></tr></thead>
+    <tbody>
+      <tr><td>打开网址<b>白屏</b>，Console 一片红</td><td>Root Directory 没填 <code>frontend</code>，Vercel 把仓库根当工程了</td><td>改 Root Directory 为 <code>frontend</code>，Redeploy</td></tr>
+      <tr><td>首页能开，<b>刷新或点详情就 404</b></td><td>SPA 路由没兜底</td><td>确认 <code>frontend/vercel.json</code> 在仓库里且 Root Directory 指向 frontend</td></tr>
+      <tr><td>网页能开，但一调接口就 <code>CORS policy</code> / <code>Network Error</code></td><td>Render 的 <code>CORS_ORIGINS</code> 没填 Vercel 域名，或填错（漏了 <code>https://</code>）</td><td>回 Render 补 <code>CORS_ORIGINS</code>，保存后等它自动重启</td></tr>
+      <tr><td>接口全 <b>404</b>，地址栏看到打的是 <code>/api</code> 而不是 Render 域名</td><td><code>VITE_API_BASE_URL</code> 没生效</td><td>加/改这个变量后<b>必须 Redeploy</b>；值结尾要带 <code>/api</code></td></tr>
+      <tr><td>能注册能登录，但<b>一开局就没专辑、测评没题目、榜单空</b></td><td>第 2 步没搬数据，或 <code>MONGODB_URI</code> 指到了空库</td><td>重跑 <code>migrate-to-atlas.mjs "连接串" --apply</code>；去 Atlas 的 Collections 看 albums 有没有 33428 条</td></tr>
+      <tr><td><code>/health</code> 通但 <code>/ready</code> 返回 <b>503</b> 或一直 <code>connecting</code></td><td>库连不上。三选一：密码特殊字符没编码 / Network Access 没放开 0.0.0.0/0 / 库名写错</td><td>按第 1 步的编码表改密码；Network Access 改 Allow from Anywhere；确认串末尾是 <code>/yinge</code></td></tr>
+      <tr><td><b>第一次打开巨慢</b>（转圈 30~60 秒）</td><td>Render 免费档 15 分钟没人访问就休眠，第一次要"唤醒"</td><td><b>正常现象</b>。缓和方法见下面 §6</td></tr>
+      <tr><td>接口返回 <b>500</b></td><td>后端代码或环境有问题</td><td>Render → 你的服务 → <b>Logs</b> 看红色错误，把最后几行发我</td></tr>
+      <tr><td>登录着，<b>刷新就掉登录</b></td><td>改过 <code>JWT_SECRET</code> 并重新部署 —— 老 token 全部失效</td><td>重新登录一次即可。所以<b>定稿后就别再改 JWT_SECRET</b></td></tr>
+      <tr><td>Render 部署<b>直接失败</b>，日志里 <code>Cannot find module</code></td><td>Root Directory 不是 <code>backend</code></td><td>改 Root Directory 重新部署</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">6</span>两件必须知道的事（免费档的脾气）</h2>
+<div class="card">
+  <div class="note warn"><b>① Render 免费档会「睡觉」。</b>超过 15 分钟没人访问，它会自动停机；下一次访问要 30~60 秒才能唤醒。
+  <br><b>答辩当天这么做：</b>轮到你之前，自己先用手机流量打开一次网址、点两下，把它唤醒；然后 15 分钟内讲完就行。
+  <br><b>想彻底解决</b>（一次性设置，之后不用管）：注册一个免费定时访问服务（如 <code>cron-job.org</code>），
+  新建一个任务，URL 填 <code>https://你的服务名.onrender.com/health</code>，间隔设 <b>每 10 分钟</b>。
+  它每隔 10 分钟敲一次门，Render 就永远不睡。</div>
+  <div class="note"><b>② Atlas 免费档 512MB。</b>我们现在数据 17.87MB、索引 3.92MB，离上限极远，不用管。</div>
+</div>
+
+<h2><span class="n">7</span>验收清单（上线后逐条打勾）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:34px">✓</th><th>验什么</th><th>怎么算过</th></tr></thead>
+    <tbody>
+      <tr><td>☐</td><td>后端活着</td><td>打开 <code>https://你的服务名.onrender.com/health</code> 看到 <code>{"status":"ok"}</code></td></tr>
+      <tr><td>☐</td><td>数据库接着</td><td><code>/ready</code> 显示 <code>"db":"connected"</code></td></tr>
+      <tr><td>☐</td><td>数据搬上去了</td><td><code>/api/rank/albums?limit=3</code> 返回 <code>"code":0</code> 且有专辑名</td></tr>
+      <tr><td>☐</td><td>前端能开</td><td>Vercel 域名能打开首页，Console 无红色错误</td></tr>
+      <tr><td>☐</td><td>无痕窗口能玩</td><td>开一个无痕/隐私窗口打开网址（排除本机登录态的假象），能注册、能建局</td></tr>
+      <tr><td>☐</td><td>手机能玩</td><td>用 4G/5G（不是连家里 WiFi）打开网址走一遍</td></tr>
+      <tr><td>☐</td><td>主流程走通</td><td>注册 → 创建对局 → 投几票 → 看冠军 → 分享图能存下来</td></tr>
+      <tr><td>☐</td><td>测评能做完</td><td>人格测评从第一题做到出结果，结果页有推荐专辑</td></tr>
+      <tr><td>☐</td><td>刷新不 404</td><td>在 <code>/battle/xxx/bracket</code> 页面按 F5，页面正常回来</td></tr>
+      <tr><td>☐</td><td>后台能进</td><td>用 admin 账号能登录后台看板</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">8</span>我替不了你的部分 + 你的域名备忘</h2>
+<div class="card">
+  <div class="note bad"><b>这几步只能你本人做</b>（沙箱连不上这些网站，我无法代注册、代授权、代点击）：
+  <br>① Atlas / Render / Vercel 三个平台的<b>账号注册</b>；
+  ② 授权它们访问你的 <b>GitHub 仓库</b>；
+  ③ 每一次 <b>Deploy / Redeploy</b> 的最终点击；
+  ④ 复制连接串和密码。
+  <br>除此之外的活（配置怎么写、命令是什么、错了怎么查）我全包，并且都在上面写死了。</div>
+  <p style="font-size:13.5px;margin:12px 0 0">部署完成后把这三个地址填在这里，以后出问题直接对着看：</p>
+  <div class="kv" style="margin-top:8px">
+    <dt>前端（给别人发的）</dt><dd><span class="blank">https://__________________.vercel.app</span></dd>
+    <dt>后端（接口）</dt><dd><span class="blank">https://__________________.onrender.com</span></dd>
+    <dt>数据库</dt><dd><span class="blank">cluster0.____________.mongodb.net</span></dd>
+  </div>
+  <div class="note good"><b>回退永远有路：</b>本地版随时能跑 —— <b>双击仓库根目录的 <code>start-dev.bat</code></b>
+  （它会自动起 MongoDB、起后端、起前端并打开 <code>localhost:5173</code>），
+  想停数据库再双击 <code>stop-dev.bat</code>。
+  <b>线上挂了不影响你本地演示。</b>想彻底下线就在 Vercel / Render 里 Delete Project，代码还在 GitHub 上，随时能再部署。</div>
+</div>
+
+<div class="foot">音格 · 部署执行手册 · 2026-10-14 · 全部命令与行为已在本机实测 · 配套《项目进度与排期》</div>
+</div></body></html>
