@@ -1,0 +1,196 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 移动端 Demo 怎么看（11 张真机截图 + 三种打开方式）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:28px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:940px;opacity:.94}
+  h2{font-size:19px;margin:34px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .x{color:#c0392b;font-weight:800}.v{color:#0f8a4a;font-weight:800}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:900px){.two,.three{grid-template-columns:1fr}}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .p0{background:#fdeaea;color:#c0392b}.p1{background:#fff8ec;color:#b06a00}.p2{background:#eef2f6;color:#5b7286}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  .step{background:#fff;border:1px solid #dbeaf6;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.07)}
+  .step .no{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;margin-bottom:8px}
+  .step h3{margin:0 0 6px;font-size:15px;color:#0369A1}
+  .step p{margin:0;font-size:13.2px;color:#46647E}
+  .kbd{display:inline-block;background:#0B2A42;color:#fff;border-radius:5px;padding:1px 7px;font-size:12px;font-weight:700;font-family:Consolas,monospace}
+
+  /* ── 手机截图墙 ─────────────────────────────── */
+  .wall{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:16px}
+  @media(max-width:1000px){.wall{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:680px){.wall{grid-template-columns:1fr}}
+  .ph{background:#fff;border:1px solid #dbeaf6;border-radius:16px;padding:14px 12px 12px;box-shadow:0 6px 22px rgba(8,58,92,.08);text-align:center}
+  .ph .frame{width:100%;max-width:250px;margin:0 auto;background:#0B2A42;border-radius:22px;padding:7px;box-shadow:0 8px 20px rgba(8,58,92,.22)}
+  .ph .frame img{display:block;width:100%;border-radius:16px;background:#f2f8fd}
+  .ph b{display:block;font-size:13.5px;color:#0369A1;margin-top:11px}
+  .ph span{display:block;font-size:12.2px;color:#7d97ab;margin-top:3px;line-height:1.55}
+  .ph .pill{margin-top:7px}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">移动端 Demo · 2026-10-16 · 375×780 真机视口实录</span>
+  <h1>它长什么样，你现在就能看到</h1>
+  <p>你说得对——我上一轮只交了文档，没给你能看、能点的东西。这一页就是补这个：
+  <b>11 张真机截图</b>（不是设计稿，是从真库真后端<b>真打了一局</b>截下来的），
+  加上<b>三种打开方式</b>，你挑顺手的那个。</p>
+</div>
+
+<h2><span class="n">1</span>三种打开方式（挑一个顺手的）</h2>
+<div class="three">
+  <div class="step">
+    <span class="no">A</span>
+    <h3>电脑上看「手机版」（最快）</h3>
+    <p>双击项目根目录的 <code>start-mobile-demo.bat</code>，等 10 秒会自动打开网页。
+      然后按 <span class="kbd">F12</span> → 点左上角<b>手机图标</b>（或 <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">M</span>）
+      → 顶部设备选 <b>iPhone SE</b> 或 <b>Pixel 5</b> → <b>刷新</b>。<br>
+      <b>这就是手机上看到的样子</b>（含底部 Tab、安全区、触控热区）。</p>
+  </div>
+  <div class="step">
+    <span class="no">B</span>
+    <h3>用真手机访问（最真实）</h3>
+    <p>手机连<b>同一个 Wi-Fi</b>，浏览器打开
+      <code>http://192.168.1.65:5173</code>（这个 IP 每次可能变，
+      <b>以黑窗口里打印的那串为准</b>）。<br>
+      这是真机：有真触摸、真安全区、真拇指操作。<b>推荐用这个验收。</b></p>
+  </div>
+  <div class="step">
+    <span class="no">C</span>
+    <h3>看这一页的截图（零成本）</h3>
+    <p>什么都不用装，往下滚就是 <b>11 张真机截图</b>，每张都标了"这里为什么这么放"。<br>
+      看完想动手了再回 A / B。</p>
+  </div>
+</div>
+
+<div class="note warn"><b>如果双击 .bat 没反应 / 打不开：</b>
+① 看是不是被杀毒软件拦了（选"允许"）；
+② 黑窗口里如果提示端口被占用，先双击 <code>stop-dev.bat</code> 再重试；
+③ 手机打不开 —— 确认手机和电脑在<b>同一个 Wi-Fi</b>，且电脑弹出的"Windows 防火墙"提示里勾选了<b>专用网络</b>。
+还有问题就把黑窗口里的字发我。</div>
+
+<h2><span class="n">2</span>建议你这样试一遍（3 分钟）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:44px">步</th><th style="width:150px">做什么</th><th>应该看到什么</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>打开首页，看最底部</td><td><b>底部 5 个 Tab</b>：首页 / 对决 / 人格 / 排行 / 我的。点每个都能跳，当前项会高亮</td></tr>
+      <tr><td>2</td><td>点「开始对决」→ 选「单歌手内战」</td><td>选完模式，<b>底部自动升起筛选弹层</b>（不用你去找）</td></tr>
+      <tr><td>3</td><td>在弹层里搜「周杰伦」</td><td>候选第一位是<b>曲库里有 17 张专辑的「周杰倫」</b>，不是卡拉OK团（这是本轮修掉的 bug）</td></tr>
+      <tr><td>4</td><td>点候选上的「加入」</td><td>底部那行立刻变成「<b>已选 8 张 · 来自 1 位歌手 · 共 5 场</b>」—— 选了什么看得见</td></tr>
+      <tr><td>5</td><td>点「开始对决」</td><td>先打<b>小组赛</b>（4 张里勾 2 张 → 点确认），进度写在页头</td></tr>
+      <tr><td>6</td><td>进淘汰赛</td><td><b>左右两张并排</b>，专辑名在封面<b>正下方</b>，试听在专辑名<b>正下方</b>；<b>点封面即投票</b>，点「试听 30 秒」不会误投</td></tr>
+      <tr><td>7</td><td>一路打完</td><td>结果页出冠军卡 + 「生成夺冠之路」；分享页能存图</td></tr>
+      <tr><td>8</td><td>回底部 Tab 点「我的」</td><td>能看到<b>刚才这一局的记录</b>（对决 / 测评 / 收藏 / 组合四个 Tab）</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>第 3 步是重点</b>：上一轮这里会出 bug——搜「周杰伦」时卡拉OK团「周杰伦战队」排在真歌手前面，
+  点了之后池子里是一位 0 张专辑的野鸡歌手，摘要永远停在「还没选完」。<b>现在已经修好</b>，
+  回归探针 12 条断言盯着它，不许再犯。</div>
+</div>
+
+<h2><span class="n">3</span>11 张真机截图（375×780，真打了一局截的）</h2>
+<div class="wall">
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/01-home.png" alt="首页 · 底部 5 Tab" /></div>
+    <b>① 首页</b>
+    <span>顶部只留 logo + 登录；<b>导航沉到底部 5 Tab</b>，拇指够得到。底部留了安全区，不被手势条压。</span>
+    <div><span class="pill ok">分端导航</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/02-create-modes.png" alt="创建页 · 模式大厅" /></div>
+    <b>② 创建页 · 选模式</b>
+    <span><b>一屏只做一件事</b>：先选哪一族模式（混战 / 对位），不堆参数。</span>
+    <div><span class="pill p0">P0-5</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/03-create-sheet.png" alt="创建页 · 底部筛选弹层" /></div>
+    <b>③ 创建页 · 底部弹层</b>
+    <span>选完模式<b>自动升起</b>筛选弹层；遮罩可点掉收起；底部常驻「你选了什么」。</span>
+    <div><span class="pill p0">P0-5</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/04-create-search.png" alt="弹层里搜歌手" /></div>
+    <b>④ 弹层里搜歌手</b>
+    <span>候选按「是不是同一个名字」排序，<b>曲库有专辑的排前面</b>，卡拉OK/翻唱团不会插队。</span>
+    <div><span class="pill ok">第四十二批修的 bug</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/05-create-picked.png" alt="点了加入 · 摘要跟着变" /></div>
+    <b>⑤ 点了「加入」</b>
+    <span>底部摘要<b>立刻跟着变</b>，把张数、歌手数、赛程场次都说清楚 —— 选了什么看得见。</span>
+    <div><span class="pill ok">选了什么→出了什么</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/06-group.png" alt="小组赛 · 4 张选 2" /></div>
+    <b>⑥ 小组赛 · 4 选 2</b>
+    <span>一局不是只有 1v1：先打小组赛。勾 2 张 → 点确认，进度写在页头。</span>
+    <div><span class="pill p1">赛制</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/07-duel.png" alt="淘汰赛 · 左右对决" /></div>
+    <b>⑦ 淘汰赛 · 左右对决</b>
+    <span><b>你点名要的版式</b>：左右并排不折叠；<b>专辑名在封面正下方</b>、<b>试听在专辑名正下方</b>；点封面即试听/投票。</span>
+    <div><span class="pill p0">按你的意见改</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/08-result.png" alt="结果页 · 夺冠" /></div>
+    <b>⑧ 结果页 · 夺冠</b>
+    <span>冠军卡 + 「生成夺冠之路」/「和好友一起玩」/「再玩一次」。主操作都在拇指区。</span>
+    <div><span class="pill p1">结果</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/09-share.png" alt="分享页 · 晋级图" /></div>
+    <b>⑨ 分享页 · 晋级图</b>
+    <span>图卡 + 保存 / 复制按钮，375 窄屏<b>不横向滚动</b>。</span>
+    <div><span class="pill p1">分享</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/10-personality.png" alt="音乐人格" /></div>
+    <b>⑩ 音乐人格</b>
+    <span>六型图鉴 + 开始测评入口。<b>你说"人格系统、人格测试也要有"</b>—— 本来就有，现在也进了底部导航。</span>
+    <div><span class="pill ok">已纳入底部导航</span></div>
+  </div>
+  <div class="ph">
+    <div class="frame"><img src="figures/mobile-demo/11-profile.png" alt="我的 · 过往对决与测评" /></div>
+    <b>⑪ 我的 · 过往记录</b>
+    <span><b>你说"用户的我的界面可以查看过往测试和对决"</b>—— 对决 / 测评 / 收藏 / 组合四个历史 Tab 都在。</span>
+    <div><span class="pill ok">已纳入底部导航</span></div>
+  </div>
+</div>
+
+<h2><span class="n">4</span>这批截图是怎么来的（可信度）</h2>
+<div class="card">
+  <ul>
+    <li><b>不是设计稿、不是摆拍</b>：从真库真后端<b>真建了一局、真投票打到冠军</b>，一路截过来的。脚本 <code>tools/pw/shot-mobile-demo.mjs</code>。</li>
+    <li><b>视口就是真机视口</b>：375×780、<code>isMobile:true</code>、<code>hasTouch:true</code>、2 倍屏 —— 和 iPhone SE / 主流安卓一致。</li>
+    <li><b>全程 0 条 JS 错误</b>（截图脚本自己数的）。</li>
+    <li><b>唱片封面来自 iTunes</b>（周杰伦《太陽之子》《驚嘆號》《陶喆同名專輯》等），是真实曲库数据，不是占位图。</li>
+    <li><b>号码是游客号</b>：这一局是游客身份打的 —— <b>不注册也能玩全部主线</b>，这条你定的规则本身就是这么展示的。</li>
+  </ul>
+  <div class="note"><b>为什么⑦是左右而不是上下：</b>你原话"专辑对决那里应该是要在下面左右两边分别展示出专辑名字 方便用户点"。
+  而旧代码在 ≤860px 会把两张卡<b>折叠成上下</b>、还把 VS 藏掉 —— 那是本轮按你意见改掉的部分。
+  现在左右各占约一半（实测各 137px 同一行、封面不重叠）。</div>
+</div>
+
+<div class="foot">音格 · 移动端 Demo 看图页 · 2026-10-16 · 截图目录 <code>docs/figures/mobile-demo/</code> ·
+  一键启动 <code>start-mobile-demo.bat</code> · 完整方案见 <code>docs/移动端适配方案.html</code></div>
+</div></body></html>
