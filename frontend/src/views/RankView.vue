@@ -1,6 +1,8 @@
 <template>
   <div class="rank">
-    <div class="hd" style="margin-top: 22px">
+    <!-- ⚠️ 2026-10-16 第四十三批：原来是写死的 22px，不在间距刻度（4/8/12/16/24/32/48/64）上，
+         和相邻区块的 24px 差 2px。归队到 var(--sp-5)。 -->
+    <div class="hd" style="margin-top: var(--sp-5)">
       <b class="big">{{ board === 'titles' ? '专辑夺冠次数榜' : '最受欢迎专辑' }}</b>
       <span>
         {{ board === 'titles' ? '一张专辑当过多少次冠军 · ' : '按有效票数排序 · ' }}共 {{ total }} 张
@@ -175,7 +177,8 @@ onMounted(reload);
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 11px;
+  /* ⚠️ 2026-10-16 第四十三批：11px 不在间距刻度上，和卡片内其他间距（12px）差 1px。 */
+  margin-bottom: var(--sp-3);
 }
 .nobadge {
   display: inline-block;

@@ -181,7 +181,8 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 18px 0 6px;
+  /* ⚠️ 2026-10-16 第四十三批：18px 不在间距刻度上，和上下区块的 24px 对不齐。归队到 --sp-5。 */
+  margin: var(--sp-5) 0 var(--sp-2);
   padding: 14px 18px;
   border-radius: 14px;
   text-decoration: none;

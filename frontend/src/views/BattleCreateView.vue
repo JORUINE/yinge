@@ -2630,7 +2630,13 @@ async function onCreate() {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    /* ⚠️ 2026-10-16 第四十三批修（真 bug，布局体检量出来的）：
+       原来这里写 `bottom: 0`，而 `.tabbar` 也是 `bottom: 0` 且 z-index 更低（60 < 80）
+       ⇒ 创建页 / 我的对决页的**底部 Tab 导航被这条操作条整个盖住**，用户直接失去导航。
+       实测：mobar 占 685~780（高 95），tabbar 占 723~780 —— 重叠 57px。
+       修法：操作条坐在 Tab 栏**上方**（bottom = Tab 栏高 + 安全区），两条都看得见。
+       弹层（.opts）仍是 bottom:0 —— 打开时盖住两条，这是"一屏只做一件事"的既定设计。 */
+    bottom: calc(var(--tabbar-h) + var(--safe-b));
     z-index: 80;
     padding: 10px 14px calc(10px + var(--safe-b));
     background: var(--glass);
@@ -2674,9 +2680,12 @@ async function onCreate() {
   .startbar {
     display: none;
   }
-  /* ⑤ 页面主体给底条让位 */
+  /* ⑤ 页面主体给底条让位
+     ⚠️ 2026-10-16 第四十三批：原来只让 96px，但底部其实是**两条**固定条叠着：
+        操作条 95px + Tab 栏 57px = 152px ⇒ 差 56px，页面最后一项会被操作条压住。
+        （布局体检量到「按流派/年代」这张模式卡中心 y=745 落在操作条里。） */
   .create {
-    padding-bottom: calc(96px + var(--safe-b));
+    padding-bottom: calc(var(--tabbar-h) + 104px + var(--safe-b));
   }
 }
 /* ⭐ Edge 兜底（守则：新视觉效果同步加 html.ua-edge 覆盖） */

@@ -1165,8 +1165,9 @@ html[data-theme='dark'] .v b {
 }
 .alb b {
   display: block;
+  /* ⚠️ 2026-10-16 第四十三批：15px 不在间距刻度上（卡片内其他地方是 12px），差 3px 肉眼能看出来。 */
   font-size: 23px;
-  margin-top: 15px;
+  margin-top: var(--sp-3);
   letter-spacing: -0.5px;
   line-height: 1.16;
 }
@@ -1181,7 +1182,8 @@ html[data-theme='dark'] .v b {
   font-size: 15px;
   color: var(--ac);
   font-weight: 600;
-  margin-top: 11px;
+  /* ⚠️ 2026-10-16 第四十三批：11px 不在间距刻度上，归队到 --sp-3（12px）。 */
+  margin-top: var(--sp-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1198,7 +1200,9 @@ html[data-theme='dark'] .v b {
 .alb .mt {
   font-size: 13.5px;
   color: var(--text2);
-  margin-top: 3px;
+  /* ⚠️ 2026-10-16 第四十三批：3px 是卡片内唯一一个"贴脸"的值，和上下 12px 差 9px，
+     一眼就能看出这块挤在一起。归队到 --sp-2（8px）—— 它是卡片的收尾行，比正文间距略紧合理。 */
+  margin-top: var(--sp-2);
 }
 .alb .plays {
   margin-top: 15px;
@@ -3093,7 +3097,9 @@ html[data-theme='dark'] .tpv {
   display: grid;
   grid-template-columns: 1.25fr 1fr;
   gap: 16px;
-  margin-top: 22px;
+  /* ⚠️ 2026-10-16 第四十三批：22px 不在间距刻度上（刻度是 4/8/12/16/24/32/48/64），
+     和相邻区块的 24px 差 2px —— 块与块之间忽近忽远，观感就是"错位"。归队到 --sp-5。 */
+  margin-top: var(--sp-5);
 }
 .tile {
   padding: 20px;
@@ -3281,7 +3287,8 @@ html[data-theme='dark'] .tpv {
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
-  margin: 22px 0 6px;
+  /* ⚠️ 2026-10-16 第四十三批：22px 不在间距刻度上，和相邻区块的 24px 差 2px。归队到 --sp-5。 */
+  margin: var(--sp-5) 0 var(--sp-2);
 }
 .filter .pill {
   font-size: 13.5px;

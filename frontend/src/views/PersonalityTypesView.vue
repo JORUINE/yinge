@@ -1,6 +1,7 @@
 <template>
   <div class="types">
-    <div class="hd" style="margin-top: 22px">
+    <!-- ⚠️ 2026-10-16 第四十三批：原来是写死的 22px，不在间距刻度上，和相邻区块的 24px 对不齐。 -->
+    <div class="hd" style="margin-top: var(--sp-5)">
       <b class="big">音乐人格图鉴</b>
       <span>{{ items.length }} 种人格 · 已有 {{ stats.total || 0 }} 人完成测评 · 数据每日更新</span>
     </div>
