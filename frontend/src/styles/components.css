@@ -1696,7 +1696,9 @@ html[data-theme='dark'] .v b {
   color: var(--text2);
   font-size: 14.5px;
 }
-@media (max-width: 760px) {
+/* 手机档（≤640）：冠军名号收字号（原 760）
+   ⚠️ 30px 仍远高于「任何文字 ≥12px」的下限，不是靠缩字换空间。 */
+@media (max-width: 640px) {
   .crown-wrap .cinfo h3 {
     font-size: 30px;
   }
@@ -2609,7 +2611,8 @@ html[data-theme='dark'] .tpv {
    左边人格卡上已经有这套维度条（连精确数值一起），右栏再抄一遍 = **同一组数据画两遍**；
    而且列表标题写死"四个维度"，有的型其实只配了 3 条 → 标题和数据对不上（自证是冗余）。
    现在只留卡面那套；右栏补一行小字说明来源（见 PersonalityTypeView 的 .ptcap）。 */
-@media (max-width: 900px) {
+/* 平板及以下（≤1024）：人格结果头改单列（原 900） */
+@media (max-width: 1024px) {
   .pthd-v2 {
     grid-template-columns: minmax(0, 1fr);
     gap: 22px;
@@ -2740,7 +2743,8 @@ html[data-theme='dark'] .tpv {
   max-width: 100%;
   margin: 0;
 }
-@media (max-width: 900px) {
+/* 平板及以下（≤1024）：人格结果主体改单列（原 900） */
+@media (max-width: 1024px) {
   .ptmain {
     grid-template-columns: minmax(0, 1fr);
     gap: 20px;

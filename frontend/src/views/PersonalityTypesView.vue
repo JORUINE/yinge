@@ -134,14 +134,16 @@ onMounted(async () => {
   max-width: 520px;
   text-align: center;
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：六型图鉴 2 列（原 860） */
+@media (max-width: 1024px) {
   .atlas {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 560px) {
+/* 手机档（≤640）：图鉴单列（原 560） */
+@media (max-width: 640px) {
   .atlas {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

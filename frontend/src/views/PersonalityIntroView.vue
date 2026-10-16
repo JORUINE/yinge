@@ -114,9 +114,10 @@ onMounted(async () => {
   gap: 10px;
   flex-wrap: wrap;
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：测评首页改单列（原 860） */
+@media (max-width: 1024px) {
   .qintro {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

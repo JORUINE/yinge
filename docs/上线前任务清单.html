@@ -43,11 +43,13 @@
 </style></head><body><div class="wrap">
 
 <div class="hero">
-  <span class="tag">上线前七项任务清单 · 2026-10-14 · 两轮实测交叉验证</span>
+  <span class="tag">上线前七项任务清单 · 2026-10-14 诊断 · <b>2026-10-16 更新：T2 移动端 P0 已做完并验收</b></span>
   <h1>音格 · 上线前要做什么，按什么顺序做</h1>
   <p>七项<b>全部先实测再排期</b>，不拍脑袋估工期。结论用两轮独立验证交叉确认：
   <b>一项确认为真 Bug 并已定位到具体函数（修法约 3 行，未动代码等你批准）</b>；
-  <b>一项未能复现（附复现方法请你复验）</b>；<b>移动端实测基本已可用 —— 比直觉轻得多</b>。</p>
+  <b>一项未能复现（附复现方法请你复验）</b>；<b>移动端实测基本已可用 —— 比直觉轻得多</b>。<br>
+  <b style="color:#0F766E">2026-10-16 更新：T1 与 T2 均已完成并逐条验收</b>（详见《进度与执行清单》第四十 / 四十一批）。
+  本页保留当初的诊断与排期作为过程记录，<b>但 T1 / T2 两行的状态已过期，以最新状态为准</b>。</p>
 </div>
 
 <div class="card">
@@ -63,11 +65,19 @@
         用户参数（2025-2026 · 华语区 · 48 张）实测池内 <b>48 位里检出 6 位真欧美</b>。<br>
         · <b>症状②「重复匹配同一批歌手」</b>：两轮验证（真建 5 局重合 16/16；直调真函数三种模式各 5 次歌手集合 100% 相同）。
         根因 <code>orderBucketsForPool()</code> 只洗桶内专辑、没洗桶的集合。<br>
-        ⇒ <b>两个 bug 都要修</b>，方案见《华语区筛选修复方案》。</td><td><span class="pill p0">真 Bug</span></td></tr>
-      <tr><td>T2</td><td>移动端适配</td><td><b>实测基本已可用 —— 是"补缺 + 逐页验收"，不是从零做。</b><br>
-        · 18 个静态页面 × 375/768/1024 三视口：<b>零横向溢出、零破图、零 &lt;12px 文字</b><br>
-        · 375 下<b>真点了一遍</b>：建局 → 投票卡点得动 → 投 11 场到夺冠 → 播放条渲染 → 零 JS 错误<br>
-        · 缺口：导航链接 23px 无 padding；「撤销」113×36 /「确认」170×42 略低于 44px 触控标准；深色模式未逐页验收；逐页验收只抽了样</td><td><span class="pill p0">阻塞上线</span></td></tr>
+        ⇒ <b>两个 bug 都要修</b>，方案见《华语区筛选修复方案》。
+        <b style="color:#0F766E">✅ 2026-10-14 第四十批已修完并验收（12 项断言全绿）</b>：
+        语种判定改成「多证据 + 保守默认」（第二条通用证据＝<b>专辑标题是不是中文标题</b>，不确定一律不算华语）；
+        歌手重复的根因 <code>orderBucketsForPool()</code> 没洗歌手集合，已修（同参数 6 次跑出 6 种不同歌手集合）。</td><td><span class="pill done">已修完</span></td></tr>
+      <tr><td>T2</td><td>移动端适配</td><td><b>✅ 已完成并逐条验收（2026-10-16 第四十一批）</b> —— P0 五项全做，六条探针全绿。<br>
+        · <b>分端导航</b>：手机底部 5 Tab（首页/对决/人格/排行/我的，热区 56px、贴底 0px），<b>桌面端顶部导航一条没少</b><br>
+        · <b>创建页筛选收进底部弹层</b>，"选了什么看得见"<br>
+        · <b>对战页改成左右并排</b>：专辑名在封面正下方、试听在专辑名正下方、点封面即试听<br>
+        · <b>断点 7 种 → 2 个值</b>（640/1024）；<b>热区 &lt;44px 138 → 0 个</b>；<b>安全区 0 处 → 四边变量 + 底栏专用</b><br>
+        · <b>PWA 全套</b>（manifest + 主题色 + 全屏 meta + 三档图标，占位图用排行榜第一的专辑封面）<br>
+        · <b>桌面端零影响</b>：同输入 A/B 逐元素比对，10 条路由几何差异 0 / 结构差异 0 / JS 错误 0<br>
+        · <b>手机主线端到端 14/14</b>：创建 → 小组赛 → 淘汰赛 → 投票 → 结果页 → 分享页<br>
+        · <b>剩余 P1</b>：PWA 图标换正式稿、18 页 × 375/768 逐页走查、真 iPhone 上验安全区</td><td><span class="pill done">已做完</span></td></tr>
       <tr><td>T3</td><td>UI 全面升级</td><td>设计守则里明确的两条欠账：<b>深色模式未逐页验收</b> + <b>响应式未逐页过</b>；另有「首次进入三张新手引导卡」未做。<br>
         <b>必须你先审批方案</b>（你的硬规则），且<b>应与 T2 合并执行</b>（见下方依赖判断）。</td><td><span class="pill p1">待审批</span></td></tr>
       <tr><td>T4</td><td>Edge 闪屏</td><td>你说「隐私模式正常」是<b>决定性线索</b>：InPrivate 默认禁用全部扩展 ⇒ 元凶几乎肯定是某个浏览器扩展，
@@ -98,8 +108,8 @@
   <table>
     <thead><tr><th style="width:52px">任务</th><th style="width:180px">内容</th><th style="width:60px">优先级</th><th style="width:88px">阻塞上线</th><th style="width:158px">依赖</th><th style="width:92px">工作量</th></tr></thead>
     <tbody>
-      <tr><td><b>T1</b></td><td><b>修对决筛选重复 Bug</b></td><td><span class="pill p0">P0</span></td><td><span class="blk">是</span></td><td>无</td><td><b>0.5 天</b></td></tr>
-      <tr><td><b>T2</b></td><td><b>移动端补缺 + 逐页验收</b></td><td><span class="pill p0">P0</span></td><td><span class="blk">是</span></td><td>建议与 T3 合并（见下）</td><td><b>1~1.5 天</b></td></tr>
+      <tr><td><b>T1</b></td><td><b>修对决筛选重复 Bug</b></td><td><span class="pill p0">P0</span></td><td><span class="blk">是</span></td><td>无</td><td><s>0.5 天</s> <b>已做完</b></td></tr>
+      <tr><td><b>T2</b></td><td><b>移动端补缺 + 逐页验收</b></td><td><span class="pill p0">P0</span></td><td><span class="blk">是</span></td><td><s>建议与 T3 合并</s> → <b>实际已单独完成 P0</b></td><td><s>1~1.5 天</s> <b>P0 已做完；剩 P1 约 0.5 天</b></td></tr>
       <tr><td><b>T4</b></td><td><b>Edge 闪屏定位</b></td><td><span class="pill p0">P0</span></td><td><span class="noblk">否</span></td><td><b>需你配合 3 分钟</b></td><td><b>0.2 天</b></td></tr>
       <tr><td><b>T5</b></td><td>数据迁移到生产库</td><td><span class="pill p0">P0</span></td><td><span class="noblk">上线时</span></td><td>依赖服务器已买（T7）</td><td><b>0.3 天</b></td></tr>
       <tr><td><b>T3</b></td><td>UI 升级方案 → 执行</td><td><span class="pill p1">P1</span></td><td><span class="blk">是（T2 前置）</span></td><td><b>方案需你审批</b></td><td><b>0.5 + 3~4 天</b></td></tr>
@@ -109,7 +119,9 @@
     </tbody>
   </table>
   <div class="note good"><b>合计：</b>只要"能上线"⇒ 做完 T1/T2/T4/T5 = <b>约 2~2.5 天</b>（这是去香港节点上线的最小集）；
-  加上 T3 的 UI 升级（含方案审批）= <b>约 6~7 天</b>；P2 全部做完 <b>约 8~9 天</b>。</div>
+  加上 T3 的 UI 升级（含方案审批）= <b>约 6~7 天</b>；P2 全部做完 <b>约 8~9 天</b>。<br>
+  <b style="color:#0F766E">2026-10-16 实况：T1、T2 均已完成</b> ⇒ "能上线"最小集只剩 <b>T4（你配合 3 分钟）+ T5（等机器）</b>；
+  T2 的 P0 部分<b>没有等 T3 审批就先做了</b>（理由见下方"事后说明"）。</div>
 </div>
 
 <h2><span class="n">2</span>依赖关系（哪些必须等哪些）</h2>
@@ -128,6 +140,20 @@
   所以 T2 的前置不是"我有空"，而是 <b>T3 方案审批通过</b>。<br>
   <b>例外：</b>如果你希望"移动端尽快能上线给人玩"，我们可以先做 T2 的<b>补缺部分</b>（导航 padding、两个小于 44px 的按钮），
   那是 2 小时的活、不碰任何视觉体系；等 UI 方案批下来再做全量逐页验收。</div>
+
+  <div class="note" style="border-left-color:#0F766E;background:#f2fbf6">
+    <b>⭐ 事后说明（2026-10-16，为什么 T2 没等 T3 就做了）</b> ——
+    这条判断的<b>前提被你的拍板改变了</b>：你 2026-10-15 直接批了三条决策
+    （<b>分端导航</b>：手机用底部、桌面用顶部；<b>创建页筛选收进底部弹层</b>；<b>PWA 要做</b>），
+    并且明确要求"<b>手机和网页的设计语言和 UI 设计要一致性，但是做手机的适配不能影响现在本身的桌面端</b>"。
+    ⇒ "要不要先做移动端"已经从"我建议的排期"变成<b>你已批准的决策</b>，不再需要等 T3。<br>
+    <b>而且"会返工"这个担忧没有发生</b>：T2 全程<b>只收口断点、加手机档样式、不动桌面档的任何视觉</b>，
+    用同输入 A/B 逐元素验证了 10 条路由<b>几何差异 0、结构差异 0、JS 错误 0</b>。
+    之后 T3 做 UI 升级时，改的是桌面档的观感，本轮加的手机档规则可以整套复用。<br>
+    <b>留下的真教训</b>：这条依赖判断本身没错（先定断点口径再做全量，确实省一轮回归），
+    错在我当时把"排期建议"写成了"T2 的前置是 T3 审批"这种硬依赖 ——
+    <b>用户一批准，前置就消失了，而文档没有跟着更新</b>。现在补上。
+  </div>
 </div>
 
 <h2><span class="n">3</span>逐项详情与验收标准</h2>
@@ -344,7 +370,10 @@
   如果确认还有，它升 P0；如果确认没有了，T1 就只剩"重复匹配"这一半要修。</div>
 </div>
 
-<div class="foot">音格 · 上线前七项任务清单 · 2026-10-14 · 诊断脚本可复跑：<code>backend/scripts/diag-pool-filter.mjs</code>（轮 B）、
+<div class="foot">音格 · 上线前七项任务清单 · 2026-10-14 诊断 · <b>2026-10-16 更新（T1 / T2 已完成并验收）</b> ·
+诊断脚本可复跑：<code>backend/scripts/diag-pool-filter.mjs</code>（轮 B）、
 <code>tools/pw/probe-r39-era-filter.mjs</code>（轮 A 筛选复现）、<code>probe-r39-mobile-audit.mjs</code>（18 页 × 3 视口）、
-<code>probe-r39-mobile-play.mjs</code>（375 真点投票）、<code>probe-r39-taptarget.mjs</code>（小点击目标核查）· 价格为当日公开活动，以官网为准</div>
+<code>probe-r39-mobile-play.mjs</code>（375 真点投票）、<code>probe-r39-taptarget.mjs</code>（小点击目标核查）·
+T2 验收脚本：<code>probe-r41-tiers / -tabbar / -create-sheet / -mobile-e2e / probe-r40-desktop-ab / probe-r42-search-rank</code> ·
+价格为当日公开活动，以官网为准</div>
 </div></body></html>

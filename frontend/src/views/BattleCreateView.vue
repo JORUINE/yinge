@@ -83,6 +83,19 @@
       </div>
     </div>
 
+    <!-- ⭐ 手机端：从这里往下的所有选项板块收进**底部弹层**（P0-5，用户 2026-10-15 拍板）
+         -----------------------------------------------------------------------------
+         桌面端 `.opts` 是 `display: contents` ⇒ **不产生任何盒子**，子元素照原样参与
+         `.stage` 的布局，与改动前逐像素一致（由 probe-r40-desktop-ab.mjs 逐元素证明）。
+         手机端它变成 `position: fixed` 的底部弹层，默认收在屏幕外，点「筛选」升起。
+
+         ⚠️ 手机档要用 `<Teleport to="body">` 把它移出 `.stage`：
+            `.stage` 有 `backdrop-filter: blur(22px)`，会给后代的 `position: fixed`
+            造一个包含块 —— 不移出去的话，"贴底"贴的是 `.stage` 的底
+            （实测底边 1149px，而视口只有 780px）。
+            `:disabled="!isPhone"` ⇒ 桌面档不搬家，DOM 位置与改前完全一致。 -->
+    <Teleport to="body" :disabled="!isPhone">
+    <div class="opts" :class="{ 'sheet-open': sheetOpen }">
     <!-- 指定对决：逐组排对阵表 -->
     <template v-if="mode === 'duel'">
       <div class="block">
@@ -721,6 +734,8 @@
         </div>
       </div>
     </template>
+    </div>
+    </Teleport>
 
     <!-- 开始条 -->
     <div class="startbar">
@@ -731,12 +746,41 @@
         {{ creating ? '创建中…' : '开始对决' }}
       </button>
     </div>
+    </div><!-- ← 关闭 .stage：遮罩与手机底条必须在它外面 -->
+
+    <!-- ⚠️ 遮罩与手机底条必须 Teleport 到 `body`，两个原因，缺一不可：
+         ① `.stage` 有 `backdrop-filter: blur(22px)`，会给后代的 `position: fixed`
+            造一个包含块 —— 放在里面的话，"贴底"贴的是 `.stage` 的底
+            （实测底边跑到 1149px，而视口只有 780px），等于没固定住；
+         ② `.shell` 有 `z-index: 1`，它**自己造了一个层叠上下文** ——
+            只把底条挪出 `.stage` 还不够：底条的 `z-index: 80` 被困在 `.shell` 里，
+            整体（z=1）反而输给 Teleport 到 body 的弹层（z=70），
+            实测点「开始对决」会被弹层拦住（elementFromPoint 返回 `div.block`）。
+            ⇒ 遮罩、弹层、底条**三个都放到 body 下**，才在同一个层叠上下文里比大小：
+              遮罩 65 < 弹层 70 < 底条 80。 -->
+    <Teleport to="body" :disabled="!isPhone">
+    <div v-if="sheetOpen" class="sheet-mask" @click="sheetOpen = false"></div>
+
+    <div class="mobar">
+      <div class="mob-sum">
+        <b>你选了什么</b>
+        <span>{{ startInfo || `${modeLabel} · 还没选完` }}</span>
+      </div>
+      <div class="mob-btns">
+        <button class="btn ghost" type="button" @click="sheetOpen = !sheetOpen">
+          {{ sheetOpen ? '收起筛选' : '筛选' }}
+        </button>
+        <button class="btn pri" type="button" :disabled="creating || !canStart" @click="onCreate">
+          {{ creating ? '创建中…' : '开始对决' }}
+        </button>
+      </div>
     </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { musicApi, battleApi, comboApi } from '@/api';
@@ -888,6 +932,11 @@ async function loadWhitelistRoster(term) {
 }
 
 onMounted(async () => {
+  // 手机档判定（决定选项区是否 Teleport 出 .stage，见 isPhone 的说明）
+  syncPhone();
+  mqPhone = window.matchMedia('(max-width: 640px)');
+  mqPhone.addEventListener('change', syncPhone);
+
   try {
     const data = await musicApi.listGenres();
     genreOptions.value = normalizeGenreList(data.list);
@@ -895,6 +944,10 @@ onMounted(async () => {
     /* 忽略：流派选项拉不到不影响手输 */
   }
   loadCombos();
+});
+onBeforeUnmount(() => {
+  mqPhone?.removeEventListener('change', syncPhone);
+  mqPhone = null;
 });
 
 /** 点选 / 取消一位歌手（已在库的不可选） */
@@ -1021,6 +1074,31 @@ const searching = ref(false);
 const creating = ref(false);
 const candidates = ref([]);
 const picked = ref([]);
+
+/**
+ * 手机端底部弹层的开合（P0-5）
+ * ------------------------------------------------------------
+ * ⚠️ 这个状态**只在 ≤640 时影响样式**：桌面端 `.opts` 是 `display: contents`、
+ *    `.mobar` 与 `.sheet-mask` 都是 `display: none` ⇒ 桌面端改它跟没改一样。
+ */
+const sheetOpen = ref(false);
+/** 底部条上「你选了什么」的第一段：当前模式名（后面接 startInfo 的规模与赛程） */
+const modeLabel = computed(
+  () => MODES.find((m) => m.value === mode.value)?.label || mode.value,
+);
+
+/**
+ * 是否手机档（≤640）—— **唯一**用来决定选项区要不要 Teleport 的开关。
+ * ------------------------------------------------------------
+ * 为什么必须用 JS 而不是纯 CSS：`position: fixed` 的包含块问题（见模板里的说明）
+ * 只能靠"把 DOM 挪出 `.stage`"解决，CSS 无能为力。
+ * ⚠️ 必须与 base.css 里的断点口径（640 / 1024）保持一致，改一处要改两处。
+ */
+const isPhone = ref(false);
+let mqPhone = null;
+function syncPhone() {
+  isPhone.value = window.matchMedia('(max-width: 640px)').matches;
+}
 
 // 规模
 const singerScale = ref(DEFAULT_SINGER_SCALE);
@@ -1409,7 +1487,17 @@ async function loadArtistPool(artistId) {
 watch(picked, async (list) => {
   for (const a of list) {
     try {
-      await loadArtistPool(a.artistId);
+      // ⚠️ 2026-10-16：只对**这次新加**的歌手播报空池。
+      //    以前加了「周杰伦战队」这种卡拉OK/翻唱团，`eligible` 是空的，
+      //    界面上没有任何反应，摘要永远停在「还没选完」——
+      //    用户完全不知道发生了什么（这正是"显示与实际不一致"的那类问题）。
+      //    `fresh` 判据：加载前 artistPool 里还没有他 ⇒ 是第一次加载，才提醒；
+      //    已经加载过的（含被移除又重新加回来的）不再重复弹，避免每改一次 picked 就弹一次。
+      const fresh = !artistPool.value[a.artistId];
+      const pool = await loadArtistPool(a.artistId);
+      if (fresh && pool && pool.eligible.length === 0) {
+        ElMessage.warning(`「${a.name}」没有可参赛的正式专辑（可能是卡拉OK / 翻唱 / 合辑），换一位歌手试试`);
+      }
     } catch (err) {
       ElMessage.error(err?.message || '加载专辑失败');
     }
@@ -1427,6 +1515,12 @@ function pickMode(v) {
   duelAlbums.value = [];
   currentPair.value = [];
   pairs.value = [];
+  /**
+   * 手机端：选完模式**自动弹出筛选层** —— 大厅只负责"选哪一族"，
+   * 具体的歌手 / 张数 / 语种在弹层里接着选，正好接上"一屏只做一件事"的节奏。
+   * 桌面端 `sheetOpen` 不参与任何样式（`.opts` 是 display:contents），所以这个赋值无副作用。
+   */
+  sheetOpen.value = true;
 }
 
 function toggleSelfPick(albumId) {
@@ -1634,21 +1728,72 @@ const normName = (s) =>
     .toLowerCase()
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[\s\-_.·&'’,，。]/g, '');
+    // ⚠️ 2026-10-16：把成对括号也并入"噪声字符"。
+    //   iTunes 上大量卡拉OK/翻唱团叫「周杰伦子(微唱)」这种带括号的名字，
+    //   不剥掉括号就没法跟「周杰伦」比长短。
+    .replace(/[\s\-.·&'’，。、_()（）\[\]]/g, '');
 
-/** 名字相似度打分：越像分越高（0 = 完全不像） */
+/** 等长字符串之间"有几个字符不同"（长度不同返回 Infinity —— 那就不可能是同写法） */
+function subCount(a, b) {
+  if (a.length !== b.length) return Infinity;
+  let c = 0;
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) c += 1;
+  return c;
+}
+
+/**
+ * 名字相似度打分：越像分越高（0 = 完全不像）
+ * ------------------------------------------------------------
+ * ⚠️ 2026-10-16 修（真 bug，手机端探针跑出来的，不是看代码看出来的）：
+ *   旧规则是「名字以搜索词开头 → 900 分」，于是搜简体「周杰伦」时，
+ *   卡拉OK/翻唱团 **「周杰伦战队」(894) 排在真正的「周杰倫」(333) 前面** ——
+ *   用户点第一个「加入」，池子里是一位 0 张专辑的野鸡歌手，
+ *   摘要永远停在「还没选完」，观感就是"加了人却开不了局"。
+ *   根因：旧规则把"名字更长"当成强证据，而**简繁/拼写差异只被算成 1 个字符**，
+ *   两种情况的权重整个反了。
+ *
+ * 新规则按「是不是同一个名字的不同写法」分档（① 最高，⑤ 兜底）：
+ *   ① 规范化后**完全相等**                          → 1000
+ *   ② **等长且只有 1~2 处替换**                      → 940 起
+ *      —— 这是"同一个名字换了种写法"：周杰倫/周杰伦（简繁）、travisscoot/travisscott（手滑）。
+ *         **必须压过一切更长或更短的名字**，这是本次修复的核心。
+ *   ③ 名字以搜索词开头（名字更长）                   → 900 − 多出的字符数 × 30
+ *   ④ 搜索词以名字开头 / 两者互相包含                → 880 / 700
+ *   ⑤ 只剩公共前缀比例（兜底）                       → ≤ 500
+ *
+ * ② > ③ 这条优先级对**每一位歌手**都成立（只看名字本身），不依赖任何歌手名单。
+ *
+ * ⚠️ 已知取舍（如实记录，不藏着）：等长近等优先之后，
+ *    搜 2 字前缀（如「王力」）时，同为 2 字且差 1 字的「王菲」会排在「王力宏」前面。
+ *    换来的收益是：搜「周杰伦」「陶喆」这类**全名**查询时，
+ *    真正的歌手永远第一，卡拉OK/翻唱团不会插到前面 —— 全名查询才是这个页面的主场景。
+ */
 function matchScore(name, term) {
   const n = normName(name);
   const t = normName(term);
   if (!n || !t) return 0;
   if (n === t) return 1000;
-  if (n.startsWith(t)) return 900 - Math.min(n.length, 60);
-  if (t.startsWith(n)) return 800 - Math.min(n.length, 60);
-  if (n.includes(t) || t.includes(n)) return 600;
+  const subs = subCount(n, t);
+  if (subs <= 2) return 940 - subs * 10;
+  if (n.startsWith(t)) return 900 - Math.min(n.length - t.length, 12) * 30;
+  if (t.startsWith(n)) return 880 - Math.min(t.length - n.length, 12) * 30;
+  if (n.includes(t) || t.includes(n)) return 700;
   // 公共前缀比例：容忍"手滑漏一个字母"（travisscoot ≈ travisscott → 9/11）
   let i = 0;
   while (i < n.length && i < t.length && n[i] === t[i]) i += 1;
   return Math.round((i / Math.max(n.length, t.length)) * 500);
+}
+
+/**
+ * 曲库在场证据的微弱加分（封顶 140）
+ * ------------------------------------------------------------
+ * 名字打平或接近时，**曲库里真有专辑的那位更可能是用户想找的人** ——
+ * 卡拉OK/翻唱团在 iTunes 上名字起得很像，但曲库里一张专辑都没有。
+ * 这条同样是对"该歌手本人成立"的通用证据（cached / albumCount 是接口真实字段），
+ * 不是名单。幅度刻意压小：只能在名字分接近时打破平局，压不过名字本身的差距。
+ */
+function libraryBonus(a) {
+  return (a && a.cached ? 50 : 0) + Math.min(Number(a && a.albumCount) || 0, 20) * 5;
 }
 
 /**
@@ -1662,7 +1807,7 @@ function rankArtistMatches(list, term, chosen) {
   return list
     .map((a, i) => ({
       ...a,
-      _score: matchScore(a.name, term),
+      _score: matchScore(a.name, term) + libraryBonus(a),
       _index: i,
       taken: chosenIds.has(a.artistId) || chosenNames.has(normName(a.name)),
     }))
@@ -2399,22 +2544,152 @@ async function onCreate() {
   cursor: pointer;
 }
 
-@media (max-width: 980px) {
+/* 平板及以下（≤1024）：模式 2 列、池子 4 列（原 980） */
+@media (max-width: 1024px) {
   .modes {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .pool {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+/* 手机档（≤640）：模式与池子都 2 列、配对行改单列 */
 @media (max-width: 640px) {
   .modes,
   .pool {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .pairrow {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   P0-5 · 手机端「筛选收进底部弹层」
+   ---------------------------------------------------------------------
+   ⭐ 桌面端零影响的关键一行：`.opts { display: contents }`
+      这个包裹层是**为了手机端弹层才加的**，但它套在 `.stage` 里会给桌面端
+      多出一个盒子（可能改变子元素的间距/背景）。`display: contents` 让它
+      **不生成盒子**、子元素直接升格参与父布局 ⇒ 桌面端与加它之前逐像素一致。
+      （验收：probe-r40-desktop-ab.mjs 在 1440×900 下逐元素比几何，差异必须为 0）
+   ═══════════════════════════════════════════════════════════════════════ */
+.opts {
+  display: contents;
+}
+/* 桌面端：弹层遮罩与手机底条都不存在 */
+.sheet-mask,
+.mobar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* ① 选项区变成底部弹层：默认收在屏幕外（translateY 而不是 display:none，
+        这样里面的数据照常加载、切换模式时的动画也连贯） */
+  .opts {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+    max-height: 82vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* ⚠️ 收起态用 102%（多 2%）而不是 100%：避免某些机型 1px 缝隙里露出弹层边缘 */
+    transform: translateY(102%);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    background: var(--card);
+    border-radius: 18px 18px 0 0;
+    border-top: 1px solid var(--gbd);
+    box-shadow: 0 -14px 40px rgba(15, 42, 66, 0.2);
+    padding: 16px 14px calc(96px + var(--safe-b));
+  }
+  .opts.sheet-open {
+    transform: translateY(0);
+  }
+  /* 弹层里原本靠 `.stage` 提供的内边距会失效（它现在是 fixed），这里补回来 */
+  .opts .block {
+    margin-bottom: 14px;
+  }
+
+  /* ② 遮罩 */
+  .sheet-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    background: rgba(8, 22, 38, 0.42);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  /* ③ 底部操作条：摘要 + 筛选 + 开始对决。
+        ⚠️ 它压在弹层之上（z-index 80 > 70），所以弹层打开时也能收起 / 直接开局。 */
+  .mobar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    padding: 10px 14px calc(10px + var(--safe-b));
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--gbd);
+    box-shadow: 0 -6px 22px rgba(15, 42, 66, 0.16);
+  }
+  .mob-sum {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    margin-bottom: 8px;
+  }
+  .mob-sum b {
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    color: var(--text3);
+  }
+  .mob-sum span {
+    min-width: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* ⚠️ 摘要可能很长（"共检索 … 剔除 … 本轮出战 …"），手机上只给一行，
+       超出省略，不能把底条顶成两三层高 */
+    white-space: nowrap;
+  }
+  .mob-btns {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 10px;
+  }
+
+  /* ④ 弹层一开，桌面那条开始条就没用了（按钮已进 .mobar），收掉避免两个"开始对决" */
+  .startbar {
+    display: none;
+  }
+  /* ⑤ 页面主体给底条让位 */
+  .create {
+    padding-bottom: calc(96px + var(--safe-b));
+  }
+}
+/* ⭐ Edge 兜底（守则：新视觉效果同步加 html.ua-edge 覆盖） */
+html.ua-edge[data-compat='lite'] .mobar,
+html.ua-edge[data-compat='safe'] .mobar,
+html.ua-edge[data-compat='lite'] .sheet-mask,
+html.ua-edge[data-compat='safe'] .sheet-mask {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html.ua-edge[data-compat='lite'] .mobar,
+html.ua-edge[data-compat='safe'] .mobar {
+  background: var(--card);
 }
 
 /* ⭐ 这册内置歌手（2026-09-24 第十三批）：把这一册人平铺出来，多了就内部滚动 */

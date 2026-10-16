@@ -61,3 +61,7 @@ docs/工具链说明.html
 # ---- 运行时 / 临时产物 ----
 frontend/vite.config.js.timestamp-*
 scripts/.mongod.pid
+
+# A/B 基线产物（probe-r40-desktop-ab.mjs 用，每次 A/B 前重建；不许进 git）
+dist-before*/
+dist-head/

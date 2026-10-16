@@ -1242,15 +1242,67 @@ onUnmounted(() => clearTimeout(cutTimer));
   cursor: default;
 }
 
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）
+   ⚠️ 对决区**不折叠成上下单列** —— 原来这条（当时是 860）写的是
+      `.duelgrid{grid-template-columns:1fr}` + `.vs{display:none}`。
+   用户 2026-10-15 明确要求：「专辑对决那里应该是要在下面**左右两边**分别展示出专辑名字」⇒
+   折叠成上下就没有"左右对决"了，也没法"左右各一个名字"。
+   改为：收窄 VS 列 + 缩小间距，**任何宽度都保持左右两张**。 */
+@media (max-width: 1024px) {
   .duelgrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr) 60px minmax(0, 1fr);
+    gap: 10px;
   }
-  .duelgrid .vs {
-    display: none;
+  .duelgrid .vs .orb {
+    width: 48px;
+    height: 48px;
+    font-size: 15px;
   }
   .pickgrid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+/* 手机档（≤640）
+   ① VS 列压到最窄，把宽度尽量让给两张封面（375 宽下每张约 145px）；
+   ② ⚠️ 封面必须**按视口宽度**算（vw）—— 全局那条是 `min(32vh, 300px)` 按**高度**算的，
+      手机上 32vh≈213px，两张 426px 必然横向溢出。
+      选择器加一层 `.play` 提高优先级，才能盖住文件后面的「矮屏」高度断点（那几条同样带 !important）。 */
+@media (max-width: 640px) {
+  /* 同样要把 `.play.pk-only` 写进选择器：后半段的 `.pk-only .vstage{padding:10px 20px 14px}`
+     与 `.play .vstage` 特异性相同且更靠后 ⇒ 不抬到 4 个类就压不住（实测左右各被吃掉 20px）。 */
+  .play .vstage,
+  .play.pk-only .vstage {
+    padding: 10px 8px 12px !important;
+  }
+  .play .duelgrid {
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr) !important;
+    gap: 4px !important;
+  }
+  .play .duelgrid .vs .orb {
+    width: 26px;
+    height: 26px;
+    /* ⚠️ 12px 是项目「任何文字 ≥12px」的下限，VS 也不能比这更小 */
+    font-size: 12px;
+  }
+  /* ⚠️⭐ 这三处必须写到 4 个类（`.play.pk-only …`）才压得住：
+        后半段有一条 `.pk-only .duelgrid .alb .art{width:min(40vh,340px)!important}`，
+        它和 `.play .duelgrid .alb .art` **特异性完全相同（都是 3 个类）**，
+        而它在文件里更靠后 ⇒ 按源码顺序它赢 ⇒ 封面被算成 40vh=312px，
+        而两张卡各自只有 119.5px 宽，封面严重溢出、左右两张叠在一起。
+        （这个坑是端到端探针量出来的：`elementFromPoint` 与几何都对不上。）
+     封面改成 **撑满自己那一列**（`width:100%` + `aspect-ratio:1/1`），
+     这样无论列多宽都不会溢出，也不用手算 vw。 */
+  .play .duelgrid .alb,
+  .play.pk-only .duelgrid .alb {
+    max-width: none !important;
+  }
+  .play .duelgrid .alb .art,
+  .play.pk-only .duelgrid .alb .art {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    max-width: min(40vw, 220px) !important;
+    margin: 0 auto;
   }
 }
 

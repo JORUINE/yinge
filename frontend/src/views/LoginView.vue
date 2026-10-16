@@ -100,9 +100,10 @@ async function onSubmit() {
 .authfoot a {
   cursor: pointer;
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：登录/注册改单列（原 860） */
+@media (max-width: 1024px) {
   .authwrap {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     padding: 20px 0;
   }
 }

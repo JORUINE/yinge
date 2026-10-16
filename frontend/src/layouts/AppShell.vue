@@ -86,6 +86,26 @@
       </div>
     </footer>
 
+    <!-- ⭐ 手机端底部 Tab（P0-4 分端导航，2026-10-15 用户拍板："手机用底部、桌面用顶部"）
+         -----------------------------------------------------------------------------
+         为什么分端而不是"一套导航适应两端"：手机上顶部导航离拇指最远、且一行放不下 7 个链接
+         （实测 375 宽下顶栏链接被 CSS 隐藏后，导航入口等于没了）；底部是拇指自然落点。
+         桌面端保持原有顶部导航一字不动 —— 这条底栏在 >640 时 `display:none`，
+         由 `probe-r40-desktop-ab.mjs` 逐元素证明桌面端零影响。
+         ⚠️ 后台（/admin）不需要它 —— 后台是桌面场景。 -->
+    <nav v-if="!isAdmin" class="tabbar" aria-label="主导航">
+      <RouterLink
+        v-for="t in TABS"
+        :key="t.to"
+        :to="t.to"
+        class="tabitem"
+        :class="{ on: tabActive(t) }"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path :d="t.d" /></svg>
+        <span>{{ t.label }}</span>
+      </RouterLink>
+    </nav>
+
     <el-dialog v-model="bannedVisible" title="账号已被禁用" width="420px" align-center>
       <p class="banned-line">
         你的账号当前处于禁用状态，暂时无法登录与投票。数据仍完整保留。
@@ -136,6 +156,30 @@ const bannedReason = ref(null);
 const bannedNote = ref(null);
 
 const avatarChar = computed(() => (auth.nickname || '音').slice(0, 1));
+
+/**
+ * 手机端底部 Tab（P0-4）
+ * ------------------------------------------------------------
+ * 5 个入口，与桌面顶部导航**指向完全相同的路由**，只是换了落点。
+ * 图标统一 24×24 描边风格（fill:none / stroke:currentColor），跟项目里其它图标一致。
+ * `to` 用前缀匹配（`/battle/create` 也覆盖 `/battle/mine` 之外的对战路径）。
+ */
+const TABS = [
+  { to: '/', label: '首页', exact: true, d: 'M3 11.2 12 4l9 7.2M5.5 10.2V20h13v-9.8' },
+  { to: '/battle/create', label: '对决', d: 'M3.5 6.5h6.5v11H3.5zM14 6.5h6.5v11H14z' },
+  { to: '/personality', label: '人格', d: 'M12 3.5l2.2 5.1 5.3.6-3.9 3.6 1.1 5.2L12 15.4l-4.7 2.6 1.1-5.2L4.5 9.2l5.3-.6z' },
+  { to: '/rank', label: '排行', d: 'M5 20V11M12 20V4M19 20v-6' },
+  { to: '/profile', label: '我的', d: 'M12 12.5a4 4 0 100-8 4 4 0 000 8zM4.5 21a7.5 7.5 0 0115 0' },
+];
+function tabActive(t) {
+  const p = route.path;
+  if (t.exact) return p === t.to;
+  // 「人格」要同时覆盖 /personality/*（图鉴、测评、结果都在这一支）
+  if (t.to === '/personality') return p.startsWith('/personality');
+  // 「对决」要覆盖 /battle/*（进行中、结果、分享）
+  if (t.to === '/battle/create') return p.startsWith('/battle');
+  return p.startsWith(t.to);
+}
 
 /**
  * 全站返回按钮（守则 21：各个层级界面都没有返回按钮）
@@ -480,9 +524,107 @@ onMounted(() => {
   line-height: 1.7;
 }
 
-@media (max-width: 760px) {
+/* ═══════════════════════════════════════════════════════════════════════
+   手机端底部 Tab（P0-4 分端导航）
+   ---------------------------------------------------------------------
+   ⚠️ 默认（=桌面端）整条 `display:none`：既不占位也不参与布局。
+      这是「做手机适配不能影响桌面端」的第一道保证，
+      由 probe-r40-desktop-ab.mjs 在 1440×900 下逐元素比对证明。
+   ═══════════════════════════════════════════════════════════════════════ */
+.tabbar {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  /* ① 顶部导航的中间链接收起 —— 它们已经全部落到底部 Tab（同样的路由、同样的顺序）；
+       顶栏只留「返回 / logo / 头像」，一行放得下、也不再有一堆 23px 高的小热区。 */
   .nav-inline a:not(.logo) {
     display: none;
   }
+  .bar {
+    gap: 12px;
+  }
+  /* 「游客 · 注册」与「退出」在手机上收进「我的」页（ProfileView 的账号区），
+     顶栏留给返回 + logo + 头像，避免 375 宽下挤成一团。 */
+  .guest-tag {
+    display: none;
+  }
+  .quit {
+    display: none;
+  }
+  /* 头像热区 32 → 44（项目「任何文字 ≥12px」不动字号，只撑热区） */
+  .me {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+  .logo {
+    font-size: 16px;
+  }
+
+  /* ② 底部 Tab 本体 */
+  .tabbar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    align-items: stretch;
+    /* ⚠️ iPhone 底部手势条上方留白（变量见 base.css；index.html 必须开 viewport-fit=cover，否则恒为 0） */
+    padding-bottom: var(--safe-b);
+    background: var(--glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--gbd);
+    box-shadow: 0 -6px 22px rgba(15, 42, 66, 0.14);
+  }
+  .tabitem {
+    flex: 1 1 0;
+    min-width: 0;
+    /* ⚠️ 56px 而不是行业下限 44px：底部条是"整条拇指落点"，高一点更稳；
+       且 44px 是**下限**，这里取 56 只是更宽松，不是破坏规则。 */
+    min-height: 56px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--text3);
+    text-decoration: none;
+    /* ⚠️ 12px 是项目字号下限，不能再小 */
+    font-size: 12px;
+    font-weight: 600;
+    transition: color 0.18s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tabitem svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .tabitem.on {
+    color: var(--brand-deep);
+  }
+
+  /* ③ 内容区给底部条让位（fixed 会盖住内容）：条高 56 + 呼吸 20 + 手势条 */
+  .main {
+    padding: 18px 0 calc(var(--tabbar-h) + 20px + var(--safe-b));
+  }
+  .foot {
+    padding-bottom: calc(var(--sp-5) + var(--tabbar-h) + 8px + var(--safe-b));
+  }
+}
+/* ⭐ Edge 兜底（守则：每加一个新视觉效果都要同步加 html.ua-edge 覆盖）：
+   底部条的毛玻璃在 Edge 上可能触发闪屏，稳定/极简档直接换成实心底。 */
+html.ua-edge[data-compat='lite'] .tabbar,
+html.ua-edge[data-compat='safe'] .tabbar {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--card);
 }
 </style>

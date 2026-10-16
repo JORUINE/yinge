@@ -284,7 +284,8 @@ onMounted(loadNext);
   margin-top: 14px;
   text-align: center;
 }
-@media (max-width: 720px) {
+/* 手机档（≤640）：卡片改单列（原 720） */
+@media (max-width: 640px) {
   .tagcard {
     grid-template-columns: minmax(0, 1fr);
   }

@@ -1271,7 +1271,8 @@ onMounted(() => {
   background: var(--surface-2, rgba(255, 255, 255, 0.06));
 }
 
-@media (max-width: 760px) {
+/* 手机档（≤640）：小组 2 列、淘汰赛单列、隐藏比分分隔符（原 760） */
+@media (max-width: 640px) {
   .gslist {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

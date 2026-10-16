@@ -233,7 +233,8 @@ onMounted(load);
   max-width: 1040px;
   margin: 20px auto 0;
 }
-@media (max-width: 900px) {
+/* 平板及以下（≤1024）：入场页改单列（原 900） */
+@media (max-width: 1024px) {
   .jwrap {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -534,7 +535,8 @@ html[data-theme='dark'] .cfrow.diff .cfcell.theirs .cfpick {
   font-weight: 800;
   font-size: 18px;
 }
-@media (max-width: 760px) {
+/* 手机档（≤640）：对比行压紧、中间标记让位（原 760） */
+@media (max-width: 640px) {
   .cfrow {
     grid-template-columns: 84px minmax(0, 1fr);
     row-gap: 6px;

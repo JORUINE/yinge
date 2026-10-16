@@ -202,9 +202,10 @@ onMounted(reload);
   border-radius: 99px;
   background: var(--brand);
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：数据格改单列（原 860） */
+@media (max-width: 1024px) {
   .affgrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

@@ -145,18 +145,41 @@
         </p>
       </div>
     </template>
+
+    <!-- ⭐ 账号区（第四十批 T2，2026-10-15）
+         为什么现在才加：手机端把顶栏右侧的「游客 · 注册 / 退出」收起来了（分端导航 P0-4），
+         如果不在这里补一个入口，「我的」页就成了只能看不能走的死路。
+         桌面端多出这一块属于**新增**内容，不动顶栏、不影响原有任何一块。 -->
+    <div class="acct">
+      <div class="acct-t">
+        <b>账号</b>
+        <span>{{ auth.isGuest ? '当前是游客身份，数据只保存在这台设备' : '已登录，数据可云同步' }}</span>
+      </div>
+      <div class="acct-b">
+        <RouterLink v-if="auth.isGuest" to="/login" class="btn pri">注册 / 登录</RouterLink>
+        <button class="btn ghost" type="button" @click="onLogout">退出登录</button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { authApi, battleApi, personalityApi, favoriteApi, comboApi } from '@/api';
 import { useAuthStore } from '@/stores/auth';
 import { fmtDate } from '@/utils/labels';
 import { typeNameOf } from '@/utils/personality.js';
 
+const router = useRouter();
 const auth = useAuthStore();
+
+/** 退出登录：与顶栏那个「退出」完全同一个动作（清登录态 → 回首页） */
+async function onLogout() {
+  await auth.logout();
+  router.push({ name: 'home' });
+}
 const user = computed(() => auth.user);
 const initial = computed(() => (user.value?.nickname || '?').slice(0, 1));
 
@@ -308,9 +331,53 @@ onMounted(async () => {
   font-size: 18px;
   color: var(--text3);
 }
-@media (max-width: 720px) {
+/* ⭐ 账号区（第四十批 T2）：手机端顶栏收起「游客 · 注册 / 退出」后的承接入口。
+   ⚠️ 默认 `display:none`：桌面端顶栏本来就有「退出 / 登录」，这一块是**替手机端补的**，
+   不该在桌面上再冒出来一坨 —— 与底部 Tab 同一个分端思路（手机用底部、桌面用顶部）。 */
+.acct {
+  display: none;
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  background: var(--glass2);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+.acct-t {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.acct-t b {
+  font-size: 15px;
+}
+.acct-t span {
+  font-size: 13px;
+  color: var(--text3);
+}
+.acct-b {
+  display: flex;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+}
+
+/* 手机档（≤640）：统计改 2 列（原 720）；账号区改上下排，按钮撑满一行更好按 */
+@media (max-width: 640px) {
   .stats {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .acct {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .acct-b {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 }
 </style>

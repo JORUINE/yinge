@@ -194,7 +194,8 @@ onMounted(reload);
   font-size: var(--fs-sm);
   padding-bottom: var(--sp-6);
 }
-@media (max-width: 720px) {
+/* 手机档（≤640）：列表项改纵向（原 720） */
+@media (max-width: 640px) {
   .item {
     flex-direction: column;
     align-items: stretch;

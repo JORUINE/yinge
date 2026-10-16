@@ -489,9 +489,10 @@ onMounted(load);
 .sharewrap .scard {
   max-width: 420px;
 }
-@media (max-width: 900px) {
+/* 平板及以下（≤1024）：分享页改单列（原 900） */
+@media (max-width: 1024px) {
   .sharewrap {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
   }
   .sharewrap .scard {

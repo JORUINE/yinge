@@ -2,9 +2,25 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- ⚠️ viewport-fit=cover 是 env(safe-area-inset-*) 生效的前提（刘海/底部手势条）。
+         它只影响带刘海的设备，桌面端与旧浏览器无任何变化。 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="音格 —— 专辑对决与音乐人格测评互动平台" />
     <title>音格 · 专辑对决与音乐人格测评</title>
+
+    <!-- ═══ 第四十批：PWA「加到主画面」（用户 2026-10-15 拍板要做）═══
+         参照 MUSIC CUP：不用过应用商店，加到主画面就能像 App 一样全屏开启。
+         ⚠️ 全部是 head 里的元信息 + 两个静态文件，**不产生任何布局影响**，
+            桌面端观感一字不变（验收见 probe-r40-desktop-ab.mjs）。
+         ⚠️ 微信内置浏览器不支持安装，只能提示用浏览器打开 —— 这点 MUSIC CUP 也一样，
+            不是我们的问题，所以不做检测弹窗打扰用户。 -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0EA5E9" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="音格" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
   </head>
   <body>
     <div id="app"></div>

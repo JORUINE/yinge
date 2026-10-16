@@ -235,9 +235,10 @@ onMounted(load);
   border-color: var(--brand);
   box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.4);
 }
-@media (max-width: 900px) {
+/* 平板及以下（≤1024）：小组由多列改单列（原 900） */
+@media (max-width: 1024px) {
   .groups {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

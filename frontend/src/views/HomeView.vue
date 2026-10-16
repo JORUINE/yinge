@@ -241,18 +241,19 @@ onMounted(async () => {
 .fine b {
   color: var(--text2);
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：首屏与双卡区改单列（原 860） */
+@media (max-width: 1024px) {
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .hero .art {
     max-width: 320px;
   }
   .duo {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .covers {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .rules {
     grid-template-columns: 1fr;

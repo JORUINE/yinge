@@ -192,9 +192,10 @@ onMounted(reload);
   color: #04263c;
   border-color: var(--gold);
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：榜单推荐改单列（原 860） */
+@media (max-width: 1024px) {
   .recs {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

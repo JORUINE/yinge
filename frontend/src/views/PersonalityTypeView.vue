@@ -301,12 +301,13 @@ onMounted(async () => {
   color: var(--pc);
   background: rgb(var(--pcf-rgb) / 0.12);
 }
-@media (max-width: 860px) {
+/* 平板及以下（≤1024）：人格详情头单列、推荐 2 列（原 860） */
+@media (max-width: 1024px) {
   .pthd {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .recs {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 </style>
