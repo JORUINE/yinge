@@ -141,6 +141,16 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* ⚠️⚠️ 2026-10-17 第四十五批：锁死横向滚动（用户真机反馈）。
+     用户原话："能不能把页面固定住 不要能左右滑动 很影响操作和误触"。
+     两个原因都会让页面左右晃：
+       ① 某个元素比视口宽（项目已有探针保证 scrollWidth ≤ 视口，但装饰层/转场态仍可能瞬时超出）；
+       ② iOS Safari 的**橡皮筋 overscroll** —— 即使内容不宽，在边缘左右拖也会把整个页面拉得左右晃。
+     `overflow-x: hidden` 管①，`overscroll-behavior-x: none` 管②。
+     ⚠️ 只锁**横向**，纵向照常滚 —— 不影响任何现有交互。
+     ⚠️ 不写在 .app 容器上而写在 body：Teleport 到 body 的节点（底部弹层/遮罩）也被一起兜住。 */
+  overflow-x: hidden;
+  overscroll-behavior-x: none;
 }
 
 h1,

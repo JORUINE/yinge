@@ -300,8 +300,30 @@
         </div>
       </div>
 
+        <!-- ⚠️⚠️ 2026-10-17 第四十五批：播放条重做成「iPod 转盘」（方案 A）
+             ------------------------------------------------------------
+             用户原话："现在的播放界面 会根据歌名被各种拉伸变形 …
+                整个播放页面的布局按你的方案A 来 … 去网上 github 或者其他参考 ipod 等播放器样式进行优化"
+             + 另一条："我绿色框圈起来的字 这个提示不应该放在播放器里 放在外面提示用户"
+
+             旧实现的病（实测确认）：
+               · `.nowbar { border-radius: 999px }` + flex 横排 —— 歌名一换行容器就变高，
+                 999px 半径随之变成**椭圆/不规则形**（用户看到的"拉伸变形"）；
+               · 三个按钮只有 32×44 / 34×44，低于 44 触控标准还挤在一行；
+               · 封面 38×38；
+               · 「对决对象是专辑，片段只帮你听个大概，不参与计票」这句提示混在播放器里。
+
+             新结构（只在手机档 ≤640 生效，桌面端保持原样 ⇒ A/B 零差异）：
+               ① 曲目信息移到转盘**上方**独立一块；
+               ② 中间一个**大圆盘**（直径 ≈ 62vw，触点 ≥56px）：
+                  上＝上一首 / 下＝播放·暂停（主操作）/ 左＝上一首 / 右＝下一首；
+                  盘心＝当前专辑封面（正圆）；
+               ③ 那句"对决对象是专辑…"提示移到 nowbar **外面**，作为播放区的小字说明。
+
+             ⚠️ DOM 结构对桌面端保持不变（桌面仍走 .a/.t/.wave/.trk/.pp 那套），
+                手机档用 CSS 重新排布 —— 这样不用为桌面端另写一套模板。 -->
         <div class="nowbar">
-          <div class="a"><img :src="playerAlbumArt" alt="" /></div>
+          <!-- ① 曲目信息（手机档显示在转盘上方；桌面档仍在盘内左侧） -->
           <div class="t">
             <b>{{ curTrack ? curTrack.name : '点上面的「试听 30 秒」听片段' }}</b>
             <span v-if="curTrack">
@@ -313,21 +335,35 @@
             </span>
             <span v-else>对决对象是专辑，片段只帮你听个大概，不参与计票</span>
           </div>
+
+          <!-- ② iPod 转盘：四方向按钮 + 盘心封面 -->
+          <div class="wheel" :class="{ playing }">
+            <div class="wheel-art"><img :src="playerAlbumArt" alt="" /></div>
+            <span class="tno" v-if="tracks.length">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
+            <button class="wk wk-up" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
+              <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+              <em>上一首</em>
+            </button>
+            <button class="wk wk-right" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
+              <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
+              <em>下一首</em>
+            </button>
+            <button class="wk wk-down" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
+              <svg viewBox="0 0 24 24">
+                <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
+                <path v-else d="M8 5v14l11-7z" />
+              </svg>
+              <em>{{ playing ? '暂停' : '播放' }}</em>
+            </button>
+            <button class="wk wk-left" type="button" title="后退 15 秒" @click="seekRel(-15)">
+              <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
+              <em>后退</em>
+            </button>
+          </div>
           <div class="wave"><i></i><i></i><i></i><i></i><i></i></div>
-          <button class="trk" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
-            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
-          </button>
-          <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
-            <svg viewBox="0 0 24 24">
-              <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
-              <path v-else d="M8 5v14l11-7z" />
-            </svg>
-          </button>
-          <button class="trk" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
-            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
-          </button>
-          <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
         </div>
+        <!-- ③ 那句提示移到播放器外面（用户绿框标出的就是它） -->
+        <p class="np-tip">对决对象是<b>专辑</b>，试听片段只帮你听个大概，<b>不参与计票</b></p>
 
         <!-- 试听清单：列出本专辑全部曲目，可播的高亮可点，不可播的标「无试听」（说明 iTunes 未提供片段） -->
         <div class="tracklist" v-if="playerAlbum">
@@ -830,6 +866,21 @@ function jumpTo(i) {
 function onEnded() {
   // 用户明确要求：播完不自动切下一首，点「下一首」才播
   playing.value = false;
+}
+/**
+ * 相对后退 / 前进 N 秒（iPod 转盘的「后退」键，2026-10-17 第四十五批加）
+ * 没有音频元素或没在播就静默返回 —— 转盘上允许"点了没反应"的键，但不要报错。
+ */
+function seekRel(deltaSec) {
+  const el = audioEl.value;
+  if (!el || !el.duration) return;
+  const next = Math.max(0, Math.min(el.duration, (el.currentTime || 0) + deltaSec));
+  try {
+    el.currentTime = next;
+    audioTime.value = next * 1000;
+  } catch {
+    /* 某些片段不可 seek，忽略 */
+  }
 }
 function onTime() {
   const el = audioEl.value;
@@ -1887,19 +1938,231 @@ onUnmounted(() => clearTimeout(cutTimer));
     margin-top: 10px !important;
   }
 }
-/* 更矮（≤760px，小笔记本 / 未最大化窗口）：再收一档封面，死保"投票按钮在一屏内"
-   实测：26vh 时 700px 视口下按钮底边 707、仍差 7px → 封面改 25vh + 投票行再贴 2px，
-   700px 视口也压进一屏（707 → 698）。 */
-@media (max-height: 760px) {
-  .duelgrid .alb .art {
-    width: min(25vh, 250px) !important;
-    height: min(25vh, 250px) !important;
+/* ═══════════════════════════════════════════════════════════════════════
+ * 手机档（≤640）· 播放条改「iPod 转盘」（2026-10-17 第四十五批 · 方案 A）
+ * ---------------------------------------------------------------------
+ * 用户原话："现在的播放界面 会根据歌名被各种拉伸变形 … 整个播放页面的布局按你的
+ *   方案A 来 … 参考 ipod 等播放器样式进行优化"；"这个提示不应该放在播放器里"。
+ *
+ * 旧的病（实测）：
+ *   `.nowbar{border-radius:999px}` + flex 横排 ⇒ 歌名一换行容器变高，999px 半径
+ *   随之变成椭圆/不规则形；三个按钮 32×44/34×44（低于 44 触控标准）挤在一行。
+ *
+ * 新的做法（iPod Click Wheel 的经典答案）：
+ *   · 曲目信息独立一块，放在转盘**上方**；
+ *   · 中间一个**固定尺寸大圆盘**（直径 = 62vw，与歌名长度完全无关 ⇒ 永不变形）；
+ *   · 四方向按钮用绝对定位钉在圆盘四角，**每个触点 ≥56px**（超过 44 标准）；
+ *   · 盘心＝当前专辑封面，正圆；
+ *   · 播放中盘心缓慢旋转（iPod 的标志性动作），reduce 档降级为不转。
+ *
+ * ⚠️ 全部写在 `@media (max-width: 640px)` 里 ⇒ 桌面档一行未动，同输入 A/B 仍为 0 差异。
+ * ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* ① 容器：从"横条"变成"上信息 + 中转盘"的竖块，圆角回归正常值（不再 999px） */
+  .nowbar {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 16px 14px 18px;
+    border-radius: 26px;
+    background: var(--glass);
+    border: 1px solid var(--gbd);
+    backdrop-filter: blur(22px) saturate(190%);
+    -webkit-backdrop-filter: blur(22px) saturate(190%);
+    box-shadow: 0 16px 40px var(--gsh);
   }
-  .vstage {
-    padding: 10px 16px 10px !important;
+  /* ② 曲目信息：居中，歌名允许多行也不影响转盘尺寸 */
+  .nowbar .t {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    padding: 0 4px 14px;
   }
-  .voterow {
-    margin-top: 4px !important;
+  .nowbar .t b {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+    /* 歌名再长也只占两行，第三行省略 —— 绝不把转盘顶变形 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .nowbar .t span {
+    display: block;
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: var(--text2);
+  }
+  /* ③ 声纹：挪到信息与转盘之间，弱化成一条细装饰 */
+  .nowbar .wave {
+    order: 0;
+    height: 14px;
+    justify-content: center;
+    margin-bottom: 10px;
+    opacity: 0.75;
+  }
+
+  /* ④ ⭐ iPod 转盘：固定直径，四方向按钮绝对定位 */
+  .nowbar .wheel {
+    position: relative;
+    order: 1;
+    width: min(62vw, 236px);
+    height: min(62vw, 236px);
+    margin: 0 auto;
+    border-radius: 50%;
+    /* 转盘本体：浅色玻璃 + 一圈品牌色细边，像 iPod 的金属圈 */
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.96), rgba(226, 240, 250, 0.86) 62%, rgba(198, 226, 244, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 18px 44px rgba(8, 58, 92, 0.24),
+      inset 0 2px 6px rgba(255, 255, 255, 0.9),
+      inset 0 -3px 10px rgba(8, 58, 92, 0.1);
+  }
+  /* 盘心：当前专辑封面（正圆） */
+  .nowbar .wheel-art {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 42%;
+    height: 42%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--glass2);
+    box-shadow: 0 6px 18px rgba(8, 58, 92, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  }
+  .nowbar .wheel-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* 播放中转盘慢转（iPod 标志性动作）；reduce 档不转 */
+  .nowbar .wheel.playing .wheel-art {
+    animation: npSpin 14s linear infinite;
+  }
+  @keyframes npSpin {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nowbar .wheel.playing .wheel-art {
+      animation: none;
+    }
+  }
+  /* 曲序角标：贴在盘心右下，不占触控 */
+  .nowbar .wheel .tno {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, calc(-50% + 42%));
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--text3);
+    letter-spacing: 0.3px;
+    pointer-events: none;
+  }
+  /* ⑤ 四方向按钮：绝对定位钉在四角，每个 ≥56px */
+  .nowbar .wk {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--brand-deep);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.16s ease, transform 0.16s ease;
+  }
+  .nowbar .wk svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  .nowbar .wk em {
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    opacity: 0.86;
+  }
+  .nowbar .wk:active:not(:disabled) {
+    background: rgba(14, 165, 233, 0.16);
+    transform: scale(0.94);
+  }
+  .nowbar .wk:disabled {
+    opacity: 0.32;
+    cursor: default;
+  }
+  /* 上＝上一首 */
+  .nowbar .wk-up {
+    left: 50%;
+    top: 2%;
+    transform: translateX(-50%);
+  }
+  .nowbar .wk-up:active:not(:disabled) {
+    transform: translateX(-50%) scale(0.94);
+  }
+  /* 下＝播放 / 暂停（主操作：实心品牌色圆，视觉最重） */
+  .nowbar .wk-down {
+    left: 50%;
+    bottom: 2%;
+    transform: translateX(-50%);
+    background: linear-gradient(160deg, #38bdf8, #0284c7);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4);
+  }
+  .nowbar .wk-down svg {
+    width: 24px;
+    height: 24px;
+  }
+  .nowbar .wk-down:active:not(:disabled) {
+    transform: translateX(-50%) scale(0.94);
+  }
+  /* 左＝后退 15 秒 */
+  .nowbar .wk-left {
+    left: 2%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .nowbar .wk-left:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.94);
+  }
+  /* 右＝下一首 */
+  .nowbar .wk-right {
+    right: 2%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .nowbar .wk-right:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.94);
+  }
+
+  /* ⑥ 那句"对决对象是专辑…"提示：移到播放器**外面**（用户绿框标出的就是它） */
+  .np-tip {
+    margin: 10px 2px 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text2);
+    text-align: center;
+  }
+  .np-tip b {
+    color: var(--brand-deep);
+    font-weight: 800;
   }
 }
 </style>

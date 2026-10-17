@@ -92,6 +92,7 @@ import { ElMessage } from 'element-plus';
 import BracketNode from './BracketNode.vue';
 import BracketListView from './BracketListView.vue';
 import { KO_ORDER, buildBracketTree, countNodes } from '@/utils/bracketTree.js';
+import { exportAndSave } from '@/utils/saveImage.js';
 
 const props = defineProps({
   matches: { type: Array, default: () => [] },
@@ -150,31 +151,27 @@ const dir = ref(props.initialDir === 'h' ? 'h' : 'v');
 const exporting = ref(false);
 const shotEl = ref(null);
 
+/**
+ * 保存晋级图（2026-10-17 第四十五批重写）
+ * ------------------------------------------------------------
+ * ⚠️ 用户真机实测（iOS）：点保存后提示"晋级图已保存"，但相册/文件里**什么都没有**。
+ *   根因：`<a download>` 在 iOS Safari 与微信内置浏览器**根本不生效**，而那句 success 照弹。
+ *   现在统一走 utils/saveImage.js（真渲染 + 移动端三级降级下载）。
+ *   顺带保留本组件特有的两点：
+ *     · 等两帧让 `.exporting` 的实心底/页眉页脚样式落上再克隆；
+ *     · 目标宽度按原图宽度取 max(1080, W) 并封顶 2400（大树的字不被压糊）。
+ */
 async function save() {
   const el = shotEl.value;
   if (!el || exporting.value) return;
-  exporting.value = true;
   // 等一帧让 .exporting 的样式（实心底 + 页眉页脚）真正落上再克隆
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  try {
-    const { exportNodeToPng } = await import('@/utils/cardExport.js');
-    const W = el.offsetWidth;
-    /**
-     * 目标宽度：竖排的宽度由"第一轮并排几张卡"决定（8 张专辑 ≈ 700px、40 张能到 3000px）。
-     * 固定 1080 会让大树的字被压得看不清 ⇒ 取 max(1080, 原始宽) 并封顶 2400。
-     */
-    const targetWidth = Math.min(2400, Math.max(1080, W));
-    const url = await exportNodeToPng(el, { targetWidth, bg: '#f7fbff' });
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `音格-完整晋级图-${dir.value === 'v' ? '竖版' : '横版'}.png`;
-    a.click();
-    ElMessage.success('晋级图已保存');
-  } catch (e) {
-    ElMessage.error('导出失败，请重试');
-  } finally {
-    exporting.value = false;
-  }
+  const targetWidth = Math.min(2400, Math.max(1080, el.offsetWidth));
+  await exportAndSave(
+    el,
+    `音格-完整晋级图-${dir.value === 'v' ? '竖版' : '横版'}.png`,
+    { exporting, targetWidth, bg: '#f7fbff' },
+  );
 }
 </script>
 

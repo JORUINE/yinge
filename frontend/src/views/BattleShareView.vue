@@ -156,6 +156,7 @@ import { battleApi } from '@/api';
 import { ROUND_CN } from '@/utils/tournament.js';
 import { accentStyleOf, ensureAlbumAccent, withAlpha, deepenRgb } from '@/utils/coverColor.js';
 import AlignedMiniCard from '@/components/AlignedMiniCard.vue';
+import { exportAndSave } from '@/utils/saveImage.js';
 
 const route = useRoute();
 const id = route.params.id;
@@ -407,89 +408,21 @@ async function load() {
 }
 
 /**
- * 保存分享图（2026-10-17 第四十四批重写）
+ * 保存分享图（2026-10-17 第四十五批：改为调用共享工具）
  * ------------------------------------------------------------
- * 用户真机反馈（原话）："我们导出分享图电脑端是靠截图实现 可以下载 但是手机端经过我实测
- *   截图有问题 无法下载 导出来的图也是错误有问题的 这一条也是需要重点优化"
- *
- * 旧实现有两个**手机端必失败**的原因（已实测确认）：
- *   ① `<a download="xxx.png">` + `click()` —— **iOS Safari 与微信内置浏览器都不支持 download 属性**，
- *      点击只会尝试用 dataURL 打开图片，存不下来；
- *   ② `canvas.toDataURL('image/png')` 把整张图编成 base64 塞进 href ——
- *      1080×1439 的 PNG 动辄 2~5MB，手机上这个 URL 长度/内存直接被判死刑。
- *
- * 新实现：
- *   ① 渲染改用项目里已验证的 `exportNodeToPng`（克隆节点 + 内联 computed style +
- *      SVG foreignObject 交给**浏览器真渲染引擎**）—— 间距/圆角/字体/渐变全部所见即所得，
- *      不再有 html2canvas 自己算布局丢间距的老问题；
- *   ② 下载改成移动端友好的三级降级：
- *      · 支持 `navigator.canShare({files})` → 调系统分享面板（iOS/Android 都能存到相册）
- *      · 否则用 `canvas.toBlob` + `URL.createObjectURL`（比 dataURL 省一个数量级的内存）
- *      · 桌面端仍保留 `<a download>`（那条路在桌面是通的）
- *      · iOS 上以上都不行 → 新窗口打开图片，提示用户"长按图片保存"
+ * ⚠️ 为什么改成共享调用：第四十四批把这套"移动端友好的导出+下载"内联写在这里，
+ *   结果**漏了另外 3 个导出入口**（人格结果页 / 保存晋级图 / 保存详细战报）。
+ *   用户真机实测（iOS，官方+第三方浏览器）："显示下载到本地了 但是我实测没有"。
+ *   这正是项目规矩说的"改一处改全部引用" ⇒ 抽成 utils/saveImage.js，四处统一调用。
  */
 async function download() {
-  if (!cardEl.value) return;
-  exporting.value = true;
-  try {
-    const { exportNodeToPng } = await import('@/utils/cardExport');
-    const bg = isAligned.value ? '#f7fbfe' : '#062130';
-    const dataUrl = await exportNodeToPng(cardEl.value, { targetWidth: 1080, bg });
-
-    const fileName = isAligned.value
+  await exportAndSave(
+    cardEl.value,
+    isAligned.value
       ? `音格对位赛分享图-${id}.png`
-      : `音格-夺冠之路-${champion.value?.name || '冠军'}.png`;
-
-    const blob = await (await fetch(dataUrl)).blob();
-    const file = new File([blob], fileName, { type: 'image/png' });
-    const url = URL.createObjectURL(blob);
-
-    // ① 能走系统分享面板就走（手机存相册最顺的一条路）
-    if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
-      try {
-        await navigator.share({ files: [file], title: '音格 · 夺冠之路' });
-        ElMessage.success('已调起分享，选"存储图像"即可存到相册');
-        return;
-      } catch (e) {
-        // 用户取消分享不算错，继续走后面的下载兜底
-        if (e && e.name === 'AbortError') return;
-      }
-    }
-
-    // ② 桌面 / 支持 download 的浏览器：直接下载
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-
-    // ③ iOS Safari：download 属性无效 ⇒ 新窗口打开，让用户长按保存
-    const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent)
-      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    if (isIOS) {
-      await new Promise((r) => setTimeout(r, 400));
-      const w = window.open('', '_blank');
-      if (w) {
-        w.document.write(
-          `<title>${fileName}</title><body style="margin:0;background:#062130;display:flex;align-items:center;justify-content:center;min-height:100vh">`
-          + `<img src="${dataUrl}" style="max-width:100%;display:block" />`
-          + `<p style="position:fixed;bottom:24px;left:0;right:0;text-align:center;color:#fff;font:14px -apple-system,sans-serif">长按图片即可存储</p>`
-          + '</body>',
-        );
-        w.document.close();
-      }
-      ElMessage.info('已打开图片，长按即可存储到相册');
-      return;
-    }
-
-    ElMessage.success('已保存到本地');
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch (err) {
-    ElMessage.error('导出失败：' + (err?.message || '请稍后重试'));
-  } finally {
-    exporting.value = false;
-  }
+      : `音格-夺冠之路-${champion.value?.name || '冠军'}.png`,
+    { exporting, bg: isAligned.value ? '#f7fbfe' : '#062130' },
+  );
 }
 
 async function copyLink() {

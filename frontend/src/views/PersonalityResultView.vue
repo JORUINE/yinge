@@ -203,6 +203,7 @@ import {
 import PersonalityCard from '@/components/PersonalityCard.vue';
 import { accentStyleOf, ensureAlbumAccent } from '@/utils/coverColor.js';
 import { makeBlurBackdrop } from '@/utils/blurBackdrop.js';
+import { exportAndSave } from '@/utils/saveImage.js';
 
 const route = useRoute();
 const id = route.params.id;
@@ -267,28 +268,22 @@ function primeAccents() {
   for (const a of albums.value.slice(0, 6)) ensureAlbumAccent(a).catch(() => {});
 }
 
+/**
+ * 导出人格卡 PNG（2026-10-17 第四十五批）
+ * ------------------------------------------------------------
+ * ⚠️ 用户真机实测（iOS，官方 + 第三方浏览器）："显示下载到本地了 但是我实测没有"。
+ *   旧实现就是 `a.download = ...; a.click(); ElMessage.success('已保存到本地')` ——
+ *   **那句 success 是假的**：iOS Safari / 微信内置浏览器根本不支持 download 属性，
+ *   点了什么都没发生，但提示照弹 ⇒ 用户以为存好了，相册里却没有。
+ *   而且第四十四批我只修了 BattleShareView，**漏了这个页面**（"改一处改全部引用"）。
+ *   现在统一走 utils/saveImage.js 的 exportAndSave（三级降级，覆盖 iOS/安卓/微信/桌面）。
+ */
 async function download() {
-  if (!cardEl.value) return;
-  exporting.value = true;
-  try {
-    /* ⚠️ 2026-10-07 第三十一批：导出从 html2canvas 换成「内联样式 + foreignObject」。
-       html2canvas 有自己的布局引擎（不渲染真 DOM），标题↔副标题的间距在导出图里会整个丢掉
-       （实测 7 种写法、导出图 md5 与改前完全一致）。新方案把浏览器算好的最终样式内联后
-       交给**浏览器自己渲染**，所见即所得。详见 utils/cardExport.js 顶部注释。 */
-    const { exportNodeToPng } = await import('@/utils/cardExport.js');
-    const dataUrl = await exportNodeToPng(cardEl.value, { targetWidth: 1080 });
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `音格-音乐人格-${result.value?.typeName || '结果'}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    ElMessage.success('已保存到本地');
-  } catch (err) {
-    ElMessage.error('导出失败：' + (err?.message || '请稍后重试'));
-  } finally {
-    exporting.value = false;
-  }
+  await exportAndSave(
+    cardEl.value,
+    `音格-音乐人格-${result.value?.typeName || '结果'}.png`,
+    { exporting, bg: null },
+  );
 }
 
 onMounted(async () => {

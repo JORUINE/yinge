@@ -399,6 +399,7 @@ import BracketTree from '@/components/BracketTree.vue';
 import AlignedMiniCard from '@/components/AlignedMiniCard.vue';
 // 打完了 → 清掉「本地续玩」记录（否则首页会一直挂着一条"你还有一局没打完"）
 import { clearResumeIf } from '@/utils/resume.js';
+import { exportAndSave } from '@/utils/saveImage.js';
 
 const route = useRoute();
 const id = route.params.id;
@@ -504,26 +505,17 @@ const miniLeaderText = computed(() => {
  * 导出为 PNG（详细战报 / 简洁分享图共用）
  * ⚠️ 用**实心底色**导出：透明底发到微信/QQ 里会被压成黑底（详细战报那张尤其明显）。
  */
+/**
+ * 导出战报 / 分享图（2026-10-17 第四十五批重写）
+ * ------------------------------------------------------------
+ * ⚠️ 用户真机实测（iOS）："显示下载到本地了 但是我实测没有"。
+ *   旧实现 `<a download>` + `ElMessage.success('已保存到下载文件夹')` 在 iOS/微信里
+ *   **根本不保存，但提示照弹** ⇒ 用户以为存好了。
+ *   另外旧实现用的是 html2canvas（自带布局引擎，会丢间距），现统一换成
+ *   utils/saveImage.js 的 exportAndSave：真渲染 + 移动端三级降级下载。
+ */
 async function exportImage(el, filename, mode) {
-  if (!el) return;
-  exporting.value = mode;
-  try {
-    const { default: html2canvas } = await import('html2canvas');
-    const canvas = await html2canvas(el, {
-      scale: Math.max(2, 1080 / el.offsetWidth),
-      backgroundColor: '#f7fbfe',
-      useCORS: true,
-    });
-    const a = document.createElement('a');
-    a.href = canvas.toDataURL('image/png');
-    a.download = filename;
-    a.click();
-    ElMessage.success('已保存到下载文件夹');
-  } catch (err) {
-    ElMessage.error(err?.message || '生成失败');
-  } finally {
-    exporting.value = false;
-  }
+  await exportAndSave(el, filename, { exporting, busyValue: mode, bg: '#f7fbfe' });
 }
 
 const exportReport = () => exportImage(reportEl.value, `音格对位赛战报-${id}.png`, 'full');

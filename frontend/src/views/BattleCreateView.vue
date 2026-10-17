@@ -450,9 +450,13 @@
           <p v-else class="hint">
             曲库里还没有带流派标签的歌手 —— 先在上方搜索并缓存几位歌手，回来这里就能按流派开局。
           </p>
-          <div class="searchrow" style="margin-top: 10px">
-            <input v-model="genre" class="ipt" placeholder="或直接输入流派词（需与曲库标签一致，如 流行樂）" />
-          </div>
+          <!-- ⚠️ 2026-10-17 第四十五批：按用户要求去掉「流派自由输入」与「从音乐源找歌手」。
+               用户原话："暂时去掉流派搜索功能 只用我们默认的 … 这个流派搜索功能不成熟
+               等后续上线了看反馈手动增加新流派 不把权限给用户 否则歌手数量会太大"。
+               ⇒ 现在只能从上面这些**默认流派**里选；想加新流派由后台/开发者手动加，不给用户入口。 -->
+          <p class="hint">
+            流派只能从上面这些默认选项里选 —— 想支持更多流派，后续会由我们手动补充后开放。
+          </p>
           <p class="hint">
             流派 = 曲库里已缓存歌手的 iTunes 流派标签；命中后自动按准入规则过滤，再<b>各歌手轮转抽你选的张数（最多 48 张）</b>入池 —— 不用手动挑，专辑多也不怕。
           </p>
@@ -499,79 +503,8 @@
               这个流派没有人工白名单册（后端会走 Apple 榜单 + 关键词兜底）。
             </p>
           </div>
-
-          <!-- 流派歌手扩充（2026-09-24 第十六批改造）
-               用户："这里的补充功能从音乐源找这个功能你怎么没了 然后既然上面能点开看到
-               下面就没必要再做了 而且你没有做点开后收起来"。
-               → ① 名字改回「从音乐源找歌手」：在线补**非白名单**歌手（来源＝Apple 榜单/关键词，
-                  白名单那册在上面已经列过了，这里不再算它的账）；
-                 ② 列表**只列还没入库的**（上面「这册内置歌手」已把已入库的列过，不重复）；
-                 ③ 按钮＝开关：点开查找、再点收起。 -->
-          <div class="grow">
-            <div class="growhd">
-              <b>流派歌手不够？从音乐源补</b>
-              <span>
-                被选中的流派：<b>{{ genre || '（还没选）' }}</b>
-                <template v-if="genreCount"> · 曲库里现有 <b>{{ genreCount }}</b> 位歌手</template>
-              </span>
-            </div>
-            <div class="growrow">
-              <button
-                class="btn ghost sm"
-                type="button"
-                :disabled="!genre.trim() || growing || discovering"
-                @click="toggleDiscover"
-              >
-                {{ discovering ? '正在查找…' : discoverOpen ? '收起' : '从音乐源找歌手' }}
-              </button>
-              <template v-if="discoverOpen && missing.length">
-                <button
-                  class="btn ghost sm"
-                  type="button"
-                  :disabled="growing"
-                  @click="toggleAllWarm"
-                >
-                  {{ warmPick.length === missing.length ? '取消全选' : `全选未入库（${missing.length}）` }}
-                </button>
-                <button
-                  class="btn pri sm"
-                  type="button"
-                  :disabled="growing || !warmPick.length"
-                  @click="warmSelected"
-                >
-                  {{ growing ? `入库中 ${warmDone}/${warmPick.length}…` : `入库已选 ${warmPick.length} 位` }}
-                </button>
-              </template>
-            </div>
-
-            <template v-if="discoverOpen">
-              <p v-if="discoverNote" class="hint">{{ discoverNote }}</p>
-              <p v-if="missing.length" class="hint pickhint">
-                这里只列<b>还没入库</b>的歌手（已在库里的，上面「这册内置歌手」列过了，不再重复）——
-                <b>点名字即可勾选</b>补进曲库。
-              </p>
-
-              <div v-if="missing.length" class="glist">
-                <span
-                  v-for="a in missing"
-                  :key="a.artistId"
-                  class="chip"
-                  :class="{ sel: warmPick.includes(a.artistId) }"
-                  title="点击勾选／取消"
-                  role="button"
-                  tabindex="0"
-                  @click="toggleWarm(a.artistId, false)"
-                >
-                  <b>{{ a.name }}</b>
-                  <i>{{ a.genre || genre.trim() }}</i>
-                </span>
-              </div>
-              <p v-else-if="discovered.length" class="hint">
-                这一册的歌手都已经入库了，不用补 —— 直接选张数开局就行。
-              </p>
-            </template>
           </div>
-        </div>
+
         <div v-else class="yearrow">
           <input v-model.number="yearStart" class="ipt year" type="number" min="1900" max="2100" />
           <span class="dash">—</span>
@@ -766,6 +699,16 @@
         <b>你选了什么</b>
         <span>{{ startInfo || `${modeLabel} · 还没选完` }}</span>
       </div>
+      <!-- ⚠️ 2026-10-17 第四十五批：加一行"装好了 → 去开局"的引导。
+           用户真机反馈原话："我实测我们选择组合的操作要触屏两下 点第一下是选中 第二下才是确认
+           加入对决的选择 可是用户没有提示不知道 会以为没选起 增加一个小提示"。
+           实测：applyCombo **一次点击就装好了**（picked.value 直接赋值 + toast），
+           但装完只有一闪而过的 toast，用户不知道"还要点右下角开始对决"才算真的入局 ⇒ 以为没选上。
+           这一行只在"已选够人数、可以开局"时出现，明确告诉用户下一步点什么。
+           ⚠️ 只在手机档渲染（桌面端有完整的 startbar，不添乱）。 -->
+      <p v-if="isPhone && canStart && !creating" class="mob-next">
+        已选好 <b>{{ picked.length }}</b> 位歌手 · 点右下角<b class="go">开始对决</b>即可入局
+      </p>
       <div class="mob-btns">
         <button class="btn ghost" type="button" @click="sheetOpen = !sheetOpen">
           {{ sheetOpen ? '收起筛选' : '筛选' }}
@@ -877,32 +820,11 @@ function normalizeGenreList(list) {
   return (list || []).filter((g) => g && g.genre);
 }
 
-// —— 流派歌手扩充（Apple Music 抓同流派的歌手补进曲库）——
-const discovering = ref(false);
-/** ③ 列表开关（2026-09-24 第十六批：用户"你没有做点开后收起来"）—— 点开查找、再点收起 */
-const discoverOpen = ref(false);
-
-function toggleDiscover() {
-  discoverOpen.value = !discoverOpen.value;
-  // 第一次点开才去查（查过的结果保留，收起再打开不重复请求）
-  if (discoverOpen.value && !discovered.value.length) discoverGenre();
-}
-const growing = ref(false);
-const discovered = ref([]);
-const discoverNote = ref('');
-const warmDone = ref(0);
 /** 这个流派在曲库里现存的歌手数（策展流派返回 null —— 它的歌手集合由白名单定义，不是 genre 聚合出来的） */
 const genreCount = computed(() => {
   const hit = genreOptions.value.find((g) => g.genre === genre.value);
   return hit?.curated ? null : hit?.artists || 0;
 });
-/** 还没入库的那些（只补这些，已入库的不重复拉） */
-const missing = computed(() => discovered.value.filter((a) => !a.cached));
-/**
- * 用户逐个点选出来"要入库"的歌手（2026-09-18 用户要求「增加点选可以入库」）。
- * 以前只有一个"把前 N 位补进曲库"的全量按钮 —— 榜上混着不想收的人也没法挑。
- */
-const warmPick = ref([]);
 
 /**
  * ⭐ 「这册内置歌手」自动取数 · 2026-09-24 第十三批
@@ -950,97 +872,6 @@ onBeforeUnmount(() => {
   mqPhone = null;
 });
 
-/** 点选 / 取消一位歌手（已在库的不可选） */
-function toggleWarm(artistId, cached) {
-  if (cached || growing.value) return;
-  warmPick.value = warmPick.value.includes(artistId)
-    ? warmPick.value.filter((x) => x !== artistId)
-    : [...warmPick.value, artistId];
-}
-
-/** 全选 / 取消全选未入库的那些 */
-function toggleAllWarm() {
-  if (growing.value) return;
-  warmPick.value =
-    warmPick.value.length === missing.value.length ? [] : missing.value.map((a) => a.artistId);
-}
-
-/** ① 看看这个流派在 Apple Music 里靠前的是哪些歌手 */
-async function discoverGenre() {
-  if (!genre.value.trim()) return;
-  discovering.value = true;
-  discovered.value = [];
-  warmPick.value = [];
-  discoverNote.value = '';
-  try {
-    // online=true：「从音乐源找歌手」要在线补白名单之外的人（2026-09-24 第十七批）
-    const d = await musicApi.discoverGenreArtists({ genre: genre.value.trim(), limit: 30, online: true });
-    discovered.value = d?.artists || [];
-    if (!discovered.value.length) {
-      discoverNote.value = '这个流派没找到歌手，换个流派词试试（如 Mandopop / Rock / 爵士）';
-      return;
-    }
-    const name = genre.value.trim();
-    /**
-     * ⚠️ 2026-09-23 用户定调："把白名单做成默认，时下热门的做成去补的那些人"。
-     * 所以来源说明也要跟着改 —— 现在主来源是**人工白名单**（大众认知里这个流派该有谁），
-     * Apple 榜单只在白名单凑不满 30 位时补足。
-     */
-    const srcNote =
-      d?.source === 'whitelist'
-        ? '（全部来自人工白名单 · 按大众对这个流派的认知挑选）'
-        : d?.source === 'chart'
-          ? '（来自 Apple Music 该流派榜单 —— 白名单没覆盖到的部分）'
-          : d?.source === 'mixed'
-            ? '（人工白名单为主 + Apple 榜单补足）'
-            : '（关键词检索）';
-    discoverNote.value = d?.loose
-      ? `「${name}」在白名单与 Apple 都没有统一流派标签，这 ${discovered.value.length} 位是按相关度收的 —— 勾选前你可以先看一眼名字对不对`
-      : `「${name}」的 ${discovered.value.length} 位知名歌手${srcNote}，其中 ${discovered.value.length - missing.value.length} 位已在曲库`;
-  } catch (e) {
-    discoverNote.value = e?.message || '查找失败';
-  } finally {
-    discovering.value = false;
-  }
-}
-
-/** ② 分批入库（后端每批最多 8 位 —— 每位都要打一次 Apple 的专辑接口） */
-async function warmSelected() {
-  const ids = warmPick.value.slice();
-  if (!ids.length) return;
-  growing.value = true;
-  warmDone.value = 0;
-  // 2026-09-24 第十八批：6 改 4。每位歌手都要打 iTunes 整碟（慢），批次越大越容易超时；
-  // 配合 api 侧放宽到 180s，双保险。
-  const CHUNK = 4;
-  let saved = 0;
-  try {
-    for (let i = 0; i < ids.length; i += CHUNK) {
-      // eslint-disable-next-line no-await-in-loop
-      const r = await musicApi.warmGenreArtists({
-        genre: genre.value.trim(),
-        artistIds: ids.slice(i, i + CHUNK),
-      });
-      saved += r?.saved || 0;
-      warmDone.value = Math.min(i + CHUNK, ids.length);
-      // 入库完立刻刷新"已入库"标记，用户能看到一个个变绿
-      // eslint-disable-next-line no-await-in-loop
-      const done = new Set((r?.results || []).filter((x) => x.ok).map((x) => x.artistId));
-      discovered.value = discovered.value.map((a) =>
-        done.has(a.artistId) ? { ...a, cached: true, localAlbumCount: a.localAlbumCount } : a,
-      );
-      warmPick.value = warmPick.value.filter((x) => !done.has(x));
-    }
-    ElMessage.success(`已把 ${saved} 位歌手补进曲库，现在可以按「${genre.value.trim()}」开局了`);
-    // 刷新流派列表，让歌手数显示同步更新
-    const g = await musicApi.listGenres();
-    genreOptions.value = normalizeGenreList(g.list);
-  } catch (e) {
-    ElMessage.error(e?.message || '入库失败');
-  } finally {
-    growing.value = false;
-  }
-}
 
 /**
  * #84 年代专辑池补足：区间内本地专辑不够时，从 Apple Music 把已知歌手整张碟同步进来撑大池子。
@@ -1157,10 +988,6 @@ watch([genre, genreOrEra], ([g, ge]) => {
    * 换流派时**必须把上一次的查找状态清掉** —— 否则开关还是"展开"、列表还是上一个流派的人，
    * 用户看到的就是"按钮状态不对 / 列表不是这个流派的"，只能刷新页面。
    */
-  discoverOpen.value = false;
-  discovered.value = [];
-  warmPick.value = [];
-  discoverNote.value = '';
   if (ge !== 'genre') return;
   loadWhitelistRoster(g);
 });
@@ -2671,6 +2498,31 @@ async function onCreate() {
     font-weight: 800;
     letter-spacing: 0.4px;
     color: var(--text3);
+  }
+  /* 「已选好 N 位 · 点开始对决即可入局」引导行（2026-10-17 第四十五批）
+     用户反馈：点完组合不知道还要点开始对决，以为没选上。
+     做得轻一点：一行小字 + 一个箭头指向右下角主按钮，不抢视觉。 */
+  .mob-next {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+  .mob-next b {
+    color: var(--brand-deep);
+    font-weight: 800;
+  }
+  .mob-next b.go {
+    display: inline-block;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(14, 165, 233, 0.14);
+    color: var(--brand-deep);
+  }
+  .mob-next::after {
+    content: ' ↗';
+    color: var(--brand);
+    font-weight: 800;
   }
   .mob-sum span {
     min-width: 0;
