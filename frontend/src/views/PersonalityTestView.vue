@@ -82,15 +82,30 @@
               <!-- 展示用字母（服务端每次乱序后给的 displayKey）；提交仍用原始 key -->
               <span class="k">{{ o.displayKey || o.key }}</span>
               <span class="tx2">{{ o.label }}</span>
+              <!-- ⚠️ 2026-10-18 第四十六批：已选加一个明确的对勾。
+                   用户原话："有时候点击了进入下一道题 但是选项已经被选择了" ——
+                   回退到答过的题时，旧答案仍在（这是"允许回退修改"的设计），
+                   但界面上只有一个淡淡的底色，用户看不出"这是我之前选的"，
+                   于是以为"选项莫名其妙被选了"。一个 ✓ 就把状态说清了。 -->
+              <svg v-if="answers[current.questionId] === o.key" class="picked" viewBox="0 0 24 24" aria-label="已选"><path d="M9 16.2l-3.5-3.5L4 14.2 9 19.2 20 8.2 18.6 6.8z" /></svg>
             </div>
           </div>
 
           <div class="qnav">
             <button class="btn ghost" type="button" :disabled="idx === 0" @click="prev">上一题</button>
-            <button class="btn pri" type="button" :disabled="submitting" @click="next">
-              {{ isLast ? (submitting ? '提交中…' : '提交，看结果') : '下一题' }}
+            <!-- ⚠️ 2026-10-18 第四十六批：「下一题」从实心蓝(pri)降级为描边(ghost)。
+                 用户原话："下一题有蓝色方框 导致用户会注意力更容易分散到上面 产生误判操作" ——
+                 实心蓝按钮和选项卡视觉重量相同，用户会把它当成"要选的答案"。
+                 现在选项是视觉主角，按钮退为导航；已答时给一个轻提示告诉他可以下一题了。 -->
+            <button class="btn ghost qnext" type="button" :disabled="submitting" @click="next">
+              <template v-if="isLast">{{ submitting ? '提交中…' : '提交，看结果' }}</template>
+              <template v-else-if="answers[current.questionId]">下一题 →</template>
+              <template v-else>选一个答案</template>
             </button>
           </div>
+          <p v-if="answers[current.questionId]" class="qnav-hint">
+            已选「{{ pickedLabel }}」<span class="qnav-hint-x">· 点选项可改选</span>
+          </p>
         </div>
       </div>
 
@@ -136,6 +151,20 @@ const current = computed(() => questions.value[idx.value] || {});
 const isLast = computed(() => idx.value === questions.value.length - 1);
 const answeredCount = computed(() => questions.value.filter((q) => answers[q.questionId]).length);
 
+/** 当前题已选项的文案（用于"已选「X」· 点选项可改选"那行提示） */
+const pickedLabel = computed(() => {
+  const key = answers[current.value?.questionId];
+  if (!key) return '';
+  return current.value?.options?.find((o) => o.key === key)?.label || '';
+});
+
+/**
+ * 自动跳转的防重入令牌（2026-10-18 第四十六批）
+ * 每次 pick 自增；setTimeout 回调里只有"令牌没变"才执行跳转，
+ * 避免自动跳转与手动「下一题」叠加导致一次跳两题。
+ */
+const pickToken = ref(0);
+
 /** 听感题的音频：兼容几种可能的字段名，拿不到就提示"待配置" */
 function audioOf(q) {
   return q?.audioUrl || q?.previewUrl || q?.audio || q?.sampleUrl || '';
@@ -150,9 +179,16 @@ function pick(key) {
   answers[current.value.questionId] = key;
   persist();
   // 选完稍等片刻自动进下一题（最后一题不自动提交）
+  // ⚠️ 2026-10-18 第四十六批：修自动跳转与手动「下一题」的竞态。
+  //   旧写法用 setTimeout + 闭包比对 answers，用户在 220ms 内又点了「下一题」时，
+  //   idx 已前进，闭包里那句 `answers[current.questionId] === key` 仍可能成立
+  //   ⇒ 再触发一次 next()，一次点击跳两题，落到已答过的题上
+  //   ⇒ 用户看到"选项已经被选择了"（实测复现的 bug）。
+  //   修法：给这次点击发一个递增 token，回调里只有 token 仍是当前这次的才跳。 */
+  const token = (pickToken.value += 1);
   if (!isLast.value) {
     setTimeout(() => {
-      if (answers[current.value.questionId] === key) next();
+      if (token === pickToken.value && answers[current.value.questionId] === key) next();
     }, 220);
   }
 }
@@ -367,5 +403,85 @@ html[data-theme='dark'] .funnotice b {
 .oi.neutral .k {
   background: var(--glass2);
   color: var(--text3);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * 2026-10-18 第四十六批：答题页三项可读性/防误触修正
+ * ---------------------------------------------------------------------
+ * 用户真机反馈三条：
+ *   ① "下一题有蓝色方框 导致用户会注意力更容易分散到上面 产生误判操作"
+ *      ⇒ 实心蓝按钮与选项卡视觉重量相同。把「下一题」降为描边按钮，
+ *        选项重新成为视觉主角；已答时按钮文案变"下一题 →"给轻推动。
+ *   ② "有时候点击了进入下一道题 但是选项已经被选择了"
+ *      ⇒ 回退到答过的题时旧答案仍在（"允许回退修改"是设计），但界面上只有一个淡底色，
+ *        用户看不出"这是我之前选的"。补一个 ✓ 徽标 + 一行"已选「X」· 点选项可改选"。
+ *   ③ "用户要完整的看到题目和上一题下一题按钮 就看不到进度条"
+ *      ⇒ 进度条 qbar 压紧凑（点变小、行高收紧），把垂直空间让给题目与按钮。
+ * ═══════════════════════════════════════════════════════════════════════ */
+/* ① 已选徽标：右下角一个实心小勾，不占文字位 */
+.oi {
+  position: relative;
+}
+.oi .picked {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  fill: var(--brand);
+  pointer-events: none;
+}
+/* ② 导航按钮：下一题退为描边，不再和选项抢注意力 */
+.qnav .btn.qnext {
+  border: 1.5px solid var(--gbd);
+  background: var(--glass2);
+  color: var(--text);
+  font-weight: 700;
+}
+.qnav .btn.qnext:disabled {
+  opacity: 0.55;
+}
+.qnav-hint {
+  margin: 8px 2px 0;
+  font-size: 12.5px;
+  color: var(--text2);
+  text-align: center;
+}
+.qnav-hint b {
+  color: var(--brand-deep);
+}
+.qnav-hint-x {
+  color: var(--text3);
+}
+/* ③ 进度条压紧凑：让题目 + 上一题/下一题能同屏 */
+.qbar {
+  margin-bottom: 12px;
+}
+.qbar .dots {
+  gap: 4px;
+}
+.qbar .dots i {
+  width: 6px;
+  height: 6px;
+}
+.qbar .cnt {
+  font-size: 12px;
+}
+/* 手机档再收一档：题目区与按钮之间别留太多空气 */
+@media (max-width: 640px) {
+  .qcard2 {
+    padding: 16px 14px 18px;
+  }
+  .qcard2 h3 {
+    font-size: 19px;
+    line-height: 1.35;
+  }
+  .qnav {
+    margin-top: 14px;
+  }
+  .qnav .btn {
+    min-height: 46px;
+  }
 }
 </style>

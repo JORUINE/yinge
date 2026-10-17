@@ -235,7 +235,7 @@ onMounted(loadNext);
 }
 .types {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
   gap: 10px;
 }
 .tbtn {

@@ -12,8 +12,15 @@
       {{ loadingTracks ? '加载中…' : '试听 30 秒' }}
     </button>
 
+    <!-- ⚠️⚠️ 2026-10-18 第四十六批：改成与对战页同一套「iPod 转盘」结构。
+         用户实测反馈：「这是大家推进专辑池里的试听 你看这个ipod播放器没做好适配」
+         +「对决赛的播放器没做适配」。
+         根因：对战页的转盘样式原先写在 BattlePlayView 的 scoped style 里，命不中本组件；
+              现已整套移到 styles/components.css 全局（.nowbar 本来就是全局类）。
+              但光有样式不够 —— DOM 也得是 .wheel 结构，否则没有圆盘可排。
+         ⚠️ 结构与 BattlePlayView.vue 的 .nowbar 完全一致（.t 信息 + .wheel 转盘 + .np-tip），
+            这样一套全局 CSS 同时覆盖两个页面；桌面档仍走原来的横条（样式只在 ≤640 生效）。 -->
     <div v-else class="nowbar">
-      <div class="a"><img :src="playerAlbum?.artworkUrl" alt="" /></div>
       <div class="t">
         <b>{{ curTrack ? curTrack.name : '—' }}</b>
         <span>
@@ -24,20 +31,33 @@
           <template v-else>这首没有试听片段</template>
         </span>
       </div>
-      <button class="trk" type="button" title="上一首" :disabled="prevIdx < 0" @click="goPrev">
-        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
-      </button>
-      <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
-        <svg viewBox="0 0 24 24">
-          <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
-          <path v-else d="M8 5v14l11-7z" />
-        </svg>
-      </button>
-      <button class="trk" type="button" title="下一首" :disabled="nextIdx < 0" @click="goNext">
-        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
-      </button>
-      <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
+
+      <div class="wheel" :class="{ playing }">
+        <div class="wheel-art"><img :src="playerAlbum?.artworkUrl" alt="" /></div>
+        <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
+        <button class="wk wk-up" type="button" title="上一首" :disabled="prevIdx < 0" @click="goPrev">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+          <em>上一首</em>
+        </button>
+        <button class="wk wk-right" type="button" title="下一首" :disabled="nextIdx < 0" @click="goNext">
+          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
+          <em>下一首</em>
+        </button>
+        <button class="wk wk-down" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
+          <svg viewBox="0 0 24 24">
+            <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
+            <path v-else d="M8 5v14l11-7z" />
+          </svg>
+          <em>{{ playing ? '暂停' : '播放' }}</em>
+        </button>
+        <button class="wk wk-left" type="button" title="后退 15 秒" @click="seekRel(-15)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
+          <em>后退</em>
+        </button>
+      </div>
     </div>
+    <!-- 提示移到播放器外面（与对战页一致） -->
+    <p class="np-tip">对决对象是<b>专辑</b>，试听片段只帮你听个大概，<b>不参与计票</b></p>
 
     <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" @loadedmetadata="onMeta" />
   </div>
@@ -205,6 +225,22 @@ function togglePlay() {
       .catch(() => {
         playing.value = false;
       });
+  }
+}
+
+/**
+ * 相对后退 / 前进 N 秒（iPod 转盘的「后退」键，2026-10-18 第四十六批加）
+ * 与对战页 seekRel 同逻辑；没有音频元素或时长未知时静默返回。
+ */
+function seekRel(deltaSec) {
+  const el = audioEl.value;
+  if (!el || !el.duration) return;
+  const next = Math.max(0, Math.min(el.duration, (el.currentTime || 0) + deltaSec));
+  try {
+    el.currentTime = next;
+    audioTime.value = next * 1000;
+  } catch {
+    /* 某些片段不可 seek，忽略 */
   }
 }
 

@@ -524,7 +524,10 @@ html[data-theme='dark'] .v b {
    让"这是两套玩法"一眼看得出来，而不是六个平级按钮。 */
 .lobby {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  /* ⚠️ 2026-10-18 第四十六批：与 .lb-modes 同一修法。
+     原来 minmax(330px, 1fr) 在容器窄于 330px 时仍按 1 列布轨但轨道最小值 330px 超过容器 ⇒ 溢出。
+     （用户实测：安卓默认缩放下「混战模式」界面完全错乱，缩到 75% 才正常。） */
+  grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr));
   gap: 14px;
   margin: 22px 0 6px;
 }
@@ -605,9 +608,19 @@ html[data-theme='dark'] .v b {
   background: var(--fam, var(--brand));
   color: #fff;
 }
+/* ⚠️⚠️ 2026-10-18 第四十六批：修「安卓默认缩放下模式卡错乱溢出」（用户原话："这是万万不可的"）
+   原来：`repeat(auto-fit, minmax(160px, 1fr))`。
+   病根（实测复现）：**轨道最小值 160px 是写死的**。当容器可用宽度落在
+   [160, 329) 区间时（安卓默认视口常见 360/393/412dp，减去 .stage 内边距后正好落在这里），
+   auto-fit 仍然按 2 列布轨 —— 2×160+9( gap )=329px 放不进 300px 的容器 ⇒ 右侧溢出、两卡一宽一窄。
+   用户把浏览器缩到 75% 后 CSS 像素视口变宽（412/0.75≈549），容器够宽 ⇒ "又恢复正常"，
+   这正是"默认比例下错乱、缩小反而正常"的典型特征。
+   修法（现代 CSS 标准解法）：把轨道最小值改成 `min(160px, 100%)` ——
+   最小值永远不会超过容器本身宽度，窄容器自动降为 1 列、宽容器才 2 列，
+   **任何缩放比例下都不会溢出**。 */
 .lb-modes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
   gap: 9px;
 }
 .lb-modes .mode {
@@ -4172,4 +4185,247 @@ html.ua-edge .scard .smain .art {
     /* 底部内侧微光（下缘二次反射） */
     radial-gradient(120% 46% at 50% 104%, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 62%);
   box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * 手机档（≤640）· 播放条「iPod 转盘」—— 全局生效
+ * ---------------------------------------------------------------------
+ * ⚠️⚠️ 2026-10-18 第四十六批：这套样式原来写在 BattlePlayView.vue 的 **scoped**
+ *   style 里，只对那一个页面生效 ⇒ 用户实测发现「对位赛的播放器没做适配」
+ *   （AlbumPlayer 组件虽然也用 .nowbar，但命不中 scoped 样式）。
+ *   .nowbar 本来就是全局类（定义就在本文件）⇒ 整套样式搬到这里，
+ *   **所有用 .nowbar 的地方自动获得 iPod 转盘**。
+ *
+ * 旧实现的病（实测）：.nowbar{border-radius:999px} + flex 横排 ⇒ 歌名一换行
+ *   容器变高，999px 半径变成椭圆/不规则形（用户说的"根据歌名被拉伸变形"）。
+ *
+ * 新做法：固定直径大圆盘（与歌名长度无关 ⇒ 永不变形）+ 四方向按钮。
+ * ⚠️ 只写在 ≤640 媒体查询里 ⇒ 桌面档一行未动，同输入 A/B 仍 0 差异。
+ * ═══════════════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════════════════
+ * 手机档（≤640）· 播放条改「iPod 转盘」（2026-10-17 第四十五批 · 方案 A）
+ * ---------------------------------------------------------------------
+ * 用户原话："现在的播放界面 会根据歌名被各种拉伸变形 … 整个播放页面的布局按你的
+ *   方案A 来 … 参考 ipod 等播放器样式进行优化"；"这个提示不应该放在播放器里"。
+ *
+ * 旧的病（实测）：
+ *   `.nowbar{border-radius:999px}` + flex 横排 ⇒ 歌名一换行容器变高，999px 半径
+ *   随之变成椭圆/不规则形；三个按钮 32×44/34×44（低于 44 触控标准）挤在一行。
+ *
+ * 新的做法（iPod Click Wheel 的经典答案）：
+ *   · 曲目信息独立一块，放在转盘**上方**；
+ *   · 中间一个**固定尺寸大圆盘**（直径 = 62vw，与歌名长度完全无关 ⇒ 永不变形）；
+ *   · 四方向按钮用绝对定位钉在圆盘四角，**每个触点 ≥56px**（超过 44 标准）；
+ *   · 盘心＝当前专辑封面，正圆；
+ *   · 播放中盘心缓慢旋转（iPod 的标志性动作），reduce 档降级为不转。
+ *
+ * ⚠️ 全部写在 `@media (max-width: 640px)` 里 ⇒ 桌面档一行未动，同输入 A/B 仍为 0 差异。
+ * ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* ① 容器：从"横条"变成"上信息 + 中转盘"的竖块，圆角回归正常值（不再 999px） */
+  .nowbar {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 16px 14px 18px;
+    border-radius: 26px;
+    background: var(--glass);
+    border: 1px solid var(--gbd);
+    backdrop-filter: blur(22px) saturate(190%);
+    -webkit-backdrop-filter: blur(22px) saturate(190%);
+    box-shadow: 0 16px 40px var(--gsh);
+  }
+  /* ② 曲目信息：居中，歌名允许多行也不影响转盘尺寸 */
+  .nowbar .t {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    padding: 0 4px 14px;
+  }
+  .nowbar .t b {
+    display: block;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
+    /* 歌名再长也只占两行，第三行省略 —— 绝不把转盘顶变形 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .nowbar .t span {
+    display: block;
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: var(--text2);
+  }
+  /* ③ 声纹：挪到信息与转盘之间，弱化成一条细装饰 */
+  .nowbar .wave {
+    order: 0;
+    height: 14px;
+    justify-content: center;
+    margin-bottom: 10px;
+    opacity: 0.75;
+  }
+
+  /* ④ ⭐ iPod 转盘：固定直径，四方向按钮绝对定位 */
+  .nowbar .wheel {
+    position: relative;
+    order: 1;
+    width: min(62vw, 236px);
+    height: min(62vw, 236px);
+    margin: 0 auto;
+    border-radius: 50%;
+    /* 转盘本体：浅色玻璃 + 一圈品牌色细边，像 iPod 的金属圈 */
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.96), rgba(226, 240, 250, 0.86) 62%, rgba(198, 226, 244, 0.8));
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+      0 18px 44px rgba(8, 58, 92, 0.24),
+      inset 0 2px 6px rgba(255, 255, 255, 0.9),
+      inset 0 -3px 10px rgba(8, 58, 92, 0.1);
+  }
+  /* 盘心：当前专辑封面（正圆） */
+  .nowbar .wheel-art {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 42%;
+    height: 42%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--glass2);
+    box-shadow: 0 6px 18px rgba(8, 58, 92, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+  }
+  .nowbar .wheel-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* 播放中转盘慢转（iPod 标志性动作）；reduce 档不转 */
+  .nowbar .wheel.playing .wheel-art {
+    animation: npSpin 14s linear infinite;
+  }
+  @keyframes npSpin {
+    to {
+      transform: translate(-50%, -50%) rotate(360deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nowbar .wheel.playing .wheel-art {
+      animation: none;
+    }
+  }
+  /* 曲序角标：贴在盘心右下，不占触控 */
+  .nowbar .wheel .tno {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, calc(-50% + 42%));
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--text3);
+    letter-spacing: 0.3px;
+    pointer-events: none;
+  }
+  /* ⑤ 四方向按钮：绝对定位钉在四角，每个 ≥56px */
+  .nowbar .wk {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--brand-deep);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.16s ease, transform 0.16s ease;
+  }
+  .nowbar .wk svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  .nowbar .wk em {
+    font-style: normal;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    opacity: 0.86;
+  }
+  .nowbar .wk:active:not(:disabled) {
+    background: rgba(14, 165, 233, 0.16);
+    transform: scale(0.94);
+  }
+  .nowbar .wk:disabled {
+    opacity: 0.32;
+    cursor: default;
+  }
+  /* 上＝上一首 */
+  .nowbar .wk-up {
+    left: 50%;
+    top: 2%;
+    transform: translateX(-50%);
+  }
+  .nowbar .wk-up:active:not(:disabled) {
+    transform: translateX(-50%) scale(0.94);
+  }
+  /* 下＝播放 / 暂停（主操作：实心品牌色圆，视觉最重） */
+  .nowbar .wk-down {
+    left: 50%;
+    bottom: 2%;
+    transform: translateX(-50%);
+    background: linear-gradient(160deg, #38bdf8, #0284c7);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4);
+  }
+  .nowbar .wk-down svg {
+    width: 24px;
+    height: 24px;
+  }
+  .nowbar .wk-down:active:not(:disabled) {
+    transform: translateX(-50%) scale(0.94);
+  }
+  /* 左＝后退 15 秒 */
+  .nowbar .wk-left {
+    left: 2%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .nowbar .wk-left:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.94);
+  }
+  /* 右＝下一首 */
+  .nowbar .wk-right {
+    right: 2%;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .nowbar .wk-right:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.94);
+  }
+
+  /* ⑥ 那句"对决对象是专辑…"提示：移到播放器**外面**（用户绿框标出的就是它） */
+  .np-tip {
+    margin: 10px 2px 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text2);
+    text-align: center;
+  }
+  .np-tip b {
+    color: var(--brand-deep);
+    font-weight: 800;
+  }
 }

@@ -111,16 +111,27 @@ export async function savePng(dataUrl, fileName, { silent = false } = {}) {
  * 一步到位：导出 + 保存。
  * @param {HTMLElement} el
  * @param {string} fileName
- * @param {{bg?: string, targetWidth?: number, exporting?: import('vue').Ref, busyValue?: any}} opts
+ * @param {{bg?: string, targetWidth?: number, exporting?: import('vue').Ref, busyValue?: any, flatten?: boolean}} opts
  *   exporting  —— 传一个 ref 进来，本函数负责置忙/闲（调用方只管绑定按钮 disabled）
  *   busyValue  —— 忙时把 exporting.value 设成什么。默认 true；
  *                 如果模板用 `exporting === 'share'` 这种区分，就传 'share'；
  *                 闲时一律置回 false。
+ *   flatten    —— 导出前临时去掉圆角（导完还原）。**分享图必须开**：
+ *                 卡片的 border-radius 会让圆角外那四个角露出画布底色，
+ *                 用户看到的就是"图四角有黑边/黑角"（2026-10-18 真机复现）。
+ *                 旧实现（第四十四批之前）本来就有这一步（`.flat-export`），
+ *                 我在重写时弄丢了 ⇒ 专门加回这个开关，默认 false 保持向后兼容。
  */
-export async function exportAndSave(el, fileName, { bg = null, targetWidth = 1080, exporting = null, busyValue = true } = {}) {
+export async function exportAndSave(el, fileName, { bg = null, targetWidth = 1080, exporting = null, busyValue = true, flatten = false } = {}) {
   const { ElMessage } = await import('element-plus');
   if (!el) return 'failed';
   if (exporting) exporting.value = busyValue;
+
+  const FLAT_CLASS = 'flat-export';
+  if (flatten && el.classList) el.classList.add(FLAT_CLASS);
+  // 等一帧让样式真正落上再克隆（exportNodeToPng 读的是 computed style）
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
   try {
     const dataUrl = await exportCardPng(el, { targetWidth, bg });
     return await savePng(dataUrl, fileName);
@@ -128,6 +139,7 @@ export async function exportAndSave(el, fileName, { bg = null, targetWidth = 108
     ElMessage.error('导出失败：' + (err?.message || '请稍后重试'));
     return 'failed';
   } finally {
+    if (flatten && el.classList) el.classList.remove(FLAT_CLASS);
     if (exporting) exporting.value = false;
   }
 }

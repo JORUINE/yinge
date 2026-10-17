@@ -1026,7 +1026,7 @@ onMounted(() => {
       专辑名全被截成 2 个字（用户截图指出）。现在给列一个可读的最小宽度让它换行。 */
 .gstage {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(212px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(212px, 100%), 1fr));
   gap: 12px;
 }
 .gsrow {
@@ -1052,7 +1052,7 @@ onMounted(() => {
 }
 .gslist {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(62px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(62px, 100%), 1fr));
   gap: 8px;
 }
 .gsi {

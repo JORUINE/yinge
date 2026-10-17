@@ -421,7 +421,8 @@ async function download() {
     isAligned.value
       ? `音格对位赛分享图-${id}.png`
       : `音格-夺冠之路-${champion.value?.name || '冠军'}.png`,
-    { exporting, bg: isAligned.value ? '#f7fbfe' : '#062130' },
+    // flatten: true —— 导出时去掉圆角，消除成图四角的黑边（2026-10-18 真机反馈）
+    { exporting, flatten: true, bg: isAligned.value ? '#f7fbfe' : '#062130' },
   );
 }
 
@@ -630,11 +631,21 @@ onMounted(load);
   text-align: center;
   margin-top: 10px;
 }
-/* 导出瞬间临时挂上的类：去掉圆角，让渐变铺满画布（否则成图会套一圈浅色边框） */
+/* 导出瞬间临时挂上的类：去掉圆角，让渐变铺满画布
+   ⚠️ 2026-10-18 第四十六批：用户真机复现"保存的图四角有黑边"（截图可见四角纯黑）。
+   根因：卡片有 border-radius，圆角外那四个角露出画布底色；第四十四/四十五批重写导出时
+   我把这一步弄丢了。现在 utils/saveImage.js 的 exportAndSave({ flatten: true }) 会挂这个类，
+   BattleShareView 已传 flatten: true。 */
 .flat-export,
 .flat-export::before,
 .flat-export::after {
   border-radius: 0 !important;
+}
+/* 装饰性光斑也要收干净 —— 它们常带自身的圆角/溢出，是黑角的另一个来源 */
+.flat-export .vglow,
+.flat-export .gbeam,
+.flat-export .sunlit {
+  display: none !important;
 }
 .btns {
   display: flex;

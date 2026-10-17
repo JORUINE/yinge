@@ -485,7 +485,7 @@ onMounted(load);
 }
 .albgrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(124px, 100%), 1fr));
   gap: 12px;
   max-height: 340px;
   overflow-y: auto;
