@@ -24,6 +24,12 @@
             autocomplete="username"
             @keyup.enter="onSubmit"
           />
+          <!-- ⚠️ 2026-10-17 第四十四批：placeholder 一打字就消失，用户根本没看见格式要求
+               （用户原话："不知道是我账户名有空格还是什么情况"）⇒ 补一行常驻说明。
+               ⚠️⚠️ 但这行**只能出现在手机档**：桌面端原本就有足够的空间与视觉层级，
+               加一行会把登录卡撑高 26px —— 同输入 A/B 实测 15 项几何差异，违反
+               "做手机适配不能影响桌面端"这条硬规则。所以桌面端 display:none。 -->
+          <div v-if="isPhone" class="hint acct-hint">4-20 位字母、数字或下划线，<b>不能有空格和中文</b></div>
         </div>
 
         <div v-if="isRegister" class="fld">
@@ -57,10 +63,11 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useAuthStore } from '@/stores/auth';
+import { fieldErrorMessage, validateAuthForm } from '@/utils/fieldError';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -70,9 +77,34 @@ const isRegister = ref(false);
 const loading = ref(false);
 const form = reactive({ account: '', password: '', nickname: '' });
 
+/**
+ * 是否手机档（≤640）—— 只用来决定"账号格式常驻说明"要不要显示。
+ * ⚠️ 为什么用 JS 而不是纯 CSS：这行说明是**桌面端不渲染**的（v-if 而不是 display:none），
+ *    否则同输入 A/B 会量到 15 项几何差异（实测踩过，2026-10-17 第四十四批）。
+ */
+const isPhone = ref(false);
+let mqPhone = null;
+onMounted(() => {
+  mqPhone = window.matchMedia('(max-width: 640px)');
+  isPhone.value = mqPhone.matches;
+  mqPhone.addEventListener?.('change', (e) => { isPhone.value = e.matches; });
+});
+onBeforeUnmount(() => mqPhone?.removeEventListener?.('change', () => {}));
+
 async function onSubmit() {
   if (!form.account.trim() || !form.password) {
     ElMessage.info('请填写账号与密码');
+    return;
+  }
+  // ⚠️ 2026-10-17 第四十四批：先做前端预校验。
+  //    以前直接打后端，用户等一个来回只看到"字段校验未通过"，不知道该改什么；
+  //    现在提交前就拦住，且提示具体到"账号里不能有空格"这种程度。
+  const localErr = validateAuthForm(
+    { account: form.account, password: form.password, nickname: form.nickname },
+    { isRegister: isRegister.value },
+  );
+  if (localErr) {
+    ElMessage.warning(localErr);
     return;
   }
   loading.value = true;
@@ -83,7 +115,8 @@ async function onSubmit() {
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/';
     router.replace(redirect);
   } catch (err) {
-    ElMessage.error(err?.message || '操作失败');
+    // ⚠️ 后端其实返了具体原因（err.data = [{field,message}]），以前只显示通用的 err.message
+    ElMessage.error(fieldErrorMessage(err));
   } finally {
     loading.value = false;
   }

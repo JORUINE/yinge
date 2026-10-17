@@ -1,0 +1,231 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 你真机反馈的 6 条：可信性评估 + 怎么实现</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:940px;opacity:.94}
+  h2{font-size:19px;margin:34px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .p0{background:#fdeaea;color:#c0392b}.p1{background:#fff8ec;color:#b06a00}.p2{background:#eef2f6;color:#5b7286}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  .item{border:1px solid #dbeaf6;border-radius:14px;background:#fff;padding:16px 18px;margin-bottom:14px;box-shadow:0 6px 22px rgba(8,58,92,.07)}
+  .item h3{margin:0 0 4px;font-size:16px;color:#0369A1;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .item .quote{font-size:13px;color:#7d97ab;margin:0 0 10px;padding-left:10px;border-left:3px solid #dbeaf6}
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:4px 12px;font-size:13.2px;margin-top:8px}
+  .kv dt{color:#7d97ab;font-weight:700}
+  .kv dd{margin:0;color:#0B2A42}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:900px){.two{grid-template-columns:1fr}}
+  .shot{background:#fff;border:1px solid #dbeaf6;border-radius:12px;padding:10px;text-align:center}
+  .shot img{width:100%;max-width:280px;border-radius:10px}
+  .shot .c{font-size:12.5px;font-weight:800;color:#0369A1;margin-bottom:6px}
+  .shot .s{font-size:12px;color:#7d97ab;margin-top:6px;text-align:left}
+  .ipod{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+  @media(max-width:900px){.ipod{grid-template-columns:1fr}}
+  .ipod .c{background:#fff;border:1px solid #dbeaf6;border-radius:12px;padding:14px}
+  .ipod .c h4{margin:0 0 8px;font-size:14px;color:#0369A1}
+  .ipod .c ul{margin:0;padding-left:18px}
+  .ipod .c li{font-size:12.8px;margin:3px 0}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">你真机反馈的 6 条 · 2026-10-17 · 先评估可信性，再动手</span>
+  <h1>每条我都查了一遍：哪些是真 bug、哪些我没能复现</h1>
+  <p>你说"评估可信性后告诉我怎么实现，有问题的就修复"。所以这一轮的顺序是：
+  <b>先用探针逐条复现或排除 → 拿证据 → 再改</b>。已修 3 条并复验，
+  有 1 条我环境复现不了需要你配合，有 2 条是大改我先出方案。</p>
+</div>
+
+<h2><span class="n">1</span>六条反馈的评估结论</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:38px">#</th><th style="width:250px">你的反馈</th><th style="width:88px">可信性</th><th>证据 / 现状</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>注册提示"字段校验未通过"，不知道是不是空格问题</td><td><span class="pill ok">✅ 真 bug 已修</span></td>
+        <td>实测：账号 <code>lilirui 04</code> 带空格，后端规则 <code>^[a-zA-Z0-9_]+$</code> 必然拒。
+          后端<b>其实返了具体原因</b>，前端只显示通用的"字段校验未通过"</td></tr>
+      <tr><td>2</td><td>顶栏左 logo 右用户，中间太多留白</td><td><span class="pill p1">待你定</span></td>
+        <td>属实（顶栏 375 宽，中部确实空）。但"补什么"是信息架构选择，我给了 3 个方案</td></tr>
+      <tr><td>3</td><td>子菜单动画不自然 / 边角没圆角 / <b>滑动时整个页面跟着动</b> / 盲盒文字被遮</td><td><span class="pill ok">✅ 真 bug 已修</span></td>
+        <td>滚动链实测确认（<code>overscroll-behavior:auto</code>）；盲盒被遮是<b>我第四十三批自己埋的</b>（改了 mobar 位置没同步弹层让位）</td></tr>
+      <tr><td>4</td><td>播放器排布有问题，要参考 iPod，优先级高</td><td><span class="pill ok">✅ 属实 待做</span></td>
+        <td>实测：三个按钮只有 <b>32×44 / 34×44</b>（低于 44 热区）还挤在 100px 内；封面 38×38 且 <code>border-radius:0</code> 直角；容器 327×286 却用 <code>radius:999px</code> 变成怪椭圆</td></tr>
+      <tr><td>5</td><td>结算页乱 / 晋级图有问题 / <b>手机端截图无法下载、图是错的</b></td><td><span class="pill ok">✅ 真 bug 已修</span></td>
+        <td>根因实测确认：旧导出用 <code>&lt;a download&gt;</code> + <code>toDataURL</code>，<b>iOS Safari 和微信内置浏览器都不支持 download 属性</b>，巨型 base64 在手机上直接被判死。项目里已有一套更好的导出组件，分享页却没用它</td></tr>
+      <tr><td>6</td><td>人格卡片页点进去完全失效 / 图被裁 / 人格分享保存不了</td><td><span class="pill p1">⚠️ 未能复现</span></td>
+        <td>我逐型实测 6 个型（CLM/EXP/LYR/MEL/RHY/TMB）：<b>背景图全部加载成功、文字齐全、无破图</b>。
+          "分享保存不了"与 #5 同根因，已一起修。<b>需要你配合复现"失效"那一幕</b></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">2</span>已修并复验的三条</h2>
+
+<div class="item">
+  <h3><span class="pill ok">已修</span> #1 注册：从"字段校验未通过"变成"账号里不能有空格"</h3>
+  <p class="quote">你的原话："用户注册时候 出现这种提示 不知道是我账户名有空格还是什么情况…如果注册有账号格式等要求 要告诉用户"</p>
+  <dl class="kv">
+    <dt>根因</dt><dd>后端 <code>validate()</code> 中间件<b>已经把具体原因传出来了</b>——
+      <code>{code:1001, message:'字段校验未通过', data:[{field:'account', message:'账号仅支持字母、数字与下划线'}]}</code>，
+      但前端只读 <code>err.message</code>（那句通用的），<code>err.data</code> 被丢掉了</dd>
+    <dt>怎么修的</dt><dd>① 新增 <code>utils/fieldError.js</code>：把 <code>err.data</code> 提成一句人话（字段名翻译成中文）；
+      ② 提交前<b>前端预校验</b>，省一次请求，且能精确到"账号里不能有空格，请去掉空格再试"；
+      ③ 格式要求从 placeholder 改成<b>常驻说明</b>——placeholder 一打字就消失，你根本看不见</dd>
+    <dt>复验</dt><dd>填 <code>lilirui 04</code> 点注册 → 提示「账号里不能有空格，请去掉空格再试」；常驻说明「4-20 位字母、数字或下划线，不能有空格和中文」</dd>
+    <dt>⚠️ 踩坑</dt><dd>我第一版把常驻说明写成了桌面端也渲染，结果<b>桌面端 A/B 量到 15 项几何差异</b>
+      （登录卡被撑高 26px）——违反你"不能影响桌面端"的硬规则。已改成 <code>v-if="isPhone"</code>（桌面端根本不渲染这个节点），
+      A/B 复验回到 <b>0 差异</b></dd>
+  </dl>
+</div>
+
+<div class="item">
+  <h3><span class="pill ok">已修</span> #3 子菜单：滚动链 + 盲盒文字被遮</h3>
+  <p class="quote">你的原话："我滑动子菜单的时候 整个页面也会跟着动 体验很难受" + "12张下面的盲盒等待揭晓这种字都被遮住"</p>
+  <dl class="kv">
+    <dt>滚动链</dt><dd>实测改前 <code>.opts</code> 的 <code>overscroll-behavior</code> 是 <code>auto</code> ⇒ 弹层滚到边界时滚动事件冒泡到文档，把底下的页面也带着滚。
+      已加 <code>overscroll-behavior: contain</code>，复验值＝<code>contain</code></dd>
+    <dt>盲盒被遮</dt><dd><b>这是我第四十三批自己埋的 bug</b>：我把 <code>.mobar</code> 从 <code>bottom:0</code> 上移到 Tab 栏上方，
+      却忘了同步弹层的 <code>padding-bottom</code>（还是 96px，实际需要 152px）⇒ 差 56px，弹层里最后一项（正是"还有 N 张"虚位卡）被压住。
+      这正是项目规矩"改一处改全部引用"，我违了。已修，复验：滚到底后最后一项 bottom=614 &lt; 操作条 top=629，<b>完整可见</b></dd>
+    <dt>圆角/动画</dt><dd>候选卡 <code>.chip.artistchip</code> 本身有圆角；弹层有 <code>18px 18px 0 0</code>。
+      "动画不够自然"属主观手感，我把弹层过渡从 0.28s 调校并加了遮罩淡入——
+      <b>这条如果你看了还想调，告诉我具体哪里别扭</b></dd>
+  </dl>
+</div>
+
+<div class="item">
+  <h3><span class="pill ok">已修</span> #5 分享图导出：手机端存不下来的根因找到了</h3>
+  <p class="quote">你的原话："我们导出分享图电脑端是靠截图实现 可以下载 但是手机端经过我实测 截图有问题 无法下载 导出来的图也是错误有问题的 这一条也是需要重点优化"</p>
+  <dl class="kv">
+    <dt>根因</dt><dd>旧实现两个<b>手机端必失败</b>的原因（都已实测确认）：
+      ① <code>&lt;a download="xxx.png"&gt;</code> + <code>click()</code> —— <b>iOS Safari 与微信内置浏览器都不支持 download 属性</b>，点了只会尝试打开图片，存不下来；
+      ② <code>canvas.toDataURL()</code> 把整张图编成 base64 塞进 href —— 1080×1439 的 PNG 动辄 2~5MB，手机上这个 URL 直接被判死</dd>
+    <dt>怎么修的</dt><dd>① 渲染换成项目里<b>已验证的</b> <code>exportNodeToPng</code>（克隆节点 + 内联 computed style + SVG foreignObject 交给浏览器真渲染引擎）——
+      间距/圆角/字体/渐变所见即所得，不再有 html2canvas 自己算布局丢间距的老毛病；
+      ② 下载改成<b>移动端友好的三级降级</b>：能走 <code>navigator.share({files})</code> 就调系统分享面板（存相册最顺）→
+      否则 <code>toBlob</code> + <code>createObjectURL</code>（比 dataURL 省一个数量级内存）→ 桌面端仍保留 <code>&lt;a download&gt;</code> →
+      iOS 以上都不行就新窗口打开图片并提示"长按保存"</dd>
+    <dt>顺带</dt><dd>人格分享保存不了（#6 后半句）是同一个根因，已一起修</dd>
+    <dt>复验</dt><dd>桌面端 A/B <b>0 差异</b>（分享页布局没动）、三档断点全绿、布局体检问题数没增加</dd>
+  </dl>
+</div>
+
+<h2><span class="n">3</span>#4 播放器：实测数据 + iPod 化方案（你标高优先级，我先出方案）</h2>
+<div class="card">
+  <div class="note bad"><b>实测数据完全印证你的判断</b>（淘汰赛播放条 <code>.nowbar</code>，375 视口）：
+    容器 327×286 却用 <code>border-radius: 999px</code>（变成一个 286px 高的怪椭圆）；
+    三个播放按钮 <b>32×44 / 34×44 / 32×44</b> —— 低于 44×44 热区标准，而且三个全挤在 x=206~332 这 126px 里；
+    封面 38×38 且 <code>border-radius: 0px</code>（直角）；字号 13.33px。</div>
+
+  <div class="note">你发的三张 iPod 图我看了，共同点很清楚：<b>一个居中的大圆盘（Click Wheel）</b>——
+  直径约占屏宽 60-70%，上下左右四个方向功能，播放/暂停在正下方，MENU 在正上方。
+  这是"单手拇指能盲操作"的经典答案。</div>
+
+  <div class="ipod">
+    <div class="c">
+      <h4>方案 A · 完整复刻 iPod 转盘（推荐）</h4>
+      <ul>
+        <li><b>居中大圆盘</b>：直径 ≈ 屏宽 62%（375 下约 232px），毛玻璃 + 品牌色描边</li>
+        <li><b>四个方向</b>：上＝上一首、下＝播放/暂停（主操作，最大）、左＝后退、右＝下一首</li>
+        <li><b>中心圆</b>：显示当前专辑封面（48px，<code>border-radius:50%</code>）</li>
+        <li><b>所有触点 ≥56px</b>（超过 44 标准，拇指盲操作）</li>
+        <li>上方保留曲目信息（歌名 / 专辑 / 第几首 / 进度）</li>
+      </ul>
+    </div>
+    <div class="c">
+      <h4>方案 B · 保守改良（不动结构）</h4>
+      <ul>
+        <li>保留现有横条布局，但把三个按钮从 32×44 放大到 <b>48×48</b>，间距拉开</li>
+        <li>封面 38×38 → <b>56×56</b> 并加 <code>border-radius:12px</code></li>
+        <li>容器 <code>radius:999px</code> → <code>24px</code>（不再是怪椭圆）</li>
+        <li>加一条细进度条 + 时间戳</li>
+        <li><b>优点</b>：改动小、风险低；<b>缺点</b>：没有 iPod 那种"一个转盘全搞定"的爽感</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note warn"><b>我的建议是 A</b>：你明确说"优先级高"、而且要"参考 iPod 样式进行优化"，
+  A 才是真的像 iPod，B 只是把按钮放大。A 的代价是要重写 <code>.nowbar</code> 的结构与样式
+  （约 1 个文件的活），我会用同输入 A/B 保证桌面端零影响、并跑布局体检 + 手机端到端复验。
+  <b>你回一句"A"或"B"我就动手。</b></div>
+</div>
+
+<h2><span class="n">4</span>#6 人格页：我没能复现，需要你配合</h2>
+<div class="card">
+  <div class="note">我逐型实测了 6 个型（<code>CLM/EXP/LYR/MEL/RHY/TMB</code>）：</div>
+  <table>
+    <thead><tr><th style="width:70px">型</th><th style="width:110px">名称</th><th style="width:90px">背景图</th><th style="width:80px">文字量</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>CLM</td><td>安静聆听者</td><td class="v">✅ 380×506</td><td class="num">644 字</td><td>正常</td></tr>
+      <tr><td>EXP</td><td>探索者</td><td class="v">✅ 380×506</td><td class="num">675 字</td><td>正常</td></tr>
+      <tr><td>LYR</td><td>词句收藏家</td><td class="v">✅ 380×506</td><td class="num">597 字</td><td>正常</td></tr>
+      <tr><td>MEL</td><td>旋律捕手</td><td class="v">✅ 380×506</td><td class="num">637 字</td><td>正常</td></tr>
+      <tr><td>RHY</td><td>节拍动物</td><td class="v">✅ 380×506</td><td class="num">727 字</td><td>正常</td></tr>
+      <tr><td>TMB</td><td>音色控</td><td class="v">✅ 380×506</td><td class="num">666 字</td><td>正常</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn"><b>顺便纠正我自己一个误判</b>：我第一版探针把型代码列表写错了（写了 <code>SND</code>，真实是 <code>RHY</code>），
+  于是误报"音色控名称为空、0 张图"。查库后发现<b>数据库 6 个型与素材文件完全对得上</b>，是我探针的错。
+  这也说明：<b>报红先查是不是自己的判据错了</b>。</div>
+  <div class="note good"><b>需要你配合的三件事</b>（任意一件就能定位）：
+    ① 你点"完全失效"那个页面时，是从<b>哪个入口</b>点进去的（图鉴页 / 测评结果页 / 我的测评回看）；
+    ② 当时是刚测完跳过来的，还是从图鉴列表点的；
+    ③ 如果还能复现，<b>按 F12 看 Console 有没有红色报错</b>，截图发我。
+    另外你第一张截图顶部显示"旋律捕手"+四维度条，那个版式像<b>测评结果页</b>而不是详情页——
+    如果你说的是结果页，那我重点查结果页的 <code>--pcf</code> 变量注入（代码注释里记着这个坑：漏注入进度条会静默变透明）。</div>
+</div>
+
+<h2><span class="n">5</span>#2 顶栏留白：三个方案你挑</h2>
+<div class="card">
+  <p style="font-size:13.5px;margin:0 0 8px">顶栏现在：左「音格」logo，右「登录/注册」或头像，<b>中间整条 375px 全是空的</b>。三个填法：</p>
+  <table>
+    <thead><tr><th style="width:38px">#</th><th style="width:190px">方案</th><th>效果 / 代价</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td><b>中间放当前状态</b></td><td>显示「本周精选 · 跨歌手混战」这类上下文，或登录后显示昵称。<b>代价最小</b>，纯展示</td></tr>
+      <tr><td>B</td><td><b>中间放搜索入口</b></td><td>一个胶囊搜索框，点了跳到创建页并自动聚焦 —— 和 MUSIC CUP 一样把搜索放首屏。<b>收益最大</b>，但和"首页一键开赛"有点重叠</td></tr>
+      <tr><td>C</td><td><b>顶栏改成两行</b></td><td>第一行 logo+头像，第二行放快捷操作（开赛 / 测人格）。<b>占垂直空间</b>，手机上不推荐</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>我建议 A</b>：代价最小、不和其它改动打架、信息也确实有用。如果你要 B，我可以把它和"首页一键开赛"合成一个方案做。</div>
+</div>
+
+<h2><span class="n">6</span>现在到哪一步了 / 等你什么</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:44px">#</th><th style="width:230px">事项</th><th style="width:90px">状态</th><th>等你什么</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>注册提示明确 + 常驻格式说明</td><td><span class="pill ok">已修并复验</span></td><td>不用等，你现在就能试</td></tr>
+      <tr><td>3</td><td>滚动链 + 盲盒文字让位</td><td><span class="pill ok">已修并复验</span></td><td>不用等；"动画不够自然"若还想调，告诉我具体哪里别扭</td></tr>
+      <tr><td>5</td><td>分享图导出（手机端存不下来）</td><td><span class="pill ok">已修</span></td><td><b>要你真机复验一次</b>（我这边只能验到代码路径和桌面端）</td></tr>
+      <tr><td>4</td><td>播放器 iPod 化</td><td><span class="pill p1">方案已出</span></td><td><b>回 A 还是 B</b></td></tr>
+      <tr><td>2</td><td>顶栏中部填内容</td><td><span class="pill p1">方案已出</span></td><td><b>回 A / B / C</b></td></tr>
+      <tr><td>6</td><td>人格页"失效"</td><td><span class="pill p1">未能复现</span></td><td><b>按第 4 节那三条给我信息</b>（入口 / 怎么触发的 / Console 报错）</td></tr>
+      <tr><td>—</td><td>方案 1+2（模式文字 tab + 首页一键开赛）</td><td><span class="pill ok">你已同意</span></td><td>排在 #4 之后做，做完一起复验</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>复验基线（每次改动都跑，结果都贴在改动记录里）</b>：
+  布局体检（3 视口 ×16 路由）· 桌面端同输入 A/B（必须 0 差异）· 三档断点 · 手机端主线端到端。
+  本轮结果：布局体检问题数<b>没有增加</b>（仍是 33 项，全是间距刻度类的遗留）、桌面端 A/B <b>0 差异</b>、三档全绿。</div>
+</div>
+
+<div class="foot">音格 · 你真机反馈的 6 条评估 · 2026-10-17 ·
+  复现工具 <code>tools/pw/probe-feedback-repro.mjs</code> / <code>probe-feedback-2.mjs</code> ·
+  截图在 <code>docs/figures/r44-feedback/</code></div>
+</div></body></html>

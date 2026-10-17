@@ -2595,6 +2595,13 @@ async function onCreate() {
     max-height: 82vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    /* ⚠️⚠️ 2026-10-17 第四十四批修（用户真机反馈，已实测确认）：
+       用户原话："我滑动子菜单的时候 整个页面也会跟着动 体验很难受"。
+       根因：弹层内部滚到顶/底时，滚动事件**冒泡到文档**，把底下的页面也带着滚
+       （移动端浏览器默认的滚动链 scroll chaining）。
+       实测：改前 `.opts` 的 `overscroll-behavior` 是 `auto`（= 允许链式滚动）。
+       修法：`overscroll-behavior: contain` —— 滚到边界就停，不牵连外层页面。 */
+    overscroll-behavior: contain;
     /* ⚠️ 收起态用 102%（多 2%）而不是 100%：避免某些机型 1px 缝隙里露出弹层边缘 */
     transform: translateY(102%);
     transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
@@ -2602,7 +2609,13 @@ async function onCreate() {
     border-radius: 18px 18px 0 0;
     border-top: 1px solid var(--gbd);
     box-shadow: 0 -14px 40px rgba(15, 42, 66, 0.2);
-    padding: 16px 14px calc(96px + var(--safe-b));
+    /* ⚠️⚠️ 2026-10-17 第四十四批修（用户真机反馈："还有 12 张"这种盲盒文字被遮住）：
+       这里原来只让位 96px。但第四十三批把 `.mobar` 从 bottom:0 上移到了 Tab 栏上方
+       （bottom = tabbar-h + safe-b，高 95 ⇒ 占 628~723），弹层底部 780-628=152px 都被它盖住
+       ⇒ 差 56px，弹层里最后一项（正是"还有 N 张"虚位卡）被压住。
+       **根因是我第四十三批改了 mobar 位置却没同步这里的让位** —— 踩了"改一处改全部引用"的规矩。
+       现在按两条固定条的高度让位：Tab 栏 57 + 操作条 96 + 安全区。 */
+    padding: 16px 14px calc(var(--tabbar-h) + 96px + var(--safe-b));
   }
   .opts.sheet-open {
     transform: translateY(0);

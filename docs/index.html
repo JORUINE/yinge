@@ -192,7 +192,7 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-16（<b>第四十三批 · 移动端布局整改</b>：参照 MUSIC CUP 实测 + 自身体检，
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-17（<b>第四十四批 · 你真机反馈 6 条：3 条已修并复验 · 移动端布局整改</b>：参照 MUSIC CUP 实测 + 自身体检，
       <b>抓到"底部 Tab 被操作条整个盖住"的真 bug 并修掉</b>，间距归队到刻度；体检 42 → 33 项）——<br>
       你试完后反馈"UI 布局很多还是错位、适配也没做好"，要求多参考大 V 尤其是音乐世界杯。我做了三件事：<br>
       ① <b>把 MUSIC CUP 按 375 真机视口量了一遍</b>（首屏正好一屏、营销内容下沉到 y=780、右上角一排胶囊按钮、
@@ -428,6 +428,18 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="你真机反馈的6条评估.html" style="color:#0369A1"><b>你真机反馈的 6 条评估</b></a></td><td><b style="color:#0F766E">先评估可信性、再动手：已修 3 条，2 条等你拍板，1 条需要你配合</b>：
+        你 2026-10-17 真机试用后给了 6 条。逐条探针复现/排除的结果 ——<br>
+        ① <b>注册"字段校验未通过"</b>：真 bug 已修。后端其实返了具体原因（<code>账号仅支持字母、数字与下划线</code>），
+        前端只显示通用的那句；现在提交前就拦到"账号里不能有空格"这个程度，并加了常驻格式说明。<br>
+        ③ <b>滑动子菜单整个页面跟着动</b>：真 bug 已修（弹层 <code>overscroll-behavior:auto</code> → <code>contain</code>）；
+        <b>"还有 N 张"被遮是我第四十三批自己埋的</b>（改了操作条位置没同步弹层让位，差 56px），已修。<br>
+        ⑤ <b>手机端分享图无法下载</b>：根因是 <code>&lt;a download&gt;</code> 在 iOS/微信里根本无效 + <code>toDataURL</code> 巨型 base64 被判死；
+        已换成项目里验证过的 <code>exportNodeToPng</code> + 移动端三级降级（系统分享面板 → Blob 下载 → iOS 长按保存）。<b>要你真机复验一次</b>。<br>
+        ④ <b>播放器 iPod 化</b>：实测按钮只有 32×44（低于 44 热区）、封面直角、容器变成怪椭圆 —— 属实，方案 A/B 已出，<b>等你选</b>。<br>
+        ⑥ <b>人格页失效</b>：<b>我环境复现不了</b>（6 型背景图全加载成功、文字齐全），需要你给入口/触发方式/Console 报错；
+        顺带纠正了我自己探针把型代码写错（SND→RHY）造成的误报。<br>
+        ② 顶栏留白：三个填法已列出，<b>等你选</b>。</td></tr>
       <tr><td><a href="两个待拍板方案对比.html" style="color:#0369A1"><b>两个待拍板方案对比</b></a></td><td><b style="color:#0F766E">真机 A/B 对比，等你一句话就开工</b>：
         ① <b>创建页模式选择</b>：4 张大卡 vs 一行文字 tab —— 实测大厅 <b>659 → 214px</b>、
         首屏可见模式 <b>3/6 → 6/6</b>、选中态保留；代价是模式描述文字藏掉（可折中为"选中后显示一行"）。
