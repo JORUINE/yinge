@@ -88,6 +88,17 @@ const props = defineProps({
   album: { type: Object, default: null },
 });
 
+/**
+ * 对外暴露 start()，让父页面可以"点封面直接播放"
+ * ------------------------------------------------------------
+ * 2026-10-18 第四十六批 · 用户原话：
+ *   "这是大家推进专辑池里的试听 … 我觉得这里的试听完全可以点击专辑封面就播放，
+ *    把整体做的一体性"。
+ * 做法：AlbumTagView 的大封面加 @click 调这个方法；组件自己管加载与播放，
+ *      父页面不需要知道内部状态（自包含性保持不变）。
+ */
+defineExpose({ start });
+
 const open = ref(false);
 const loadingTracks = ref(false);
 const tracks = ref([]);

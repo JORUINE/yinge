@@ -32,9 +32,22 @@
 
       <template v-else-if="album">
         <div class="tagcard g-card">
-          <div class="art">
+          <!-- ⚠️ 2026-10-18 第四十六批：封面变成可点 = 直接开始试听。
+               用户原话："我觉得这里的试听完全可以点击专辑封面就播放 把整体做的一体性"
+               （原来要点封面下方那个「试听 30 秒」小按钮，封面本身是死的）。
+               组件通过 defineExpose({ start }) 暴露，父页面只发指令、不管内部状态。
+               ⚠️ 加 .playable 后才有手势光标与角标；键盘也能触发（button 语义）。 -->
+          <button
+            class="art playable"
+            type="button"
+            :title="`试听《${album.name}》`"
+            @click="playerRef?.start()"
+          >
             <img :src="album.artworkUrl" :alt="album.name" />
-          </div>
+            <span class="playcue" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+            </span>
+          </button>
           <div class="info">
             <h2>{{ album.name }}</h2>
             <p class="who">{{ album.artistName }}<template v-if="year"> · {{ year }}</template><template v-if="album.trackCount"> · {{ album.trackCount }} 首</template></p>
@@ -56,8 +69,9 @@
             </div>
 
             <!-- 试听：判断"这张专辑像哪一型"得能听到东西（用户："这里也加入试听功能和歌曲切换，
-                 就搬我们自己的之前的代码"）。组件自包含：不点不发请求。 -->
-            <AlbumPlayer :album="album" />
+                 就搬我们自己的之前的代码"）。组件自包含：不点不发请求。
+                 ⚠️ 2026-10-18：ref 给封面用 —— 点封面即播放（见上面 .art.playable）。 -->
+            <AlbumPlayer ref="playerRef" :album="album" />
 
             <!-- 投完之后停在本张，把"投给谁 + 能改投"讲清楚，再让用户自己点下一张
                  （以前是投完立刻跳走，用户点错了连回都回不来）。 -->
@@ -98,13 +112,14 @@
  * 后台按票数采纳进「人格类型 → 推荐专辑」。这正是用户要的"让用户参与进来，我们收集数据后去采纳"。
  * 交互：点类型即投票并自动出下一张；「说不清」跳过（不产生票）。
  */
-import { computed, onMounted, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { computed, onMounted, ref } from 'vue';import { ElMessage } from 'element-plus';
 import { personalityApi } from '@/api';
 import AlbumPlayer from '@/components/AlbumPlayer.vue';
 
 const loading = ref(true);
 const album = ref(null);
+/** AlbumPlayer 的引用 —— 点封面直接调它的 start()（2026-10-18 第四十六批） */
+const playerRef = ref(null);
 const types = ref([]);
 const votedCount = ref(0);
 const allDone = ref(false);
@@ -216,6 +231,48 @@ onMounted(loadNext);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 18px 46px rgba(8, 58, 92, 0.22);
+}
+/* ⚠️ 2026-10-18 第四十六批：封面可点＝播放（用户："点击专辑封面就播放，做的一体性"） */
+.tagcard .art.playable {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.tagcard .art.playable:active {
+  transform: scale(0.985);
+}
+/* 播放角标：右下角一颗半透明圆，hover/active 时更明显 */
+.tagcard .art .playcue {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(8, 22, 38, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(8, 22, 38, 0.3);
+  transition: transform 0.16s ease, background 0.16s ease;
+}
+.tagcard .art .playcue svg {
+  width: 20px;
+  height: 20px;
+  fill: #fff;
+  margin-left: 2px;
+}
+.tagcard .art.playable:hover .playcue,
+.tagcard .art.playable:focus-visible .playcue {
+  background: var(--brand);
+  transform: scale(1.08);
 }
 .tagcard .art img {
   width: 100%;
