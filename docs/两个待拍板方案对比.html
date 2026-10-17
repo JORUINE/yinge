@@ -1,0 +1,181 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 两个待拍板方案的真机对比（创建页模式选择 / 首页开局路径）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1180px;margin:0 auto;padding:30px 22px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:30px 28px 24px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:12px}
+  .hero h1{margin:0 0 8px;font-size:27px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;max-width:940px;opacity:.94}
+  h2{font-size:19px;margin:34px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.5px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .x{color:#c0392b;font-weight:800}.v{color:#0f8a4a;font-weight:800}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .pill{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;font-weight:700;white-space:nowrap}
+  .p0{background:#fdeaea;color:#c0392b}.p1{background:#fff8ec;color:#b06a00}.p2{background:#eef2f6;color:#5b7286}
+  .ok{background:#e8f7ee;color:#0f8a4a}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  .big{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+  @media(max-width:820px){.kpi{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+  .kpi .k{background:#fff;border:1px solid #dbeaf6;border-radius:12px;padding:12px 14px}
+  .kpi .k span{display:block;font-size:12px;color:#7d97ab;margin-top:3px}
+  .shots{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  @media(max-width:860px){.shots{grid-template-columns:1fr}}
+  .shot{background:#fff;border:1px solid #dbeaf6;border-radius:14px;padding:12px;text-align:center}
+  .shot .cap{font-size:13px;font-weight:800;color:#0369A1;margin-bottom:8px}
+  .shot .sub{font-size:12px;color:#7d97ab;margin-top:8px;line-height:1.55;text-align:left}
+  .shot img{width:100%;max-width:300px;border-radius:12px;border:1px solid #dbeaf6}
+  .tagline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .tagline span{font-size:12px;background:#f0f7fc;border:1px solid #dbeaf6;border-radius:99px;padding:3px 10px;color:#46647E}
+  .path{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:13px}
+  .path b{background:#0EA5E9;color:#fff;border-radius:8px;padding:4px 10px;font-weight:700}
+  .path i{color:#7d97ab;font-style:normal}
+  .path .tap{background:#eef2f6;color:#5b7286}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">两个待拍板方案 · 2026-10-17 · 真机对比（不是示意图）</span>
+  <h1>一行文字 tab 长什么样，以及我上一句话说错了什么</h1>
+  <p>你要看"一行文字 tab"的实机样子、又问"首屏只放应用是啥意思"。
+  这两张对比图都是<b>用 Playwright 给真实页面注入改造样式后截的</b>（同一页、同一份数据，没动源码）。
+  另外：量完数据我发现<b>我上一轮关于首页的那条建议前提是错的</b>，一起纠正。</p>
+</div>
+
+<h2><span class="n">1</span>方案一：创建页模式选择 —— 4 张大卡 vs 一行文字 tab</h2>
+<div class="card">
+  <div class="shots">
+    <div class="shot">
+      <div class="cap">A · 现状（你已经看过这版）</div>
+      <img src="figures/r43-audit/B1-modes-now.png" alt="现状：模式大厅 4+2 张大卡" />
+      <div class="sub">
+        两族大框 + 6 张模式卡，每张卡有<b>标题 + 徽标 + 一行描述</b>。<br>
+        · 大厅总高 <b class="num">659px</b>（混战族 396 + 对位族 249）<br>
+        · 每张模式卡 <b class="num">66px</b> 高<br>
+        · <b>首屏只能完整看到 3 / 6 个模式</b>（截图里连第 2 张都被切一半）<br>
+        · 页面总高 <b class="num">1540px</b>
+      </div>
+    </div>
+    <div class="shot">
+      <div class="cap">B · 提案：一行文字 tab</div>
+      <img src="figures/r43-audit/B2-modes-texttab.png" alt="提案：一行文字 tab" />
+      <div class="sub">
+        族标题压成一行小标签，模式变成文字 tab，选中项<b>品牌色下划线</b>。<br>
+        · 大厅总高 <b class="num">659 → 214px</b>（省 445px）<br>
+        · 每个 tab <b class="num">66 → 36px</b><br>
+        · <b>6 / 6 个模式首屏全可见</b><br>
+        · 选中态验证过还在：<code>onCount = 1</code>，选中的是「多歌手混战」
+      </div>
+    </div>
+  </div>
+
+  <div class="tagline">
+    <span>✅ 省 445px 垂直空间</span>
+    <span>✅ 6 个模式一屏看完</span>
+    <span>✅ 选中态/族色/徽标全部保留</span>
+    <span>⚠️ 代价：每行的描述文字藏起来了</span>
+  </div>
+
+  <div class="note warn"><b>代价要说清楚</b>：现在每张卡上那行描述（"几位歌手的专辑放一起比" / "第 1 张打第 1 张…"）
+  在提案里被藏掉了 —— 一屏只留模式名。MUSIC CUP 也是这么干的（它的 tab 只有名字）。
+  <b>如果你觉得这些描述对新手有用</b>，可以折中：tab 只留名字，但选中某个模式后，
+  在下方用一行小字显示它的描述（既省空间又不丢信息）。这条也可以让你定。</div>
+
+  <div class="note"><b>怎么做出这两张图的</b>：没有改一行源码。用 Playwright 的 <code>addStyleTag</code>
+  把改造样式注入真实页面再截图。注入的选择器特意写成 <code>.create .lobbybox .lb-modes</code>（3 个类），
+  因为项目里是 scoped 样式（编译后带 <code>[data-v-x]</code>，2 个类）—— 特异性不够注入会被打回来，
+  这点上一轮已经栽过一次。</div>
+</div>
+
+<h2><span class="n">2</span>方案二：「首屏只放应用」—— 我上一条说得不对，先纠正</h2>
+<div class="card">
+  <div class="note bad"><b>更正</b>：我上一轮写"我们首页把 6 组内容全堆在一屏里，一屏放不下就得滚"——
+  <b>这句是错的</b>。刚量的真实数据：首页第一屏<b>本来就只有 hero 一块</b>，
+  其余 5 块（两个大卡 / 共建条 / 专辑墙 / 榜单 / 面板）<b>全都在折叠线以下</b>。
+  所以"把内容挪出首屏"这件事<b>没有可做的</b>—— 它已经是那个样子了。</div>
+
+  <table>
+    <thead><tr><th style="width:120px">首屏内容块</th><th style="width:90px">起始 y</th><th style="width:80px">高度</th><th>在首屏内？</th></tr></thead>
+    <tbody>
+      <tr><td>hero（主张 + 两个主动作 + 一张封面）</td><td class="num">108</td><td class="num">599</td><td class="v">✅ 是（108~707，正好一屏）</td></tr>
+      <tr><td>duo（两个大入口卡）</td><td class="num">731</td><td class="num">343</td><td>↓ 折叠线下</td></tr>
+      <tr><td>poolbar（共建专辑墙条）</td><td class="num">1099</td><td class="num">144</td><td>↓ 折叠线下</td></tr>
+      <tr><td>shelf / list / panel（榜单等）</td><td class="num">1267+</td><td class="num">—</td><td>↓ 折叠线下</td></tr>
+    </tbody>
+  </table>
+  <div class="note">页面总高 <b class="num">2655px</b> = 3.4 屏；首屏用户第一眼要读 <b class="num">72 字</b>。
+  <b>这个结构本身是健康的</b>，不用改。</div>
+
+  <div class="note good"><b>但量数据时发现了真正值得学的那件事</b> —— 不是"首屏放什么"，而是
+  <b>"从打开到投出第一票，要点几下"</b>：</div>
+
+  <div class="two" style="margin-top:12px">
+    <div>
+      <b style="color:#0369A1">MUSIC CUP（实测）</b>
+      <div class="path">
+        <b>点「林俊杰」</b><i>→</i><b class="tap">直接开打</b>
+      </div>
+      <div class="shot" style="margin-top:10px;padding:8px">
+        <img src="figures/r43-audit/D1-ref-musiccup-home.png" alt="MUSIC CUP 首页：搜索框 + 一键开赛 chips" style="max-width:250px" />
+        <div class="sub">它的首屏有<b>搜索框</b>（y=452）和<b>「一键开赛」4 个歌手 chip</b>（y=522）——
+        所以点一下就进入第一场对决。模式切换（热门/随机/自选）只是三个文字 tab。</div>
+      </div>
+    </div>
+    <div>
+      <b style="color:#0369A1">我们（实测）</b>
+      <div class="path">
+        <b class="tap">开始对决</b><i>→</i><b class="tap">选模式</b><i>→</i><b class="tap">点歌手</b><i>→</i><b class="tap">加入</b><i>→</i><b class="tap">开始对决</b>
+      </div>
+      <div class="shot" style="margin-top:10px;padding:8px">
+        <img src="figures/r43-audit/C1-home-now.png" alt="我们首页：只有 hero，没有搜索框" style="max-width:250px" />
+        <div class="sub">首屏只有 hero 和两个按钮，<b>没有搜索框</b>。
+        想直接开打，得先离开首页进创建页；默认模式已是"多歌手混战"，
+        所以实际是 <b>4 次点击</b>才能投出第一票（开始对决 → 点周杰伦 → 加入 → 开始对决）。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="note warn"><b>所以方案二我改个提法</b>（原来那条作废）：
+  不是"首屏只放应用"，而是 <b>"要不要在首页加一个一键开赛区"</b> ——
+  一个搜索框 + 4 个热门歌手 chip，点一下直接开局（沿用默认的"多歌手混战"模式）。
+  这样把 <b>4 次点击压到 1 次</b>，和 MUSIC CUP 打平。
+  <b>代价</b>：首页首屏要多放一块内容，hero 的封面可能要缩小或挪位；
+  而且这动到你已经看过的首页，按规矩等你点头。</div>
+</div>
+
+<h2><span class="n">3</span>两件都给你标了代价，你挑</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:44px">#</th><th style="width:170px">方案</th><th style="width:80px">我的倾向</th><th>收益 / 代价</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>创建页模式改一行文字 tab</b></td><td><span class="pill ok">建议改</span></td>
+        <td>收益：省 445px、6 个模式一屏看完、和 MUSIC CUP 一致的手感<br>
+          代价：模式描述文字藏掉（可折中：选中后在下方显示一行描述）</td></tr>
+      <tr><td>2</td><td><b>首页加「一键开赛」区</b><br>（搜索框 + 热门歌手 chip）</td><td><span class="pill p1">建议改，但要你定</span></td>
+        <td>收益：开局从 4 次点击 → 1 次，和 MUSIC CUP 打平；新手第一眼就知道"能直接玩"<br>
+          代价：首页首屏多一块内容，hero 封面要缩小或挪位；动到你看过的首页</td></tr>
+      <tr><td>—</td><td>两个都不改，先去做 T3 间距刻度统一</td><td><span class="pill p2">也行</span></td>
+        <td>把几十处刻度外 margin 一次收干净（那是剩余 33 项体检问题的大头），但这两个体验差距留着</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>你回一句"改 1" / "改 1+2" / "先不动"就行</b>，我立刻动手并跑同一套探针复验
+  （布局体检 + 桌面端 A/B + 三档断点 + 手机端到端），改完再把对比图更新成"改后实测"。</div>
+</div>
+
+<div class="foot">音格 · 两个待拍板方案真机对比 · 2026-10-17 ·
+  对比工具 <code>tools/pw/probe-create-mode-compare.mjs</code> / <code>probe-home-firstscreen-compare.mjs</code> ·
+  截图目录 <code>docs/figures/r43-audit/</code></div>
+</div></body></html>
