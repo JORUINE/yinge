@@ -444,6 +444,11 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第五十一批交付报告.html" style="color:#0369A1"><b>第五十一批交付报告</b></a></td><td><b style="color:#0F766E">四条一次做完（3 达成 / 1 部分），每条带实测数字</b>：
+        选歌手时操作条移入弹层末尾（不再悬浮遮挡）｜人格详情页留白压掉 50px（剩 84px 未定位）｜
+        分享卡补上毛玻璃（<code>backdrop-filter</code> + <code>@supports</code>）｜
+        方形图<b>不再裁字</b>（放弃 aspect-ratio，改 min-height，比例 0.795）。<br>
+        <b>需你拍板</b>：方形图要不要严格 1:1（要的话内容整体缩 17%，字号会变小）。</td></tr>
       <tr><td><a href="你真机反馈的6条评估.html" style="color:#0369A1"><b>你真机反馈的 6 条评估</b></a></td><td><b style="color:#0F766E">先评估可信性、再动手：已修 3 条，2 条等你拍板，1 条需要你配合</b>：
         你 2026-10-17 真机试用后给了 6 条。逐条探针复现/排除的结果 ——<br>
         ① <b>注册"字段校验未通过"</b>：真 bug 已修。后端其实返了具体原因（<code>账号仅支持字母、数字与下划线</code>），

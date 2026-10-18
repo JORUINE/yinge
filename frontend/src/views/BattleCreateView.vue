@@ -667,6 +667,29 @@
         </div>
       </div>
     </template>
+      <!-- ⭐⭐ 2026-10-18 第五十一批：**弹层内的操作条**
+           ------------------------------------------------------------
+           用户两次点名（这次语气很重）："我之前说的在这个子菜单选混战歌手时候
+             让这个蓝色框起来的移动到最底下 绿色框那里 你为什么没做"。
+           他蓝框＝悬浮的操作条，绿框＝弹层内容末尾（"＋收藏当前组合 / 或快速搜单个歌手"）。
+           ⇒ 弹层打开时，悬浮条**让位消失**，改由这条**排在弹层内容流末尾**（跟着滚动，
+             滚到底才出现），不再盖住正在选的歌手和组合。
+           ⚠️ 只在手机档且弹层打开时渲染；桌面档不渲染，悬浮条也不受影响。 -->
+      <div v-if="sheetOpen" class="mobar-in-sheet">
+        <div class="mob-sum">
+          <b>你选了什么</b>
+          <span>{{ startInfo || `${modeLabel} · 还没选完` }}</span>
+        </div>
+        <p v-if="canStart && !creating" class="mob-next">
+          已选好 <b>{{ picked.length }}</b> 位歌手 · 点下面<b class="go">开始对决</b>即可入局
+        </p>
+        <div class="mob-btns">
+          <button class="btn ghost" type="button" @click="sheetOpen = false">收起筛选</button>
+          <button class="btn pri" type="button" :disabled="creating || !canStart" @click="onCreate">
+            {{ creating ? '创建中…' : '开始对决' }}
+          </button>
+        </div>
+      </div>
     </div>
     </Teleport>
 
@@ -694,7 +717,7 @@
     <Teleport to="body" :disabled="!isPhone">
     <div v-if="sheetOpen" class="sheet-mask" @click="sheetOpen = false"></div>
 
-    <div class="mobar">
+    <div v-if="!sheetOpen" class="mobar">
       <div class="mob-sum">
         <b>你选了什么</b>
         <span>{{ startInfo || `${modeLabel} · 还没选完` }}</span>
@@ -2507,6 +2530,27 @@ async function onCreate() {
     gap: 8px;
     min-width: 0;
     margin-bottom: 8px;
+  }
+  /* 弹层内的操作条（2026-10-18 第五十一批）
+     —— 用户要求"选歌手时让它移动到底部"，即排进内容流、不要悬浮挡住内容。
+     视觉沿用悬浮条那套（同样的圆角玻璃 + 按钮），只是位置改成文档流末尾。 */
+  .mobar-in-sheet {
+    margin: 14px 0 6px;
+    padding: 12px 14px 13px;
+    border-radius: 20px;
+    background: var(--glass);
+    border: 1px solid var(--gbd);
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    box-shadow: 0 10px 26px rgba(15, 42, 66, 0.16);
+  }
+  .mobar-in-sheet .mob-btns {
+    display: flex;
+    gap: 10px;
+  }
+  .mobar-in-sheet .mob-btns .btn {
+    flex: 1;
+    min-height: 46px;
   }
   .mob-sum b {
     flex: 0 0 auto;

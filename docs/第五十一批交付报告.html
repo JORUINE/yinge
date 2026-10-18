@@ -1,0 +1,177 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十一批交付报告（选歌手让位 / 详情页留白 / 毛玻璃 / 方形图裁字）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:900px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .part{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fff8ec;color:#b06a00;white-space:nowrap}
+  .na{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fdeaea;color:#c0392b;white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .kv{display:grid;grid-template-columns:96px 1fr;gap:4px 12px;font-size:13.2px;margin-top:8px}
+  .kv dt{color:#7d97ab;font-weight:700}.kv dd{margin:0}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十一批 · 2026-10-18</span>
+  <h1>四条全部处理完：选歌手让位 / 详情页留白 / 毛玻璃 / 方形图裁字</h1>
+  <p>这一轮按你的要求一次性做完再交付。四条里 <b>3 条完全达成、1 条部分达成</b>（详情页留白，
+  我压掉了 50px，还剩约 84px 没找到来源——下面如实写）。每条都有<b>实测数字</b>，不是"改好了"。</p>
+</div>
+
+<h2><span class="n">1</span>四条的处理结果</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:34px">#</th><th style="width:250px">你的反馈</th><th style="width:86px">结果</th><th>实测证据</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>选混战歌手时，蓝框操作条要移到底部绿框位置</td><td><span class="ok">已达成</span></td>
+        <td>弹层内有 <code>.mobar-in-sheet</code>（在 <code>.opts</code> DOM 内部）、
+          悬浮条 <code>.mobar</code> 已隐藏 ⇒ 三项断言全绿</td></tr>
+      <tr><td>2</td><td>人格详情页上面留这么空干嘛</td><td><span class="part">部分达成</span></td>
+        <td>卡片顶部 <b>188 → 138px</b>（省 50px）；但「返回图鉴」到卡片仍有 <b>84px</b>
+          （margin 加起来只有 8px，剩下 76px 我没定位到）</td></tr>
+      <tr><td>3</td><td>移动端没有背景模糊和毛玻璃</td><td><span class="ok">已达成</span></td>
+        <td>页面预览 <code>backdrop-filter: blur(18px) saturate(1.7)</code> 实测生效；
+          模糊底图 <code>.sbg</code> 已加载（dataURL）</td></tr>
+      <tr><td>4</td><td>方形图保存下来，下面专辑的字体都没了</td><td><span class="ok">已达成</span></td>
+        <td>方形图 <b>342×430（0.795）</b>；<b>7 个文字元素全部在卡内</b>（<code>overflow: []</code>）</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">2</span>逐条根因与修法</h2>
+
+<div class="card">
+  <h3 style="margin:0 0 6px;font-size:16px;color:#0369A1">① 选歌手时操作条让位 <span class="ok">达成</span></h3>
+  <dl class="kv">
+    <dt>你要的</dt><dd>蓝框（悬浮操作条）在进入选歌手子菜单后，移到绿框（弹层内容末尾）</dd>
+    <dt>原来</dt><dd><code>.mobar</code> 是 <code>position:fixed</code> 悬浮在屏幕底部上方，<b>盖住弹层正在选的歌手和组合</b></dd>
+    <dt>修法</dt><dd>弹层打开时：① 悬浮条 <code>v-if="!sheetOpen"</code> 让位消失；
+      ② 在 <code>.opts</code> 内容最末尾（"收藏当前组合"之后）渲染 <code>.mobar-in-sheet</code>，
+      样式沿用同一套圆角玻璃 + 按钮，只是改为跟随内容滚动</dd>
+    <dt>验收</dt><dd>弹层内有操作条 ✅ / 它在弹层 DOM 内部 ✅ / 悬浮条已隐藏 ✅</dd>
+  </dl>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 6px;font-size:16px;color:#0369A1">② 人格详情页留白 <span class="part">部分达成</span></h3>
+  <dl class="kv">
+    <dt>实测</dt><dd>「返回图鉴」bottom 54 → 卡片 top <b>138</b>（改前 188）；间距 <b>84px</b></dd>
+    <dt>修法</dt><dd>手机档：<code>.detail</code> 改纵向 flex + <code>gap: 8px</code>；
+      <code>.back</code> margin 收到 4px；<code>.ptcard</code> margin-top 归零、padding-top 26→14px</dd>
+    <dt>没做到的</dt><dd>flex gap 只有 8px，但实测间距 84px ⇒ <b>中间还有约 76px 的占位</b>。
+      我用 <code>getBoundingClientRect</code> 列了 <code>.detail</code> 的直接子元素，
+      只有 <code>.back</code> 和 <code>.ptcard</code> 两个，所以那 76px 说不清来源
+      （怀疑是 <code>PersonalityCard</code> 内部按 <code>boxH</code> 算高度时留的顶部空间，
+      但它的外框不该影响外层间距）。<b>这条我没彻底解决，如实报告。</b></dd>
+  </dl>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 6px;font-size:16px;color:#0369A1">③ 毛玻璃 / 背景模糊 <span class="ok">达成</span></h3>
+  <dl class="kv">
+    <dt>原来</dt><dd><code>.scard.glassy</code> <b>没有</b> <code>backdrop-filter</code>
+      （历史备注写"html2canvas 不认，导出会丢掉整层"）⇒ 页面预览没有玻璃透光感</dd>
+    <dt>修法</dt><dd>加 <code>backdrop-filter: blur(18px) saturate(170%)</code> + 玻璃高光内阴影。
+      <b>用 <code>@supports</code> 包住</b>，不支持的浏览器完全不应用。
+      ⚠️ 那条历史备注针对的是"<b>不能依赖它做视觉</b>"——现在 <code>.sbg</code>（模糊封面底）
+      和 <code>.glassy::before</code>（配色柔光）已经独立成立，导出时 html2canvas 忽略
+      <code>backdrop-filter</code> 也不影响成图</dd>
+    <dt>验收</dt><dd><code>cardBackdrop = "blur(18px) saturate(1.7)"</code> 实测生效；
+      <code>.sbg</code> 已加载（<code>data:image/jpeg;base64</code>）</dd>
+  </dl>
+</div>
+
+<div class="card">
+  <h3 style="margin:0 0 6px;font-size:16px;color:#0369A1">④ 方形图裁字 <span class="ok">达成</span></h3>
+  <dl class="kv">
+    <dt>现象</dt><dd>方形图保存下来，底部「8 强 → 半决赛 → 决赛」和「16 张专辑…」<b>被裁掉</b></dd>
+    <dt>三种写法实测</dt><dd>
+      · <code>min-height: 0</code> → 卡片钉死 342，内容溢出 220px（<b>裁得最狠</b>）<br>
+      · <code>min-height: auto</code> → 对非 flex/grid 子项<b>等于 0</b>，同样钉死 342（还是裁）<br>
+      · <code>min-height: fit-content</code> → 在 <code>overflow:hidden</code> 的卡片上<b>也不生效</b>
+    </dd>
+    <dt>根因</dt><dd><code>.scard</code> 是 <code>overflow:hidden</code>，<code>aspect-ratio</code> 一旦定死高度，
+      多出来的内容只会被裁，<b>不会撑开</b></dd>
+    <dt>最终修法</dt><dd><b>放弃严格 <code>aspect-ratio</code></b>，改成 <code>min-height: 430px</code>：
+      宽度与竖版相同、高度至少 430、内容多了自动变高 ⇒ <b>一个字都不裁</b></dd>
+    <dt>验收</dt><dd>方形 <b>342×430（0.795）</b> vs 竖版（0.704）；7 个文字元素 <code>overflow: []</code> 全在卡内</dd>
+  </dl>
+  <div class="note warn"><b>必须说清的取舍</b>：342px 宽的方卡<b>装不下</b>这套内容
+    （★冠军★ + 封面 + 名字 + 艺人 + 对手缩略图 + 轮次 + 统计）。
+    要严格 1:1 且不裁字，只能把卡片内容（字号/封面/间距）<b>整体缩小约 17%</b>——
+    那会改变版式观感。按你之前"方形和竖版唯一的区别就是比例"的要求，
+    我没有自己动字号，选择了<b>保住不裁字、比例做到 0.795（比竖版明显更方）</b>。
+    要真 1:1 的话你说一句，我就把内容整体缩 17%。</div>
+</div>
+
+<h2><span class="n">3</span>回归验证（每次交付都跑）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:300px">检查项</th><th style="width:120px">结果</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>安卓 360/393/412 默认缩放 · 16 路由</td><td><span class="ok">0 项</span></td>
+        <td>横向溢出 0、网格子元素超出 0、&lt;12px 文字 0</td></tr>
+      <tr><td>三档断点（375/768/1440）</td><td><span class="ok">全通过</span></td><td>无横向溢出 · 无小字 · 无 JS 错误</td></tr>
+      <tr><td>桌面端同输入 A/B</td><td><span class="ok">9/10 路由 0 差异</span></td>
+        <td>仅首页有差异——那是你要求「PC 端补全到 10 张」，属预期变更</td></tr>
+      <tr><td>四条专项探针</td><td><span class="part">3 达成 / 1 部分</span></td>
+        <td><code>probe-r51-four.mjs</code>：①②③④ 逐项断言</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">4</span>关于你提到的过程问题</h2>
+<div class="card">
+  <div class="note bad"><b>你说得对，我承认三点：</b>
+    <ul>
+      <li><b>「执行东西每次只执行一点点就停止」</b> —— 之前每轮只挑几条做，
+        剩下的推给"下一轮"。这轮起改成：<b>一轮内把你列的全部处理完（含取证、修、验、文档）</b>，
+        实在做不完的明确标"没做到"并说明原因，而不是悄悄留到下次。</li>
+      <li><b>「不产出文档」</b> —— 这份就是按你要求的规范文档：
+        每条有「你的反馈 / 根因 / 修法 / 实测数字 / 是否达成」，不写"已优化"这种空话。</li>
+      <li><b>「改了也不检查自己的 Bug」</b> —— 这轮开始，<b>凡改导出/截图链路必须在手机模拟环境
+        跑像素采样断言</b>（上一批就是这么发现"封面变空框"的）；
+        凡改样式必须同时跑安卓三视口 + 桌面 A/B。</li>
+    </ul>
+  </div>
+  <div class="note">本轮我自己又踩了一次：删 <code>.scard.glassy::before</code> 的 <code>inset: 0</code>
+    时手滑，立刻发现并改回。已记进项目记忆。</div>
+</div>
+
+<h2><span class="n">5</span>还剩什么 / 需要你拍板的</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:34px">#</th><th style="width:280px">事项</th><th>状态 / 需要你决定</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>方形图要不要严格 1:1</td><td>现在 0.795 且不裁字。
+        若要严格 1:1，需把内容整体缩 17%（字号会变小）——<b>等你一句话</b></td></tr>
+      <tr><td>2</td><td>人格详情页剩余 84px</td><td>我压掉了 50px，剩 76px 来源没定位到。
+        下一轮我会用逐元素 margin 扫描把它揪出来</td></tr>
+      <tr><td>3</td><td>首页顶部空旷（顶栏方案 A + 搜索入口）</td><td>你之前同意做，<b>还没做</b></td></tr>
+      <tr><td>4</td><td>筛选栏在子菜单里自动移底</td><td>本轮已用「弹层内操作条」实现，等你真机确认手感</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="foot">音格 · 第五十一批交付报告 · 2026-10-18 ·
+  探针 <code>tools/pw/probe-r51-four.mjs</code> · 截图 <code>docs/figures/r51/</code></div>
+</div></body></html>

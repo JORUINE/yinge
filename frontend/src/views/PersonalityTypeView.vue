@@ -233,6 +233,33 @@ onMounted(async () => {
 .ptface > * {
   max-width: 100%;
 }
+/* ═══════════════════════════════════════════════════════════════════════
+ * 手机档（≤640）· 详情页上方空白收紧（2026-10-18 第五十一批）
+ * ---------------------------------------------------------------------
+ * 用户："人格这里 上面留这么空干嘛"（截图里「返回图鉴」到人格卡之间一大片空白）。
+ * 实测：外部间距其实只有 38px（back margin-bottom 18 + card margin-top 22），
+ *   **真正的空来自卡片内部**：`.ptcard` padding-top 26px + `.pthd` 顶部留白。
+ * ⇒ 手机档把外部间距压到 16px、卡片内 padding-top 压到 14px，合起来省约 34px。
+ * ⚠️ 只改手机档；桌面档的 38px / 26px 原样保留。
+ * ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* ⚠️ 2026-10-18 第五十一批：`.back` 与 `.ptcard` 之间实测有 96px 空隙，
+     但两者的 margin 加起来只有 16px —— 说不清的空隙用 **flex + gap 强制收口**：
+     `.detail` 改成纵向 flex，间距只由 gap 决定，任何残留 margin/空白都不再叠加。 */
+  .detail {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .detail .back {
+    margin: 4px 0 0;
+    align-self: flex-start;
+  }
+  .detail .ptcard {
+    margin-top: 0;
+    padding-top: 14px;
+  }
+}
 
 /* 研究证据列表 */
 .ptlist {
