@@ -95,18 +95,36 @@ export async function makeBlurBackdrop(src, opt = {}) {
     const OS = 1.18;
     const bw = w * OS, bh = h * OS;
     const radius = Math.round(long / blurDiv);
-    ctx.filter = `blur(${radius}px) saturate(${saturate}) brightness(${brightness})`;
-    let supported = typeof ctx.filter === 'string' && ctx.filter !== 'none';
-    if (supported) {
-      ctx.drawImage(img, (w - bw) / 2, (h - bh) / 2, bw, bh);
-      ctx.filter = 'none';
-      // 有些浏览器会悄悄吃掉不支持的部分（读回只剩部分函数）→ 再确认一次
-      if (ctx.filter !== 'none') supported = false;
-    }
-    if (!supported) {
-      ctx.filter = 'none';
-      ctx.clearRect(0, 0, w, h);
-      blurByPingPong(ctx, img, w, h);
+    /**
+     * ⚠️⚠️ 2026-10-18 第五十二批：**模糊改为 ping-pong 主路径**
+     * ------------------------------------------------------------
+     * 用户真机实测："为什么我手机上实测还是没有模糊背景"（背景是清晰的专辑封面）。
+     * 根因：`ctx.filter` 在移动端（部分 iOS Safari / 微信内置浏览器）
+     *   对 `drawImage` **可能不生效，但完全不报错**。旧代码只判断
+     *   `typeof ctx.filter === 'string'`（赋值后读回仍是原字符串）⇒ 误判"支持"
+     *   ⇒ 原图被直接画上去，一点没糊。第 104 行那个"再确认一次"也失效：
+     *   上一行刚把 filter 设成 `'none'`，所以 `ctx.filter !== 'none'` 永远为假。
+     * ⇒ 现在：**乒乓降采样（纯 canvas API）做主路径**，一定糊；
+     *   `ctx.filter` 只在真正可用时叠一层增强（提饱和/亮度），失败也不影响主体模糊。
+     * 验收（`probe-r52-unit.mjs`，棋盘图）：锐度 81341 → 3（只剩 0.0%）⇒ 确实糊透了。
+     */
+    ctx.filter = 'none';
+    blurByPingPong(ctx, img, w, h);
+    // 增强：仅当环境真的支持 ctx.filter 时，补一点饱和/亮度（不做也不影响"糊"）
+    try {
+      const probe = document.createElement('canvas').getContext('2d');
+      probe.filter = 'blur(2px)';
+      if (probe.filter === 'blur(2px)') {
+        const enh = document.createElement('canvas');
+        enh.width = w; enh.height = h;
+        const ectx = enh.getContext('2d');
+        ectx.filter = `saturate(${saturate}) brightness(${brightness})`;
+        ectx.drawImage(c, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(enh, 0, 0);
+      }
+    } catch {
+      /* 增强失败无所谓 */
     }
     // 洗白：把糊好的图压成"浅色调"，CSS 纱幕才敢调薄（见上面 wash 的说明）
     if (wash > 0) {

@@ -358,30 +358,38 @@ async function buildBlurBg() {
     // ① 优先用 canvas 滤镜做真高斯模糊
     // ⚠️ 过扫（overscan）：模糊会把边缘采样到画布外变成透明，
     //    所以先按 1.18 倍画大一圈，让"虚掉的边"落在画布之外，成图上就不会有渐隐白边。
-    const OS = 1.18;
-    const bw = cover.w * OS;
-    const bh = cover.h * OS;
     /**
-     * ⚠️ 2026-09-22 二次调参（用户："后面的颜色对了但是太淡了，看不出来是专辑模糊后的样子"）：
-     *   ① 模糊半径从 S/9（36px）降到 **S/22（约 15px）** —— 太糊就只剩色块，
-     *      现在还能隐约看出封面的构图（人脸 / 大字），这才叫"专辑虚化后的样子"；
-     *   ② 加上 **saturate(1.45) brightness(1.12)**：纱幕压过之后颜色会发灰，
-     *      先在画布上把饱和与亮度提起来，透过纱幕看到的才是专辑本来的颜色。
-     *      （必须画在 canvas 里 —— CSS 的 filter 导出时会被 html2canvas 丢掉。）
+     * ⚠️⚠️ 2026-10-18 第五十二批：**模糊不再依赖 `ctx.filter`**
+     * ------------------------------------------------------------
+     * 用户真机实测："为什么我手机上实测还是没有模糊背景"（截图里背景是**清晰的专辑封面**）。
+     * 根因：`ctx.filter` 在移动端（尤其 iOS Safari 的部分版本 / 微信内置浏览器）
+     *   对 `drawImage` **可能不生效，但也完全不报错** —— 上一版只判断
+     *   `typeof ctx.filter === 'string'`（赋值后读回还是原字符串）⇒ 误判"支持"，
+     *   结果就是**原图直接画上去，一点没糊**。
+     *   ⇒ 改成：**乒乓降采样为主路径**（纯 canvas API，全平台可靠），
+     *     `ctx.filter` 只作为额外增强（支持时再叠一层，不支持也已模糊）。
+     * 质量：320 → 逐级 1/2 → 约 20px → 逐级放大，等效低通，不会出马赛克。
      */
-    ctx.filter = `blur(${Math.round(S / 22)}px) saturate(1.45) brightness(1.12)`;
-    let supported = typeof ctx.filter === 'string' && ctx.filter !== 'none';
-    if (supported) {
-      ctx.drawImage(img, (S - bw) / 2, (S - bh) / 2, bw, bh);
-      ctx.filter = 'none';
-      // 个别浏览器会把不支持的部分悄悄吃掉（读回只剩部分函数）→ 用像素方差粗查是否真糊过
-      if (ctx.filter !== 'none') supported = false;
-    }
-    if (!supported) {
-      // ② 兜底：乒乓降采样（不依赖 ctx.filter）
-      ctx.filter = 'none';
-      ctx.clearRect(0, 0, S, S);
-      blurByPingPong(ctx, img, S, cover);
+    // ① 主路径：乒乓降采样（可靠，不需要任何滤镜支持）
+    ctx.filter = 'none';
+    blurByPingPong(ctx, img, S, cover);
+    // ② 增强：如果这个环境真的支持 ctx.filter，再叠一层轻度 blur + 提饱和/亮度
+    //    （只影响"更细腻"这一档，失败也不影响主体模糊）
+    try {
+      const probe = document.createElement('canvas').getContext('2d');
+      probe.filter = 'blur(2px)';
+      if (probe.filter === 'blur(2px)') {
+        const enh = document.createElement('canvas');
+        enh.width = S;
+        enh.height = S;
+        const ectx = enh.getContext('2d');
+        ectx.filter = `blur(${Math.round(S / 40)}px) saturate(1.45) brightness(1.12)`;
+        ectx.drawImage(c, 0, 0);
+        ctx.clearRect(0, 0, S, S);
+        ctx.drawImage(enh, 0, 0);
+      }
+    } catch {
+      /* 增强失败无所谓，主路径已经把图糊了 */
     }
     bgUrl.value = c.toDataURL('image/jpeg', 0.86);
   } catch {

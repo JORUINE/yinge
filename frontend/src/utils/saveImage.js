@@ -47,16 +47,73 @@ export function isMobileDevice() {
 }
 
 /**
+ * 导出前把所有 `<img>` **串行**换成 dataURL，导出完再换回来。
+ * ------------------------------------------------------------
+ * ⚠️⚠️ 2026-10-18 第五十二批：为什么不再依赖 cardExport 里的 `inlineImages`
+ *   用户真机实测："手机端保存的图里面专辑信息丢失了"（封面/对手缩略图变空框）。
+ *   实测：桌面 Chrome 里 5 张封面 fetch 全部成功，但**真机 SVG 里 img 的 src 仍是 https://**
+ *   ——原因是 `inlineImages` 用 `Promise.all` **并发**拉 5 张图，
+ *   移动端（尤其 iOS Safari）对并发 fetch + FileReader 有更严的资源限制，容易整体失败。
+ *   本函数改成 **for-await 串行**：一张一张来，每张都有独立 try/catch，
+ *   一张失败不影响其它；失败的保持原 src（至少不阻断导出）。
+ *   ⚠️ 必须在 `exportNodeToPng` **之前**调用，这样 SVG 里天然就是 dataURL，
+ *     不再依赖 `inlineImages` 的判断。
+ * @returns {Promise<() => void>} 还原函数（务必在 finally 里调用）
+ */
+async function preloadImagesAsDataUrl(el) {
+  const imgs = [...el.querySelectorAll('img')];
+  const saved = [];
+  for (const im of imgs) {
+    const src = im.currentSrc || im.src;
+    if (!src || src.startsWith('data:') || src.startsWith('blob:')) continue;
+    try {
+      // 串行 fetch：真机上并发更容易失败（实测）
+      // eslint-disable-next-line no-await-in-loop
+      const r = await fetch(src, { mode: 'cors' });
+      // eslint-disable-next-line no-await-in-loop
+      const blob = await r.blob();
+      // eslint-disable-next-line no-await-in-loop
+      const b64 = await new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.onerror = () => rej(new Error('read'));
+        fr.readAsDataURL(blob);
+      });
+      saved.push({ im, src: im.getAttribute('src') });
+      im.setAttribute('src', b64);
+      // 等这张真正解码完，避免 SVG 抓到一个还没解码的 img
+      // eslint-disable-next-line no-await-in-loop
+      await im.decode?.().catch(() => {});
+    } catch {
+      /* 单张失败就保留原地址，不阻断整体导出 */
+    }
+  }
+  return () => {
+    saved.forEach(({ im, src }) => {
+      if (src) im.setAttribute('src', src);
+    });
+  };
+}
+
+/**
  * 把页面元素导出成 PNG dataURL。
  * @param {HTMLElement} el
- * @param {{targetWidth?: number, bg?: string, forceHtml2canvas?: boolean}} opts
- *   forceHtml2canvas —— 不传则**移动端自动用它**（见下方注释）
+ * @param {{targetWidth?: number, bg?: string}} opts
  */
-export async function exportCardPng(el, { targetWidth = 1080, bg = null, forceHtml2canvas = null } = {}) {
-  // ⚠️ 移动端必须用 html2canvas：实测真机上 SVG foreignObject 方案会让
-  //    iTunes 封面变成空白框（用户："专辑信息丢失了 这里的Bug最多最严重"）。
-  const prefer = forceHtml2canvas === null ? isMobileDevice() : forceHtml2canvas;
-  return exportNodeToPng(el, { targetWidth, bg, preferHtml2canvas: prefer });
+export async function exportCardPng(el, { targetWidth = 1080, bg = null } = {}) {
+  // ⚠️⚠️ 2026-10-18 第五十二批：**两端统一用 SVG 方案**
+  //   用户："为什么手机端导出的竖形图和方形图完全不如 pc 端 手机端保存的图效果应该要和电脑端的一样"。
+  //   之前按设备分流（手机 html2canvas / 桌面 SVG）⇒ 两端效果必然不同：
+  //     · html2canvas 自己算布局，CSS 变量（--ink/--pcf 等）解析不全
+  //       ⇒ 人格卡副标题/维度标签发暗、几乎看不清（用户截图）
+  //     · SVG 方案走真渲染，变量在 inlineStyles 时已解析成具体色值 ⇒ 字色正确
+  //   现在统一用 SVG，靠上面的**串行预转图片**解决真机丢图问题。
+  const restore = await preloadImagesAsDataUrl(el);
+  try {
+    return await exportNodeToPng(el, { targetWidth, bg, preferHtml2canvas: false });
+  } finally {
+    restore();
+  }
 }
 
 /**
