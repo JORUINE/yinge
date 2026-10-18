@@ -1,0 +1,315 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十三批复盘：这几轮你提过、我还没改的点</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:900px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .part{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fff8ec;color:#b06a00;white-space:nowrap}
+  .na{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fdeaea;color:#c0392b;white-space:nowrap}
+  .wait{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#eef0fb;color:#4a4fa8;white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  /* 顶部三块数字 */
+  .stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0 4px}
+  .st{background:#fff;border:1px solid #dbeaf6;border-radius:14px;padding:14px 16px;box-shadow:0 6px 22px rgba(8,58,92,.08)}
+  .st .v{font-size:27px;font-weight:800;letter-spacing:-1px;color:#0369A1;font-variant-numeric:tabular-nums}
+  .st .l{font-size:12.5px;color:#7d97ab;margin-top:2px}
+  .st.bad .v{color:#c0392b}.st.warn .v{color:#b06a00}
+  /* 未完项卡片 */
+  .item{border:1px solid #dbeaf6;border-radius:13px;background:#fff;padding:14px 16px;margin-bottom:12px;box-shadow:0 4px 16px rgba(8,58,92,.07)}
+  .item .hd{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .item .id{font-size:12px;font-weight:800;color:#fff;background:#c0392b;border-radius:7px;padding:2px 9px;letter-spacing:.5px}
+  .item.warn .id{background:#b06a00}
+  .item .ttl{font-size:15.5px;font-weight:800;color:#0B2A42}
+  .item .q{font-size:13.4px;color:#46647E;background:#f4faff;border-left:3px solid #7DD3FC;padding:7px 11px;border-radius:0 7px 7px 0;margin:6px 0}
+  .kv{display:grid;grid-template-columns:82px 1fr;gap:3px 12px;font-size:13.3px;margin-top:6px}
+  .kv dt{color:#7d97ab;font-weight:700}.kv dd{margin:0}
+  /* 计划甘特式 */
+  .plan{display:grid;grid-template-columns:76px 1fr 120px;gap:0;border:1px solid #dbeaf6;border-radius:13px;overflow:hidden}
+  .plan>div{padding:11px 13px;border-bottom:1px solid #e6f0f8;font-size:13.3px}
+  .plan .ph{background:#0369A1;color:#fff;font-weight:800;font-size:13px;text-align:center}
+  .plan .pb{background:#fff}
+  .plan .pd{background:#f4faff;font-weight:700;color:#0369A1;font-variant-numeric:tabular-nums}
+  .plan>div:nth-last-child(-n+3){border-bottom:0}
+  .dep{font-size:12.3px;color:#7d97ab}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.6px;line-height:1.6;margin-top:8px;overflow-x:auto}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十三批 · 2026-10-18 · 复盘</span>
+  <h1>这几轮你提过、我还没改的点 —— 全部捞出来，排进计划</h1>
+  <p>第四十四批到第五十二批，你一共提了 <b>44 条</b>。<b>39 条已达成、5 条没做完</b>；
+  另外有 <b>3 条更早遗留</b>（你提过、我一直没动）和 <b>5 条等你拍板</b>。
+  下面的数字都是我这次<b>回代码重新量出来的</b>，不是抄旧文档。</p>
+</div>
+
+<div class="stats">
+  <div class="st"><div class="v">44</div><div class="l">你提过的条目（44~52 批）</div></div>
+  <div class="st"><div class="v">39</div><div class="l">已达成并有实测数字</div></div>
+  <div class="st warn"><div class="v">2</div><div class="l">做了一半（方形图 / 详情页留白）</div></div>
+  <div class="st bad"><div class="v">3</div><div class="l">未做 / 改了没验完</div></div>
+</div>
+
+<h2><span class="n">1</span>逐批复盘：你提了什么，我做到哪一步</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:74px">批次</th><th style="width:56px">条数</th><th style="width:92px">结果</th><th>你当时提的（摘要）</th></tr></thead>
+    <tbody>
+      <tr><td><b>44</b> 批<br><span class="dep">10-17</span></td><td class="num">6</td><td><span class="ok">5 达成</span><br><span class="na">1 未做</span></td>
+        <td>注册提示看不懂 · <b>顶栏中部空白</b> · 子菜单滚动链＋「还有N张」被遮 · 播放器 iPod 化 · 手机端下载不了分享图 · 人格卡页失效</td></tr>
+      <tr><td><b>45</b> 批<br><span class="dep">10-17</span></td><td class="num">5</td><td><span class="ok">5 达成</span></td>
+        <td>iOS「显示已下载但实测没有」 · 去掉流派自由输入 · 锁住左右滑动 · 组合选择要提示 · 播放器按方案 A</td></tr>
+      <tr><td><b>46</b> 批<br><span class="dep">10-18</span></td><td class="num">8</td><td><span class="ok">8 达成</span></td>
+        <td>安卓默认缩放错乱（"万万不可"）· 播放器全局化 · 分享图黑角 · 答题页误触 · 底部条改 iPhone Dock · 推荐专辑排版 · 点封面即播放</td></tr>
+      <tr><td><b>47</b> 批<br><span class="dep">10-18</span></td><td class="num">9</td><td><span class="ok">8 达成</span><br><span class="part">1 部分</span></td>
+        <td>播放器宽视口崩掉 · 试听按钮太大 · 底部空白 · 游客条 · 榜单补六张 · <b>方形图没区别</b> · 结算页草图 · 筛选栏移底部 · 椭圆太扁</td></tr>
+      <tr><td><b>49</b> 批<br><span class="dep">10-18</span></td><td class="num">1</td><td><span class="ok">1 达成</span></td>
+        <td>结算页按你的草图重排（下方圆角框 + 2×2 四操作，文字一行）</td></tr>
+      <tr><td><b>50</b> 批<br><span class="dep">10-18</span></td><td class="num">9</td><td><span class="ok">9 达成</span></td>
+        <td>导出封面变空框 · 电脑端弹系统共享窗口 · iOS 保存无提示 · 方形图擅自改版式（已回退）· 对位赛播放器 · 结算页细节 · 游客框圆角缺口 · 共建页边框 · PC 首页 5+1</td></tr>
+      <tr><td><b>51</b> 批<br><span class="dep">10-18</span></td><td class="num">4</td><td><span class="ok">2 达成</span><br><span class="part">2 部分</span></td>
+        <td>选歌手操作条让位 · <b>详情页上方留白</b> · 移动端毛玻璃 · <b>方形图裁字</b></td></tr>
+      <tr><td><b>52</b> 批<br><span class="dep">10-18</span></td><td class="num">3</td><td><span class="ok">1 达成</span><br><span class="part">2 未验</span></td>
+        <td>手机端背景不模糊 · <b>导出效果不如 PC</b> · <b>人格卡字体可读性</b></td></tr>
+    </tbody>
+  </table>
+  <div class="note">48 批（方形版改两栏）被你在 50 批明确否决并已整份回退，所以<b>不单独计一条你的需求</b>；
+  它留下的"方形图该是什么比例"归到下面 <b>U2</b>。</div>
+</div>
+
+<h2><span class="n">2</span>还没做完的 5 条（这是重点）</h2>
+
+<div class="item">
+  <div class="hd"><span class="id">U1</span><span class="ttl">顶栏中部空白 —— 你早就批准了方案，我没动手</span><span class="na">未做</span></div>
+  <div class="q">你的原话（44 批 #2）：顶栏中间一大片是空的。<br>
+    你后来拍板：<b>"首页的那个顶部的那些空白的部分，你之前有个方案的也把它排进去"</b>（方案 A：中间放当前状态；外加搜索入口）</div>
+  <dl class="kv">
+    <dt>这次实测</dt><dd>手机 390 宽下，顶栏只有两块可见内容：logo（24~68px）和右侧（269~366px）。
+      <b class="num">中间空了 201px，占屏宽 51.5%</b> —— 一半的顶栏是空的。</dd>
+    <dt>为什么没做</dt><dd>45 批写进了"本轮未完成"，之后每一轮都在救火（导出崩、播放器崩、缩放崩），一直没有回头排它。<b>这是我的排期问题，不是技术难点。</b></dd>
+    <dt>要做成啥</dt><dd>手机档中部显示<b>当前所在页面的状态</b>（如"专辑对决 · 进行中"、"音乐人格 · 未测评"），并把批准的<b>搜索入口</b>一并放进去。桌面档<b>一个节点都不加</b>（<code>v-if="isPhone"</code> 两套模板），保证 A/B 0 差异。</dd>
+    <dt>验收判据</dt><dd>① 手机档中部可见区块从 2 → ≥3；② 中部空白 ≤ 40px；③ 桌面 A/B 10 条路由 0 差异。</dd>
+  </dl>
+</div>
+
+<div class="item warn">
+  <div class="hd"><span class="id">U2</span><span class="ttl">方形分享图：现在是 0.795，不是真的方形</span><span class="part">部分达成</span></div>
+  <div class="q">你的原话（47 批）：<b>"竖版和方形版根本没什么区别"</b>；<br>
+    51 批：<b>"下面专辑的字体都没了"</b>；<br>
+    50 批（对我擅自改版式的训斥）：<b>"方形和竖版唯一的区别就是比例，而不是里面完全变了"</b></div>
+  <dl class="kv">
+    <dt>做到哪</dt><dd>先后试过三条路，全部实测过：<code>min-height:0</code> → 裁掉 220px；
+      <code>min-height:auto</code> → 对非 flex 子项等于 0，一样裁；<code>fit-content</code> → 在 <code>overflow:hidden</code> 卡上不生效。
+      <b>最后放弃 <code>aspect-ratio</code></b>，改用 <code>min-height:430px</code> ⇒ 现在 <b>342×430 = 0.795</b>，<b>7 个文字元素全部在卡内，不裁字</b>。</dd>
+    <dt>还差什么</dt><dd>342px 宽的方卡装不下竖版那套内容。要<b>严格 1:1</b> 必须把内容整体缩 17% —— 这就动了版式观感，正是你说"绝对不能擅自改变"的那类事 ⇒ <b>我不自己定，等你拍板</b>。</dd>
+    <dt>选项</dt><dd><b>甲</b>：维持 0.795（不裁字，比例近似方）<b>，零风险</b>；
+      <b>乙</b>：内容整体缩到 0.83 倍做真 1:1（字号会到 12px 下限附近，需逐字验）；
+      <b>丙</b>：方形版只保留"封面 + 冠军 + 名字"三件，其余信息移到卡片外（改动最大）。</dd>
+  </dl>
+</div>
+
+<div class="item warn">
+  <div class="hd"><span class="id">U3</span><span class="ttl">人格详情页上方留白：压掉 50px，还剩 84px 没找到来源</span><span class="part">部分达成</span></div>
+  <div class="q">你的原话（51 批）：<b>"人格这里 上面留这么空干嘛"</b></div>
+  <dl class="kv">
+    <dt>做到哪</dt><dd>卡片顶部 <b>188 → 138px</b>（省 50px）。手机档把 <code>.detail</code> 改成纵向 flex + <code>gap:8px</code>，
+      <code>.back</code> margin 归零、<code>.ptcard</code> padding-top 26 → 14。</dd>
+    <dt>还差什么</dt><dd>「返回图鉴」到卡片实测仍有 <b>84px</b>，但两者 margin 加起来只有 8px ——
+      <b>约 76px 的占位来源我上一轮没定位到，当时如实标注了"未完成"</b>。这次回代码看：<code>.detail</code> 的直接子元素只有
+      <code>.back</code> 和 <code>.ptcard</code>，所以嫌疑在<b>卡片内部</b>（<code>.ptcard-v2</code> padding 26px + <code>.pthd-v2</code> 的 grid gap 34px + <code>.ptface</code> 内卡的顶部留白叠加），需要起真库逐个子元素量一遍才敢改。</dd>
+    <dt>验收判据</dt><dd>起真库 → 打开任一型详情页（手机档）→ 逐个子元素打印 <code>getBoundingClientRect()</code> 与 computed margin，
+      定位到那 76px 属于谁，改完后「返回图鉴」底 → 卡片顶 ≤ 24px。</dd>
+  </dl>
+</div>
+
+<div class="item warn">
+  <div class="hd"><span class="id">U4</span><span class="ttl">手机端导出 = 电脑端效果：改了，但没跑完端到端验证</span><span class="part">改了未验</span></div>
+  <div class="q">你的原话（52 批）：<b>"手机端保存的图效果应该要和电脑端的一样"</b>；<b>"导出的竖形图和方形图完全不如 PC 端"</b></div>
+  <dl class="kv">
+    <dt>做到哪</dt><dd>两端统一用 SVG 真渲染引擎（不再按设备分流），丢图问题用串行的
+      <code>preloadImagesAsDataUrl()</code> 解决（原来是 <code>Promise.all</code> 并发拉 5 张图，真机上容易整体失败）。</dd>
+    <dt>还差什么</dt><dd><b>只有模块级验证</b>（模糊锐度 81341 → 3/4），<b>没跑完"造局 → 分享页 → 导出"全链路</b>。
+      连续两次端到端探针被超时掐断，因为每跑一次都要「起 mongod + 起后端 + 起前端 + 造一局（10 场投票 × 400ms 节流）」。</dd>
+    <dt>卡在哪</dt><dd>见下面 <b>U6</b>（基础设施债）。<b>先修 U6，U4/U5 才能验。</b></dd>
+    <dt>验收判据</dt><dd>手机模拟环境真实导出 → 解 dataURL 取像素尺寸（宽都应为 1080）→ 对 6 个图片区域<b>逐区采样中心像素</b>
+      （每种颜色数 ≥ 30、alpha = 255 ⇒ 不是空框）→ 与桌面端同导出的像素分布比对。</dd>
+  </dl>
+</div>
+
+<div class="item warn">
+  <div class="hd"><span class="id">U5</span><span class="ttl">人格卡字体可读性：同上，一起改了、一起没验</span><span class="part">改了未验</span></div>
+  <div class="q">你的原话（52 批）：<b>"导出的音乐人格卡字体可读性都有问题"</b></div>
+  <dl class="kv">
+    <dt>根因判断</dt><dd>字色发暗的直接原因是旧引擎 html2canvas 对 <b>CSS 变量</b>（<code>--ink</code> / <code>--pcf</code>）解析不全。
+      统一到 SVG 引擎后，<code>inlineStyles</code> 会把变量解析成具体色值 ⇒ <b>预期一并解决</b>。</dd>
+    <dt>还差什么</dt><dd>同 U4：<b>没有端到端实测</b>。"预期解决"不能当交付。</dd>
+    <dt>验收判据</dt><dd>导出人格卡 → 对副标题 / 维度标签区域采样 → 按 WCAG 算<b>文字与底的对比度 ≥ 4.5:1</b>（正文）/ ≥ 3:1（大字）。</dd>
+  </dl>
+</div>
+
+<div class="item">
+  <div class="hd"><span class="id">U6</span><span class="ttl">基础设施债：没有"快速造一局"，所有端到端验证都卡在这</span><span class="na">卡住 U4/U5</span></div>
+  <div class="q">这不是你提的需求，是<b>我自己欠的债</b> —— 不修掉，U4/U5 只能停在"模块级验证"，
+  也就是你说的"每次都只做到一半"。</div>
+  <dl class="kv">
+    <dt>症状</dt><dd>52 批连续两次端到端探针被 SIGTERM 掐断。每跑一次要起 3 个进程 + 打完 10 场投票（每场等 400ms 节流）。</dd>
+    <dt>修法</dt><dd>给测试环境加一个 <code>POST /api/dev/battle</code>：<b>直接生成一局已打完的对决</b>（含票、含冠军），
+      <code>NODE_ENV !== 'production'</code> 才注册。探针从"10 场投票"降到"1 次请求"。</dd>
+    <dt>附带</dt><dd><code>.gitignore</code> 里 <code>tools/</code> 被整目录排除 ⇒ <b>194 个探针脚本不在仓库里</b>，
+      换机器或换 session 就跑不了自检。要改成：排除 <code>tools/pw/node_modules/</code>，<b>脚本本体入库</b>。</dd>
+  </dl>
+</div>
+
+<h2><span class="n">3</span>更早的遗留：你提过、但我一直没做的 3 条</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:210px">条目</th><th style="width:88px">状态</th><th>说明（这次回代码核实）</th></tr></thead>
+    <tbody>
+      <tr><td>首页「首次进入三张新手引导卡」</td><td><span class="na">未做</span></td>
+        <td>在 <code>HomeView.vue</code> 里 <code>grep</code> 「引导 / onboard / firstTime」<b>命中 0</b> ⇒ 确实一行没写。
+          最早记在 2026-09-17 的批次里。</td></tr>
+      <tr><td>排行榜「地区 / 年代 / 周期」三重筛选</td><td><span class="na">未做</span></td>
+        <td>在 <code>RankView.vue</code> 里 <code>grep</code> 「地区 / 年代 / 周期」<b>命中 0</b>，页面也没写"暂未开放"。
+          需要后端补接口，属前端之外的活。</td></tr>
+      <tr><td>深色模式</td><td><span class="part">半成品</span></td>
+        <td>全局只有零散的 <code>html[data-theme='dark']</code> 规则（3 处），
+          <b>没有 <code>prefers-color-scheme</code> 自动切换</b>，也<b>没有逐页验收</b>。
+          守则里明确记着这是 T3 的欠账。</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn">这三条不属于"这几轮"，但既然你让我"全部捞出来"，我就一并列出 ——
+  <b>它们不在最近九批的紧急度上，我建议排在 U1~U6 之后</b>，除非你说要提前。</div>
+</div>
+
+<h2><span class="n">4</span>等你拍板的 5 条（我不自己定）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:200px">条目</th><th style="width:88px">状态</th><th>要你决定什么</th></tr></thead>
+    <tbody>
+      <tr><td><b>方形分享图比例</b>（U2）</td><td><span class="wait">待拍板</span></td>
+        <td>甲：维持 0.795（零风险）／乙：内容缩 17% 做真 1:1／丙：方形版只留三件信息。<b>你说哪个我做哪个。</b></td></tr>
+      <tr><td>创建页模式大卡 → 一行文字 tab</td><td><span class="wait">待拍板</span></td>
+        <td>实测数字已有：模式大厅总高 <b>659 → 214px</b>，首屏完整可见模式 <b>3/6 → 6/6</b>。
+          代价：每张卡那行描述要藏掉（选中后再显示）。</td></tr>
+      <tr><td>首页「一键开赛」区</td><td><span class="wait">待拍板</span></td>
+        <td>加搜索框 + 热门歌手 chip，把"开始对决"从 <b>4 次点击压到 1 次</b>。
+          代价：首屏多一块内容、hero 要缩小或挪位。</td></tr>
+      <tr><td>人格卡 demo 的 4 个细节</td><td><span class="wait">待拍板</span></td>
+        <td>音色控 2:3 比例 / 方版条水平长度 / 旋律捕手·音色控条色 / 旋律捕手条渐变。</td></tr>
+      <tr><td>《系统设计文档》写"12 张表"</td><td><span class="wait">待拍板</span></td>
+        <td>代码实际 <b>15 个模型</b>（后加 AlbumTagVote / Combo / ShareCard / BattleGroup）。
+          它是正式提交材料，改 md/html 会让 <code>.docx</code> 不同步 ⇒ 要不要一起改，你定。</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">5</span>执行计划（按依赖排好，不是按时间）</h2>
+<div class="card">
+  <div class="plan">
+    <div class="ph">阶段</div><div class="ph">做什么</div><div class="ph">工期</div>
+
+    <div class="pd">S0<br><span class="dep">先做</span></div>
+    <div class="pb"><b>修基础设施债（U6）</b>：加 <code>POST /api/dev/battle</code> 一键造已结束对局；
+      把 <code>tools/pw</code> 脚本本体放进仓库（只排除 <code>node_modules</code>）。
+      <span class="dep">—— 不修这个，U4/U5 永远只能"模块级验证"。</span></div>
+    <div class="pd">0.3 天</div>
+
+    <div class="pd">S1</div>
+    <div class="pb"><b>顶栏方案 A（U1）</b>：手机档中部填当前状态 + 搜索入口；桌面档零新增节点。
+      <span class="dep">依赖：无。已批准，可直接动手。</span></div>
+    <div class="pd">0.4 天</div>
+
+    <div class="pd">S2</div>
+    <div class="pb"><b>详情页留白（U3）</b>：起真库逐个子元素量，定位那 76px 归谁，修掉。
+      <span class="dep">依赖：无（可与 S1 同轮做）。</span></div>
+    <div class="pd">0.3 天</div>
+
+    <div class="pd">S3</div>
+    <div class="pb"><b>端到端复验（U4 + U5）</b>：手机模拟环境真实导出 → 像素采样断言 + 对比度断言。
+      <span class="dep">依赖：S0。</span></div>
+    <div class="pd">0.4 天</div>
+
+    <div class="pd">S4</div>
+    <div class="pb"><b>把 5 条待拍板做成一张对比图给你</b>（方形图三选一 / 模式 tab / 一键开赛），
+      你一句话我就能做。<span class="dep">依赖：无，可随时插队。</span></div>
+    <div class="pd">0.2 天</div>
+
+    <div class="pd">S5</div>
+    <div class="pb"><b>三条更早遗留</b>：新手引导卡 / 排行榜三重筛选（含后端接口）/ 深色模式逐页验收。
+      <span class="dep">依赖：S0~S3 收口后。</span></div>
+    <div class="pd">1.5~2 天</div>
+  </div>
+  <div class="note good"><b>S0 → S1/S2 → S3 是硬依赖链</b>，加起来约 <b>1.4 天</b>，做完这四步，
+  "你提过而没改的点"就清零了（只余下需要你拍板的 5 条）。之后才是部署、演示视频、论文正文这条主线。</div>
+</div>
+
+<h2><span class="n">6</span>每项的验收判据（写成能跑的命令，不是嘴上说）</h2>
+<div class="card">
+  <div class="chk"># U1 顶栏：手机档中部空白 ≤ 40px、桌面 A/B 0 差异
+node tools/pw/probe-r53-topbar.mjs          # 断言：可见区块 ≥3、中部空隙 ≤40、桌面 10 路由 0 差异
+
+# U3 详情页：定位 76px 归属 + 「返回图鉴」底→卡片顶 ≤24px
+node tools/pw/probe-r53-detail-gap.mjs      # 需真库；逐子元素打印 rect 与 computed margin
+
+# U4/U5 导出：像素采样 + WCAG 对比度（依赖 S0 的 dev/battle）
+node tools/pw/probe-r53-export-parity.mjs   # 断言：两端导出宽都=1080、6 区颜色数≥30、对比度≥4.5:1
+
+# 每轮必跑的三条回归（不许只跑 build）
+node tools/pw/probe-r46-android.mjs         # 安卓 360/393/412 默认缩放 0 项
+node tools/pw/probe-r41-tiers.mjs           # 三档断点
+node tools/pw/probe-r40-desktop-ab.mjs      # 桌面同输入 A/B（除已批准变更外 0 差异）</div>
+  <div class="note warn"><b>桌面 A/B 的基线必须先重建</b>：<code>git stash</code> → <code>vite build</code> →
+    <code>mv dist dist-before-r53</code> → <code>git stash pop</code> → 再 build。
+    沿用上一轮的 <code>dist-before</code> 是<b>假对照</b>（这个项目栽过一次）。</div>
+</div>
+
+<h2><span class="n">7</span>复盘：我这九轮犯的错（值得记下来）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:230px">错在哪</th><th>后果 / 记下的规则</th></tr></thead>
+    <tbody>
+      <tr><td><b>改了 DOM 却只写手机档样式</b>（47 批）</td><td>播放器在 &gt;640 宽度彻底崩掉。
+        <b>规则：换 DOM 就必须在所有宽度上都有对应样式。</b></td></tr>
+      <tr><td><b>换导出引擎只测桌面</b>（50 批）</td><td>真机上封面全变空框，你称"Bug 最多最严重"。
+        <b>规则：凡动导出/截图链路，必须在手机模拟环境跑像素采样断言。</b></td></tr>
+      <tr><td><b>擅自改设计语言</b>（48→50 批回退）</td><td>你把方形图两栏版式打回来。
+        <b>规则：比例之外的任何版式变化都必须先问。</b></td></tr>
+      <tr><td><b>误判设备</b>（50 批）</td><td>以为 <code>navigator.share</code> 只有手机有 ⇒ 电脑端弹系统共享窗。
+        <b>规则：判断设备用设备特征（窄屏+触屏），不是 API 存在性。</b></td></tr>
+      <tr><td><b>给手机端加元素忘了它会不会进桌面 DOM</b>（44 批）</td><td>一句话，桌面 A/B 立刻报 15~897 项差异。
+        <b>规则：手机端新增可见节点一律走 <code>v-if="isPhone"</code> 两套模板。</b></td></tr>
+      <tr><td><b>探针判据用错指标</b>（49 批两次）</td><td>先用按钮高度判折行（有 min-height，无效），
+        再用 <code>Range.getClientRects()</code> 数行（把 svg 图标算成一行）。
+        <b>规则：量文字折行必须只用 TreeWalker 遍历文本节点。</b></td></tr>
+      <tr><td><b>排期被救火牵着走</b>（本次复盘发现）</td><td>顶栏方案你 45 批就批准了，我一直没回头做 ——
+        <b>44 条做了 39 条，但漏的那 1 条恰恰是你批准过的</b>。
+        <b>规则：已批准的条目必须进"下一轮固定名额"，不能被当轮救火挤掉。</b></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="note good"><b>下一步</b>：我从 <b>S0（快速造局接口 + 探针入库）</b> 开始，
+  然后一口气做掉 <b>S1 顶栏 + S2 详情页留白 + S3 端到端复验</b>，做完一起交付并逐条给实测数字。
+  如果你想先看到"待拍板那 5 条"的对比图（S4），说一声我就插队。</div>
+
+<div class="foot">音格 · 第五十三批复盘与未完事项计划 · 2026-10-18 · 数字均来自本次回代码重新实测</div>
+</div></body></html>
