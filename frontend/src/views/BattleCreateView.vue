@@ -2564,9 +2564,14 @@ async function onCreate() {
   /* ⑤ 页面主体给底条让位
      ⚠️ 2026-10-16 第四十三批：原来只让 96px，但底部其实是**两条**固定条叠着：
         操作条 95px + Tab 栏 57px = 152px ⇒ 差 56px，页面最后一项会被操作条压住。
-        （布局体检量到「按流派/年代」这张模式卡中心 y=745 落在操作条里。） */
+     ⚠️⚠️ 2026-10-18 第四十七批：用户截图指出"首页下拉 下面还有这么多空白 没必要"。
+        实测 /battle/create 底部空白 **438px** —— 根因是**让位被三重叠加**：
+          `.create` 让 tabbar+104、`.main` 又让 tabbar+20、`.foot` 又让 tabbar+8。
+          mobar 是浮动条，只需要"滚到底时最后一项不被它盖住"，不需要每条各让一遍。
+        修法：这里**去掉重复的 --tabbar-h**（`.main` 已经让过了）⇒ 省 56px；
+          同时 tabbar 那一段改由 `.main` 统一负责。 */
   .create {
-    padding-bottom: calc(var(--tabbar-h) + 104px + var(--safe-b));
+    padding-bottom: calc(104px + var(--safe-b));
   }
 }
 /* ⭐ Edge 兜底（守则：新视觉效果同步加 html.ua-edge 覆盖） */

@@ -46,15 +46,31 @@
       </div>
     </header>
 
-    <!-- 游客醒目提醒：不注册也能玩全部主线；但游客数据只留本机，注册后可云同步 -->
+    <!-- 游客醒目提醒：不注册也能玩全部主线；但游客数据只留本机，注册后可云同步
+         ⚠️ 2026-10-18 第四十七批：用户原话「游客模式的提醒 做的太丑了 排布也不好看」。
+         手机档改成**卡片两行**（标签+按钮两端对齐 / 下面一句话说明）；
+         **桌面档保持原来的一行三段**（不渲染卡片结构 ⇒ 同输入 A/B 仍 0 差异）。 -->
     <div v-if="!isAdmin && auth.isLoggedIn && auth.isGuest" class="guestbar">
       <div class="container">
-        <span class="gt">游客模式</span>
-        <span class="gm">
-          不注册也能玩全部主线玩法。但<b>游客数据只保存在这台设备的浏览器里</b>（换设备 / 清缓存会丢），也不计入排行榜；
-          注册后可云同步、收藏专辑、上榜。
-        </span>
-        <RouterLink to="/login" class="btn pri sm">注册 / 登录</RouterLink>
+        <!-- 手机档：卡片两行 -->
+        <div v-if="isPhone" class="guestcard">
+          <div class="gtop">
+            <span class="gt">游客模式</span>
+            <RouterLink to="/login" class="btn pri sm">注册 / 登录</RouterLink>
+          </div>
+          <p class="gm">
+            完整玩法都能玩。但<b>数据只存在这台设备</b>：换设备或清缓存会丢，<b>也不计入排行榜</b>。
+          </p>
+        </div>
+        <!-- 桌面档：一行三段（与改前完全一致） -->
+        <template v-else>
+          <span class="gt">游客模式</span>
+          <span class="gm">
+            不注册也能玩全部主线玩法。但<b>游客数据只保存在这台设备的浏览器里</b>（换设备 / 清缓存会丢），也不计入排行榜；
+            注册后可云同步、收藏专辑、上榜。
+          </span>
+          <RouterLink to="/login" class="btn pri sm">注册 / 登录</RouterLink>
+        </template>
       </div>
     </div>
 
@@ -150,6 +166,17 @@ watch(
 
 /** 后台自带 chrome：/admin 下不渲染站点顶栏与页脚 */
 const isAdmin = computed(() => route.path.startsWith('/admin'));
+
+/**
+ * 是否手机档（≤640）—— 只用来决定"游客条用哪套 DOM"。
+ * ⚠️ 为什么必须用 JS 分两套模板而不是纯 CSS：
+ *   桌面端原本是"一行三段"（标签 + 长说明 + 按钮），手机端被我改成"卡片两行"（多两层元素）。
+ *   如果两套都渲染、只用 CSS 切换，桌面端 DOM 会多 3 个节点 ⇒ 同输入 A/B 直接报 897 项差异
+ *   （实测踩过，2026-10-18 第四十七批）。
+ *   ⇒ 桌面端**根本不渲染**手机那套，A/B 才能保 0。
+ */
+const isPhone = ref(false);
+let mqPhone = null;
 
 const bannedVisible = ref(false);
 const bannedReason = ref(null);
@@ -305,6 +332,10 @@ function runCompatDiag() {
 
 onMounted(() => {
   if (isEdge) window.setTimeout(runCompatDiag, 1500);
+  // 手机档判定（决定游客条用哪套 DOM，见 isPhone 注释）
+  mqPhone = window.matchMedia('(max-width: 640px)');
+  isPhone.value = mqPhone.matches;
+  mqPhone.addEventListener?.('change', (e) => { isPhone.value = e.matches; });
 });
 </script>
 
@@ -479,6 +510,8 @@ onMounted(() => {
   background: linear-gradient(90deg, rgba(14, 165, 233, 0.16), rgba(14, 165, 233, 0.06));
   border-bottom: 1px solid rgba(14, 165, 233, 0.28);
 }
+/* ⚠️ 2026-10-18 第四十七批：桌面档保持原来的一行三段（flex），
+   手机档才切成卡片两行 —— 桌面结构与改前完全一致，A/B 才能保 0。 */
 .guestbar .container {
   display: flex;
   align-items: center;
@@ -486,6 +519,35 @@ onMounted(() => {
   flex-wrap: wrap;
   padding-top: 10px;
   padding-bottom: 10px;
+}
+/* ⚠️ 2026-10-18 第四十七批：手机档卡片两行（用户："游客模式的提醒 做的太丑了 排布也不好看"）。
+   桌面档不渲染 .guestcard（见模板 v-if="isPhone"），所以这些规则只影响手机。
+   原来手机上是 flex-wrap 的横排三段，被挤成"左标签 / 中间四行小字 / 右按钮"，参差不齐。 */
+.guestcard {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+}
+.gtop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* 手机档才收字号（桌面档保持原来的 13/13.5px，否则 A/B 会报每页 4 项几何差异） */
+@media (max-width: 640px) {
+  .guestbar .gt {
+    font-size: 12.5px;
+    padding: 4px 11px;
+  }
+  .guestbar .gm {
+    flex: 0 0 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.6;
+  }
 }
 .guestbar .gt {
   flex: 0 0 auto;
@@ -616,7 +678,10 @@ onMounted(() => {
     padding: 18px 0 calc(var(--tabbar-h) + 20px + var(--safe-b));
   }
   .foot {
-    padding-bottom: calc(var(--sp-5) + var(--tabbar-h) + 8px + var(--safe-b));
+    /* ⚠️ 2026-10-18 第四十七批：去掉 --tabbar-h（`.main` 已经统一让过一遍）。
+       原来 .main 让 76px + .foot 又让 88px，页脚底下白出一大截（用户截图指出）。
+       现在只留 12px 呼吸 + 安全区。 */
+    padding-bottom: calc(var(--sp-3) + var(--safe-b));
   }
 }
 /* ⭐ Edge 兜底（守则：每加一个新视觉效果都要同步加 html.ua-edge 覆盖）：

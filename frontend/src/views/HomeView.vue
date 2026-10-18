@@ -138,7 +138,10 @@ const year = (d) => (d ? String(d).slice(0, 4) : '');
 
 onMounted(async () => {
   try {
-    const data = await rankApi.albums({ limit: 5 });
+    // ⚠️ 2026-10-18 第四十七批：5 → 6。
+    //   用户截图指出「正在被投票的专辑」两行只有 5 张 + 1 个空位，"给这里两行补齐一共六张"。
+    //   网格是 3 列 ⇒ 6 张正好铺满两行，不留半个空位。
+    const data = await rankApi.albums({ limit: 6 });
     top.value = data.list || [];
   } catch (err) {
     ElMessage.error(err?.message || '榜单加载失败');
