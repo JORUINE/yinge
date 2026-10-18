@@ -299,8 +299,14 @@ onMounted(loadNext);
   text-align: left;
   padding: 12px 14px;
   border-radius: 13px;
-  border: 1px solid var(--gbd);
+  /* ⚠️⚠️ 2026-10-18 第五十批：用户「你为什么把它们的边框去掉了 加回来」。
+     边框声明本身一直在（1px solid var(--gbd)），问题出在 **--gbd 太淡**：
+     这六个块是 .glass2 底（半透明白），叠在浅蓝渐变背景上时，
+     1px 的 --gbd 几乎与背景同色 ⇒ 看起来"没有边框、直接浮在背景上"。
+     修法：改用更实的描边色 + 一点内高光，边界重新"立"起来。 */
+  border: 1px solid var(--line);
   background: var(--glass2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 8px rgba(8, 58, 92, 0.06);
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s, transform 0.12s;
 }

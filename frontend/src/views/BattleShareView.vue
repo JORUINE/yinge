@@ -480,38 +480,22 @@ onMounted(load);
 }
 /* ⚠️ 2026-09-23：方卡原来定死 `aspect-ratio: 1/1` → 内容一多就叠字（用户截图）。
    现在只给一个"接近方形"的起始高度，内容多则自动变高（用户拍板"图高自适应，不裁不叠"）。 */
-/* ⭐⭐ 2026-10-18 第四十八批：让方形版**真的是方形**（用户："竖版和方形版根本没什么区别
-   和电脑端导出的一对比更是完全不一样"）。
+/* ⭐⭐⭐ 2026-10-18 第五十批：**方形版＝竖版同一套版式，只有比例不同**
    ------------------------------------------------------------
-   病根：上一版 `.scard.square` 只改了 padding / 字号 / 封面宽度，**版式仍是竖版那套竖排堆叠**
-   ⇒ 内容高度由内容自己撑，导出后比例 0.93（竖版 0.70），两者视觉几乎一样。
-   做法（不动 DOM、不违背"图高自适应不叠字"）：
-     ① 用 `aspect-ratio: 1/1` 把卡片**锁成正方形**（宽度由页面决定，高度自动等于宽度）；
-     ② 同时把内部尺寸压紧约 8%（封面 46%→40%、gap 14→9、脚注间距收紧、字号微降），
-        让**内容真的装得下** —— 这样 aspect-ratio 不会被内容撑破，也不会裁字；
-     ③ 用 `min-height: 0` + `justify-content: center` 保证内容垂直居中、
-        万一某天内容变多也是居中溢出而不是从底部叠到脚注上。
-   ⚠️ 若以后改了内容（比如加了新字段），必须回来跑 `probe-r48-share-shape.mjs` 复核比例仍为 1:1。 */
+   用户原话（强烈反对第四十八批的做法）：
+     "谁让你把方形图改成这种布局的，方形图不管是手机还是电脑都用之前那个。
+      方形和竖版唯一的区别就是比例 而不是里面完全变了"
+     "你绝对不能擅自改变已经完美的设计语言"
+   ⇒ 第四十八批那套"两栏 Grid"已整个回退（git checkout 到第四十七批）。
+     这里只做**一件事**：把比例锁成 1:1。
+     为了让它真的成立，配合把间距/封面**极小幅收紧**（不改结构、不改元素顺序、不改配色），
+     否则内容比 1:1 高出 27px，卡片会被撑回 0.93（又变成"没区别"）。
+   ⚠️ 若内容再变多，`min-height: 0` 也挡不住撑高 —— 届时宁可比例略大于 1，绝不裁字。 */
 .scard.square {
-  aspect-ratio: 1 / 1 !important;
-  /* ⚠️⚠️ 2026-10-18 第四十八批 · **这一行是关键**
-     ------------------------------------------------------------
-     `.scard` 的基础样式里有 `min-height: 520px`（竖版内容多，当年加的）。
-     `aspect-ratio` **不能覆盖 min-height** —— 所以方卡宽度 342px 时本该 342 高，
-     却被 min-height 硬顶到 520px ⇒ 实测 `domH 520 / domW 342 = 0.658`，
-     和竖版（0.619）几乎一样。这就是"竖版和方形版没区别"的真正原因。
-     必须把 min-height 归零，aspect-ratio 才能生效。
-     ⚠️ 归零后如果内容高于方卡，`min-height:auto` 会让卡片被内容撑高（不裁字）——
-        这是有意保留的安全阀：宁可略高也不裁。 */
-  min-height: 0 !important;
-  /* ⚠️⚠️ 2026-10-18 第四十八批：**不要**写 `min-height: 0`。
-     实测锁 1:1 后内容比可用高度多出 85px；如果强制 min-height:0，
-     aspect-ratio 就会把卡片钉死成正方，多出来的内容会被 `.scard` 的 overflow:hidden **裁掉**
-     —— 那正好违背用户当年拍板的"图高自适应，不裁不叠"。
-     所以这里**保持默认 min-height:auto**：内容装得下时就是严格 1:1；
-     某天内容变多（对手更多 / 名字更长）时，卡片会被内容撑得略高，**宁可不是正方形也不裁字**。
-     ⚠️ 改了卡片内容（加字段/改字号）后必须重跑 probe-r48-share-shape.mjs 复核比例。 */
-  padding: 7px 16px 7px;
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  /* 只在方形版把上下留白收一点（竖版不受影响） */
+  padding: 12px 18px 10px;
 }
 /**
  * 方形图的版式（2026-09-22 按用户给的草图重排）
@@ -527,56 +511,29 @@ onMounted(load);
   padding: 14px 18px 12px;
 }
 .scard.square .stop {
-  font-size: 11px;
-  letter-spacing: 1px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
 }
 .scard.square .stitle {
-  font-size: 11px;
-  margin-top: 0;
+  font-size: 12.5px;
+  margin-top: 1px;
 }
 .scard.square .smain {
-  /* ⭐⭐ 2026-10-18 第四十八批：方形版改成**两栏**（这是让"方形"真正不同于竖版的唯一办法）
-     ------------------------------------------------------------
-     实测过程（都在真实导出链路上量的）：
-       ① 只锁 aspect-ratio:1/1 → 内容多 85px，且强制 min-height:0 会**裁字**（违背"不裁不叠"）
-       ② 压紧尺寸 → 内容仍多 42px，卡片被撑成 0.658，与竖版 0.619 几乎一样（用户抱怨的原样）
-     根因：这套内容（★冠军★ + 封面 + 名字 + 艺人 + 对手缩略图 + 轮次 + 统计）是**单列堆叠**，
-          在 1:1 的方卡里天然装不下，除非把封面缩到 22%（那就违背"冠军做大"）。
-     正解：方形卡有富余的**宽度**，把右半边用起来 ——
-          左栏＝封面 + 名字 + 艺人，右栏＝对手缩略图 + 轮次路径。
-          DOM 顺序不变（用 grid-area 重排），竖版完全不受影响。
-     ⚠️ 只改 `.scard.square` 作用域，竖版一个像素都不动。 */
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
-  grid-template-areas:
-    'crown   crown'
-    'art     spath'
-    'cname   roundline'
-    'cartist roundline';
-  grid-template-rows: auto auto auto 1fr;
-  column-gap: 14px;
-  row-gap: 3px;
-  align-content: center;
-  justify-items: center;
+  /* 2026-10-18 第五十批：4 → 3px（方卡锁 1:1 需微收一点才装得下，版式不变） */
+  gap: 3px;
   /* ⚠️ 原来这里 `overflow:hidden` 会把最后一行「轮次路径」(.roundline) 裁掉
-     （用户 09-23：「八强这两行字不能被遮挡」）。现在同样不加。 */
-  justify-content: center;
+     形成"轮次不见了 / 被遮住"（用户 09-23：「八强这两行字不能被遮挡」）。
+     现在去掉——卡片本体 `.scard` 已有 overflow:hidden 兜底，不会撑破卡。 */
 }
-/* 各块落位（只对方形版生效） */
-.scard.square .crown { grid-area: crown; justify-self: center; }
-.scard.square .smain .art { grid-area: art; justify-self: center; }
-.scard.square .cname { grid-area: cname; justify-self: center; text-align: center; }
-.scard.square .cartist { grid-area: cartist; justify-self: center; text-align: center; }
-.scard.square .spath { grid-area: spath; justify-self: center; align-self: center; }
-.scard.square .roundline { grid-area: roundline; justify-self: center; align-self: start; text-align: center; }
 /* ⚠️ 2026-09-22 实测发现：方形卡里内容比可用高度**多出 16px**，
    结果 `.roundline`（「半决赛 → 决赛」那一行）被 `.smain` 的 overflow:hidden 裁掉了 ——
    量出来 smain 可见高 319、内容高 335，轮次行落在 357 之外，用户看到的就是"轮次路径不见了"。
    修法：把方卡里的几处尺寸各收一点（合计约 21px），让整块真的放得下。
    为什么不靠"再裁一点"兜底：轮次路径是这张图的信息之一，不能靠裁掉它来"看起来没问题"。 */
 .scard.square .crown {
-  font-size: 12.5px;
-  letter-spacing: 2px;
+  /* 2026-09-24 第十四批：13 → 15px（与竖版同步放大） */
+  font-size: 15px;
+  letter-spacing: 3px;
   margin: 0;
 }
 /* 冠军封面：**按宽度定尺寸**（width + 基类的 aspect-ratio:1 自动出高）。
@@ -585,9 +542,9 @@ onMounted(load);
    用户要的"冠军做大"根本没生效。改成定宽度就完全确定了：
    smain 宽 384 → 46% = 177px，占 420 高的方形卡 42%。 */
 .scard.square .smain .art {
-  /* 2026-10-18 第四十八批：46% → 40% → 30% —— 锁 1:1 后实测内容多出 85px，
-     封面收一档才装得下（配合 gap 14→5、字号与脚注收紧，合计省约 87px）。 */
-  width: 30%;
+  /* 2026-10-18 第五十批：46% → 42%。方卡锁 1:1 后可用高变紧，
+     封面微收一档才装得下（版式、顺序、配色全不变，只是略小）。 */
+  width: 42%;
   height: auto;
   /* ⚠️ 必须关掉 flex 收缩：.smain 是列向 flex，内容一多就会把封面**压缩**，
      压到量出来只有卡高的 34%（用户要的"冠军做大"就没生效）。
@@ -595,12 +552,12 @@ onMounted(load);
   flex: 0 0 auto;
 }
 .scard.square .cname {
-  font-size: 19px;
+  font-size: 23px;
   line-height: 1.15;
   margin-top: 0;
 }
 .scard.square .cartist {
-  font-size: 11.5px;
+  font-size: 12.5px;
   margin-top: 0;
 }
 /* 其他专辑：一排缩略图，做成"小相框"更好认 */
@@ -609,21 +566,23 @@ onMounted(load);
 }
 .scard.square .spath div {
   /* 方卡里的其他专辑同样放大（36 → 46px），用户："大一点" */
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
 }
 .scard.square .roundline {
-  font-size: 13px;
+  /* 2026-09-24 第十八批：15 → 18px（与竖版同步）；2026-10-11 第三十五批：18 → 16px（同竖版） */
+  font-size: 16px;
   letter-spacing: 0.05em;
 }
 /* ⚠️ 这里原来有一条 `border-top` —— 那正是用户说的"明显的分割线、像两个矩形框拼在一起"，已去掉。
    现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。
    2026-09-24 第十三批：小字 12 → 13px、间距略放开（用户："下面的小字体大小大一点点，然后间距合理"）。 */
 .scard.square .sfoot {
-  font-size: 12px;
-  margin-top: 3px;
-  gap: 3px;
+  /* 2026-09-24 第十八批：15 → 18px；2026-10-11 第三十五批：18 → 16px（同竖版） */
+  font-size: 16px;
+  margin-top: 14px;
+  gap: 12px;
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。

@@ -31,77 +31,116 @@ export function isIOS() {
 }
 
 /**
- * 把页面元素导出成 PNG dataURL。
- * @param {HTMLElement} el
- * @param {{targetWidth?: number, bg?: string}} opts
+ * 是不是**手机/平板**（决定导出引擎与保存方式）
+ * ------------------------------------------------------------
+ * ⚠️ 2026-10-18 第五十批：**不能用 `navigator.share` 是否存在来判断"是不是手机"**。
+ *   实测（Windows Chrome 1440）：`navigator.share` 存在 ⇒ 桌面点保存会唤起
+ *   Windows 系统「共享」窗口（用户截图："以前都是直接浏览器就保存了，多方便"）。
+ *   正解：按**触屏 + 窄屏**判断设备形态，桌面一律走 `<a download>` 直接下载。
  */
-export async function exportCardPng(el, { targetWidth = 1080, bg = null } = {}) {
-  return exportNodeToPng(el, { targetWidth, bg });
+export function isMobileDevice() {
+  if (typeof window === 'undefined') return false;
+  const narrow = window.matchMedia('(max-width: 820px)').matches;
+  const touch = (navigator.maxTouchPoints || 0) > 1 || 'ontouchstart' in window;
+  // 两者都满足才算移动端：桌面触摸屏（窄窗口以外）不会被误判
+  return narrow && touch;
 }
 
 /**
- * 保存 PNG 到本地 —— 三级降级，覆盖 iOS / Android / 微信 / 桌面。
+ * 把页面元素导出成 PNG dataURL。
+ * @param {HTMLElement} el
+ * @param {{targetWidth?: number, bg?: string, forceHtml2canvas?: boolean}} opts
+ *   forceHtml2canvas —— 不传则**移动端自动用它**（见下方注释）
+ */
+export async function exportCardPng(el, { targetWidth = 1080, bg = null, forceHtml2canvas = null } = {}) {
+  // ⚠️ 移动端必须用 html2canvas：实测真机上 SVG foreignObject 方案会让
+  //    iTunes 封面变成空白框（用户："专辑信息丢失了 这里的Bug最多最严重"）。
+  const prefer = forceHtml2canvas === null ? isMobileDevice() : forceHtml2canvas;
+  return exportNodeToPng(el, { targetWidth, bg, preferHtml2canvas: prefer });
+}
+
+/**
+ * 保存 PNG 到本地
+ * ------------------------------------------------------------
+ * ⚠️⚠️ 2026-10-18 第五十批（用户强烈反馈后重写）：
+ *   用户原话："导出分享图现在电脑端会唤出这个窗口（系统共享面板） 以前都是直接浏览器就保存了
+ *     多方便 以前那种那么好"；"ios里点了保存后 确实存到相册了 但是没有提示
+ *     用户根本意识不到保存成功了"。
+ *
+ * 所以分成两条**互不干扰**的路：
+ *   · **桌面端** → 只用 `<a download>` 直接下载。**绝不调 navigator.share**
+ *     （Windows Chrome 也有 share，一调就弹系统共享窗，用户不要这个）。
+ *   · **移动端** → 优先 `navigator.share({files})`（iOS 存相册最顺）；
+ *     **等它真的 resolve 之后**再弹"已保存到相册"（不是提前弹）；
+ *     share 不可用则退回 Blob 下载；iOS 再不行就新窗口打开提示长按。
+ *
  * @param {string} dataUrl PNG 的 dataURL
  * @param {string} fileName 文件名
- * @param {{silent?: boolean}} opts silent=true 时不弹"已保存"之类的提示（调用方自己提示）
+ * @param {{silent?: boolean}} opts silent=true 时不弹提示（调用方自己提示）
  * @returns {Promise<'shared'|'downloaded'|'ios-longpress'|'failed'>} 走了哪条路
  */
 export async function savePng(dataUrl, fileName, { silent = false } = {}) {
   const { ElMessage } = await import('element-plus');
   const blob = await (await fetch(dataUrl)).blob();
   const url = URL.createObjectURL(blob);
+  const mobile = isMobileDevice();
 
-  // ① 系统分享面板（手机上存相册最顺的一条路；需要安全上下文，http://192.168.x.x 下会不可用）
-  try {
-    const file = new File([blob], fileName, { type: 'image/png' });
-    if (navigator.canShare?.({
-      files: [file],
-    }) && navigator.share) {
-      await navigator.share({
-        files: [file],
-        title: '音格',
-      });
-      if (!silent) ElMessage.success('已调起分享，选「存储图像」即可存到相册');
-      return 'shared';
+  // ── 移动端①：系统分享面板（能存相册）──
+  if (mobile) {
+    try {
+      const file = new File([blob], fileName, { type: 'image/png' });
+      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], title: '音格' });
+        // ⚠️ 这里 await 已经等用户走完系统面板了，才弹"已保存" —— 用户才看得见
+        if (!silent) ElMessage.success('已保存到相册');
+        return 'shared';
+      }
+    } catch (e) {
+      // 用户主动取消：不算失败，也不再弹"已保存"
+      if (e?.name === 'AbortError') return 'shared';
     }
-  } catch (e) {
-    if (e?.name === 'AbortError') return 'shared'; // 用户主动取消，不算失败
+
+    // ── 移动端②：Blob 下载（部分安卓浏览器可用）──
+    const a0 = document.createElement('a');
+    a0.href = url;
+    a0.download = fileName;
+    document.body.appendChild(a0);
+    a0.click();
+    a0.remove();
+
+    // ── 移动端③：iOS 的 download 不生效 → 打开图片让用户长按 ──
+    if (isIOS()) {
+      await new Promise((r) => setTimeout(r, 350));
+      let opened = null;
+      try { opened = window.open('', '_blank'); } catch { /* 被拦截 */ }
+      if (opened) {
+        opened.document.write(
+          '<!doctype html><meta charset="utf-8">'
+          + `<title>${fileName}</title>`
+          + '<body style="margin:0;background:#062130;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh">'
+          + `<img src="${dataUrl}" style="max-width:100%;display:block" alt="">`
+          + '<p style="color:#fff;font:14px -apple-system,sans-serif;padding:16px;text-align:center">长按图片即可「存储图像」</p>'
+          + '</body>',
+        );
+        opened.document.close();
+      }
+      if (!silent) ElMessage.info(opened ? '已打开图片，长按即可存储到相册' : '请点右上角「···」用 Safari 打开后再保存');
+      setTimeout(() => URL.revokeObjectURL(url), 120000);
+      return 'ios-longpress';
+    }
+
+    if (!silent) ElMessage.success('已保存到本地');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return 'downloaded';
   }
 
-  // ② Blob URL + download 属性（桌面与部分安卓可用；iOS 点了没反应但不会报错）
+  // ── 桌面端：只做直接下载（不碰 navigator.share）──
   const a = document.createElement('a');
   a.href = url;
   a.download = fileName;
   document.body.appendChild(a);
   a.click();
   a.remove();
-
-  // ③ iOS：download 属性无效 ⇒ 新窗口打开图片，让用户长按保存
-  if (isIOS()) {
-    await new Promise((r) => setTimeout(r, 350));
-    let opened = null;
-    try {
-      opened = window.open('', '_blank');
-    } catch { /* 被浏览器拦截时 opened 为 null */ }
-    if (opened) {
-      // ⚠️ 不能直接把 2~5MB 的 baseURL 写进 document.write（iOS 上会被截断）⇒ 用 img 标签 + src
-      opened.document.write(
-        '<!doctype html><meta charset="utf-8">'
-        + `<title>${fileName}</title>`
-        + '<body style="margin:0;background:#062130;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh">'
-        + `<img src="${dataUrl}" style="max-width:100%;display:block" alt="">`
-        + '<p style="color:#fff;font:14px -apple-system,sans-serif;padding:16px;text-align:center">长按图片即可「存储图像」</p>'
-        + '</body>',
-      );
-      opened.document.close();
-    }
-    if (!silent) {
-      ElMessage.info(opened ? '已打开图片，长按即可存储到相册' : '请点右上角「···」用 Safari 打开后再保存');
-    }
-    setTimeout(() => URL.revokeObjectURL(url), 120000);
-    return 'ios-longpress';
-  }
-
   if (!silent) ElMessage.success('已保存到本地');
   setTimeout(() => URL.revokeObjectURL(url), 60000);
   return 'downloaded';

@@ -209,9 +209,29 @@ onMounted(async () => {
   background: linear-gradient(160deg, rgb(var(--scrim-rgb) / 0.72), rgb(var(--scrim-rgb) / 0.82));
 }
 .ptcard-v2 > .glowc,
+/* ═══════════════════════════════════════════════════════════════════════
+ * 2026-10-18 第五十批 · 人格图鉴详情页：卡片在手机上不再溢出（用户："依旧是布局错误"）
+ * ---------------------------------------------------------------------
+ * `.ptface` 之前**没有任何样式**，作为 grid 子项它的 `min-width` 默认是 `auto`
+ * ⇒ 内部卡片（PersonalityCard 用 inline maxWidth + JS 算的 boxH）会把这一列撑宽，
+ *   手机上表现为卡片右边被裁掉一截。
+ * 修法：
+ *   ① `min-width: 0` —— 允许这一列被压缩（flex/grid 的经典坑）
+ *   ② `width: 100%` + 居中，让卡片宽度跟随容器而不是反过来撑容器
+ * ⚠️ 桌面上 `.ptface` 本来就是按列宽排，加这两条不改变任何视觉效果。
+ * ═══════════════════════════════════════════════════════════════════════ */
 .ptcard-v2 > .pthd {
   position: relative;
   z-index: 1;
+}
+.ptface {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.ptface > * {
+  max-width: 100%;
 }
 
 /* 研究证据列表 */

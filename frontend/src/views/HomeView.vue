@@ -138,10 +138,11 @@ const year = (d) => (d ? String(d).slice(0, 4) : '');
 
 onMounted(async () => {
   try {
-    // ⚠️ 2026-10-18 第四十七批：5 → 6。
-    //   用户截图指出「正在被投票的专辑」两行只有 5 张 + 1 个空位，"给这里两行补齐一共六张"。
-    //   网格是 3 列 ⇒ 6 张正好铺满两行，不留半个空位。
-    const data = await rankApi.albums({ limit: 6 });
+    // ⚠️ 2026-10-18 第五十批：6 → 10。
+    //   用户：「手机端显示 6 张两行刚好合适 但是切回 PC 端这里就是不全的 让 PC 端补全」。
+    //   PC 端 .covers 是 5 列 ⇒ 只有 6 张时会变成「5 + 1」两行（第二行孤零零一张，很难看）；
+    //   取 10 张正好铺满两行。手机端用 CSS 只显示前 6 张（3 列 × 2 行）。
+    const data = await rankApi.albums({ limit: 10 });
     top.value = data.list || [];
   } catch (err) {
     ElMessage.error(err?.message || '榜单加载失败');

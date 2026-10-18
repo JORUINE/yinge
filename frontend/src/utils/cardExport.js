@@ -61,12 +61,30 @@ async function inlineImages(srcEl, dstEl) {
 /**
  * 导出为 PNG dataURL。
  * @param {HTMLElement} el 要导出的元素（必须是页面里已渲染的）
- * @param {{targetWidth?: number, fallback?: boolean, bg?: string}} opts
+ * @param {{targetWidth?: number, fallback?: boolean, bg?: string, preferHtml2canvas?: boolean}} opts
  *   bg —— 实心底色。**分享图必须实心底**（透明底的 PNG 发到朋友圈/小红书会变成黑块或灰块）；
  *   不传就保持透明（原来的行为）。
+ *   preferHtml2canvas —— 直接用 html2canvas（跳过 SVG 方案）。
+ *     ⚠️ 2026-10-18 第五十批：**移动端必须用它**。
+ *     实测（probe-r50-export-diag）：卡片里 5 张 iTunes 封面 `fetch` 全部能转 base64，
+ *     但在真机（iOS/安卓）上 SVG foreignObject 的渲染结果里封面**仍是 http URL ⇒ 空白框**
+ *     （用户截图："保存好的图片里面专辑信息丢失了"），而桌面 Chrome 正常。
+ *     html2canvas 走 DOM 快照 + `useCORS`，图片处理在移动端成熟得多。
+ *     代价：它会自己算布局，`calc(var(...))` 类的间距可能略有偏差（第三十一批已知）。
+ *     **用户明确要求"图片必须完整、以前那种就很好" ⇒ 优先保证图片不丢**。
  * @returns {Promise<string>} dataURL
  */
-export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true, bg = null } = {}) {
+export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true, bg = null, preferHtml2canvas = false } = {}) {
+  if (preferHtml2canvas) {
+    const canvas = await html2canvas(el, {
+      scale: Math.max(2, targetWidth / el.offsetWidth),
+      backgroundColor: bg || null,
+      useCORS: true,
+      allowTaint: false,
+      logging: false,
+    });
+    return canvas.toDataURL('image/png');
+  }
   try {
     const W = el.offsetWidth;
     const H = el.offsetHeight;

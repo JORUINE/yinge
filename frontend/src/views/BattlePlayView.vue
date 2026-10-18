@@ -144,9 +144,13 @@
         </div>
       </div>
 
-      <!-- 小组赛播放条：与淘汰赛同一套（整专辑曲目 + 上一首 / 播放暂停 / 下一首 + 序号） -->
+      <!-- 小组赛 / 对位赛播放条
+           ⚠️⚠️ 2026-10-18 第五十批：这个播放器**之前漏改了**（用户："对位赛的播放器样式没实现"）。
+           它一直是旧结构（.a 封面 + .t 信息 + .trk/.pp 三个按钮），
+           而第四十六批把 iPod 转盘样式提成全局后，样式命中了 `.nowbar` 却**没有对应的 .wheel DOM**
+           ⇒ 就变成用户截图里"小封面 + 三个竖排小按钮 + 一大片空白"的怪样子。
+           现在与淘汰赛那个（下方 325 行附近）**完全同构**：.t + .wheel（四方向）+ 盘心封面。 -->
       <div v-if="playerAlbum && curTrack" class="nowbar">
-        <div class="a"><img :src="playerAlbumArt" alt="" /></div>
         <div class="t">
           <b>{{ curTrack.name }}</b>
           <span>
@@ -155,20 +159,31 @@
             <template v-else>这首没有试听片段</template>
           </span>
         </div>
-        <button class="trk" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
-          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
-        </button>
-        <button class="pp" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
-          <svg viewBox="0 0 24 24">
-            <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
-            <path v-else d="M8 5v14l11-7z" />
-          </svg>
-        </button>
-        <button class="trk" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
-          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
-        </button>
-        <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
+        <div class="wheel" :class="{ playing }">
+          <div class="wheel-art"><img :src="playerAlbumArt" alt="" /></div>
+          <span v-if="tracks.length" class="tno">{{ trackIdx + 1 }} / {{ tracks.length }}</span>
+          <button class="wk wk-up" type="button" title="上一首" :disabled="prevPlayable(trackIdx - 1) < 0" @click="prevTrack">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5-6v12z" /></svg>
+            <em>上一首</em>
+          </button>
+          <button class="wk wk-right" type="button" title="下一首" :disabled="nextPlayable(trackIdx + 1) < 0" @click="nextTrack">
+            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z" /></svg>
+            <em>下一首</em>
+          </button>
+          <button class="wk wk-down" type="button" :title="playing ? '暂停' : '播放'" @click="togglePlay">
+            <svg viewBox="0 0 24 24">
+              <path v-if="playing" d="M6 5h4v14H6zM14 5h4v14h-4z" />
+              <path v-else d="M8 5v14l11-7z" />
+            </svg>
+            <em>{{ playing ? '暂停' : '播放' }}</em>
+          </button>
+          <button class="wk wk-left" type="button" title="后退 15 秒" @click="seekRel(-15)">
+            <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z" /></svg>
+            <em>后退</em>
+          </button>
+        </div>
       </div>
+      <p v-if="playerAlbum && curTrack" class="np-tip">对决对象是<b>专辑</b>，试听片段只帮你听个大概，<b>不参与计票</b></p>
 
       <p class="note">
         <b>说明：</b>小组赛每组 4 张一次性选 2 张晋级；晋级数不足 2 的幂时，落选者进遗珠复活补名额，
