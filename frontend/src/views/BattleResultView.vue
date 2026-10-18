@@ -174,7 +174,10 @@
             <div class="cw">CHAMPION · 冠军</div>
             <h3>{{ champion.name }}</h3>
             <p>{{ championMeta }}</p>
-            <div class="btns">
+            <!-- ⚠️ 2026-10-18 第四十九批：桌面档的四个按钮留在这里（与改前完全一致）；
+                 手机档移到下方独立的圆角框 `.actbox`（用户草图：下方带圆角矩形框装四个按钮）。
+                 两套 DOM 用 v-if 二选一，**桌面端不会多出任何节点** ⇒ 同输入 A/B 保 0 差异。 -->
+            <div v-if="!isPhone" class="btns">
               <RouterLink :to="{ name: 'battle-share', params: { id } }" class="btn pri">
                 <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
@@ -203,6 +206,25 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- ⭐ 2026-10-18 第四十九批：手机档的操作区（用户草图）
+             "下方用一个带圆角的矩形框 然后把生成夺冠之路 再来一次 和好友一起玩 收藏
+              依次按照我画的位置摆放 然后文字都尽量在一行 不要换行"
+             顺序＝生成夺冠之路 / 再来一次 / 和好友一起玩 / 收藏，2×2 网格；
+             每个按钮 nowrap，文字绝不折行。桌面档不渲染这一块（按钮仍在 .cinfo 里）。 -->
+        <div v-if="isPhone" class="actbox">
+          <RouterLink :to="{ name: 'battle-share', params: { id } }" class="actbtn pri">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M12 16V4M8 8l4-4 4 4M5 20h14" />
+            </svg>
+            生成夺冠之路
+          </RouterLink>
+          <RouterLink :to="{ name: 'battle-create' }" class="actbtn">再来一次</RouterLink>
+          <button class="actbtn" type="button" :disabled="inviting" @click="makeInvite">
+            {{ inviting ? '生成中…' : '和好友一起玩' }}
+          </button>
+          <FavoriteButton :album="champion" />
         </div>
 
         <!-- 亚军 / 季军（守则 19）：亚军=决赛负方；季军=四强落败者中累计得票更高者 -->
@@ -423,6 +445,19 @@ const reportEl = ref(null);
 const shareEl = ref(null);
 const exporting = ref(false);
 
+/**
+ * 是否手机档（≤640）—— 决定结算页按钮**用哪套 DOM**
+ * ------------------------------------------------------------
+ * 用户草图（2026-10-18 确认理解正确）：封面在左上、歌手与专辑名位置不变，
+ * **下方用一个带圆角的矩形框**装四个按钮（生成夺冠之路 / 再来一次 / 和好友一起玩 / 收藏），
+ * 按钮文字尽量一行不换行。
+ * ⚠️ 桌面端的四个按钮原本在 `.cinfo` 信息列里（横排 wrap）。要让它们在手机档
+ *    "横跨整行、独立成框"，必须把按钮从 `.cinfo` 里**挪出来** —— 纯 CSS 做不到。
+ *    所以在桌面端**仍然渲染旧结构**（v-if="!isPhone"），手机端才渲染 `.actbox`。
+ *    ⚠️ 教训来自第四十七批：两套都渲染只靠 CSS 切，会让桌面 DOM 多出节点 ⇒ A/B 报差异。
+ */
+const isPhone = ref(false);
+let mqPhone = null;
 // —— 和好友一起玩：同款签表 ——
 const inviting = ref(false);
 const invite = ref({ code: '' });
@@ -728,6 +763,10 @@ async function load() {
 onMounted(() => {
   clearResumeIf(route.params.id);
   load();
+  // 手机档判定（决定结算页按钮用哪套 DOM，见 isPhone 注释）
+  mqPhone = window.matchMedia('(max-width: 640px)');
+  isPhone.value = mqPhone.matches;
+  mqPhone.addEventListener?.('change', (e) => { isPhone.value = e.matches; });
 });
 </script>
 
@@ -941,6 +980,87 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+ * 2026-10-18 第四十九批 · 结算页操作区（手机档，按用户草图）
+ * ---------------------------------------------------------------------
+ * 用户原话："结算页应该像我新画的这个布局一样专辑图片左上角 然后原本的歌手和专辑
+ *   名字位置不变 然后下方用一个带圆角的矩形框 然后把生成夺冠之路 再来一次
+ *   和好友一起玩 收藏 依次按照我画的位置摆放 然后文字都尽量在一行 不要换行"
+ *
+ * 结构：一个圆角玻璃框，里面 2×2 网格放四个操作。
+ *  ⚠️ 只渲染在手机档（模板 v-if="isPhone"）——桌面档的四按钮仍在 .cinfo 里，结构未动。
+ * ⚠️ 每个按钮 `white-space: nowrap`：文字**绝不折行**；实在放不下时用省略号，
+ *    而不是掉成两行把框撑高（用户明确要求"文字都尽量在一行"）。
+ * ═══════════════════════════════════════════════════════════════════════ */
+.actbox {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  box-shadow: 0 10px 28px rgba(8, 58, 92, 0.14);
+}
+.actbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0 10px;
+  border: 1px solid var(--gbd);
+  border-radius: 13px;
+  background: var(--glass2);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  /* 文字一行，绝不折行 */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.actbtn:active:not(:disabled) {
+  transform: scale(0.975);
+}
+.actbtn:disabled {
+  opacity: 0.6;
+}
+.actbtn.pri {
+  border-color: transparent;
+  background: linear-gradient(160deg, #f0a63a, #d97b00);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(217, 123, 0, 0.34);
+}
+.actbtn .ico {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+/* 收藏按钮在框里也统一成同款按钮外观。
+   ⚠️ 用 !important：FavoriteButton 是独立组件，它的 `.favbtn` 也带 scoped 属性，
+      特异性与本规则打平（都是 0,2,0），谁后加载谁赢 —— 不可控。
+      这里是"在特定容器里改子组件外观"的典型场景，用 !important 是明确且安全的做法。 */
+.actbox :deep(.favbtn) {
+  min-height: 46px !important;
+  border-radius: 13px !important;
+  border: 1px solid var(--gbd) !important;
+  background: var(--glass2) !important;
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  width: 100%;
+  justify-content: center;
 }
 
 /* 亚军 / 季军 */
