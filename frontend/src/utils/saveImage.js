@@ -47,17 +47,19 @@ export function isMobileDevice() {
 }
 
 /**
- * 导出前把所有 `<img>` **串行**换成 dataURL，导出完再换回来。
+ * 导出前把所有 `<img>` 转成 dataURL，导出完再换回来。
  * ------------------------------------------------------------
- * ⚠️⚠️ 2026-10-18 第五十二批：为什么不再依赖 cardExport 里的 `inlineImages`
- *   用户真机实测："手机端保存的图里面专辑信息丢失了"（封面/对手缩略图变空框）。
- *   实测：桌面 Chrome 里 5 张封面 fetch 全部成功，但**真机 SVG 里 img 的 src 仍是 https://**
- *   ——原因是 `inlineImages` 用 `Promise.all` **并发**拉 5 张图，
- *   移动端（尤其 iOS Safari）对并发 fetch + FileReader 有更严的资源限制，容易整体失败。
- *   本函数改成 **for-await 串行**：一张一张来，每张都有独立 try/catch，
- *   一张失败不影响其它；失败的保持原 src（至少不阻断导出）。
- *   ⚠️ 必须在 `exportNodeToPng` **之前**调用，这样 SVG 里天然就是 dataURL，
- *     不再依赖 `inlineImages` 的判断。
+ * ⚠️⚠️ 2026-10-20 第五十五批：**主路径从 fetch 改成 canvas 重绘**
+ *   用户真机复现：分享图 / 对位赛战报 / 人格卡**保存下来封面与缩略图全变空白框**，
+ *   而页面上的封面是好的。上一批（第五十四批）我以为是 SVG 引擎的图片问题，
+ *   实测发现真正的根因是 **`fetch(src, {mode:'cors'})` 在真机上会失败**：
+ *     · 实验（_r55-imgdiag.mjs）：只 abort `resourceType==='fetch'` 的图片请求、
+ *       让 `<img>` 正常加载 ⇒ 复现"图丢字留"（导出色数 669 → 283）；
+ *     · 同一次实验里 **canvas 重绘 100% 成功**（即使 fetch 被完全拦掉）。
+ *   为什么 canvas 一定行：这些 `<img>` 都带 `crossorigin="anonymous"` 且**已经在页面上
+ *   加载成功了**（否则用户根本看不到封面）⇒ 浏览器已拿到带 CORS 头的位图
+ *   ⇒ `drawImage` 进画布不会污染 ⇒ `toDataURL()` 可用。**不依赖再发一次网络请求。**
+ *   ⇒ 抓不到的图不再只能是空白框：回源不到就保持原地址，至少不阻断导出。
  * @returns {Promise<() => void>} 还原函数（务必在 finally 里调用）
  */
 async function preloadImagesAsDataUrl(el) {
@@ -66,27 +68,53 @@ async function preloadImagesAsDataUrl(el) {
   for (const im of imgs) {
     const src = im.currentSrc || im.src;
     if (!src || src.startsWith('data:') || src.startsWith('blob:')) continue;
+    let b64 = null;
+    const pngish = /\.png(\?|$)|image\/png/i.test(src);
+
+    // ① 主路径：canvas 重绘（不发网络请求，真机可靠）
     try {
-      // 串行 fetch：真机上并发更容易失败（实测）
-      // eslint-disable-next-line no-await-in-loop
-      const r = await fetch(src, { mode: 'cors' });
-      // eslint-disable-next-line no-await-in-loop
-      const blob = await r.blob();
-      // eslint-disable-next-line no-await-in-loop
-      const b64 = await new Promise((res, rej) => {
-        const fr = new FileReader();
-        fr.onload = () => res(fr.result);
-        fr.onerror = () => rej(new Error('read'));
-        fr.readAsDataURL(blob);
-      });
-      saved.push({ im, src: im.getAttribute('src') });
-      im.setAttribute('src', b64);
-      // 等这张真正解码完，避免 SVG 抓到一个还没解码的 img
-      // eslint-disable-next-line no-await-in-loop
-      await im.decode?.().catch(() => {});
+      if (!im.complete || !im.naturalWidth) {
+        // 还没解码完就先等它（拿不到就自然落到兜底）
+        // eslint-disable-next-line no-await-in-loop
+        await im.decode?.().catch(() => {});
+      }
+      if (im.complete && im.naturalWidth > 0) {
+        const c = document.createElement('canvas');
+        c.width = im.naturalWidth;
+        c.height = im.naturalHeight;
+        c.getContext('2d').drawImage(im, 0, 0);
+        // 透明图（PNG）必须保留 alpha，JPEG 会把透明区涂黑
+        b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+      }
     } catch {
-      /* 单张失败就保留原地址，不阻断整体导出 */
+      /* 画布被污染 / 其它异常 → 走兜底 */
     }
+
+    // ② 兜底：fetch → blob → base64（canvas 不可用时才退到这里）
+    if (!b64 || b64.length < 64) {
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        const r = await fetch(src, { mode: 'cors' });
+        // eslint-disable-next-line no-await-in-loop
+        const blob = await r.blob();
+        // eslint-disable-next-line no-await-in-loop
+        b64 = await new Promise((res, rej) => {
+          const fr = new FileReader();
+          fr.onload = () => res(fr.result);
+          fr.onerror = () => rej(new Error('read'));
+          fr.readAsDataURL(blob);
+        });
+      } catch {
+        /* 单个失败不阻断整体导出 */
+      }
+    }
+
+    if (!b64 || b64.length < 64) continue;
+    saved.push({ im, src: im.getAttribute('src') });
+    im.setAttribute('src', b64);
+    // 等换过来的图真正解码完，避免 SVG 抓到一个还没解码的 img
+    // eslint-disable-next-line no-await-in-loop
+    await im.decode?.().catch(() => {});
   }
   return () => {
     saved.forEach(({ im, src }) => {

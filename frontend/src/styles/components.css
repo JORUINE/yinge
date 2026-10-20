@@ -2132,6 +2132,39 @@ html[data-theme='dark'] .v b {
 .scard.glassy .smain .art img {
   object-fit: contain;
 }
+/**
+ * ⚠️⚠️ 2026-10-20 第五十五批：**文字行显式占满一行**
+ * ------------------------------------------------------------
+ * 用户真机截图（PC 端导出的方形图）：专辑名「六九樂章」第二行的「章」掉下来，
+ * 和下一行「陶喆 · 2009」叠在一起；而**分享页预览是正常的**。
+ *
+ * 根因（实测 `_r55-cname.mjs`，桌面方形卡 `.smain` 宽 387.6px）：
+ *   `.smain` 是 `flex-direction:column; align-items:center` ⇒ 这些文字行的宽度是
+ *   **fit-content**，实测 `.cname` 的 computed width 只有 **81.16px**（正好等于
+ *   它自己的文字宽 `scrollWidth`）。
+ *   而导出引擎 `inlineStyles()` 会把 **computed width 这个具体像素值**内联进 SVG
+ *   ⇒ SVG 里 `.cname` 被**钉死成 81px**。SVG foreignObject 的字体度量与真实 DOM
+ *   有极小差异（哪怕 1px），「六九樂章」在 81px 里就放不下 ⇒ **被迫换行成两行**
+ *   ⇒ `.smain` 内容总高超出 `aspect-ratio:1/1` 的定高 ⇒ flex 项目被压缩
+ *   ⇒ 两行文字叠在一起。
+ *   预览不叠，是因为真实 DOM 里宽度跟着内容走，永远不会"被迫换行"。
+ *
+ * 修法：文字行显式 `width:100%` + `text-align:center`。
+ *   · 视觉与改前**完全一致**（文字仍然居中，只是容器从"贴着文字"变成"占满一行"）
+ *   · 预览与导出的宽度语义从此一致（都占满 387.6px）⇒ 不会再因字体度量差而多换行
+ *   · 名字真的超过容器宽时，两边行为也一致（都会换行）
+ * ⚠️ `.art`（封面）与 `.spath`（缩略图 flex 行）**不能这么改** —— 它们靠内容定尺寸。
+ */
+.scard .smain > .crown,
+.scard .smain > .cname,
+.scard .smain > .cartist,
+.scard .smain > .roundline {
+  width: 100%;
+  text-align: center;
+  /* 双保险：定高卡里内容一多，flex 默认会按比例压缩子项 ⇒ 文字互相叠。
+     关掉收缩后，超长内容宁可把下面顶开（由卡片 overflow 兜底），也绝不叠字。 */
+  flex: 0 0 auto;
+}
 .scard .crown {
   /* 2026-09-24 第十四批（用户："被我圈起来的…上面…的字体依次放大然后规整的对齐"）14 → 16px */
   font-size: 16px;
@@ -4627,21 +4660,61 @@ html.ua-edge .scard .smain .art {
     font-weight: 800;
   }
 }
-/* 桌面/平板档（>640）：同样是转盘布局，但整块**收窄居中** ——
-   否则 932px 宽的一条竖块横跨屏幕，歌名居中在 902px 里会显得很空。
-   ⚠️ 这是第四十七批补的：换了 DOM 就必须在所有宽度都有样式（见上方注释）。 */
+/* 桌面/平板档（>640）：**跟随容器宽度**，内部改成「左信息 + 右转盘」
+   -----------------------------------------------------------------
+   ⚠️ 2026-10-20 第五十五批：原来是 `max-width:560px; margin:auto` **收窄居中**，
+   用户真机截图反馈："pc端这里播放器做的和上面一样长吧 然后把中间播放器布局也跟着适配"
+   —— 上面的对决台（.duelgrid）是撑满内容区的，播放条却只有 560px 居中，
+   两者长度差一大截，看着像没对齐。
+   ⚠️ 但不能只是"拉宽"：拉宽后仍是「上信息 + 中转盘」的竖排布局，歌名会居中在
+   800+px 里、空得难看（第四十七批加 max-width 就是为了避开这个）。
+   ⇒ 宽度对齐 + **布局改成横向**：曲目信息靠左（左对齐）、转盘靠右，
+     提示行单独占满一行横跨底部。转盘仍是 200px（不放大，保持原有视觉语言）。
+   ⚠️ 四方向按钮仍由 `.wk` 的绝对定位决定，wheel 尺寸不变 ⇒ 触控与观感都不变。 */
 @media (min-width: 641px) {
   .nowbar {
-    max-width: 560px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 18px 20px 20px;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+    /* 横向排：信息在左、转盘在右，提示行 wrap 到下一行横跨整条 */
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 18px 22px 14px;
   }
-  .nowbar .t b {
-    font-size: 17px;
+  /* 曲目信息靠左：吃掉剩余宽度，左对齐（拉宽后若是居中会空得难看）
+     ⚠️ `flex: 1 1 0` 而不是 `1 1 auto` —— basis 给 0 才会**先把固定宽度的转盘让出来**；
+        用 auto 时 basis=内容宽（歌名+副标题往往很宽），转盘会被挤到 wrap 的下一行。 */
+  .nowbar > .t {
+    order: 0;
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: left;
+    align-self: center;
+    padding: 0 10px 0 0;
   }
-  .nowbar .wheel {
+  /* 转盘靠右：固定 200px（不放大，保持原有视觉语言与触控尺寸） */
+  .nowbar > .wheel {
+    order: 1;
+    flex: 0 0 auto;
     width: 200px;
     height: 200px;
+    margin: 0;
+    align-self: center;
+  }
+  /* 提示行：单独占满一行，横跨整条底部 */
+  .nowbar > .np-tip {
+    order: 2;
+    flex: 1 0 100%;
+    margin: 12px 0 0;
+  }
+  .nowbar .t b {
+    font-size: 18px;
+  }
+  .nowbar .t span {
+    font-size: 13.5px;
+  }
+  .nowbar .wheel .tno {
+    font-size: 12px;
   }
 }

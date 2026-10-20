@@ -1,0 +1,193 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十五批交付报告（丢图根因修复 / PC 端四处 + 组合一击装填）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:900px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 4px}
+  .b{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:13px 15px}
+  .b .v{font-size:23px;font-weight:800;color:#0f8a4a;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .b .v small{font-size:13px;font-weight:700;color:#7d97ab}
+  .b .l{font-size:12.3px;color:#7d97ab;margin-top:2px}
+  .qa{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:14px 16px;margin-bottom:12px}
+  .qa .q{font-size:13.6px;font-weight:800;color:#0B2A42;margin-bottom:6px}
+  .qa .a{font-size:13.4px;color:#46647E}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.6px;line-height:1.65;margin-top:8px;overflow-x:auto}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十五批 · 2026-10-20</span>
+  <h1>导出的图终于不丢封面了 —— 根因不在分享面板，在取图方式</h1>
+  <p>你这次提了 6 处，其中"保存下来图片丢失"是<b>最严重的那条</b>（你说"必须修复且后续改动不能再出问题"）。
+  <b>37 条断言全绿</b>，桌面同输入 A/B 10 条路由 0 差异，三档断点与安卓默认缩放全过。</p>
+</div>
+
+<div class="big">
+  <div class="b"><div class="v">283 → <small>387</small></div><div class="l">阻断跨域 fetch 后导出的封面区色数（＝图真的在）</div></div>
+  <div class="b"><div class="v">201px → <small>12px</small></div><div class="l">PC 端创建页多出的那段文本（.mobar-in-sheet 泄漏）</div></div>
+  <div class="b"><div class="v">560px → <small>1440px</small></div><div class="l">PC 端播放器宽度（现在与上面的对决区等宽）</div></div>
+</div>
+
+<h2><span class="n">1</span>你最关心的：保存下来图片丢失</h2>
+
+<div class="qa">
+  <div class="q">你的原话：「移动端保存图片后是进入了预览，然后我点下面的分享 保存图像 出现那个问题 会是因为走这里的原因吗」</div>
+  <div class="a"><b>不是。</b>iOS 那个分享面板只是把<b>已经生成好的 PNG 文件</b>递出去 —— 图在点"下载"那一刻起就已经是空白的了，
+  走不走分享面板、点不点"保存图像"，结果完全一样。<b>问题在取图那一步。</b></div>
+</div>
+
+<div class="card">
+  <p style="font-size:13.6px;margin:0 0 8px"><b>根因（实验坐实，不是推测）</b></p>
+  <p style="font-size:13.5px;margin:0 0 8px">导出前要把 `<img>` 的封面转成 base64 塞进 SVG。原来的做法是
+  <code>fetch(src, {mode:'cors'})</code> —— <b>而它在真机上会失败</b>：
+  iOS Safari / 微信内置浏览器对跨域 fetch 管得更严，iTunes 图片域名不一定放行。
+  一旦 fetch 失败，代码就"保持原 http 地址"，而 <b>SVG 当图片用时浏览器根本不加载外部 URL</b>
+  ⇒ 封面和缩略图全变成空白框，只剩文字。</p>
+  <p style="font-size:13.5px;margin:0 0 8px"><b>实验（<code>_r55-imgdiag.mjs</code>）</b>：只 abort 掉 <code>resourceType==='fetch'</code> 的图片请求、
+  让页面上的 `<img>` 照常加载 ——</p>
+  <table>
+    <thead><tr><th style="width:210px">场景</th><th style="width:110px">页面上封面</th><th style="width:130px">fetch 取图</th><th style="width:150px">canvas 重绘取图</th><th>导出图色数</th></tr></thead>
+    <tbody>
+      <tr><td>正常（fetch 可用）</td><td>4/4 加载成功</td><td>ok 97KB</td><td>ok 112KB</td><td class="num">669</td></tr>
+      <tr><td><b>阻断 fetch（= 真机）</b></td><td>4/4 加载成功</td><td><b>FAIL</b></td><td><b>ok 112KB</b></td><td class="num">283 ← 图丢了</td></tr>
+    </tbody>
+  </table>
+  <div class="note good"><b>关键发现：同一次实验里 <code>canvas 重绘</code> 100% 成功，即使 fetch 被完全拦断。</b><br>
+  原因：那些 `<img>` 都带 <code>crossorigin="anonymous"</code> 且<b>已经在页面上加载成功了</b>
+  （否则你根本看不到封面）⇒ 浏览器手里的就是带 CORS 头的位图 ⇒ <code>drawImage</code> 进画布不会污染
+  ⇒ <code>toDataURL()</code> 一定可用。<b>它不需要再发一次网络请求</b>，真机可靠性远高于 fetch。</div>
+  <p style="font-size:13.5px;margin:10px 0 0"><b>修法</b>：<code>saveImage.js</code> 与 <code>cardExport.js</code>
+  的取图主路径都改成 <b>canvas 重绘优先、fetch 兜底</b>。</p>
+  <div class="note"><b>为什么这一改就覆盖了你说的三处</b>：分享图 / 对位赛详细战报 / 人格卡，
+  <b>4 个导出入口全部走同一个 <code>utils/saveImage.js</code></b> ⇒ 改的是公共取图函数，一处修复全部受益。
+  这正是"改一处改全部引用"——反过来说，也是上次漏 CS 的意思：我当时只以为问题出在 SVG 引擎。</div>
+  <p style="font-size:13.5px;margin:10px 0 0"><b>修复后实测</b>（<code>_r55-verify.mjs</code>，同样阻断跨域 fetch）：</p>
+  <table>
+    <thead><tr><th>场景</th><th>封面区色数</th><th>缩略图区色数</th><th>结论</th></tr></thead>
+    <tbody>
+      <tr><td>手机 · 正常</td><td class="num">387</td><td class="num">367</td><td rowspan="2"><b>完全一致</b> ⇒ 阻断 fetch 也不再丢图</td></tr>
+      <tr><td>手机 · <b>阻断 fetch</b></td><td class="num">387</td><td class="num">367</td></tr>
+      <tr><td>桌面 · 正常</td><td class="num">411</td><td class="num">322</td><td>—</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="note warn" style="margin-top:0"><b>关于"后续改动不能再让这里出问题"——我做了结构性保证</b>：
+  这次的问题之所以能潜伏，是因为验证只跑桌面、且从不检查"图里到底有没有图"。
+  现在 <code>_r55-verify.mjs</code> 里固化了 <b>「阻断跨域 fetch」用例</b>：
+  它故意让 fetch 全部失败，再断言封面区/缩略图区的<b>像素色数达标</b>。
+  以后任何人改动导出链路，这条断言会直接抓住"图丢字留"，不会再靠你真机发现。
+  规则已写进文档：<b>凡动导出/截图链路，必须跑这个探针。</b></div>
+</div>
+
+<h2><span class="n">2</span>PC 端你圈的四处</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:230px">你的反馈</th><th style="width:76px">结果</th><th>根因 / 修法 / 实测</th></tr></thead>
+    <tbody>
+      <tr><td><b>① 电脑端怎么多出个这个文本</b></td><td><span class="ok">已修</span></td>
+        <td><b>根因</b>：第 51 批做的「弹层内操作条」<code>.mobar-in-sheet</code> 只写了 <code>v-if="sheetOpen"</code>，
+          <b>漏了 <code>isPhone</code></b>（注释里写着"桌面档不渲染"，但代码没实现）。
+          手机端选完模式会 <code>sheetOpen=true</code>，PC 端也一样 ⇒ 而 PC 端 <code>.opts</code> 是
+          <code>display:contents</code>，这块就直接裸躺在筛选区后面，成了"多出来的一段文本"。<br>
+          <b>修法</b>：<code>v-if="isPhone && sheetOpen"</code>。<br>
+          <b>实测</b>：PC 端 <code>.mobar-in-sheet</code> 可见性 = <b>false</b>，<code>.startbar</code> 仍是 1 个、开始按钮正常。</td></tr>
+      <tr><td><b>② PC 端播放器做得和上面一样长，中间布局跟着适配</b></td><td><span class="ok">已修</span></td>
+        <td><b>根因</b>：桌面档 <code>.nowbar</code> 是 <code>max-width:560px; margin:auto</code>
+          —— 当初加它是怕"拉宽后歌名居中在 900px 里显得空"。但结果是上面的对决区撑满内容区、播放条只有 560px，
+          <b>两者长度差一大截</b>。<br>
+          <b>修法</b>：<b>不能只是拉宽</b>（拉宽后仍是上下堆叠的竖块，会更空）⇒ 宽度对齐 <b>+ 布局改成横向</b>：
+          曲目信息靠左（左对齐）、转盘靠右（仍 200px，不放大）、提示行单独占满一行横跨底部。
+          <br>
+          <b>实测</b>：播放器 <b>1440px = 对决区 1440px</b>、左缘对齐 0px 差；
+          曲目信息 left=23 宽1194、转盘 left=1217（在右侧）、提示行 1394 占满内容宽；
+          <b>四方向按钮仍是 64×64 热区</b>，转盘仍是 200px ⇒ 触控与视觉语言都没变。<br>
+          ⚠️ 只有"手机端"没动：≤640 仍是原来的「上信息 + 中转盘」竖排，一根线都没改。</td></tr>
+      <tr><td><b>③ PC 端导出的方形图里专辑名叠在一起了</b><br>（但分享页上是正常的）</td><td><span class="ok">已修</span></td>
+        <td><b>根因（实测，很反直觉）</b>：<code>.smain</code> 是 <code>flex-column + align-items:center</code>
+          ⇒ 这些文字行的宽度是 <b>fit-content</b>，实测 <code>.cname</code> 的 computed width 只有
+          <b>81.16px</b>（正好等于它自己文字的宽）。而导出引擎 <code>inlineStyles()</code> 会把
+          <b>computed width 这个具体像素</b>内联进 SVG ⇒ SVG 里 <code>.cname</code> 被<b>钉死成 81px</b>。
+          SVG 的字体度量与真实 DOM 有极小差异（哪怕 1px），「六九樂章」在 81px 里就放不下
+          ⇒ <b>被迫换行成两行</b> ⇒ <code>.smain</code> 内容超出 <code>aspect-ratio:1/1</code> 的定高
+          ⇒ flex 项目被压缩 ⇒ <b>两行叠在一起</b>。<br>
+          <b>预览不叠</b>，是因为真实 DOM 里宽度跟着内容走，永远不会"被迫换行"。<br>
+          <b>修法</b>：文字行显式 <code>width:100%</code> + <code>text-align:center</code>（视觉与改前完全一致，文字仍居中），
+          并加 <code>flex:0 0 auto</code> 关掉收缩 —— <b>宁可顶开也绝不叠字</b>。<br>
+          <b>实测</b>：手机/桌面 / 正常与阻断 fetch 三种场景，<b>叠字 0 组、文字溢出卡外 0 个</b>。</td></tr>
+      <tr><td><b>④ 用户自建的组合要点两下才能加载</b></td><td><span class="ok">已修</span></td>
+        <td><b>根因</b>：<code>applyCombo</code> 把「回源核准歌手姓名」放在 <code>await</code> 里
+          <b>等完才赋值 picked</b> ⇒ 点下去到界面有反应之间有 2N 次网络请求，这段时间界面
+          <b>一点变化都没有</b>（只有按钮文字变成"装填中…"），用户以为没点上就再点一下
+          —— 第二下时请求已完成/已缓存，看着就像"第二下才灵"。<br>
+          <b>修法</b>：<b>乐观更新</b> —— 先用组合里已存的快照（artistId + name）<b>立刻</b>装进 picked
+          （摘要、已选标签、专辑池加载全部立刻开始），回源核准改成不阻塞界面的后台校正，
+          姓名真的与快照不符时才更新（第三十八批"名字与专辑对不上"的修复照样成立）。<br>
+          <b>实测</b>：建一个真·自建组合 → 点一下 → <b>404ms 内</b>摘要就变成
+          「已选 8 张 · 来自 2 位歌手 · 赛程…」；2.6s 后完整装填。</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">3</span>移动端这次没动（你的红线）</h2>
+<div class="card">
+  <div class="note good" style="margin-top:0">
+  <b>你说"不要影响目前良好的移动端，移动端的设计修改也不要影响电脑端"——两边都守住了：</b><br>
+  · <b>移动端</b>：本批只改了 <code>saveImage.js</code> / <code>cardExport.js</code> 的<b>取图方式</b>（只在点导出时才跑），
+    <b>没有任何一行移动端样式或布局被改</b>。分享页方形图仍是上批定稿的严格 1:1、不裁字、字号 ≥12px。<br>
+  · <b>电脑端</b>：桌面同输入 A/B <b>10 条路由 0 差异</b>（几何/结构/JS 全 0，无元素被误隐藏）。
+    PC 端的四处改动都在你点名的范围内，其中「播放器等宽」只在 <code>&gt;640</code> 生效，≤640 一根线没碰。<br>
+  · 三档断点（375/768/1440）：横向溢出 0、&lt;12px 文字 0、JS 错误 0。
+  · 安卓 360/393/412 <b>默认缩放 100%</b>：横向溢出 0、网格溢出 0、小字 0。</div>
+</div>
+
+<h2><span class="n">4</span>验证：37 条断言全绿</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:190px">探针</th><th style="width:70px">断言</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td><code>_r55-imgdiag.mjs</code></td><td class="num">2 场景</td><td>坐实根因：阻断 fetch ⇒ 丢图（283）；canvas 重绘 100% 成功</td></tr>
+      <tr><td><code>_r55-verify.mjs</code></td><td class="num">37</td><td>见上：丢图三场景、PC 端四处、组合一击装填</td></tr>
+      <tr><td><code>_r55-cname.mjs</code></td><td class="num">—</td><td>坐实 fit-content 宽度：<code>.cname</code> computed width = 81.16px ≠ smain 387.6px</td></tr>
+      <tr><td><code>probe-r40-desktop-ab.mjs</code></td><td class="num">10 路由</td><td><b>几何 0 / 结构 0 / JS 0 / 无元素被误隐藏</b></td></tr>
+      <tr><td><code>probe-r41-tiers.mjs</code></td><td class="num">3 档</td><td>375/768/1440：溢出 0、小字 0、JS 0</td></tr>
+      <tr><td><code>probe-r46-android.mjs</code></td><td class="num">3 视口</td><td>360/393/412 默认缩放：溢出 0、网格溢出 0、小字 0</td></tr>
+    </tbody>
+  </table>
+  <div class="chk"># 本轮复跑命令（都在 tools/pw/ 下）
+node _r55-verify.mjs        # 37 条：丢图（含阻断fetch）/ PC四处 / 组合一击
+node _r55-imgdiag.mjs       # 根因实验：fetch vs canvas
+
+# 每轮必跑
+node probe-r40-desktop-ab.mjs &lt;dist-before&gt; &lt;dist&gt; http://127.0.0.1:3000
+node probe-r41-tiers.mjs http://127.0.0.1:3000 &lt;dist&gt;
+node probe-r46-android.mjs http://127.0.0.1:3000 &lt;dist&gt;</div>
+</div>
+
+<div class="note good"><b>还剩一件事</b>：上批复盘里的 <b>U3 人格详情页剩余 84px 留白</b>（含那 76px 的来源定位）仍未做，
+需要起真库逐个子元素量。下一轮做。</div>
+
+<div class="foot">音格 · 第五十五批交付报告 · 2026-10-20 · 数字均来自本次真机级探针实测</div>
+</div></body></html>

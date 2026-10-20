@@ -97,25 +97,51 @@ function materializePseudo(src, dst) {
   }
 }
 
-/** 图片转 dataURL（同源也走一遍，避免 SVG 里出现外部引用） */
+/**
+ * 图片转 dataURL（同源也走一遍，避免 SVG 里出现外部引用）
+ * ------------------------------------------------------------
+ * ⚠️⚠️ 2026-10-20 第五十五批：**主路径改成 canvas 重绘**
+ *   用户真机复现「保存下来封面/缩略图全变空白框」。实测根因是
+ *   `fetch(src,{mode:'cors'})` 在真机上会失败（iOS Safari / 微信内置浏览器），
+ *   而 SVG 当图片用时**不加载外部 URL** ⇒ 图上留一片空白。
+ *   这些 `<img>` 都带 `crossorigin="anonymous"` 且已在页面上加载成功
+ *   ⇒ 直接 `drawImage` 进画布不会污染 ⇒ `toDataURL()` 一定可用，
+ *   **不依赖再发一次网络请求**，真机可靠性远高于 fetch。
+ *   实测（_r55-imgdiag.mjs）：fetch 被完全拦断时 canvas 重绘仍 100% 成功。
+ */
 async function inlineImages(srcEl, dstEl) {
   const srcImgs = [...srcEl.querySelectorAll('img')];
   const dstImgs = [...dstEl.querySelectorAll('img')];
   await Promise.all(srcImgs.map(async (im, i) => {
     const s = im.currentSrc || im.src;
     if (!s || s.startsWith('data:') || !dstImgs[i]) return;
+    let b64 = null;
+    const pngish = /\.png(\?|$)|image\/png/i.test(s);
+    // ① canvas 重绘（主路径）
     try {
-      const r = await fetch(s, { mode: 'cors' });
-      const b = await r.blob();
-      const b64 = await new Promise((res) => {
-        const fr = new FileReader();
-        fr.onload = () => res(fr.result);
-        fr.readAsDataURL(b);
-      });
-      dstImgs[i].setAttribute('src', b64);
-    } catch {
-      /* 取不到就沿用原地址，能显示多少算多少 */
+      if (im.complete && im.naturalWidth > 0) {
+        const c = document.createElement('canvas');
+        c.width = im.naturalWidth;
+        c.height = im.naturalHeight;
+        c.getContext('2d').drawImage(im, 0, 0);
+        b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+      }
+    } catch { /* 污染/异常 → 兜底 */ }
+    // ② fetch 兜底
+    if (!b64 || b64.length < 64) {
+      try {
+        const r = await fetch(s, { mode: 'cors' });
+        const b = await r.blob();
+        b64 = await new Promise((res) => {
+          const fr = new FileReader();
+          fr.onload = () => res(fr.result);
+          fr.readAsDataURL(b);
+        });
+      } catch {
+        /* 取不到就沿用原地址，能显示多少算多少 */
+      }
     }
+    if (b64 && b64.length >= 64) dstImgs[i].setAttribute('src', b64);
   }));
 }
 

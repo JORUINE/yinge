@@ -192,8 +192,8 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-20（<b>第五十四批 · 方形图真 1:1 + 导出保真（伪元素实体化）+ 顶栏中部</b>：52 条断言全绿、桌面 A/B 10 路由 0 差异；<br>
-　　<b>第五十三批 · 复盘与未完事项计划</b>：44~52 批你提的 44 条，39 已达成 / 5 未完 / 3 更早遗留 / 5 待拍板；<br>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-20（<b>第五十五批 · 保存图片丢封面的根因修复</b>：取图改 canvas 重绘优先（canvas-priority），37 条断言全绿 + 桌面 A/B 10 路由 0 差异；<br>
+　　<b>第五十四批 · 方形图真 1:1 + 导出保真 + 顶栏中部</b>；<b>第五十三批 · 复盘与未完事项计划</b>）——<br>
 　　<b>第五十二批 · 真机背景不模糊 + 两端导出统一引擎</b>；<b>第五十一批 · 选歌手让位 / 详情页留白 / 毛玻璃 / 方形图裁字</b>；<b>第五十批 · 修回被我改坏的导出链路 + 回退方形版改版</b>）——<br>
       <b>第五十三批（10-18，复盘 · 本轮产出）</b>：<b>你让我"复盘这几轮有哪些你提过的点我还没改，全部加入计划"</b>。
       回代码逐条核对的结果 —— 44~52 批你一共提了 <b>44 条</b>：<b>39 条已达成</b>（每条都有实测数字），
@@ -222,6 +222,32 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
       <b>本轮我犯的两个错也记进文档了</b>：① dev 接口的签表循环写成死循环，25 秒把后端吃到 OOM 4GB，
       而且爆点被我的日志顺序误导、差点冤枉 mongoose；② 探针两次判据取错（拿 <code>.sbg</code> 故意的 <code>scale(1.16)</code>
       当内容溢出；截图时页面停在被滚走的状态 ⇒ 假红"导出与预览差 150 亮度"）。<br>
+      <b>第五十五批（10-20，本轮）：保存图片丢封面 —— 根因在取图方式，不在分享面板</b>。<br>
+      你 iOS 上"进预览 → 点分享 → 保存图像"拿到的是空白图，<b>不是分享面板的问题</b>：面板只是把<b>已经生成好的 PNG</b>
+      递出去，图在点"下载"那一刻起就已经是空的。真因是导出前要把封面转 base64 塞进 SVG，
+      原来用 <code>fetch(src,{mode:'cors'})</code>，<b>真机上它会失败</b>（iOS Safari / 微信内置浏览器对跨域 fetch 管得更严），
+      失败后代码保持 http 原址，而 <b>SVG 当图片用时浏览器不加载外部 URL</b> ⇒ 封面/缩略图全空白、只剩文字。<br>
+      <b>实验坐实</b>：只拦断 <code>resourceType==='fetch'</code> 的图片请求、让页面 <code>&lt;img&gt;</code> 照常加载
+      ⇒ 复现"图丢字留"（导出色数 669 → 283）；<b>同一次实验里 canvas 重绘 100% 成功</b>，即使 fetch 被完全拦断。
+      原理：那些 <code>&lt;img crossorigin="anonymous"&gt;</code> <b>已经在页面上加载成功了</b>（否则你看不到封面）
+      ⇒ 浏览器手里的就是带 CORS 头的位图 ⇒ <code>drawImage</code> 进画布不污染 ⇒ <code>toDataURL()</code> 一定可用，
+      <b>且不需要再发一次网络请求</b>。已把取图主路径改成 <b>canvas 重绘优先、fetch 兜底</b>
+      （<code>saveImage.js</code> + <code>cardExport.js</code> 两处）。
+      分享图 / 对位赛详细战报 / 人格卡三个入口走<b>同一个</b> <code>saveImage.js</code> ⇒ 一处修复全覆盖。
+      修复后同样阻断 fetch，封面区色数仍是 <b>387</b>（与不阻断完全一致）。<br>
+      <b>为防止再犯，固化了断言</b>：<code>_r55-verify.mjs</code> 里有一条「阻断跨域 fetch」用例，
+      故意让 fetch 全失败再断言封面/缩略图区的像素色数达标 ⇒ 以后动导出链路会被它直接抓住。<br>
+      <b>PC 端你圈的四处也全修了</b>：① 多出的那段文本是第 51 批的 <code>.mobar-in-sheet</code>
+      <b>漏了 <code>isPhone</code></b>（注释写"桌面档不渲染"但代码没实现）；② 播放器从
+      <code>max-width:560px</code> 收窄居中改成 <b>1440px 与对决区等宽</b>，内部转横向
+      （信息靠左 / 转盘靠右仍 200px / 提示行横跨一整行，四方向仍是 64×64）；
+      ③ 方形图导出叠字的根因是文字行宽度为 <b>fit-content</b>（实测 <code>.cname</code> computed width 只有
+      <b>81.16px</b>），被 <code>inlineStyles</code> 钉死进 SVG 后，字体差 1px 就被迫换行 ⇒ flex 压缩 ⇒ 两行相叠；
+      预览里宽度跟着内容走所以不叠。改 <code>width:100%</code> + <code>flex:0 0 auto</code>（<b>宁可顶开也绝不叠字</b>）；
+      ④ 组要点两下＝把"回源核准姓名"放在 <code>await</code> 里等网络，期间界面零反馈 ⇒ 改<b>乐观更新</b>，
+      实测 <b>404ms 内</b>摘要就有反应。<br>
+      <b>两边都没越界</b>：桌面同输入 A/B <b>10 路由 0 差异</b>；移动端样式一根线没动（≤640 播放器仍是原竖排、
+      分享页仍是上批复盘的严格 1:1）；三档断点与安卓 360/393/412 默认缩放全过。<br>
       第四十五批（10-17，已提交）五件事：<br>
       ① <b>导出统一</b>——分享图 / 人格图 / 晋级图 / 战报四个入口全部改走新的 <code>utils/saveImage.js</code>
       （真渲染 + 分享面板 / toBlob / 新窗口三层降级）。真因：iOS Safari 与微信内置浏览器<b>不支持 <code>&lt;a download&gt;</code></b>，
@@ -473,6 +499,20 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第五十五批交付报告.html" style="color:#0369A1"><b>第五十五批交付报告</b></a></td><td><b style="color:#B45309">保存图片丢封面的根因找到了 —— 不在分享面板，在取图方式</b>：
+        你 iOS 上"进预览 → 点分享 → 保存图像"拿到空白图，<b>不是因为走了分享面板</b>（面板只是把已生成的 PNG 递出去），
+        而是 <b>导出那一刻图就已经是空的</b>。根因：取图用 <code>fetch(跨域)</code>，真机上失败后代码保持 http 原址，
+        而 SVG 当图片用时不加载外部 URL ⇒ 封面/缩略图全空白。<br>
+        实验坐实：故意拦断所有跨域 fetch，桌面复现"图丢字留"（色数 669→283），
+        而同期 <b>canvas 重绘 100% 成功</b>（那些 <code>&lt;img crossorigin&gt;</code> 已在页面上加载成功，
+        画布不污染）。已把取图主路径改成 <b>canvas 重绘优先、fetch 兜底</b>；三处入口（分享图/对位赛战报/人格卡）
+        走同一个 <code>saveImage.js</code>，<b>一处修复全覆盖</b>。阻断 fetch 后封面区色数仍是 <b>387</b>（与正常一致）。<br>
+        PC 端四处：① 多出的那段文本＝<code>.mobar-in-sheet</code> 漏了 <code>isPhone</code> 判断（已修）
+        ② 播放器 560px → <b>1440px 与对决区等宽</b>，内部改横向（信息靠左/转盘靠右/提示行横跨）
+        ③ 方形图导出叠字＝文字行宽度是 fit-content（<code>.cname</code> 只有 81px），被内联钉死后 SVG 字体差 1px 就换行
+        ⇒ 改 <code>width:100%</code> + <code>flex:0 0 auto</code>（绝不叠字）④ 组要点两下＝核准姓名时在 await 里等网络
+        ⇒ 改乐观更新，<b>404ms 内</b>摘要就有反应。<br>
+        桌面 A/B 10 路由 0 差异；移动端样式一根线没动。</td></tr>
       <tr><td><a href="第五十四批交付报告.html" style="color:#0369A1"><b>第五十四批交付报告</b></a></td><td><b style="color:#0F766E">你提的三条全部做完，52 条断言全绿</b>：
         ① <b>方形图真的方了</b>——改前高度写死 430px 而宽度随布局变（手机 0.795 / 桌面 0.95 ⇒ 两端不一致），
         改成 <code>aspect-ratio:1/1</code> 后手机/桌面都 <b>严格 1.000</b>、导出 <b>1080×1080</b>、不裁字；<br>

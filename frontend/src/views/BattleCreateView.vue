@@ -677,7 +677,7 @@
            ⇒ 弹层打开时，悬浮条**让位消失**，改由这条**排在弹层内容流末尾**（跟着滚动，
              滚到底才出现），不再盖住正在选的歌手和组合。
            ⚠️ 只在手机档且弹层打开时渲染；桌面档不渲染，悬浮条也不受影响。 -->
-      <div v-if="sheetOpen" class="mobar-in-sheet">
+      <div v-if="isPhone && sheetOpen" class="mobar-in-sheet">
         <div class="mob-sum">
           <b>你选了什么</b>
           <span>{{ startInfo || `${modeLabel} · 还没选完` }}</span>
@@ -1432,6 +1432,27 @@ async function applyCombo(c) {
     let found = [];
     if (c.artists && c.artists.length) {
       /**
+       * ⚠️⚠️ 2026-10-20 第五十五批：**先乐观装填，再后台核准姓名**
+       * ------------------------------------------------------------
+       * 用户反馈："用户自建的组合 要点两下才能加载 其他的就是点一下就加载了"。
+       * 根因：原实现把「回源核准姓名」放在 `await` 里**等完才赋值 picked**，
+       *   于是点下去到界面有反应之间有 2N 次网络请求（N 位歌手 × getArtist），
+       *   手机上这段时间界面**一点变化都没有**（只有按钮文字变成"装填中…"），
+       *   用户以为没点上，就再点一下 —— 第二下时请求已缓存/已完成，看着就像"第二下才灵"。
+       * 修法：先用组合里**已存的快照**（artistId + name）立刻装进 picked
+       *   ⇒ 摘要区、已选标签、专辑池加载**全部立刻开始**（watch(picked) 马上触发）；
+       *   回源核准改为**不阻塞界面**的后续校正，姓名若与快照不符再更新
+       *   （第三十八批"名字与专辑对不上"的修复因此照样成立，只是不再挡交互）。
+       * ⚠️ 只有"纯 names、没有 artistId"的老组合才真的需要等搜索 —— 那种保持原样。
+       */
+      const known = c.artists
+        .filter((a) => a && a.artistId != null && a.artistId !== '')
+        .map((a) => ({ artistId: Number(a.artistId), name: a.name }));
+      if (known.length) {
+        found = known;
+        picked.value = known; // 立刻有反应：watch(picked) 随即开始加载专辑池
+      }
+      /**
        * ⚠️ 2026-10-11 第三十八批修 bug
        * 用户："对位赛自检下显示的周杰伦和陶喆，为什么下面出来的专辑是李克勤和王菲的"
        * 根因：组合里存的 `name` 只是**冗余快照**，它和 `artistId` 可能对不上
@@ -1441,7 +1462,7 @@ async function applyCombo(c) {
        * 正解：**一律回源核准** —— 拿 artistId 去问一次真名；问不到（网络/接口失败）才退回快照。
        *       这样以后任何组合里的快照过期都不会再让"名字与专辑对不上"。
        */
-      found = await Promise.all(
+      const checked = await Promise.all(
         c.artists.map(async (a) => {
           try {
             const d = await musicApi.getArtist(a.artistId);
@@ -1451,6 +1472,12 @@ async function applyCombo(c) {
           }
         }),
       );
+      // 姓名校正：只有真的与快照不同才重新赋值（相同就不动 picked，
+      // 免得打断已经开始的专辑池加载、也别让界面无谓地闪一下）
+      const sameNames = known.length === checked.length
+        && checked.every((a, i) => a && Number(a.artistId) === Number(known[i].artistId) && a.name === known[i].name);
+      if (!sameNames) picked.value = checked;
+      found = sameNames ? known : checked;
     } else {
       for (const name of c.names || []) {
         // eslint-disable-next-line no-await-in-loop
@@ -1458,12 +1485,13 @@ async function applyCombo(c) {
         const hit = (data.artists || [])[0];
         if (hit) found.push(hit);
       }
+      // 纯 names 的老组合没有快照可乐观装填，只能等搜索完再一次赋值
+      if (found.length) picked.value = found;
     }
     if (!found.length) {
       ElMessage.warning('这个组合里的歌手没搜到，请手动搜索添加');
       return;
     }
-    picked.value = found;
     ElMessage.success(
       `已装好${isAligned ? '对位赛' : ''}「${c.label}」：${found.map((a) => a.name).join(isAligned ? ' × ' : ' vs ')}`,
     );
