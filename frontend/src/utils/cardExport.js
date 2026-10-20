@@ -33,7 +33,68 @@ function inlineStyles(src, dst) {
   dst.setAttribute('style', css);
   const sc = [...src.children];
   const dc = [...dst.children];
+  // ⚠️ 必须先递归完**真子元素**再插伪元素：insertBefore 会改变 dc 的下标，
+  //    若先插，sc[0]/dc[0] 就配不上了（会把伪元素当成第一个真子元素去递归）。
   for (let i = 0; i < sc.length && i < dc.length; i++) inlineStyles(sc[i], dc[i]);
+  materializePseudo(src, dst);
+}
+
+/**
+ * ⭐⭐⭐ 2026-10-20 第五十四批：把 `::before` / `::after` **实体化**成真元素
+ * ------------------------------------------------------------
+ * 用户真机反馈："导出的图片和我在结算页面看到的图片并不一致，不管是色调还是
+ * 左上角的音格的可读性，导出的版本都是有问题的，但是结算页的版本是很好看的"。
+ *
+ * 根因（实测确认）：导出走的是 `el.cloneNode(true)` + `inlineStyles`，
+ *   · `cloneNode` 只克隆**真元素** —— 伪元素根本不在 DOM 树里；
+ *   · `inlineStyles` 只用 `getComputedStyle(src)`（不传伪元素参数）⇒ 拿不到伪元素样式；
+ *   · 克隆节点脱离了 `<style>` 表 ⇒ 样式表里的伪元素规则一条都不生效。
+ * 而音格分享卡的**整套配色都在伪元素里**：
+ *   `.scard.glassy::before` = 顶部压暗 + 冠军色三层柔光 + 深色纱幕 + 底部托底（**色调**）
+ *   `.scard.glassy::after`  = 左上主高光 + 斜穿光带 + 底部微光（**玻璃质感**）
+ * ⇒ 导出的图只剩「模糊封面 + 纯色底 + 文字」，品牌行「音格 · YINGE.APP」
+ *   正好压在**没有顶部压暗**的亮封面上 ⇒ 可读性差、色调发飘。
+ *
+ * 修法：克隆时为每个有内容的伪元素造一个真 `div`，把它的 computed style 整体内联，
+ *   再插回克隆树（`::before` 插最前、`::after` 插最后）——
+ *   z-index 与定位都由内联样式带着，与真渲染一致。
+ * ⚠️ 这一步同时修好**人格卡**（`.ptcard-v2::after` 白纱幕等同理）：
+ *   用户原话"包括音乐人格的那些导出也要遵循这个规则"。
+ */
+function materializePseudo(src, dst) {
+  for (const pseudo of ['::before', '::after']) {
+    let cs;
+    try {
+      cs = getComputedStyle(src, pseudo);
+    } catch {
+      continue; // 老浏览器不支持伪元素查询：跳过（退回旧行为）
+    }
+    if (!cs) continue;
+    const content = cs.getPropertyValue('content');
+    // 没有伪元素 / 不渲染
+    if (!content || content === 'none' || content === 'normal' || content === '""' || content === "''") {
+      // content:"" 的纯装饰伪元素**仍然要实体化**（渐变层就是它）
+      if (!content || content === 'none' || content === 'normal') continue;
+    }
+    const d = document.createElement('div');
+    d.setAttribute('data-pseudo', pseudo.slice(2));
+    let css = '';
+    for (let i = 0; i < cs.length; i++) {
+      const k = cs[i];
+      // content 在真元素上不生效（foreignObject 里更不会生效），
+      // 若它是文本就改用 textContent 承载
+      if (k === 'content') continue;
+      css += `${k}:${cs.getPropertyValue(k)};`;
+    }
+    d.setAttribute('style', css);
+    // 伪元素的文本内容（如 `content: "×"`）搬成真实文本节点
+    const text = content.replace(/^["']/, '').replace(/["']$/, '');
+    if (text && !/^(url\(|counter\(|attr\(|open-quote|close-quote|no-open-quote|no-close-quote)/.test(text)) {
+      d.textContent = text;
+    }
+    if (pseudo === '::before') dst.insertBefore(d, dst.firstChild);
+    else dst.appendChild(d);
+  }
 }
 
 /** 图片转 dataURL（同源也走一遍，避免 SVG 里出现外部引用） */

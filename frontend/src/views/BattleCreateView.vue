@@ -265,7 +265,9 @@
           <em>{{ artistHint }}</em>
         </h4>
         <div class="searchrow">
+          <!-- ⭐ 2026-10-20 第五十四批：顶栏搜索入口跳到这里，需要能自动聚焦 -->
           <input
+            ref="termInput"
             v-model="term"
             class="ipt"
             placeholder="输入歌手名，如 周杰伦 / 陶喆"
@@ -746,8 +748,8 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { musicApi, battleApi, comboApi } from '@/api';
 import ArtistChip from '@/components/ArtistChip.vue';
@@ -889,6 +891,20 @@ onMounted(async () => {
     /* 忽略：流派选项拉不到不影响手输 */
   }
   loadCombos();
+
+  // ⭐ 2026-10-20 第五十四批：**顶栏搜索入口**落点
+  // 从 AppShell 顶栏中部的放大镜跳过来时会带 `?focus=search`：
+  // ① 展开筛选弹层（手机档默认收起，不展开用户看不到搜索框）
+  // ② 聚焦歌手搜索框并唤起键盘
+  // ⚠️ 用完要把 query 清掉，否则刷新/再次进入会重复聚焦（干扰正常手动进入）。
+  if (route.query.focus === 'search') {
+    sheetOpen.value = true;
+    await nextTick();
+    setTimeout(() => {
+      termInput.value?.focus?.();
+    }, 260);
+    router.replace({ path: route.path, query: {} });
+  }
 });
 onBeforeUnmount(() => {
   mqPhone?.removeEventListener('change', syncPhone);
@@ -921,9 +937,12 @@ async function backfillEra() {
 }
 
 const router = useRouter();
+const route = useRoute();
 
 const mode = ref('multi-artist');
 const term = ref('');
+/** 歌手搜索框的 DOM 引用：只用于「顶栏搜索入口」跳进来时自动聚焦（2026-10-20 第五十四批） */
+const termInput = ref(null);
 const searching = ref(false);
 const creating = ref(false);
 const candidates = ref([]);

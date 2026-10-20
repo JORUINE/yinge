@@ -185,6 +185,17 @@ const cardVars = computed(() => {
 /* ⚠️ 这里不用 `transform: scale()` —— html2canvas 导出时对 transform 的处理会把
    文字栅格化在半路上（导出图发虚）。改用「设计尺寸 × 缩放系数」逐项算，
    导出走的是同一套 px 真值。 */
+/* ⚠️⚠️ 2026-10-20 第五十四批：**所有字号加 12px 硬下限**
+   ------------------------------------------------------------
+   用户反馈："导出的音乐人格卡字体可读性都有问题"。
+   实测（手机 390）发现根因不止导出：卡片用 `--scale = 可用宽 / 设计宽(520)` 整体缩放，
+   手机上 scale≈0.554 ⇒ `--fs-vi`（"X/10" 的分母）渲染出来只有 **8.3px**、
+   维度标签 10px、简介 10.2px ——  Zo手机上根本看不清，导出只是把这个问题一起带走了。
+   修法：字号统一写成 `max(12px, calc(设计值 × scale))`。
+     · 桌面端 scale=1，max 取左侧 ⇒ **与改前完全一致**（不影响桌面观感）
+     · 手机端被兜到 12px ⇒ 满足守则"任何文字 ≥12px 不可谈判"
+   ⚠️ 代价：手机上文字不再与卡片同比例缩小，需自检"没有互相重叠/溢出"（见
+     probe-r54-personality.mjs 的占位断言）。 */
 .pcwrap {
   position: relative;
   width: 100%;
@@ -266,13 +277,13 @@ const cardVars = computed(() => {
   font-weight: var(--fw-title, 500);
   line-height: 1.16;
   letter-spacing: var(--ls-title, 0.045em);
-  font-size: calc(var(--fs-title) * 1px * var(--scale));
+  font-size: max(12px, calc(var(--fs-title) * 1px * var(--scale)));
   text-shadow: var(--tsh, none);
 }
 .pdesc {
   font-family: var(--font-body, sans-serif);
   font-weight: 450;
-  font-size: calc(var(--fs-desc) * 1px * var(--scale));
+  font-size: max(12px, calc(var(--fs-desc) * 1px * var(--scale)));
   letter-spacing: var(--ls-desc, 0.04em);
   /* ⚠️ 2026-10-07 第三十批：这里原来是 12 → 渲染出来只有 **10px**（还要再乘 --scale≈0.85），
      用户看着"标题和副标题挤在一起"（导出图 48% 预览里最明显）。
@@ -347,7 +358,7 @@ const cardVars = computed(() => {
 .lb {
   font-family: var(--font-body, sans-serif);
   font-weight: 500;
-  font-size: calc(var(--fs-lb) * 1px * var(--scale));
+  font-size: max(12px, calc(var(--fs-lb) * 1px * var(--scale)));
   letter-spacing: var(--ls-lb, 0.04em);
   /* ⚠️ 2026-10-07 第三十三批：标签/数值也要吃 `--tsh` 文字阴影。
      起因：RHY 的维度底板改成**浅色**（用户要的"统一到标准"）后，白字在变亮的橙底上
@@ -369,7 +380,7 @@ const cardVars = computed(() => {
 .vl {
   font-family: var(--font-body, sans-serif);
   font-weight: 700;
-  font-size: calc(var(--fs-vl) * 1px * var(--scale));
+  font-size: max(12px, calc(var(--fs-vl) * 1px * var(--scale)));
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   color: var(--vl-c, var(--ink));
@@ -379,7 +390,7 @@ const cardVars = computed(() => {
 .vl i {
   font-style: normal;
   font-weight: 500;
-  font-size: calc(var(--fs-vi) * 1px * var(--scale));
+  font-size: max(12px, calc(var(--fs-vi) * 1px * var(--scale)));
   opacity: 0.72;
   margin-left: 1px;
 }
@@ -523,7 +534,7 @@ const cardVars = computed(() => {
   font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', SimSun, serif;
   font-weight: 700;
   line-height: 1.18;
-  font-size: calc(var(--fs-num) * 1px * var(--scale));
+  font-size: max(12px, calc(var(--fs-num) * 1px * var(--scale)));
   margin: calc(3px * var(--u) * var(--scale)) 0 calc(9px * var(--u) * var(--scale));
 }
 .pcard[data-stack='1'] .vl i {
@@ -539,22 +550,22 @@ const cardVars = computed(() => {
   font-size: calc(var(--tch) * var(--u) * 1px * var(--scale));
 }
 .pcard.sq[data-keep='1'] .pdesc {
-  font-size: calc(15.5px * var(--u) * var(--scale));
+  font-size: max(12px, calc(15.5px * var(--u) * var(--scale)));
   font-weight: 500;
   letter-spacing: 0.055em;
   margin-top: calc(11px * var(--u) * var(--scale));
 }
 .pcard.sq[data-keep='1'] .lb {
-  font-size: calc(14.5px * var(--u) * var(--scale));
+  font-size: max(12px, calc(14.5px * var(--u) * var(--scale)));
   font-weight: 500;
   letter-spacing: 0.05em;
 }
 .pcard.sq[data-keep='1'] .vl {
-  font-size: calc(16.5px * var(--u) * var(--scale));
+  font-size: max(12px, calc(16.5px * var(--u) * var(--scale)));
   font-weight: 700;
 }
 .pcard.sq[data-keep='1'] .vl i {
-  font-size: calc(12px * var(--u) * var(--scale));
+  font-size: max(12px, calc(12px * var(--u) * var(--scale)));
   font-weight: 500;
 }
 /* 方版条厚 = 长版 12 × 0.808 = 9.7px（与成品卡实测 10px 一致；同一个设计厚度） */

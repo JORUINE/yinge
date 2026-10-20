@@ -1,0 +1,168 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十四批交付报告（方形图真 1:1 / 导出保真 / 顶栏中部）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:900px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 4px}
+  .b{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:13px 15px}
+  .b .v{font-size:24px;font-weight:800;color:#0369A1;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .b .v small{font-size:13px;font-weight:700;color:#7d97ab}
+  .b .l{font-size:12.3px;color:#7d97ab;margin-top:2px}
+  .b.fix .v{color:#0f8a4a}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.6px;line-height:1.65;margin-top:8px;overflow-x:auto}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十四批 · 2026-10-20</span>
+  <h1>方形图真的方了 · 导出和你在页面上看到的一样 · 顶栏中部不再空一半</h1>
+  <p>你这次提了三条，全部做完并逐条跑通真机级探针。<b>52 分断言全绿</b>，
+  其中桌面端同输入 A/B <b>10 条路由 0 差异</b>（手机改动没碰电脑端）。</p>
+</div>
+
+<div class="big">
+  <div class="b fix"><div class="v">0.795 → <small>1.000</small></div><div class="l">手机端方形图比例（改前 0.795，桌面 0.95 ⇒ 两端不一致）</div></div>
+  <div class="b fix"><div class="v">201px → <small>12px</small></div><div class="l">手机顶栏中部空白（改前占屏宽 51.5%）</div></div>
+  <div class="b fix"><div class="v">8.3px → <small>12px</small></div><div class="l">人格卡最小字号（手机端「X/10」分母）</div></div>
+</div>
+
+<h2><span class="n">1</span>你提的三条，逐条结果</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:250px">你的反馈</th><th style="width:78px">结果</th><th>根因 / 修法 / 实测数字</th></tr></thead>
+    <tbody>
+      <tr><td><b>① 手机端方形图和竖形图只在"高"上有区别，宽的一样，非常不对</b></td><td><span class="ok">已达成</span></td>
+        <td><b>根因</b>：方形卡的高度是写死的 <code>min-height:430px</code>，而宽度跟着布局走
+          （手机 342 / 桌面 420）⇒ 手机 342×430=<b>0.795</b>、桌面 420×442=<b>0.950</b>。
+          你看到的"两端不一样"，本质就是<b>宽度没锁死、高度锁死了</b>。<br>
+          <b>修法</b>：改成 <code>aspect-ratio:1/1</code>（高度由宽度推出 ⇒ 任何宽度都正方），
+          内容用 <code>--sqk</code> 整体缩一档才装得下，<b>字号一律带 12px 硬下限</b>。<br>
+          <b>实测</b>：手机 342×342=1.000、桌面 420×420=1.000，导出 PNG 都是 <b>1080×1080</b>；
+          7 个文字元素全部在卡内、0 个溢出。</td></tr>
+      <tr><td><b>② 导出的图和页面上看到的不一致（色调 + 左上角「音格」可读性），人格卡也要一样</b></td><td><span class="ok">已达成</span></td>
+        <td><b>根因（实测确认）</b>：导出是"克隆 DOM + 内联样式"，而这张卡的<b>整套配色都在伪元素里</b> ——
+          <code>.scard.glassy::before</code> = 顶部压暗 + 冠军色三层柔光 + 深色纱幕 + 底部托底（<b>色调</b>），
+          <code>::after</code> = 左上主高光 + 斜穿光带 + 底部微光（<b>玻璃质感</b>）。
+          <code>cloneNode</code> 不克隆伪元素、克隆节点又脱离样式表 ⇒ <b>这两层在导出里整层消失</b>。
+          于是「音格 · YINGE.APP」直接压在没压暗的亮封面上 ⇒ 可读性差、色调发飘。<br>
+          <b>修法</b>：导出前把 <code>::before / ::after</code> <b>实体化成真元素</b>再内联样式
+          （<code>cardExport.js</code> 的 <code>materializePseudo</code>）。
+          人格卡同理（它的白纱幕也在 <code>::after</code>）—— <b>一处修复，4 个导出入口全部受益</b>。<br>
+          <b>实测</b>：预览截图 vs 真导出逐区域比像素 —— 整卡亮度差 <b>手机 1.9 / 桌面 1.2</b>，
+          品牌行差 <b>手机 0.0 / 桌面 0.3</b>；人格卡整卡差 <b>0.6 / 0.8</b>。</td></tr>
+      <tr><td><b>③ U1 顶栏中部空白（你第 45 批就批准了方案 A + 搜索入口）</b></td><td><span class="ok">已达成</span></td>
+        <td><b>根因</b>：手机上顶部导航链接全收进了底部 Tab，顶栏只剩 logo + 头像，
+          <b>中间实测空 201px = 屏宽 51.5%</b>（390 宽下 logo 24~68、右侧 269~366）。<br>
+          <b>修法</b>：中部加「当前状态胶囊 + 搜索按钮」。状态显示当前页面名
+          （手机上没有顶部导航，"我在哪一页"本身就需要被看见）；搜索跳到创建页并自动展开筛选层、聚焦歌手搜索框。<br>
+          <b>实测</b>：中部空隙 <b>201px → 12px</b>；状态随路由变化（排行榜/人格图鉴/我的对决…）；
+          点搜索跳到创建页且 <code>activeElement</code> 就是歌手输入框；跳转后 query 自动清掉不重复聚焦。
+          <b>桌面档一个节点都不渲染</b>（<code>v-if="isPhone"</code>）⇒ A/B 0 差异。</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">2</span>顺手修的：人格卡字号（你上次说"可读性有问题"的实体）</h2>
+<div class="card">
+  <p style="font-size:13.6px;margin:0 0 8px">人格卡用「设计尺寸 × 缩放系数」适配窄屏，手机上 scale≈0.554 ⇒ 实测有 <b>9 处文字小于 12px</b>：</p>
+  <table>
+    <thead><tr><th style="width:130px">位置</th><th style="width:90px">改前（手机）</th><th style="width:90px">改后</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>维度值「X <b>/10</b>」的分母</td><td class="num">8.31px</td><td class="num">12px</td><td rowspan="4">统一改成 <code>max(12px, calc(设计值 × scale))</code>。<br>
+        <b>桌面端 scale=1，取左侧原值 ⇒ 与改前完全一致</b>；手机端被兜到 12px。<br>
+        配套自检：手机/桌面都没有文字溢出卡片、没有互相重叠。</td></tr>
+      <tr><td>四个维度标签（旋律敏感 / 节奏偏好 / 编曲层次 / 安静倾向）</td><td class="num">9.97px</td><td class="num">12px</td></tr>
+      <tr><td>一句话简介</td><td class="num">10.25px</td><td class="num">12px</td></tr>
+      <tr><td>改动前全卡最小字号</td><td class="num">8.31px</td><td class="num">12px</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2><span class="n">3</span>附带做掉的基础设施债（S0）</h2>
+<div class="card">
+  <p style="font-size:13.6px;margin:0 0 6px">上批复盘里我欠的那笔债 —— 端到端探针每次都要"打完 7 场投票 × 400ms 节流"，连跑两次被超时掐断。
+  这次先把它修掉，本轮所有验证才跑得起来：</p>
+  <ul>
+    <li><b>新增 <code>POST /api/dev/battle</code></b>：一次请求直接落一局"已结束"的对决（含签表、含冠军、含夺冠路径）。
+      <b>只在非 production 注册</b>；仍要登录态（局属于调用者本人）；只写 <code>Battle</code>/<code>BattleMatch</code>，不碰 User / Vote / Rank。</li>
+    <li>造局 → 分享页 → 真导出 → 像素比对，这条链现在<b>一次跑通、不再超时</b>。</li>
+  </ul>
+  <div class="note warn"><b>写这个接口时我自己踩了一个坑，值得记下来</b>：第一版签表循环
+  <code>for (i+=2) stage.push([w[i], w[i+1]])</code>，当胜者数是<b>奇数</b>（1）时永远产出长度为 1 的 stage
+  ⇒ <code>while</code> 永不退出 ⇒ <b>同步死循环 + 每轮 push，25 秒把内存吃到 4GB，后端 OOM</b>。
+  而且它<b>看起来像"在 <code>Battle.create</code> 里炸的"</b>（我的第一步日志正好打在那之前），
+  差点误判成 mongoose 的锅。<b>教训：① 日志要打在"下一行代码之前"；② 编译/语法检查查不出死循环，
+  必须有用例真的跑一遍。</b>现已改成"冠军产生即收尾"+ 200 场上限兜底。</div>
+</div>
+
+<h2><span class="n">4</span>验证：52 条断言全绿</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:190px">探针</th><th style="width:70px">断言</th><th>结果</th></tr></thead>
+    <tbody>
+      <tr><td><code>_r54-final.mjs</code><br><span style="color:#7d97ab;font-size:12px">分享图：比例 / 裁字 / 字号 / 保真</span></td><td class="num">20</td><td>手机+桌面各 10 条：方形 1.000、1080×1080、0 溢出、字号 ≥12、整卡亮度差 ≤1.9、品牌行差 ≤0.3</td></tr>
+      <tr><td><code>_r54-personality.mjs</code></td><td class="num">12</td><td>人格卡字号 ≥12、伪元素层存在、导出 1080×1440/1438、与预览亮度差 ≤0.8</td></tr>
+      <tr><td><code>_r54-overlap.mjs</code></td><td class="num">6</td><td>人格卡加大字号后：0 文字溢出卡片、0 互相重叠</td></tr>
+      <tr><td><code>_r54-topbar.mjs</code></td><td class="num">14</td><td>中部空隙 201→12px、状态随路由变、搜索按钮 44×44 且点击聚焦、桌面不渲染 .tmid</td></tr>
+      <tr><td><code>probe-r40-desktop-ab.mjs</code><br><span style="color:#7d97ab;font-size:12px">桌面同输入 A/B（重建基线）</span></td><td class="num">10 路由</td><td><b>几何 0 差异 / 结构 0 差异 / JS 错误 0 / 无元素被误隐藏</b></td></tr>
+      <tr><td><code>probe-r41-tiers.mjs</code></td><td class="num">3 档</td><td>375 / 768 / 1440 全页：横向溢出 0、&lt;12px 文字 0、JS 错误 0</td></tr>
+      <tr><td><code>probe-r46-android.mjs</code></td><td class="num">3 视口</td><td>360 / 393 / 412 默认缩放 100%：横向溢出 0、网格溢出 0、小字 0</td></tr>
+    </tbody>
+  </table>
+  <div class="chk"># 本次改动的复跑命令（都在 tools/pw/ 下）
+node _r54-final.mjs          # 分享图：1:1 + 不裁字 + 预览/导出一致
+node _r54-personality.mjs    # 人格卡：字号 + 预览/导出一致
+node _r54-overlap.mjs        # 人格卡：无重叠无溢出
+node _r54-topbar.mjs         # 顶栏：中部空隙 + 搜索入口 + 桌面零新增
+
+# 每轮必跑的三条回归
+node probe-r40-desktop-ab.mjs &lt;dist-before&gt; &lt;dist&gt; http://127.0.0.1:3000
+node probe-r41-tiers.mjs http://127.0.0.1:3000 &lt;dist&gt;
+node probe-r46-android.mjs http://127.0.0.1:3000 &lt;dist&gt;</div>
+  <div class="note"><b>关于"手机端效果要和电脑端一样"</b>：现在两端的方形图都锁在严格 1:1、都用同一个 SVG 真渲染引擎、
+  预览与导出的像素级一致（亮度差 ≤1.9）。差异只剩卡片<b>设计宽度</b>（手机 342 / 桌面 420 CSS px），
+  这是布局宽度决定的，比例与观感已一致。</div>
+</div>
+
+<h2><span class="n">5</span>我这次犯的两个错（都记下来）</h2>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:230px">错在哪</th><th>后果 / 规则</th></tr></thead>
+    <tbody>
+      <tr><td><b>签表循环写了死循环</b>（dev 接口）</td><td>后端 25 秒 OOM 4GB。而且<b>爆点被我的日志顺序误导</b>，差点冤枉 mongoose。
+        <b>规则：日志必须打在"下一行代码之前"；语法检查查不出死循环，必须有真的用例跑一遍。</b></td></tr>
+      <tr><td><b>探针判据两次取错</b></td><td>① 用 <code>scrollHeight</code> 判"内容溢出" ⇒ 把 <code>.sbg</code> 故意做的 <code>scale(1.16)</code>
+        当成溢出（342→27px / 420→34px，恒定值，与缩放系数无关），走了半天弯路；
+        ② 手机上截图时页面停在被滚走的状态（卡片 <code>top=-272</code>），拍到的是页面背景和品牌蓝，
+        <b>误判成"导出与预览差 150 亮度"的假红</b>。
+        <b>规则：判"内容溢出"只能逐元素比"比卡多出去多少"；截图前必须确认元素完整落在视口里。</b></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="note good"><b>下一步（按上批排的计划）</b>：S2 人格详情页剩余 84px 留白（含那 76px 的来源定位）、
+S3 已随本轮一并完成（导出保真已端到端验证）、F 类 5 条待你拍板（方形图比例已按你这次的意见定成严格 1:1，该条关闭）。</div>
+
+<div class="foot">音格 · 第五十四批交付报告 · 2026-10-20 · 数字均来自本次真机级探针实测</div>
+</div></body></html>

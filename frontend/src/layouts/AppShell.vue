@@ -26,6 +26,20 @@
           <RouterLink v-if="auth.isAdmin" to="/admin" active-class="on">管理后台</RouterLink>
         </nav>
 
+        <!-- ⭐⭐⭐ 2026-10-20 第五十四批：**顶栏中部空白**（你第 45 批就批准了方案 A + 搜索入口）
+             实测：手机 390 宽下顶栏只有 logo(24~68) 与右侧(269~366)，**中间空 201px＝屏宽 51.5%**。
+             方案 A＝中间放**当前状态**（当前页面名）；附带批准的**搜索入口**（跳到创建页的歌手搜索）。
+             ⚠️ `v-if="isPhone"` 两套 DOM：桌面档**一个节点都不渲染** ⇒ 同输入 A/B 仍 0 差异
+                （第四十四批栽过：加一个 hint 就让登录卡高 26px、A/B 报 15 项差异）。 -->
+        <div v-if="isPhone" class="tmid">
+          <span class="tstate" :title="route.meta.title || '首页'">{{ topState }}</span>
+          <button class="tsearch" type="button" title="搜索歌手" aria-label="搜索歌手" @click="goSearch">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7" /><path d="M20 20l-3.7-3.7" />
+            </svg>
+          </button>
+        </div>
+
         <div class="right">
           <template v-if="auth.isLoggedIn">
             <RouterLink
@@ -183,6 +197,25 @@ const bannedReason = ref(null);
 const bannedNote = ref(null);
 
 const avatarChar = computed(() => (auth.nickname || '音').slice(0, 1));
+
+/**
+ * ⭐ 2026-10-20 第五十四批：顶栏中部的「当前状态」文字
+ * ------------------------------------------------------------
+ * 手机上顶部导航链接全收进了底部 Tab（见下面 @media），顶栏只剩 logo + 头像，
+ * 中部整块是空的（实测 390 宽下空 201px = 51.5% 屏宽）。
+ * 方案 A（你第 45 批批准）：中部放**当前所在页面**——手机上没有顶部导航，
+ * "我在哪一页"这件事本身就需要被看见。
+ * 标题过长的（"对决结果与夺冠之路"）截断成 6 字 + …，`title` 属性保留全文。
+ */
+const topState = computed(() => {
+  const t = String(route.meta.title || '首页');
+  return t.length > 7 ? `${t.slice(0, 6)}…` : t;
+});
+
+/** 搜索入口（同批批准）：跳到创建页并让它自动展开筛选层、聚焦歌手搜索框 */
+function goSearch() {
+  router.push({ name: 'battle-create', query: { focus: 'search' } });
+}
 
 /**
  * 手机端底部 Tab（P0-4）
@@ -622,6 +655,51 @@ onMounted(() => {
   }
   .logo {
     font-size: 16px;
+  }
+
+  /* ③ 顶栏中部：当前状态 + 搜索入口（方案 A，2026-10-20 第五十四批）
+        改前实测：390 宽下顶栏中部**空 201px（51.5% 屏宽）**，一眼看过去左边一个 logo、
+        右边一个头像，中间什么都没有。现在这一块被状态胶囊 + 搜索按钮填满。
+        ⚠️ `.tmid` 用 `flex:1 1 auto` 吃掉剩余空间，logo 与头像尺寸一点没动；
+        ⚠️ 搜索按钮 44×44（触控下限），文字 13.5px（≥12px 红线）。 */
+  .tmid {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .tstate {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--brand-deep);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .tsearch {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--gbd);
+    background: var(--glass2);
+    color: var(--brand-deep);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tsearch:active {
+    background: var(--brand);
+    color: var(--brand-ink);
+  }
+  .tsearch svg {
+    width: 20px;
+    height: 20px;
   }
 
   /* ② 底部 Tab 本体 */

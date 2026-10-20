@@ -110,11 +110,11 @@
           <div class="opts">
             <div class="opt" :class="{ on: shape === 'portrait' }" @click="shape = 'portrait'">
               <span class="rd2"></span>
-              <span class="tx"><b>竖版长图（宽 1080 · 高自适应）</b><span>适合发朋友圈、小红书、微博</span></span>
+              <span class="tx"><b>竖版长图（1080 × 高自适应）</b><span>适合发朋友圈、小红书、微博</span></span>
             </div>
             <div class="opt" :class="{ on: shape === 'square' }" @click="shape = 'square'">
               <span class="rd2"></span>
-              <span class="tx"><b>紧凑版（宽 1080 · 高自适应）</b><span>适合发 Instagram、微博九宫格</span></span>
+              <span class="tx"><b>方形图（1080 × 1080）</b><span>适合发 Instagram、微博九宫格</span></span>
             </div>
             <div class="opt" :class="{ on: withLink }" @click="withLink = !withLink">
               <span class="rd2"></span>
@@ -256,7 +256,7 @@ const footLine = computed(() => {
   return parts.join(' · ');
 });
 const outSize = computed(() =>
-  shape.value === 'square' ? '宽 1080 · 高自适应（约 1080 起）' : '宽 1080 · 高自适应（约 1440 起）',
+  shape.value === 'square' ? '1080 × 1080（严格 1:1）' : '宽 1080 · 高自适应（约 1440 起）',
 );
 
 /**
@@ -514,8 +514,27 @@ onMounted(load);
        与竖版的区别：**高度明显更矮**（约 0.8 vs 0.70 宽高比），且**一个字都不裁**。
      ⚠️ 若以后要严格 1:1，必须**把卡片内容整体缩小约 17%**（字号/封面/间距一起），
         那会改变"版式观感"——需要用户拍板，不能自己动。 */
-  min-height: 430px;
+  /* ⚠️⚠️ 2026-10-20 第五十四批：**方形图改成严格 1:1，且全平台一致**
+     用户实测（手机端）："方形图和竖形图只在长的比例上有区别，它的宽的比例是一样的，
+     这是非常不对的"。
+     实测确认：改前 `min-height: 430px` 是**写死的绝对高度**，而卡片宽度随布局变
+     （手机 342 / 桌面 420）⇒ 手机 342×430 = **0.795**（根本不够方）、
+     桌面 420×442 = **0.950**（勉强像方）⇒ 两端不一致，手机尤其不对。
+     修法：`aspect-ratio: 1/1`（高度由宽度推出 ⇒ 任何宽度下都是正方）
+          + `--sqk` 把方形版结构尺寸整体缩一档（内容必须装得进 1:1，否则溢出会被裁）。
+          字号带 **12px 下限**（`max(12px, …)`，守则"任何文字 ≥12px"不可谈判）。
+     ⚠️ 仍不裁字：`--sqk` 留了余量（桌面 0.90 / 手机 0.74），
+         并由 probe 逐条断言"每个文字元素都在卡内"。 */
+  aspect-ratio: 1 / 1;
+  min-height: 0;
+  /* 方形版结构缩放系数：桌面 0.90 / 手机 0.74（见下方 @media） */
+  --sqk: 0.9;
   padding: 12px 18px 10px;
+}
+@media (max-width: 640px) {
+  .scard.square {
+    --sqk: 0.74;
+  }
 }
 /**
  * 方形图的版式（2026-09-22 按用户给的草图重排）
@@ -528,19 +547,19 @@ onMounted(load);
  * 好在 DOM 顺序本来就是 冠军 → 对手 → 统计，所以这里**只调尺寸与间距**，不动结构。
  */
 .scard.square {
-  padding: 14px 18px 12px;
+  padding: calc(14px * var(--sqk)) calc(18px * var(--sqk)) calc(12px * var(--sqk));
 }
 .scard.square .stop {
-  font-size: 12px;
-  letter-spacing: 1.2px;
+  font-size: max(12px, calc(12px * var(--sqk)));
+  letter-spacing: max(0.6px, calc(1.2px * var(--sqk)));
 }
 .scard.square .stitle {
-  font-size: 12.5px;
+  font-size: max(12px, calc(12.5px * var(--sqk)));
   margin-top: 1px;
 }
 .scard.square .smain {
   /* 2026-10-18 第五十批：4 → 3px（方卡锁 1:1 需微收一点才装得下，版式不变） */
-  gap: 3px;
+  gap: max(2px, calc(3px * var(--sqk)));
   /* ⚠️ 原来这里 `overflow:hidden` 会把最后一行「轮次路径」(.roundline) 裁掉
      形成"轮次不见了 / 被遮住"（用户 09-23：「八强这两行字不能被遮挡」）。
      现在去掉——卡片本体 `.scard` 已有 overflow:hidden 兜底，不会撑破卡。 */
@@ -552,8 +571,8 @@ onMounted(load);
    为什么不靠"再裁一点"兜底：轮次路径是这张图的信息之一，不能靠裁掉它来"看起来没问题"。 */
 .scard.square .crown {
   /* 2026-09-24 第十四批：13 → 15px（与竖版同步放大） */
-  font-size: 15px;
-  letter-spacing: 3px;
+  font-size: max(13px, calc(15px * var(--sqk)));
+  letter-spacing: max(1.5px, calc(3px * var(--sqk)));
   margin: 0;
 }
 /* 冠军封面：**按宽度定尺寸**（width + 基类的 aspect-ratio:1 自动出高）。
@@ -563,8 +582,9 @@ onMounted(load);
    smain 宽 384 → 46% = 177px，占 420 高的方形卡 42%。 */
 .scard.square .smain .art {
   /* 2026-10-18 第五十批：46% → 42%。方卡锁 1:1 后可用高变紧，
-     封面微收一档才装得下（版式、顺序、配色全不变，只是略小）。 */
-  width: 42%;
+     封面微收一档才装得下（版式、顺序、配色全不变，只是略小）。
+     2026-10-20 第五十四批：再乘 `--sqk` —— 严格 1:1 下封面是最大的纵向消费者。 */
+  width: calc(42% * var(--sqk));
   height: auto;
   /* ⚠️ 必须关掉 flex 收缩：.smain 是列向 flex，内容一多就会把封面**压缩**，
      压到量出来只有卡高的 34%（用户要的"冠军做大"就没生效）。
@@ -572,37 +592,37 @@ onMounted(load);
   flex: 0 0 auto;
 }
 .scard.square .cname {
-  font-size: 23px;
+  font-size: max(14px, calc(23px * var(--sqk)));
   line-height: 1.15;
   margin-top: 0;
 }
 .scard.square .cartist {
-  font-size: 12.5px;
+  font-size: max(12px, calc(12.5px * var(--sqk)));
   margin-top: 0;
 }
 /* 其他专辑：一排缩略图，做成"小相框"更好认 */
 .scard.square .spath {
-  gap: 7px;
+  gap: max(4px, calc(7px * var(--sqk)));
+  margin-top: max(4px, calc(10px * var(--sqk)));
 }
 .scard.square .spath div {
-  /* 方卡里的其他专辑同样放大（36 → 46px），用户："大一点" */
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: calc(46px * var(--sqk));
+  height: calc(46px * var(--sqk));
+  border-radius: calc(12px * var(--sqk));
 }
 .scard.square .roundline {
   /* 2026-09-24 第十八批：15 → 18px（与竖版同步）；2026-10-11 第三十五批：18 → 16px（同竖版） */
-  font-size: 16px;
-  letter-spacing: 0.05em;
+  font-size: max(12px, calc(16px * var(--sqk)));
+  letter-spacing: max(0.04em, calc(0.05em * var(--sqk)));
 }
 /* ⚠️ 这里原来有一条 `border-top` —— 那正是用户说的"明显的分割线、像两个矩形框拼在一起"，已去掉。
    现在脚注靠留白与层级分区（见上面 .scard .sfoot），方卡只是把间距压紧一点。
    2026-09-24 第十三批：小字 12 → 13px、间距略放开（用户："下面的小字体大小大一点点，然后间距合理"）。 */
 .scard.square .sfoot {
   /* 2026-09-24 第十八批：15 → 18px；2026-10-11 第三十五批：18 → 16px（同竖版） */
-  font-size: 16px;
-  margin-top: 14px;
-  gap: 12px;
+  font-size: max(12px, calc(16px * var(--sqk)));
+  margin-top: max(6px, calc(14px * var(--sqk)));
+  gap: max(6px, calc(12px * var(--sqk)));
 }
 /* 分享链接：这一行在**导出的卡片里**，所以绝不能用 text-overflow: ellipsis ——
    html2canvas 遇到需要截断的文本会把字**水平压扁**（用户报的"分享图文字有问题"）。
@@ -708,12 +728,12 @@ onMounted(load);
   font-size: 16px;
 }
 .scard.square .cname.nm-m {
-  font-size: 23px;
+  font-size: max(14px, calc(23px * var(--sqk)));
 }
 .scard.square .cname.nm-s {
-  font-size: 20px;
+  font-size: max(14px, calc(20px * var(--sqk)));
 }
 .scard.square .cname.nm-xs {
-  font-size: 17px;
+  font-size: max(13px, calc(17px * var(--sqk)));
 }
 </style>
