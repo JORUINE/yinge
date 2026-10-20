@@ -28,10 +28,13 @@ const router = Router();
  * 造一局已结束的杯赛对决，返回 battleId。
  * body（都可选）：
  *   { albumCount?: number }  参赛张数，默认 8；只接受 2 的幂（4 / 8 / 16），其余回落 8
- *   { scopeType?: string }   默认 'artist'
+ *   { scopeType?: string }   'artist'（默认，杯赛）| 'aligned'（对位赛）
  *
- * 签名表：4 张 = 2 场 + 1 场决赛；8 张 = 4 + 2 + 1；16 张 = 8 + 4 + 2 + 1。
- * 冠军固定取第 1 张专辑，它的 path 就是真实打过的那几场（含轮空）。
+ * 杯赛：4 张 = 2 场 + 1 场决赛；8 张 = 4 + 2 + 1；16 张 = 8 + 4 + 2 + 1。
+ *       冠军固定取第 1 张专辑，它的 path 就是真实打过的那几场（含轮空）。
+ * 对位赛（2026-10-21 第五十六批加）：前一半专辑 vs 后一半专辑，逐位对位，
+ *       roundIndex = 对位序号。**不产生冠军**（与 battle.service 的 aligned 分支同口径），
+ *       结果页走的是「逐行对照表」—— 探针要用它验证战报导出。
  */
 router.post(
   '/battle',
@@ -39,6 +42,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const asked = Number(req.body?.albumCount) || 8;
     const pool = [4, 8, 16].includes(asked) ? asked : 8;
+    const scopeType = req.body?.scopeType === 'aligned' ? 'aligned' : (req.body?.scopeType || 'artist');
+    const isAligned = scopeType === 'aligned';
 
     // 取真专辑（要 artworkUrl 真实的 —— 分享卡靠它取色与做模糊底）
     const albums = await Album.find({ artworkUrl: { $regex: '^https?://' } })
@@ -61,28 +66,70 @@ router.post(
       albumCount: albums.filter((a) => a.artistName === name).length,
     }));
 
+    // 对位赛的场次 = 张数 / 2（前一半 vs 后一半），没有淘汰赛
+    const matchTotal = isAligned ? pool / 2 : pool - 1;
+
     const battle = await Battle.create({
       userId: req.user._id,
-      scopeType: req.body?.scopeType || 'artist',
+      scopeType,
       scopeKey: 'dev-fixture',
       artists,
       withRevival: false,
       status: 'finished',
       groupCount: 0,
-      roundCount: Math.log2(pool),
-      currentRound: Math.log2(pool),
-      matchTotal: pool - 1,
+      roundCount: isAligned ? 1 : Math.log2(pool),
+      currentRound: isAligned ? 1 : Math.log2(pool),
+      matchTotal,
       hasBye: false,
       tournamentVersion: 2,
       poolTarget: pool,
-      knockoutSize: pool / 2,
+      knockoutSize: isAligned ? 0 : pool / 2,
       revivalNeed: 0,
-      stepTotal: pool - 1,
+      stepTotal: matchTotal,
       albumIds,
-      championAlbumId: championId,
+      // ⚠️ 对位赛**不产生冠军**（与 battle.service.finishBattle 的 aligned 分支同口径）
+      championAlbumId: isAligned ? null : championId,
     });
 
-    // ── 造签表 ──
+    // ── 对位赛：直接造逐行对照表，不走淘汰赛 ──
+    if (isAligned) {
+      const half = pool / 2;
+      const rows = [];
+      for (let i = 0; i < half; i += 1) {
+        const l = albumIds[i];
+        const r = albumIds[i + half];
+        // 交替让左右赢（1 票 vs 3 票 / 3 票 vs 1 票），保证"总比分"不是 0
+        const leftWin = i % 2 === 0;
+        rows.push({
+          battleId: battle._id,
+          roundIndex: i + 1,
+          roundName: 'duel',
+          matchOrder: i,
+          leftAlbumId: l,
+          rightAlbumId: r,
+          leftVotes: leftWin ? 3 : 1,
+          rightVotes: leftWin ? 1 : 3,
+          winnerAlbumId: leftWin ? l : r,
+          isBye: false,
+          isRevival: false,
+        });
+      }
+      await BattleMatch.insertMany(rows);
+      return res.json({
+        code: 0,
+        message: 'ok',
+        data: {
+          battleId: String(battle._id),
+          matchTotal,
+          matchesCreated: rows.length,
+          poolTarget: pool,
+          scopeType: 'aligned',
+          champion: null,
+        },
+      });
+    }
+
+    // ── 造签表（杯赛）──
     // ⚠️⚠️ 2026-10-20 排障记录（写在这里免得再犯）：
     //   第一版把"配成一对"写成 `for (i += 2) stage.push([w[i], w[i+1]])`，
     //   当胜者数是**奇数**（1）时永远产出长度为 1 的 stage ⇒ while 永不退出

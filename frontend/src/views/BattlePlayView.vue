@@ -1,7 +1,8 @@
 <template>
   <div class="play" :class="{ 'pk-only': pkOnly }">
     <!-- 全局音频元素：小组赛试听与淘汰赛 1v1 共用（放根级，避免某阶段里 audioEl 是空导致播不出来） -->
-    <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" />
+    <!-- preload="auto"：提前把这 30 秒片段缓冲下来，点了播放不用再等网络（用户"点了会延迟一会儿"） -->
+    <audio ref="audioEl" :src="previewUrl" preload="auto" @ended="onEnded" @timeupdate="onTime" />
 
     <!-- 阶段切换过场（小组赛 → 遗珠复活 → 淘汰赛某轮）
          只在**阶段真的变了**时闪一下，同阶段换下一组不打扰（否则每组都弹一次很烦） -->
@@ -423,7 +424,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue';
+import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi, musicApi } from '@/api';
@@ -463,6 +464,8 @@ const trackIdx = ref(0);
 const previewUrl = ref('');
 const playing = ref(false);
 const audioTime = ref(0);
+/** 上一次"已经写进 audioTime 的秒数"——用于 timeupdate 节流（见 onTime 注释） */
+let lastShownSec = -1;
 const audioDur = ref(0);
 const audioEl = ref(null);
 const playerAlbum = ref(null); // { albumId, name, artworkUrl }
@@ -473,6 +476,38 @@ const playableCount = computed(() => tracks.value.filter((t) => t.previewUrl).le
 const playerAlbumName = computed(() => playerAlbum.value?.name || '');
 const playerAlbumArt = computed(
   () => playerAlbum.value?.artworkUrl || match.value?.leftAlbum?.artworkUrl || '',
+);
+
+/**
+ * 空闲预取（2026-10-21 第五十六批）
+ * ------------------------------------------------------------
+ * 用户："点了播放会延迟一会儿"。延迟来自**两段网络**：① 拉曲目表 ② 下载音频片段。
+ * 这里只在浏览器**空闲时**（requestIdleCallback，最多等 2 秒）把本场两张专辑的曲目表
+ * 先拉进缓存 ⇒ 用户真去点时只剩音频本身要加载。
+ * ⚠️ 只预热**数据**、不放音频、不改任何玩法与计票；失败一律静默（不能因为预热失败打扰用户）。
+ */
+watch(
+  [match, group],
+  ([m, gp]) => {
+    // 1v1 = 两张专辑；小组赛一次 4 张，只预热**前 2 张**（控制流量，别一进页面就打 4 个接口）
+    const targets = m
+      ? [m.leftAlbum, m.rightAlbum]
+      : (gp?.albums || []).slice(0, 2);
+    if (!targets.length) return;
+    const go = () => {
+      for (const al of targets) {
+        const aid = al?.albumId;
+        if (aid == null || trackCache.has(aid)) continue;
+        fetchTracks(aid).catch(() => {});
+      }
+    };
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(go, { timeout: 2000 });
+    } else {
+      setTimeout(go, 900);
+    }
+  },
+  { immediate: false },
 );
 
 const fmtTime = (ms) => {
@@ -782,12 +817,31 @@ function onCoverVote(album) {
   vote(album);
 }
 
+/**
+ * 曲目缓存（2026-10-21 第五十六批 · 用户"点了播放会延迟一会儿"）
+ * ------------------------------------------------------------
+ * 原来每次点播放都要先 `GET /music/albums/:id/tracks`（后端还要顺带同步 iTunes 片段），
+ * 网络来回 300ms~2s ⇒ 用户体感就是"点了没动静"。
+ * 曲目表在一局里是**不变的**（同一张专辑同一批片段）⇒ 第一次拿到就存下来，
+ * 之后再点直接命中，只剩音频本身的加载。
+ * 只缓存当前会话（模块级 Map，刷新即清），不写 localStorage —— 不占用户存储、也不会过期错数据。
+ */
+const trackCache = new Map();
+
+/** 真的去请求曲目（带缓存）。`force` 用于用户明确重试的场景。 */
+async function fetchTracks(albumId, force = false) {
+  if (!force && trackCache.has(albumId)) return trackCache.get(albumId);
+  const data = await musicApi.listAlbumTracks(albumId);
+  trackCache.set(albumId, data);
+  return data;
+}
+
 /** 试听：第一次点某张专辑时按需拉曲目（后端会自动同步 iTunes 的 30 秒片段） */
 async function play(album) {
   if (!album) return;
   if (playerAlbum.value?.albumId !== album.albumId) {
     try {
-      const data = await musicApi.listAlbumTracks(album.albumId);
+      const data = await fetchTracks(album.albumId);
       const list = data.list || [];
       if (!list.length) {
         ElMessage.info('这张专辑暂无可试听的曲目');
@@ -842,6 +896,7 @@ function loadCurrent() {
   previewUrl.value = t.previewUrl;
   audioTime.value = 0;
   audioDur.value = 0;
+  lastShownSec = -1; // 换歌后重新开始按秒判定，否则第一秒的更新会被当成"没变"吞掉
   nextTick(() => {
     const el = audioEl.value;
     if (!el) return;
@@ -897,12 +952,27 @@ function seekRel(deltaSec) {
     /* 某些片段不可 seek，忽略 */
   }
 }
+/**
+ * `timeupdate` 节流（2026-10-21 第五十六批）
+ * ------------------------------------------------------------
+ * ⚠️ 用户："感觉手机端用起来有点卡顿，点了播放会延迟一会儿"。
+ *   `timeupdate` 在 Chrome 里**每秒触发 4~66 次**，原来每触发一次就写 `audioTime`
+ *   ⇒ 整块 `.nowbar`（歌名 / 时间 / 转盘 / 试听清单的 .on）跟着重渲染，播放时一直掉帧。
+ *   而界面上显示的时间精度**只到秒** ⇒ 秒数没变就没必要重渲染。
+ *   这条只减少"无意义的渲染次数"，**一个视觉元素、一行动画都没删**。
+ */
 function onTime() {
   const el = audioEl.value;
   if (!el) return;
-  audioTime.value = (el.currentTime || 0) * 1000;
-  // 取播放器真实时长（试听片段约 30 秒），而不是整首歌的时长
-  if (Number.isFinite(el.duration) && el.duration > 0) audioDur.value = el.duration * 1000;
+  const sec = Math.round(el.currentTime || 0);
+  // 时长只需在拿到后写一次（原来每帧都写，会让依赖它的模板一直失效）
+  if (Number.isFinite(el.duration) && el.duration > 0) {
+    const ms = el.duration * 1000;
+    if (Math.abs(audioDur.value - ms) > 1) audioDur.value = ms;
+  }
+  if (sec === lastShownSec) return;
+  lastShownSec = sec;
+  audioTime.value = sec * 1000;
 }
 function togglePlay() {
   const el = audioEl.value;

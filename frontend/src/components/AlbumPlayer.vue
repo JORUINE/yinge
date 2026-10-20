@@ -59,7 +59,8 @@
     <!-- 提示移到播放器外面（与对战页一致） -->
     <p class="np-tip">对决对象是<b>专辑</b>，试听片段只帮你听个大概，<b>不参与计票</b></p>
 
-    <audio ref="audioEl" :src="previewUrl" @ended="onEnded" @timeupdate="onTime" @loadedmetadata="onMeta" />
+    <!-- preload="auto"：提前缓冲 30 秒片段，点了播放不用再等网络（与对战页同一处理） -->
+    <audio ref="audioEl" :src="previewUrl" preload="auto" @ended="onEnded" @timeupdate="onTime" @loadedmetadata="onMeta" />
   </div>
 </template>
 
@@ -106,9 +107,24 @@ const trackIdx = ref(0);
 const previewUrl = ref('');
 const playing = ref(false);
 const audioTime = ref(0);
+/** 上一次已写进 audioTime 的秒数（timeupdate 节流用，见 onTime 注释） */
+let lastShownSec = -1;
 const audioDur = ref(0);
 const audioEl = ref(null);
 const playerAlbum = ref(null);
+
+/**
+ * 曲目缓存（2026-10-21 第五十六批）
+ * 同一张专辑的曲目表在一局里不会变 ⇒ 拿过一次就存着，再点「试听」不再等网络。
+ * 模块级 Map：只在当前会话有效，刷新即清（不写 localStorage，不会拿到过期数据）。
+ */
+const TRACK_CACHE = new Map();
+async function fetchTracksCached(albumId) {
+  if (TRACK_CACHE.has(albumId)) return TRACK_CACHE.get(albumId);
+  const data = await musicApi.listAlbumTracks(albumId);
+  TRACK_CACHE.set(albumId, data);
+  return data;
+}
 
 const curTrack = computed(() => tracks.value[trackIdx.value] || null);
 const nextIdx = computed(() => {
@@ -154,6 +170,7 @@ function stop() {
   previewUrl.value = '';
   audioTime.value = 0;
   audioDur.value = 0;
+  lastShownSec = -1;
 }
 
 async function start() {
@@ -165,7 +182,7 @@ async function start() {
   }
   loadingTracks.value = true;
   try {
-    const data = await musicApi.listAlbumTracks(al.albumId);
+    const data = await fetchTracksCached(al.albumId);
     const list = data.list || [];
     if (!list.length) {
       ElMessage.info('这张专辑暂无可试听的曲目');
@@ -204,6 +221,7 @@ function loadCurrent() {
   previewUrl.value = t.previewUrl;
   audioTime.value = 0;
   audioDur.value = 0;
+  lastShownSec = -1; // 换歌后重新按秒判定，否则第一秒的更新会被当成"没变"吞掉
   nextTick(() => {
     const el = audioEl.value;
     if (!el) return;
@@ -270,9 +288,22 @@ function onEnded() {
   if (nextIdx.value >= 0) goNext();
   else playing.value = false;
 }
+/**
+ * `timeupdate` 节流（2026-10-21 第五十六批，与 BattlePlayView 同一处理）
+ * ⚠️ `timeupdate` 每秒触发 4~66 次，原来每次都写 `audioTime` ⇒ 整块播放条跟着重渲染。
+ *    界面时间精度只到秒 ⇒ 秒数没变就不重渲染。**不删任何视觉元素与动画。**
+ */
 function onTime() {
   const el = audioEl.value;
-  if (el) audioTime.value = el.currentTime * 1000;
+  if (!el) return;
+  const sec = Math.round(el.currentTime || 0);
+  if (Number.isFinite(el.duration) && el.duration > 0) {
+    const ms = el.duration * 1000;
+    if (Math.abs(audioDur.value - ms) > 1) audioDur.value = ms;
+  }
+  if (sec === lastShownSec) return;
+  lastShownSec = sec;
+  audioTime.value = sec * 1000;
 }
 function onMeta() {
   const el = audioEl.value;

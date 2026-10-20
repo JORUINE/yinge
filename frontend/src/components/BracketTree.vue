@@ -49,7 +49,7 @@
           <BracketNode v-else :node="tree" :compact="compact" :vertical="false" />
           <div class="champcard" :class="{ empty: !champion, mini: compact }">
             <span class="ct">★ 冠军 ★</span>
-            <img v-if="champion" :src="champion.artworkUrl" :alt="champion.name" />
+            <img v-if="champion" :src="champion.artworkUrl" :alt="champion.name" crossorigin="anonymous" />
             <b class="cn">{{ champion ? champion.name : '等待决出' }}</b>
             <span v-if="champion" class="ca">
               {{ [champion.artistName, year(champion.releaseDate)].filter(Boolean).join(' · ') }}

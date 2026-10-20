@@ -131,7 +131,7 @@
             </div>
             <div class="pside" :class="rowWinnerSide(r) === 'left' ? 'win' : 'lose'">
               <div class="art">
-                <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" />
+                <img :src="r.left?.artworkUrl" :alt="r.left?.name" loading="lazy" crossorigin="anonymous" />
               </div>
               <div class="tx">
                 <b>{{ r.left?.name || '—' }}</b>
@@ -144,7 +144,7 @@
             </div>
             <div class="pside" :class="rowWinnerSide(r) === 'right' ? 'win' : 'lose'">
               <div class="art">
-                <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" />
+                <img :src="r.right?.artworkUrl" :alt="r.right?.name" loading="lazy" crossorigin="anonymous" />
               </div>
               <div class="tx">
                 <b>{{ r.right?.name || '—' }}</b>
@@ -169,7 +169,7 @@
       <!-- 冠军 -->
       <template v-else-if="champion">
         <div class="crown-wrap">
-          <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" /></div>
+          <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" crossorigin="anonymous" /></div>
           <div class="cinfo">
             <div class="cw">CHAMPION · 冠军</div>
             <h3>{{ champion.name }}</h3>
@@ -230,7 +230,7 @@
         <!-- 亚军 / 季军（守则 19）：亚军=决赛负方；季军=四强落败者中累计得票更高者 -->
         <div v-if="podium.runnerUp || podium.third" class="podium">
           <div v-if="podium.runnerUp" class="pd">
-            <div class="art"><img :src="podium.runnerUp.artworkUrl" :alt="podium.runnerUp.name" /></div>
+            <div class="art"><img :src="podium.runnerUp.artworkUrl" :alt="podium.runnerUp.name" crossorigin="anonymous" /></div>
             <div class="tx">
               <span class="rk rk2">亚军</span>
               <b>{{ podium.runnerUp.name }}</b>
@@ -239,7 +239,7 @@
             <FavoriteButton :album="podium.runnerUp" icon-only small />
           </div>
           <div v-if="podium.third" class="pd">
-            <div class="art"><img :src="podium.third.artworkUrl" :alt="podium.third.name" /></div>
+            <div class="art"><img :src="podium.third.artworkUrl" :alt="podium.third.name" crossorigin="anonymous" /></div>
             <div class="tx">
               <span class="rk rk3">季军</span>
               <b>{{ podium.third.name }}</b>
@@ -256,7 +256,50 @@
           <div class="kpi"><b>{{ kpiTheirs }}</b><span>对手总票数</span></div>
         </div>
 
-        <!-- 2026-09-19 用户定稿的折叠顺序：小组赛与复活 → 夺冠之路 → 淘汰赛 → 完整晋级图（全部可折叠） -->
+        <!--
+          2026-09-19 用户定稿的折叠顺序，2026-10-21 第五十六批**用户要求改序**：
+            完整晋级图 → 小组赛与复活 → 夺冠之路 → 淘汰赛
+          用户原话：「完整晋级图模块排到小组赛与复活上面，默认不展开，
+                    手机端的完整晋级图应该做成子菜单形式展开」「现在这种根本无法看全」。
+        -->
+
+        <!-- 完整晋级图
+             ⚠️ 手机档（≤640）与桌面档是**两套 DOM**（v-if 互斥），不是"两套都渲染靠 CSS 切"：
+               第四十七批的教训 —— 都渲染会让桌面 DOM 多出节点，A/B 直接报差异。
+             · 桌面档：仍是原来的 `<details class="fold">`，就地展开，结构一字未改。
+             · 手机档：改成**子菜单行** → 点开是一个全屏子页（Teleport 到 body）。
+               为什么必须换：晋级树的内容宽 = 第一轮并排几张卡 × 卡宽，16 张专辑就 1500px+，
+               塞进结算页那张卡里只能横着拖，永远"看不全"（用户截图就是这条）。
+               全屏子页拿到整屏宽度，再加「适应宽度」自动缩放 ⇒ 一屏看得全。
+             默认**都不展开**（桌面 details 不加 open；手机要点了才开）。 -->
+        <details v-if="!isPhone && koRounds.length" class="fold">
+          <summary class="foldhd">
+            <b>完整晋级图</b>
+            <span>竖版看完整条淘汰赛路径 · 小封面小字 · 可导出分享</span>
+            <i class="chev" aria-hidden="true"></i>
+          </summary>
+          <BracketTree
+            :matches="allMatches"
+            :champion="champion"
+            compact
+            initial-dir="v"
+            :total-albums="battlePool"
+            :total-artists="battleArtists"
+          />
+        </details>
+
+        <!-- 手机档：子菜单形式的入口行（长得和折叠头一样，点开进全屏子页） -->
+        <button
+          v-if="isPhone && koRounds.length"
+          type="button"
+          class="foldhd submenu-link"
+          @click="openBracket"
+        >
+          <b>完整晋级图</b>
+          <span>全屏查看 · 自动适应宽度 · 可导出分享</span>
+          <i class="chev" aria-hidden="true"></i>
+        </button>
+
         <details v-if="groupStages.length" class="fold">
           <summary class="foldhd">
             <b>小组赛与复活</b>
@@ -275,7 +318,7 @@
                   class="gsi"
                   :class="{ adv: g.advancedIds.includes(String(al.albumId)), champ: isChampion(al) }"
                 >
-                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" />
+                  <img :src="al.artworkUrl" :alt="al.name" loading="lazy" crossorigin="anonymous" />
                   <span>{{ al.name }}</span>
                   <i v-if="g.advancedIds.includes(String(al.albumId))">晋级</i>
                   <!-- 落选的也标出来：以前只有晋级的有角标，落选的"灰着但没说为什么" -->
@@ -306,7 +349,7 @@
             </div>
 
             <div class="pside win">
-              <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" /></div>
+              <div class="art"><img :src="champion.artworkUrl" :alt="champion.name" crossorigin="anonymous" /></div>
               <div class="tx">
                 <b>{{ champion.name }}</b>
                 <span>{{ champion.artistName }} · {{ year(champion.releaseDate) }}</span>
@@ -317,7 +360,7 @@
             </div>
 
             <div class="pside lose" v-if="row.opponent">
-              <div class="art"><img :src="row.opponent.artworkUrl" :alt="row.opponent.name" /></div>
+              <div class="art"><img :src="row.opponent.artworkUrl" :alt="row.opponent.name" crossorigin="anonymous" /></div>
               <div class="tx">
                 <b>{{ row.opponent.name }}</b>
                 <span>{{ row.opponent.artistName }} · {{ year(row.opponent.releaseDate) }}</span>
@@ -346,7 +389,7 @@
               <div class="kohd"><b>{{ r.label }}</b><span>{{ r.matches.length }} 场</span></div>
               <div v-for="m in r.matches" :key="m.matchId" class="kom" :class="{ mine: involvesChampion(m) }">
                 <div class="kside" :class="sideClassOf(m, m.leftAlbum)">
-                  <div class="art"><img :src="m.leftAlbum?.artworkUrl" :alt="m.leftAlbum?.name" loading="lazy" /></div>
+                  <div class="art"><img :src="m.leftAlbum?.artworkUrl" :alt="m.leftAlbum?.name" loading="lazy" crossorigin="anonymous" /></div>
                   <div class="tx">
                     <b>{{ m.leftAlbum?.name || '—' }}</b>
                     <span>{{ m.leftAlbum?.artistName || '' }}</span>
@@ -356,7 +399,7 @@
                 </div>
                 <div class="kvs">VS</div>
                 <div class="kside" :class="sideClassOf(m, m.rightAlbum)">
-                  <div class="art"><img :src="m.rightAlbum?.artworkUrl" :alt="m.rightAlbum?.name" loading="lazy" /></div>
+                  <div class="art"><img :src="m.rightAlbum?.artworkUrl" :alt="m.rightAlbum?.name" loading="lazy" crossorigin="anonymous" /></div>
                   <div class="tx">
                     <b>{{ m.rightAlbum?.name || '—' }}</b>
                     <span>{{ m.rightAlbum?.artistName || '' }}</span>
@@ -369,24 +412,6 @@
           </div>
         </details>
 
-        <!-- 完整晋级图（紧凑版）：默认收起，点开才是"小封面 + 小字"的树，不再一屏铺满。
-             2026-10-11 第三十六批：默认改成**竖版**（用户："做成竖版的，像音乐世界杯那个一样"），
-             并可一键导出分享图。 -->
-        <details v-if="koRounds.length" class="fold">
-          <summary class="foldhd">
-            <b>完整晋级图</b>
-            <span>竖版看完整条淘汰赛路径 · 小封面小字 · 可导出分享</span>
-            <i class="chev" aria-hidden="true"></i>
-          </summary>
-          <BracketTree
-            :matches="allMatches"
-            :champion="champion"
-            compact
-            initial-dir="v"
-            :total-albums="battlePool"
-            :total-artists="battleArtists"
-          />
-        </details>
       </template>
 
       <!-- 杯赛但还没打完 -->
@@ -406,11 +431,46 @@
       <h2>读不到这个对决</h2>
       <RouterLink to="/battle/mine" class="btn ghost">回我的对决</RouterLink>
     </div>
+
+    <!--
+      手机端「完整晋级图」的全屏子页（Teleport 到 body）
+      ------------------------------------------------------------
+      为什么要 Teleport：结算页外层有卡片/玻璃层的 stacking context，
+      `position: fixed` 会被祖先的 `transform / filter / backdrop-filter` 抓住
+      ⇒ 弹出来的不是"贴在视口上"，而是贴在祖先里，还会被 `overflow` 裁掉。
+      挂到 body 上才能真正占满整屏。
+    -->
+    <Teleport to="body">
+      <div v-if="bracketOpen" class="brksheet" role="dialog" aria-modal="true" aria-label="完整晋级图">
+        <div class="brkbar">
+          <button type="button" class="brkback" @click="closeBracket">
+            <i class="bk" aria-hidden="true"></i>返回
+          </button>
+          <b class="brkt">完整晋级图</b>
+          <div class="brkseg" role="tablist" aria-label="晋级图缩放">
+            <button type="button" role="tab" :aria-selected="brkAuto" :class="{ on: brkAuto }" @click="fitBracket">适应宽度</button>
+            <button type="button" role="tab" :aria-selected="!brkAuto" :class="{ on: !brkAuto }" @click="resetBracket">原始大小</button>
+          </div>
+        </div>
+        <div ref="brkScrollEl" class="brkbody">
+          <div class="brkinner" :style="brkInnerStyle">
+            <BracketTree
+              :matches="allMatches"
+              :champion="champion"
+              compact
+              initial-dir="v"
+              :total-albums="battlePool"
+              :total-artists="battleArtists"
+            />
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
@@ -458,6 +518,84 @@ const exporting = ref(false);
  */
 const isPhone = ref(false);
 let mqPhone = null;
+let mqPhoneHandler = null;
+
+/**
+ * 手机端「完整晋级图」全屏子页（2026-10-21 第五十六批）
+ * ------------------------------------------------------------
+ * 用户：「手机端的完整晋级图应该做成子菜单形式展开」「现在这种根本无法看全」。
+ * 就地展开看不全的根因：晋级树的内容宽 = 第一轮并排几张卡 × 卡宽（16 张专辑 1500px+），
+ * 塞在结算页那张卡里只能横向拖。⇒ 全屏子页拿整屏宽度 + 「适应宽度」自动缩放。
+ *
+ * ⚠️ 缩放用 CSS `zoom` 而不是 `transform: scale()`：
+ *    `scale` 只改绘制、不改布局 ⇒ 缩完四周会留出一圈空白、还得手动补偿高度；
+ *    `zoom` 会**真实重排**，宽高一起缩，不用补。移动端的 Chromium / WebKit 都支持。
+ */
+const bracketOpen = ref(false);
+const brkAuto = ref(true);
+const brkZoom = ref(1);
+const brkScrollEl = ref(null);
+let brkRO = null;
+
+const brkInnerStyle = computed(() => ({ zoom: brkZoom.value }));
+
+/** 量一次「内容需要多宽 / 容器有多宽」，算出能一屏放下的缩放比 */
+function measureBracket() {
+  const box = brkScrollEl.value;
+  if (!box) return;
+  const inner = box.querySelector('.bshot') || box.firstElementChild;
+  if (!inner) return;
+  const avail = box.clientWidth;
+  const need = inner.scrollWidth || inner.offsetWidth || 0;
+  // ⚠️ 除零 / 非数保护：容器还没布局出来（0）或内容宽取不到时，**保持 1** 而不是算出 Infinity/NaN
+  if (!Number.isFinite(avail) || !Number.isFinite(need) || avail <= 0 || need <= 0) return;
+  const z = avail / need;
+  if (!Number.isFinite(z) || z <= 0) return;
+  // 下限 0.28：再小字就读不清了（不如让用户横着拖）；上限 1：小图没必要放大
+  brkZoom.value = Math.min(1, Math.max(0.28, Math.round(z * 1000) / 1000));
+}
+
+/** 内容宽度一变（比如用户切竖版/横版）就重新适应 —— 比让用户手动再点一次省事 */
+function watchBracketWidth() {
+  const box = brkScrollEl.value;
+  const inner = box?.querySelector('.bshot');
+  brkRO?.disconnect();
+  brkRO = null;
+  if (!inner || typeof ResizeObserver === 'undefined') return;
+  brkRO = new ResizeObserver(() => {
+    if (brkAuto.value) measureBracket();
+  });
+  brkRO.observe(inner);
+}
+
+async function openBracket() {
+  bracketOpen.value = true;
+  // 打开期间锁住背景滚动（子页自己滚）
+  document.body.style.overflow = 'hidden';
+  await nextTick();
+  // 等一帧：BracketTree 刚挂载，此刻才有真实宽度
+  requestAnimationFrame(() => {
+    measureBracket();
+    watchBracketWidth();
+  });
+}
+
+function closeBracket() {
+  bracketOpen.value = false;
+  document.body.style.overflow = '';
+  brkRO?.disconnect();
+  brkRO = null;
+}
+
+function fitBracket() {
+  brkAuto.value = true;
+  measureBracket();
+}
+
+function resetBracket() {
+  brkAuto.value = false;
+  brkZoom.value = 1;
+}
 // —— 和好友一起玩：同款签表 ——
 const inviting = ref(false);
 const invite = ref({ code: '' });
@@ -766,7 +904,17 @@ onMounted(() => {
   // 手机档判定（决定结算页按钮用哪套 DOM，见 isPhone 注释）
   mqPhone = window.matchMedia('(max-width: 640px)');
   isPhone.value = mqPhone.matches;
-  mqPhone.addEventListener?.('change', (e) => { isPhone.value = e.matches; });
+  // ⚠️ 存住函数引用：卸载时才能真的 removeEventListener（传一个新的 ()=>{} 是摘不掉的）
+  mqPhoneHandler = (e) => { isPhone.value = e.matches; };
+  mqPhone.addEventListener?.('change', mqPhoneHandler);
+});
+
+// 组件卸载时把「晋级图全屏子页」留下的副作用清干净（否则会锁住整页滚动）
+onBeforeUnmount(() => {
+  mqPhone?.removeEventListener?.('change', mqPhoneHandler);
+  brkRO?.disconnect();
+  brkRO = null;
+  if (bracketOpen.value) document.body.style.overflow = '';
 });
 </script>
 
@@ -867,6 +1015,8 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  /* 子项已设为 nowrap（见下）⇒ 放不下时在**元素之间**换行，而不是把一行字劈开 */
+  flex-wrap: wrap;
   margin-bottom: 10px;
 }
 .arep-top .stop {
@@ -874,6 +1024,23 @@ onMounted(() => {
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--brand-deep);
+}
+/* ⚠️ 2026-10-21 第五十六批：用户"对位赛战报手机端保存下来，上面字体产生了问题"。
+   导出走的是「克隆 → 内联 computed style → SVG foreignObject」，
+   克隆体在**另一个文档**里渲染，字体度量与页面可能差零点几像素。
+   而弹性布局的子项默认是 `flex: 0 0 auto` 之外的自动尺寸 ⇒ 差一点就在**文字内部**
+   换行/压缩 ⇒ 保存下来看着就是"字挤在一起 / 排版错乱"（第五十五批在分享卡上栽过一次）。
+   ⇒ 顶部这四块的所有子项一律：**不许内部换行、不许被压缩**；
+     真的放不下时由容器 `flex-wrap` 在**元素之间**换行，而不是把一行字劈开。
+   这条不改页面观感（宽度够的时候完全一样），只是让导出对字体差异免疫。 */
+.arep-top .stop,
+.arep-top .pillx,
+.arep-score > *,
+.arep-vs,
+.arep-pts .aptchip {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
 }
 .arep-lead {
   font-size: 26px;
@@ -1537,5 +1704,135 @@ onMounted(() => {
 .sfbody {
   display: flex;
   justify-content: center;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   手机端「完整晋级图」：子菜单入口行 + 全屏子页
+   2026-10-21 第五十六批（用户："做成子菜单形式展开""现在这种根本无法看全"）
+   ⚠️ 全部只在手机档生效：桌面档走的是原来的 `<details class="fold">`，
+      这里的类名桌面 DOM 里根本不存在 ⇒ 桌面 A/B 不受影响。
+   ───────────────────────────────────────────────────────────── */
+
+/* ① 子菜单入口行：长得和折叠头一模一样（复用 .foldhd 的排版），
+      只补上按钮该有的外观复位（`button` 默认有边框/背景/字体） */
+.submenu-link {
+  display: flex;
+  width: 100%;
+  margin: 14px auto 0;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  background: var(--glass);
+  border: 1px solid var(--gbd);
+  border-radius: var(--r-s, 14px);
+  box-shadow: var(--gsh, 0 10px 30px rgba(8, 58, 92, 0.08));
+}
+.submenu-link:active {
+  background: var(--glass2);
+}
+.submenu-link .chev {
+  /* 入口行是"进子页"，箭头朝右（.foldhd 的箭头是朝下的展开态） */
+  transform: rotate(-45deg);
+  align-self: center;
+}
+
+/* ② 全屏子页 */
+.brksheet {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  /* 子页要有实心底：晋级图本身是透明卡片，压在页面深色氛围上会糊 */
+  background: var(--bg, #f2f7fb);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.brkbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line, rgba(8, 58, 92, 0.12));
+  background: var(--glass);
+}
+.brkbar .brkt {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text);
+  white-space: nowrap;
+}
+.brkback {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 7px 12px 7px 8px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text2);
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+  border-radius: 999px;
+}
+.brkback .bk {
+  width: 8px;
+  height: 8px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+.brkseg {
+  display: inline-flex;
+  margin-left: auto;
+  flex: 0 0 auto;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--glass2);
+  border: 1px solid var(--gbd);
+}
+.brkseg button {
+  border: 0;
+  background: transparent;
+  color: var(--text2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.brkseg button.on {
+  background: var(--brand);
+  color: #fff;
+}
+.brkbody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 10px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+/* `zoom` 由 JS 写在这里（真实重排，宽高一起缩，不用补高度） */
+.brkinner {
+  transform-origin: top left;
+}
+
+/* ── ③ 竖版清单在子页里改成**流式宽度** ──────────────────────────
+   `.blist.compact` 写死了 640px（为了导出尺寸可预期），在 390 的屏上只能靠
+   zoom 0.61 缩 ⇒ 12px 的专辑名被压到 **7.3px**，违反「任何文字 ≥12px」。
+   改成流式后内容宽 = 屏宽 ⇒ zoom 回到 1，字号保持原大小、也仍然一屏看得全。
+   ⚠️ 两条都带上 `.bshot.exporting`：导出那一瞬间 BracketTree 会给 `.bshot`
+      加 `width: max-content`，若被它赢走，百分比宽度就会退化成"按内容撑"，
+      又把 640px 撑回来。这里用 `.brksheet .bshot.exporting`（0,3,0）压过它。 */
+.brksheet :deep(.bshot),
+.brksheet :deep(.bshot.exporting) {
+  display: block;
+  width: 100%;
+}
+.brksheet :deep(.blist.compact) {
+  width: 100%;
 }
 </style>

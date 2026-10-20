@@ -192,7 +192,9 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-20（<b>第五十五批 · 保存图片丢封面的根因修复</b>：取图改 canvas 重绘优先（canvas-priority），37 条断言全绿 + 桌面 A/B 10 路由 0 差异；<br>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-21（<b>第五十六批 · 真机丢图收口 + 完整晋级图改序成全屏子页 + 播放器提速</b>：补 13 个 <code>crossorigin</code>
++ 第三条兜底 + 反向裂图兜底，26 条断言全绿、桌面 A/B 10 路由 0 差异；<br>
+　　<b>第五十五批 · 保存图片丢封面的根因修复</b>：取图改 canvas 重绘优先（canvas-priority），37 条断言全绿 + 桌面 A/B 10 路由 0 差异；<br>
 　　<b>第五十四批 · 方形图真 1:1 + 导出保真 + 顶栏中部</b>；<b>第五十三批 · 复盘与未完事项计划</b>）——<br>
 　　<b>第五十二批 · 真机背景不模糊 + 两端导出统一引擎</b>；<b>第五十一批 · 选歌手让位 / 详情页留白 / 毛玻璃 / 方形图裁字</b>；<b>第五十批 · 修回被我改坏的导出链路 + 回退方形版改版</b>）——<br>
       <b>第五十三批（10-18，复盘 · 本轮产出）</b>：<b>你让我"复盘这几轮有哪些你提过的点我还没改，全部加入计划"</b>。
@@ -222,7 +224,28 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
       <b>本轮我犯的两个错也记进文档了</b>：① dev 接口的签表循环写成死循环，25 秒把后端吃到 OOM 4GB，
       而且爆点被我的日志顺序误导、差点冤枉 mongoose；② 探针两次判据取错（拿 <code>.sbg</code> 故意的 <code>scale(1.16)</code>
       当内容溢出；截图时页面停在被滚走的状态 ⇒ 假红"导出与预览差 150 亮度"）。<br>
-      <b>第五十五批（10-20，本轮）：保存图片丢封面 —— 根因在取图方式，不在分享面板</b>。<br>
+      <b>第五十六批（10-21，本轮）：真机还丢图 —— 只有那几处丢，是因为它们少了 <code>crossorigin</code></b>。<br>
+      上一批修的是<b>取图方式</b>（canvas 重绘优先），但你说<b>对位赛战报 / 结算分享 / 人格卡</b>仍然丢。
+      把这三处的 <code>&lt;img&gt;</code> 全部捞出来逐个对：<b>分享页和人格卡有 <code>crossorigin="anonymous"</code>，另外几处没有</b>。
+      没写它时浏览器按 no-cors 拉图 —— <b>图在页面上照常显示、你完全看不出问题</b>，但 <code>drawImage</code> 会把画布<b>污染</b>
+      ⇒ <code>toDataURL()</code> 抛 SecurityError ⇒ 那条"canvas 重绘"的路在这几处直接作废。已补齐 <b>13 个 img 标签</b>
+      （<code>BattleResultView</code> 10 处 + <code>BracketTree</code> + <code>AlignedMiniCard</code>），
+      再加<b>第三条兜底</b>（导出前用 <code>crossOrigin='anonymous'</code> 重新加载一次）与零尺寸保护。
+      反向风险也堵了：万一某张图的服务器不回 CORS 头，浏览器会直接拒绝渲染（<b>裂图比丢图更糟</b>），
+      所以新增 <code>utils/imgSafe.js</code> 全局捕获 img 的 error，<b>去掉 crossorigin 重试一次</b>。
+      验证：探针拦断全部跨域 fetch 后仍导出 <b>410.6 KB / 1080×2279 / 622 色</b>（空白图是个位数色）。<br>
+      <b>完整晋级图</b>按你说的挪到「小组赛与复活」之前、默认收起，手机端换成<b>子菜单入口 → 全屏子页</b>。
+      "根本无法看全"的根治不是缩放，而是<b>先给它整屏的地方</b>，再把竖版清单改成流式宽度：
+      内容宽 <b>640 → 362px</b>、横向溢出 <b>0</b>、<code>zoom</code> 回到 <b>1.0</b> ——
+      如果按原来的写法硬缩，12px 的专辑名会被压成 <b>7.3px</b>，直接违反"任何文字 ≥12px"。<br>
+      <b>对位赛战报顶部字体</b>：我这台机器<b>复现不了</b>（导出图的文字行分布与页面几何一致，我也看了截图），
+      但这类问题的成因上一批已确认过一次、且与<b>字体度量</b>有关 ⇒ 按同一口径做了结构性加固
+      （顶部四块子项 <code>flex:0 0 auto</code> + <code>nowrap</code>，不许内部换行/被压缩）。<b>仍需你真机复验。</b><br>
+      <b>播放器</b>：延迟来自两段网络，第一段（曲目表）没必要等 ⇒ 加<b>缓存</b>与<b>空闲预热</b>，
+      实测来回切三张专辑的 /tracks 请求 <b>3 → 2</b>、进页面预热 <b>0 → 2</b> 次，并加 <code>preload="auto"</code>。
+      进度更新按秒节流。<b>动效一个没删</b>（转盘/声纹/过场/玻璃全在）。<br>
+      顺带：给 dev 造局接口加了<b>对位赛档位</b>（<code>scopeType:'aligned'</code>），以后战报类问题能一键造局取证。<br>
+      <b>第五十五批（10-20）：保存图片丢封面 —— 根因在取图方式，不在分享面板</b>。<br>
       你 iOS 上"进预览 → 点分享 → 保存图像"拿到的是空白图，<b>不是分享面板的问题</b>：面板只是把<b>已经生成好的 PNG</b>
       递出去，图在点"下载"那一刻起就已经是空的。真因是导出前要把封面转 base64 塞进 SVG，
       原来用 <code>fetch(src,{mode:'cors'})</code>，<b>真机上它会失败</b>（iOS Safari / 微信内置浏览器对跨域 fetch 管得更严），
@@ -499,6 +522,16 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第五十六批交付报告.html" style="color:#0369A1"><b>第五十六批交付报告</b></a></td><td><b style="color:#B45309">真机还丢图 —— 这次找到"为什么只有这几处丢"</b>：
+        对位赛战报 / 结算页 / 晋级图 / 对位小卡的 <code>&lt;img&gt;</code> <b>没写 <code>crossorigin</code></b>，
+        图能显示但画布被污染 ⇒ <code>toDataURL()</code> 抛 SecurityError，上一批的 canvas 重绘在这几处救不回来。
+        已补 13 个标签 + 第三条兜底（导出前重新带 CORS 加载）+ 零尺寸保护，并加 <code>imgSafe.js</code>
+        反向兜底（CORS 头缺失时自动去 crossorigin 重试，绝不变裂图）。<br>
+        <b>完整晋级图</b>：挪到小组赛与复活之前、默认收起；手机端改<b>全屏子页</b>（390×844 占满，带适应宽度/原始大小）。
+        "看不全"根治：竖版清单在子页改流式宽度，内容宽 640 → <b>362px</b>、溢出 0、zoom 回到 1.0
+        （不再把 12px 压成 7.3px），横版树自动缩到 0.492。<br>
+        <b>播放器</b>：曲目表缓存（切 3 次请求 3→2）+ 空闲预热（进页面 0→2 次）+ preload=auto + 进度按秒节流，
+        <b>动效一个没删</b>；<b>播放器与清单整合</b>已给方案，等你拍板。</td></tr>
       <tr><td><a href="第五十五批交付报告.html" style="color:#0369A1"><b>第五十五批交付报告</b></a></td><td><b style="color:#B45309">保存图片丢封面的根因找到了 —— 不在分享面板，在取图方式</b>：
         你 iOS 上"进预览 → 点分享 → 保存图像"拿到空白图，<b>不是因为走了分享面板</b>（面板只是把已生成的 PNG 递出去），
         而是 <b>导出那一刻图就已经是空的</b>。根因：取图用 <code>fetch(跨域)</code>，真机上失败后代码保持 http 原址，

@@ -90,7 +90,7 @@ async function preloadImagesAsDataUrl(el) {
       /* 画布被污染 / 其它异常 → 走兜底 */
     }
 
-    // ② 兜底：fetch → blob → base64（canvas 不可用时才退到这里）
+    // ② 兜底一：fetch → blob → base64（canvas 不可用时才退到这里）
     if (!b64 || b64.length < 64) {
       try {
         // eslint-disable-next-line no-await-in-loop
@@ -106,6 +106,44 @@ async function preloadImagesAsDataUrl(el) {
         });
       } catch {
         /* 单个失败不阻断整体导出 */
+      }
+    }
+
+    /**
+     * ③ 终局兜底：**用一个带 crossorigin 的新 Image 重新加载，再 canvas 重绘**
+     * ------------------------------------------------------------
+     * ⚠️ 2026-10-21 第五十六批：用户真机复现"专辑结算分享、人格卡片仍然丢图"。
+     *   前两条路都可能失败：
+     *     · 原 `<img>` **没写 `crossorigin`** ⇒ 浏览器按 no-cors 加载，图能显示但
+     *       `drawImage` 会**污染画布** ⇒ `toDataURL()` 抛 SecurityError（canvas 路直接废）
+     *     · `fetch(跨域)` 在真机上本身就可能失败
+     *   ⇒ 用 `crossOrigin='anonymous'` **重新拉一次**：只要图片服务器返回 CORS 头
+     *     （分享卡的 img 一直带 crossorigin 且正常显示，说明服务器是放的），
+     *     新画布就干净 ⇒ `toDataURL()` 可用。
+     *   ⚠️ 这条同时兜住"原图还没解码完 / 原图画布被污染"两种情形。
+     */
+    if (!b64 || b64.length < 64) {
+      try {
+        const fresh = new Image();
+        fresh.crossOrigin = 'anonymous';
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((resolve, reject) => {
+          fresh.onload = () => resolve();
+          fresh.onerror = () => reject(new Error('reload'));
+          fresh.src = src;
+        });
+        // ⚠️ 零尺寸保护：naturalWidth/Height 为 0 时 canvas 会是 0×0，
+        //    drawImage 直接抛 InvalidStateError、toDataURL 也可能产出空串 ——
+        //    与其静默拿到一张空白图，不如明确放弃、保持原地址。
+        if (fresh.naturalWidth > 0 && fresh.naturalHeight > 0) {
+          const c = document.createElement('canvas');
+          c.width = fresh.naturalWidth;
+          c.height = fresh.naturalHeight;
+          c.getContext('2d').drawImage(fresh, 0, 0);
+          b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+        }
+      } catch {
+        /* 三条路都拿不到就保持原地址，至少不阻断导出 */
       }
     }
 

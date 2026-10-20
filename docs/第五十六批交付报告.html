@@ -1,0 +1,207 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十六批交付报告（真机丢图收口 / 完整晋级图改序与全屏子页 / 播放器性能）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:900px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .no{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fdeaea;color:#c0392b;white-space:nowrap}
+  .num{font-variant-numeric:tabular-nums;font-weight:700}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 4px}
+  .b{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:13px 15px}
+  .b .v{font-size:22px;font-weight:800;color:#0f8a4a;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .b .v small{font-size:12.5px;font-weight:700;color:#7d97ab}
+  .b .l{font-size:12.3px;color:#7d97ab;margin-top:2px}
+  .qa{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:14px 16px;margin-bottom:12px}
+  .qa .q{font-size:13.6px;font-weight:800;color:#0B2A42;margin-bottom:6px}
+  .qa .a{font-size:13.4px;color:#46647E}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.4px;line-height:1.6;margin-top:8px;overflow-x:auto;white-space:pre-wrap}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+  @media (max-width:760px){.big{grid-template-columns:minmax(0,1fr)}}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十六批 · 2026-10-21</span>
+  <h1>真机丢图收口 · 完整晋级图改序成全屏子页 · 播放器提速</h1>
+  <p>你这轮报了 5 件事：对位赛战报顶部字体、结算分享与人格卡仍丢图、播放器与曲目清单能不能整合（或放歌词）、
+  手机端点播放会延迟且有点卡、完整晋级图要挪到小组赛上面并且手机端做子菜单。
+  <b>本轮 26 条断言全绿</b>，桌面同输入 A/B 10 条路由<b> 0 差异</b>。</p>
+</div>
+
+<div class="big">
+  <div class="b"><div class="v">0 → <small>2 次</small></div><div class="l">进对局页就预热曲目 ⇒ 点播放不用等曲目接口</div></div>
+  <div class="b"><div class="v">1·2·3 → <small>2·2·2</small></div><div class="l">来回切专辑的 /tracks 请求数（缓存生效）</div></div>
+  <div class="b"><div class="v">640px → <small>362px</small></div><div class="l">手机端晋级图内容宽度（一屏看得全，zoom 回到 1）</div></div>
+</div>
+
+<h2><span class="n">1</span>真机还是丢图 —— 这次找到了"为什么只有这几处丢"</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">上一批修好了<b>分享卡</b>（分享页、方形/竖形图），但你说 <b>对位赛战报 / 结算分享 / 人格卡</b> 还是丢。
+把这三处的 <code>&lt;img&gt;</code> 全部捞出来逐个看，差别只有一处：</p>
+<table>
+  <tr><th>位置</th><th>上一批状态</th><th>后果</th></tr>
+  <tr><td><code>BattleShareView</code>（分享页）</td><td>有 <code>crossorigin="anonymous"</code></td><td>导出正常</td></tr>
+  <tr><td><code>PersonalityCard</code>（人格卡）</td><td>有</td><td>正常</td></tr>
+  <tr><td><b>对位赛战报 / 结算页 / 晋级图 / 对位小卡</b></td><td><b class="no">没有</b></td><td><b>丢图</b></td></tr>
+</table>
+<div class="note bad"><b>根因（一句话）：</b>没写 <code>crossorigin</code> 的 <code>&lt;img&gt;</code> 浏览器按 no-cors 模式拉图 ——
+<b>图在页面上照常显示，你看不出任何问题</b>；但把它画进 canvas 时画布会被<b>污染</b>，
+<code>toDataURL()</code> 直接抛 <code>SecurityError</code>。上一批的"canvas 重绘优先"在这几处救不回来，
+因为污染是图片加载方式决定的，不是代码写法决定的。</div>
+<p style="margin:10px 0 0"><b>修了两件事：</b></p>
+<ul>
+  <li>给 <code>BattleResultView</code>（10 处）、<code>BracketTree</code>、<code>AlignedMiniCard</code> 的封面 img 全部补上
+  <code>crossorigin="anonymous"</code> —— 共 <b>13 个 img 标签</b>。</li>
+  <li><b>补第三条兜底</b>：万一还有漏网的（比如某个旧组件、某张图是后来动态插进来的），导出前用
+  <code>crossOrigin='anonymous'</code> <b>重新加载一次</b>再画进画布。
+  同时加了零尺寸保护（<code>naturalWidth=0</code> 时 0×0 画布会静默产出空白图）。</li>
+  <li><b>反过来的风险也堵了</b>：加了 <code>crossorigin</code> 后，如果某张图的服务器<b>不回 CORS 头</b>，
+  浏览器会直接<b>拒绝渲染</b>（
+  = 页面裂图，比"导出丢图"更严重）。所以新增 <code>utils/imgSafe.js</code>：全局捕获 img 的 error，
+  <b>去掉 crossorigin 重试一次</b> ⇒ 最坏退回"能看但导出丢这一张"，<b>永远不会从"能看"变成"裂图"</b>。</li>
+</ul>
+<div class="note good"><b>验证方式（可复现）：</b>探针里故意<b>拦断所有跨域 fetch</b>（真机级复现），
+再点「保存晋级图」拿真实下载到的 PNG 数像素：<b>410.6 KB / 1080×2279 / 622 种颜色</b>（空白图会是个位数颜色）。
+上一批同样的方法测分享卡是 387 色。</div>
+</div>
+
+<h2><span class="n">2</span>完整晋级图：挪到最前 + 手机端改全屏子页</h2>
+
+<div class="card">
+<div class="qa">
+  <div class="q">你的原话：「完整晋级图模块排到小组赛与复活上面 默认不展开，然后手机端的完整晋级图应该做成子菜单形式展开」「现在这种根本无法看全」</div>
+  <div class="a">三件事分开做，且<b>手机/桌面是两套 DOM</b>（<code>v-if</code> 互斥，不是两套都渲染靠 CSS 切 —— 那样桌面会多出节点、A/B 直接报差异）。</div>
+</div>
+<table>
+  <tr><th>要求</th><th>做法</th><th>实测</th></tr>
+  <tr><td>排到小组赛与复活<b>上面</b></td><td>DOM 顺序改成：完整晋级图 → 小组赛与复活 → 夺冠之路 → 淘汰赛</td><td>折叠头顺序 <code>["完整晋级图","夺冠之路","淘汰赛 · 全部对局"]</code>，idx=0</td></tr>
+  <tr><td><b>默认不展开</b></td><td>桌面仍用原生 <code>&lt;details&gt;</code>、<b>不加 open</b>；手机是入口行，不点什么都不出现</td><td>桌面 <code>open=false</code>；手机未点时 <code>.bshot</code> 数量 = <b>0</b></td></tr>
+  <tr><td>手机端<b>子菜单</b>形式</td><td>换成一行入口（长得和折叠头一样），点开是 <b>Teleport 到 body 的全屏子页</b>，带「返回」+「适应宽度 / 原始大小」两档</td><td>子页 <code>position:fixed</code>、挂在 body 上、<b>390×844 正好占满</b></td></tr>
+  <tr><td><b>根本无法看全</b></td><td>见下</td><td>内容宽 <b>640 → 362px</b>，横向溢出 <b>0</b></td></tr>
+</table>
+
+<p style="margin:14px 0 4px"><b>"看不全"到底卡在哪：</b>晋级树的内容宽 = 第一轮并排几张卡 × 卡宽（16 张专辑就 1500px+），
+塞进结算页那张卡里只能横着拖。全屏子页先解决"地方不够"，再用 <code>zoom</code> 自适应把宽度压到一屏。
+<b>但只压宽度会踩守则</b>：竖版清单写死 640px，压到 390 屏就是 <code>zoom 0.609</code>，
+12px 的专辑名会被压成 <b>7.3px</b>（违反"任何文字 ≥12px"）。所以竖版清单在子页里改成<b>流式宽度</b>，
+<code>zoom</code> 直接回到 <b>1.0</b>，字保持原大小。横版树本来就宽（<code>scrollWidth</code> 约 1500px），
+这时「适应宽度」自动算到 <b>0.492</b> —— 这正是它该干的活。</p>
+<div class="note warn"><b>自己踩过的坑（记下来）：</b>判断"还有没有横向溢出"时，
+一开始用 <code>元素.scrollWidth - 容器.clientWidth</code>，报了 <b>250px 溢出</b> ——
+其实缩完只占 390px。因为 <b><code>scrollWidth</code> 是元素自己的 CSS 像素，不受祖先 <code>zoom</code> 影响</b>。
+判据改成"<code>getBoundingClientRect().width</code> ≤ 容器宽"+"容器自己还滚不滚得动"之后才为真。</div>
+</div>
+
+<h2><span class="n">3</span>对位赛战报「上面字体有问题」</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">为了拿到真证据，<b>给 dev 造局接口加了"对位赛"档位</b>（<code>POST /api/dev/battle</code> 传
+<code>scopeType:'aligned'</code>），这样探针能一键造出"前一半 vs 后一半"的逐行对照局，直接导出战报图。</p>
+<div class="note warn"><b>要跟你说实话：</b>我这台机器上<b>没能复现</b>。导出图 1080×5318，
+量了顶部 14% 区域的"文字行分布"：<code>99-140 / 260-361 / 442-490 / 565-604 / 712-744</code>，
+和页面几何一致，没有叠字、没有换行、没有裁切（截图我也看了）。</div>
+<p style="margin:10px 0 0"><b>但这类 bug 的成因上一批已经确认过一次</b>，而且它是<b>字体度量相关</b>的 ——
+所以在我这套字体（Linux 的 fallback 字）下不复现、在你手机上复现，完全说得通：</p>
+<div class="note">导出走的是「克隆 → 内联 computed style → SVG foreignObject」，<b>克隆体在另一个文档里渲染</b>，
+字体度量和你手机上的真字体可能差零点几像素。而 <code>.arep-top</code> / <code>.arep-score</code> 是弹性布局，
+子项默认是"自动尺寸"⇒ 差一点就会在<b>文字内部</b>换行/压缩 ⇒ 保存下来就是"字挤在一起 / 排版错乱"。
+第五十五批在分享卡的方形图上正是栽在这（专辑名叠在一起，页面上却正常）。</div>
+<p style="margin:10px 0 0"><b>所以按同一口径做了结构性加固</b>：顶部四块（品牌行、大比分、领先说明、积分胶囊）的
+所有子项一律 <code>flex:0 0 auto</code> + <code>white-space:nowrap</code> ——
+<b>不许内部换行、不许被压缩</b>；真放不下时由容器 <code>flex-wrap</code> 在<b>元素之间</b>换行，
+而不是把一行字劈开。宽度够的时候观感<b>完全不变</b>。</p>
+<div class="note bad"><b>需要你配合一次：</b>如果改完保存下来还是有问题，<b>把那张保存下来的图发我</b>（不用截图页面，要保存出来的那张）。
+因为没有那张图我只能按"这一类 bug 的通用成因"加固，没法对症。</div>
+</div>
+
+<h2><span class="n">4</span>播放器：先给结论，再给数字</h2>
+
+<div class="card">
+<div class="qa">
+  <div class="q">你的问题：「播放器和下面的歌曲清单是否可以整合到一起，歌名和时间移到右边；或者保持布局不变，中间空白放歌词 —— 你评估下哪个更适合我们目前的项目」</div>
+  <div class="a"><b>我的建议：选"整合"，不要做歌词。</b>理由不是审美，是数据。</div>
+</div>
+<table>
+  <tr><th>方案</th><th>能不能做</th><th>理由</th></tr>
+  <tr><td><b>B · 中间放歌词</b></td><td><b class="no">不建议</b></td>
+  <td>① 我们手上<b>没有任何歌词数据</b>：专辑/曲目全部来自 iTunes Search API，它不返回歌词；
+  接第三方歌词接口在真机上不稳、而且 30 秒片段是从曲子中段开始放的，<b>对不上</b>。
+  ② 编造歌词就是造假数据。③ 更关键：音格比的是<b>专辑</b>，歌词会把注意力拉到"某一首歌"上，和赛制口径打架。</td></tr>
+  <tr><td><b>A · 播放器与清单整合</b></td><td><b class="ok">建议做</b></td>
+  <td>现在这两块是**两个独立卡片**，中间还夹一句提示，竖着占掉一大截；而且清单标题「《X》试听清单」和播放器里的「《X》第 N 首」是<b>同一个信息说两遍</b>。
+  整合后：转盘在左、歌名/时间/进度在右（正是你描述的样子），清单压成下面一行可横滑的 chips。</td></tr>
+</table>
+<div class="note warn"><b>为什么这轮我没直接动手改版式：</b>转盘那套是第四十五批你亲自拍板的方案 A（当时为了修"歌名一换行容器就变形"），
+按项目规矩「你说过没问题的部分不擅自改」。而且整合要<b>缩转盘</b>（62vw ≈ 242px → 约 176px）才能给右边腾出放歌名的位置，
+这会动到你认可的那块视觉。<b>你回一句"按 A 做"，我下一轮直接出图给你看。</b></div>
+</div>
+
+<h2><span class="n">5</span>手机端"点了播放会延迟一会儿" —— 改的都是可量的</h2>
+
+<div class="card">
+<p style="margin:0 0 6px"><b>延迟从哪来：</b>原来点播放要等<b>两段网络</b> —— ① 拉曲目表 <code>GET /music/albums/:id/tracks</code>
+（后端还要顺带同步 iTunes 片段）② 下载 30 秒音频。第一段完全没必要等。</p>
+<table>
+  <tr><th>改动</th><th>改前</th><th>改后</th></tr>
+  <tr><td>曲目表<b>缓存</b>（同一局里曲目不会变）</td><td>来回切三张专辑 = <b>3 次</b> /tracks</td><td><b>2 次</b>（第一张预热 + 第二张首次），再切回<b>不再请求</b></td></tr>
+  <tr><td><b>空闲预热</b>（<code>requestIdleCallback</code>，最多等 2 秒）</td><td>进页面 <b>0 次</b>请求</td><td>进页面就 <b>2 次</b>（1v1 的两张；小组赛只预热前 2 张，控制流量）</td></tr>
+  <tr><td><code>&lt;audio preload="auto"&gt;</code></td><td>点播放才开始拉音频</td><td>地址一设好就开始缓冲</td></tr>
+  <tr><td>进度更新节流（只按"秒"更新）</td><td colspan="2">这项<b>如实说</b>：我在无头浏览器里量到改前改后都是 3 秒 3 次（这台机器上 <code>timeupdate</code> 本来就≈1Hz），
+  <b>没法证明它在你手机上有收益</b>。但规范允许它每秒触发 66 次，所以这条作为<b>预防性加固</b>留着，不是本轮的主功。</td></tr>
+</table>
+<div class="note good"><b>没有阉割任何动效</b>：转盘旋转、声纹、阶段过场、按钮按压反馈、玻璃质感<b>一个都没删</b>，
+改的全是"少做无意义的重复计算"。</div>
+<div class="chk">改前（dist-before-56b @5174）：
+  进页面 /tracks = 0　｜　切歌 1 → 2 → 3（每次都新请求）
+改后（dist @5173）：
+  进页面 /tracks = 2　｜　切歌 2 → 2 → 2（缓存命中）
+  播放中 3 秒 DOM 变更 = 4 次（音频确实在播：paused=false, currentTime 2.39→5.70）</div>
+</div>
+
+<h2><span class="n">6</span>本轮验收数字</h2>
+
+<div class="card">
+<table>
+  <tr><th>套件</th><th>条数</th><th>结果</th></tr>
+  <tr><td><code>_r56-verify.mjs</code>（晋级图改序 / 手机子页 / 导出丢图 / 桌面守卫）</td><td>20</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>_r56-perf.mjs</code>（播放器性能：预热 / 缓存 / 节流）</td><td>6</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>probe-r40-desktop-ab.mjs</code>（桌面零影响，10 条路由同输入 A/B）</td><td>10 路由</td><td><b class="ok">几何差异 0 / 结构差异 0 / JS 错误 0</b></td></tr>
+</table>
+<div class="note">桌面 A/B 的基线是<b>真基线</b>：<code>git stash</code> → 用改动前的源码重新构建 <code>dist-before-56b</code> → <code>stash pop</code> → 重新构建 <code>dist</code>。
+没有拿"已经改过的 dist"当对照（那是假对照，项目里栽过）。</div>
+</div>
+
+<h2><span class="n">7</span>这轮没做 / 要你拍板的</h2>
+
+<div class="card">
+<table>
+  <tr><th>项</th><th>状态</th><th>说明</th></tr>
+  <tr><td>播放器与清单整合（方案 A）</td><td><b>等你一句"按 A 做"</b></td><td>要缩转盘才能把歌名/时间放到右边，动的是你拍板过的视觉</td></tr>
+  <tr><td>对位赛战报顶部字体</td><td><b>已加固，待你复验</b></td><td>这边复现不了；若还有问题，请发<b>保存出来的那张图</b></td></tr>
+  <tr><td>人格详情页剩余 ~84px 留白（U3）</td><td>未做</td><td>上上批遗留，需要起真库逐子元素定位那 76px</td></tr>
+  <tr><td>真人真机回归</td><td>待你测</td><td>本轮所有结论都在无头 Chromium（移动档 390×844）上量的</td></tr>
+</table>
+</div>
+
+<div class="foot">音格 · 第五十六批交付报告　｜　2026-10-21　｜　配套：<code>docs/进度与执行清单.html</code>、<code>docs/index.html</code></div>
+</div>
+</body></html>

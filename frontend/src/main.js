@@ -6,6 +6,7 @@ import 'element-plus/dist/index.css';
 
 import App from './App.vue';
 import router from './router/index.js';
+import { installImgCrossOriginFallback } from './utils/imgSafe.js';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/components.css';
@@ -67,6 +68,9 @@ import './styles/components.css';
   if (compat === 'safe') root.classList.add('ua-safe');
   root.dataset.compat = forceGlass ? 'glass' : compat;
 })();
+
+// 封面图带 crossorigin 加载失败时自动降级为无 CORS 重试（保证"页面上永远看得见图"）
+installImgCrossOriginFallback();
 
 const app = createApp(App);
 

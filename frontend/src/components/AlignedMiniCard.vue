@@ -19,7 +19,7 @@
            现在**全列**，卡片随内容变高（配合 BattleShareView 的自适应高度）。 -->
       <div v-for="(r, i) in rows" :key="i" class="mrow">
         <div class="mhalf" :class="{ win: sideOf(r) === 'left' }">
-          <img :src="r.left?.artworkUrl" :alt="r.left?.name" />
+          <img :src="r.left?.artworkUrl" :alt="r.left?.name" crossorigin="anonymous" />
           <span class="mtx">{{ short(r.left?.name) }}</span>
           <b class="mv num">{{ r.leftVotes ?? 0 }}</b>
         </div>
@@ -27,7 +27,7 @@
         <div class="mhalf rt" :class="{ win: sideOf(r) === 'right' }">
           <b class="mv num">{{ r.rightVotes ?? 0 }}</b>
           <span class="mtx rt">{{ short(r.right?.name) }}</span>
-          <img :src="r.right?.artworkUrl" :alt="r.right?.name" />
+          <img :src="r.right?.artworkUrl" :alt="r.right?.name" crossorigin="anonymous" />
         </div>
       </div>
     </div>
