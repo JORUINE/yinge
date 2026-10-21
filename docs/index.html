@@ -570,6 +570,15 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第六十批交付报告.html" style="color:#0369A1"><b>第六十批交付报告</b></a></td><td><b style="color:#B45309">导出丢图的真因找到了：WebKit 会把图画空，而且一句错都不报</b>：
+        ① <b>机制</b>：图片 <code>naturalWidth=1080</code>、<code>decode()</code> 也成功，但 <code>drawImage()</code> 后画布是空的
+        （<code>toDataURL()</code> 只有 <code>"data:,"</code> 6 字节 / 抛 <code>InvalidStateError</code>）；Chromium 一次就对。
+        社区依据：html-to-image #461、dom-to-image 的 Safari 避坑。
+        ② <b>我们有三处把它当成功</b>：空白 dataURL 当有效图、内联失败静默留外链（SVG 一条外链都加载不了）、
+        校验在 <code>getImageData</code> 抛错时判"通过"。
+        ③ <b>修法</b>：画完读回像素 + 重试 3 次 + 退 <b>fetch 原始字节</b>（不经画布）；污染判失败；SVG 试 2 次再退兜底；
+        伪元素 <code>inset:0</code> 铺满层按宿主钉死（修"专辑旁特效错位"）。
+        ④ <b>验收</b>：三情形自检 <b>3/3</b>（模拟画空：改前 14 色 → 改后 185 色）；桌面 A/B <b>逐像素 0 差异</b>。</td></tr>
       <tr><td><a href="第五十九批交付报告.html" style="color:#0369A1"><b>第五十九批交付报告</b></a></td><td><b style="color:#B45309">PC 端把播放器/提示行/清单合成一张卡；导出改走封面同源代理</b>：
         ① <b>PC 整合</b>（只 &gt;640）：<code>.nowbar</code> 圆角 26/26/0/0、<code>.np-tip</code> 变卡内分隔条（间距 0）、
         <code>.tracklist</code> 圆角 0/0/26/26（间距 0）。⚠️ <code>.np-tip</code> 是 <b>兄弟节点</b>，必须用 <code>+</code> 不是 <code>&gt;</code>。

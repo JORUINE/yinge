@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第六十批交付报告 · 导出丢图真因</title>
+<style>
+  :root {
+    --ink: #0f2434; --ink2: #3d5a6e; --muted: #6b8296;
+    --bg: #f4f8fb; --card: #fff; --line: #dbe7ef;
+    --teal: #0f766e; --red: #b42318; --amber: #b45309; --blue: #0b6ba8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 34px 20px 64px;
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.75 -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 27px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 26px; }
+  h2 { font-size: 19px; margin: 34px 0 12px; padding-left: 11px; border-left: 4px solid var(--teal); }
+  h3 { font-size: 15.5px; margin: 20px 0 8px; color: var(--ink2); }
+  p, li { margin: 8px 0; }
+  code { background: #eaf2f7; padding: 1px 5px; border-radius: 4px; font-size: 13px; color: #0b4a6f; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin: 10px 0; }
+  .verdict { border-left: 4px solid var(--teal); background: #effaf6; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8ec; }
+  .bad { border-left: 4px solid var(--red); background: #fef4f3; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #eef5f9; font-weight: 700; font-size: 13px; color: var(--ink2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--teal); font-weight: 700; }
+  .no { color: var(--red); font-weight: 700; }
+  .chain { display: grid; gap: 8px; margin: 12px 0; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start;
+          background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .step b.n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+              background: var(--teal); color: #fff; font-size: 13px; }
+  .step .t { font-weight: 700; font-size: 14.5px; }
+  .step .d { color: var(--ink2); font-size: 13.5px; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 20px;
+         background: #e6f4f1; color: var(--teal); margin-right: 6px; }
+  .tag.w { background: #fdf1e3; color: var(--amber); }
+  ul { padding-left: 22px; }
+  .foot { margin-top: 30px; color: var(--muted); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>第六十批交付报告 · iOS 导出丢图的真因</h1>
+  <p class="sub">2026-10-21　｜　人格卡「有文字背景全白」· 方形图「专辑旁特效错位」· 竖形图「冠军没图」</p>
+
+  <div class="card verdict">
+    <b>一句话结论：</b>不是 CSS 写错，也不是跨域 —— 是 <b>WebKit 把图画空了，而且一句错都不报</b>。
+    同一张图，Chromium 里 24×24 里 576/576 个不透明像素一次就对；WebKit 里
+    <code>naturalWidth=1080</code>、<code>decode()</code> 也返回成功，但
+    <code>drawImage()</code> 之后画布<b>是空的</b> —— <code>toDataURL()</code> 只给出
+    <code>"data:,"</code>（6 字节），或者直接抛 <code>InvalidStateError</code>。
+  </div>
+
+  <h2>一、为什么桌面端一直正常</h2>
+  <p>因为桌面用 Chromium/Blink：图片落到画布是<b>同步就绪</b>的。Safari / iOS 的 WebKit 不是 ——
+  SVG 里的 <code>foreignObject</code> 与内嵌图片的位图<b>不是同步就绪</b>，首次截图时图片往往还没画上。
+  这是社区记录多年的固有行为（<b>html-to-image #461「Blank Image in Safari」</b>、dom-to-image 的
+  「Safari 下图片偏移/部分缺失/整块空白」避坑条目；三方对比里 html-to-image 首次调用在 WebKit 丢照片、
+  modern-screenshot 靠 <code>delay</code> 参数绕开）。</p>
+  <p>所以「别人的 App 能实现」是因为它们做了三件事之一：<b>等一帧再画</b>、<b>连续生成两次</b>、
+  或<b>干脆不用 foreignObject</b>（html2canvas 那种自己画像素的路）。</p>
+
+  <h2>二、我们为什么会"图丢了还说成功"</h2>
+  <div class="chain">
+    <div class="step"><b class="n">1</b><div>
+      <div class="t">取图那一步把"空白"当成了"成功"</div>
+      <div class="d"><code>redrawToB64()</code> 只要 <code>toDataURL()</code> 不抛就当有效图 ——
+      而空白画布返回的是 6 字节 <code>"data:,"</code>，或者干脆抛错被 try 吞掉。</div>
+    </div></div>
+    <div class="step"><b class="n">2</b><div>
+      <div class="t">内联失败时静默留外链</div>
+      <div class="d">拿不到 dataURL 就 <code>continue</code>，<code>&lt;img src="http://…"&gt;</code> 原样留在 SVG 里。
+      而 <b>SVG 当图片用时一条外链都加载不了</b> ⇒ 那张图必然空白（人格卡整卡纯白的直接原因：
+      <code>.pcard</code> 本身没有底色，全靠 <code>.bg</code> 这张图）。</div>
+    </div></div>
+    <div class="step"><b class="n">3</b><div>
+      <div class="t">校验把"读不了"判成了"通过"</div>
+      <div class="d"><code>imagesSeemPresent()</code> 在 <code>getImageData</code> 抛错时
+      <b>return true</b>（本意是"测不了就别误伤"）。但画布被污染的<b>唯一</b>成因就是导出内容引用了外部资源
+      = 一定有图没进去。于是坏图一路"过检"，永远轮不到兜底引擎。</div>
+    </div></div>
+  </div>
+
+  <h2>三、这次改了什么</h2>
+  <table>
+    <tr><th>位置</th><th>改前 → 改后</th></tr>
+    <tr>
+      <td><code>saveImage.js</code></td>
+      <td>新增 <code>canvasHasInk()</code>：画完<b>读回像素</b>，全透明就是没画上。<br>
+          <code>redrawToB64</code> 改 async：先 24×24 试画 → 空就等一帧重画（40/120/260ms，最多 3 次）
+          → 仍空则<b>返回 null</b>，不再用空白 dataURL 冒充成功。<br>
+          新增 <code>bytesToB64()</code>：<code>fetch → blob → FileReader</code> 取<b>原始字节</b>，
+          <b>完全不经过画布</b>，并提到画布之后第一步 —— 这是 iOS 上的确定性兜底。<br>
+          没内联上的图<b>必须 <code>console.warn</code> 报数</b>。</td>
+    </tr>
+    <tr>
+      <td><code>cardExport.js</code></td>
+      <td><code>inlineImages</code> 的画布路同样加像素校验；<br>
+          <code>imagesSeemPresent</code> 在 <code>getImageData</code> 抛错时 <b>true → false</b>；<br>
+          <code>exportNodeToPng</code> 拆出 <code>renderViaSvg()</code>，改成
+          <b>SVG 试 2 次（中间双 rAF + 260ms）→ 才退 html2canvas</b>（html2canvas 会丢
+          <code>calc(var())</code> 间距，只能是最后一道）；<br>
+          <code>materializePseudo</code>：凡 <code>inset:0</code> 的"铺满宿主"伪元素，
+          盒子按<b>宿主像素矩形钉死</b> + 显式 <code>box-sizing: border-box</code>。</td>
+    </tr>
+  </table>
+
+  <div class="card warn">
+    <b>「特效错位」为什么这样修：</b>把你给的那张方形图放大看，那块东西是
+    <span class="tag w">横平竖直的硬边</span><span class="tag w">柔和的径向渐变</span>
+    —— 正是 <code>.scard.glassy::before</code>（顶部压暗 + 冠军色柔光 + 纱幕）被画到了错误位置和尺寸。
+    伪元素不是真元素，<code>getComputedStyle(el,'::before')</code> 的位置/尺寸在不同引擎里可能是
+    <code>auto</code>，那层渐变就被丢到<b>静态位置</b>、按内容大小渲染。现在直接按宿主矩形钉死，视觉上完全等价，
+    但不再依赖引擎对伪元素的计算结果。
+  </div>
+
+  <h2>四、自检（都是跑出来的数字，不是"应该没问题"）</h2>
+  <p><code>_r60-selfcheck.mjs</code> 用<b>真实导出模块</b>（不是复制品）跑三种情形：</p>
+  <table>
+    <tr><th>情形</th><th class="num">改前</th><th class="num">改后</th></tr>
+    <tr><td>① 基线（正常导出）</td><td class="num">183 色</td><td class="num">183 色 <span class="ok">✓</span></td></tr>
+    <tr><td>② 模拟"画布画空"（只让网络地址的图画不上）</td>
+        <td class="num"><span class="no">14 色（图全丢）</span></td><td class="num">185 色 <span class="ok">✓</span></td></tr>
+    <tr><td>③ 模拟"画布被污染"（<code>getImageData</code> 抛错）</td>
+        <td class="num">180 色（坏图过检）</td><td class="num">175 色 <span class="ok">✓ 自动切兜底</span></td></tr>
+    <tr><th>合计</th><th class="num">2/3</th><th class="num ok">3/3</th></tr>
+  </table>
+  <p><b>桌面端同输入 A/B</b>（1080×1440，改前产物 vs 改后）：<b class="ok">逐像素 0 差异</b>
+  （<code>same:true、diffPct:0、maxDelta:0</code>，连 PNG 文件字节数都相同 1&nbsp;066&nbsp;296）⇒
+  这次改动<b>没有碰桌面端的观感</b>。</p>
+  <p><b>正式版</b>：<code>vite build</code> 通过；<code>dist/assets/saveImage-*.js</code> 里
+  grep 得到「没能内联」「两次 SVG 都没过」⇒ 新逻辑真的进了产物（不是只改了源码）。</p>
+
+  <h2>五、还需要你验的一件事</h2>
+  <div class="card bad">
+    我这边<b>没有 iPhone</b>。Playwright 的 WebKit 能证明"机制"，但它不等于真机 Safari。
+    所以：<b>请你在手机上再导一次</b>（人格卡 + 方形 + 竖形各一张）。
+    <ul>
+      <li>如果<b>好了</b>：这批就算收口，我把「导出」这条线的待办清掉。</li>
+      <li>如果<b>还坏</b>：请把<b>保存到相册/文件里的那张原图</b>（不是微信里的截图）发我 ——
+        有了原文件我能直接看是"没画上"还是"画错位"，不用再猜。</li>
+    </ul>
+  </div>
+
+  <p class="foot">截图证据：<code>_证据与痕迹/r60-crop-square.png</code>（方形图错位区域 3 倍放大）　｜
+  改动留痕：<code>_证据与痕迹/改动记录.md</code> 第六十批　｜　提交：<code>2cdc4bb</code></p>
+
+</div>
+</body>
+</html>
