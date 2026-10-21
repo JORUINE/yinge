@@ -470,7 +470,7 @@ async function runHtml2canvas(el, { targetWidth, bg }) {
  * ⚠️ 2026-10-21 第六十批：从 `exportNodeToPng` 里抽出来，为的是让外层能**重试一次**。
  *    见下面 exportNodeToPng 的说明。
  */
-async function renderViaSvg(el, { targetWidth = 1080, bg = null } = {}) {
+async function renderViaSvg(el, { targetWidth = 1080, bg = null, hideImages = false, tweak = null, returnCanvas = false } = {}) {
   const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
   {
     const W = el.offsetWidth;
@@ -485,6 +485,23 @@ async function renderViaSvg(el, { targetWidth = 1080, bg = null } = {}) {
     stripComments(clone);
     await inlineImages(el, clone);
     if (DBG) console.log('[export] ② 图片内联完成');
+
+    /**
+     * ⭐⭐⭐ 2026-10-21 第六十批（补）：**图片交给调用方自己画**
+     * ------------------------------------------------------------
+     * 真机现象：iOS 导出的图里**文字/渐变/圆角全对，只有 `<img>` 没有**
+     * （人格卡整卡纯白、冠军封面缺、缩略图却有时在）。
+     * ⇒ 说明 SVG(foreignObject) 在 WebKit 里**不渲染内嵌图片**（哪怕那是 data URL）。
+     * 那就不让它渲染：克隆树里把所有 `<img>` 变 `visibility:hidden`（保留布局），
+     *   SVG 只负责文字/渐变/描边，图片由 `renderComposite()` 直接画到画布上。
+     * 桌面端走不到这条路（第一遍 SVG 就过检了），所以桌面观感不受影响。
+     */
+    if (hideImages) {
+      clone.querySelectorAll('img').forEach((n) => {
+        n.style.visibility = 'hidden';
+      });
+    }
+    if (typeof tweak === 'function') tweak(clone);
 
     if (DBG) {
       // 找出克隆里仍然指向外部 http 的引用（SVG 当图片用时拉不到，还会污染画布）
@@ -566,10 +583,13 @@ async function renderViaSvg(el, { targetWidth = 1080, bg = null } = {}) {
     }
     g.scale(SC, SC);
     g.drawImage(img, 0, 0);
+    // 合成路径要在这块画布上继续画图片，所以把画布交出去
+    if (returnCanvas) return c;
 
     // ⭐ 换引擎的判据：**逐图看像素**，而不是只看体积
     //   （"图丢字留"时体积很大，旧判据永远放行 —— 真机 iOS 就是这么漏掉的）
-    if (!imagesSeemPresent(c, el)) throw new Error('导出结果里封面缺失');
+    //   ⚠️ hideImages 时克隆树里本来就没有图，这一条必须跳过（图由调用方画）。
+    if (!hideImages && !imagesSeemPresent(c, el)) throw new Error('导出结果里封面缺失');
 
     const out = c.toDataURL('image/png');
     // 画布全白 = 渲染失败（svg 里图片跨域等），此时回退
@@ -580,6 +600,286 @@ async function renderViaSvg(el, { targetWidth = 1080, bg = null } = {}) {
     if (!(await pngSeemsRight(out, el))) throw new Error('导出的 PNG 校验没通过');
     return out;
   }
+}
+
+/**
+ * ⭐⭐⭐ 第六十批：**把图片自己画进画布**（不依赖 SVG 里的 `<img>`）
+ * ============================================================
+ * 为什么要另起一条引擎（而不是继续修 SVG）：
+ *   真机 iOS 导出的三种形态都指向同一句话 —— **SVG(foreignObject) 在 WebKit 里不渲染内嵌图片**：
+ *     · 人格卡：文字/圆角/渐变全在，底图没有 ⇒ 整卡纯白（`.pcard` 本身没有底色）；
+ *     · 分享卡：文字/模糊底/缩略图都在，**冠军封面那张大的偏偏没有**；
+ *     · 提示图里还能看到"一块硬边 + 径向渐变的错位矩形"——就是被丢图后残留的容器/光效层。
+ *   社区里同样的结论已经写了几年（html-to-image #461、dom-to-image 的 Safari 避坑），
+ *   各种 workaround（加 delay、连跑两次）都只是概率性缓解。
+ *   ⇒ 真正deterministic 的做法：**图片不进 SVG**，由 canvas 自己按 DOM 的实测矩形画上去。
+ *     这也是"别人的 App 能实现"的做法 —— 海报是自己拼的，不是截 DOM。
+ *
+ * 做法：
+ *   ① 每张 `<img>` 都换成**可靠的位图**：先 fetch 原始字节 → dataURL → new Image() → decode()
+ *      （不依赖页面上那个 img 的解码状态，也不经过画布重绘。）
+ *   ② 按它在页面上的 `getBoundingClientRect()`（相对导出元素）算出目标矩形 × SC；
+ *   ③ 按 `object-fit` / `object-position` 计算源裁剪，按 `border-radius` 裁切；
+ *   ④ 分两组：**铺满导出元素的（底图）先画**，SVG 画在上面；**其余（封面/缩略图）最后画**。
+ *   ⑤ 底图那组的祖先背景会被置透明（底图盖住的地方，背景本来也看不见）。
+ */
+
+/** 解析 `object-position` → 0~1 的比例（支持 % / px / 关键字） */
+function parsePos(str, fallback = 0.5) {
+  const s = String(str || '').trim();
+  if (!s) return fallback;
+  const first = s.split(/\s+/)[0];
+  if (first.endsWith('%')) return Math.max(0, Math.min(1, parseFloat(first) / 100));
+  if (first === 'left' || first === 'top') return 0;
+  if (first === 'right' || first === 'bottom') return 1;
+  if (first === 'center') return 0.5;
+  const n = parseFloat(first);
+  return Number.isFinite(n) ? fallback : fallback;
+}
+function parsePos2(str) {
+  const s = String(str || '').trim();
+  const parts = s.split(/\s+/);
+  return [parsePos(parts[0], 0.5), parsePos(parts[1] ?? parts[0], 0.5)];
+}
+
+/** 圆角矩形路径（scoped 到 ctx） */
+function roundRectPath(ctx, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.lineTo(x + w - rr, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rr);
+  ctx.lineTo(x + w, y + h - rr);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rr, y + h);
+  ctx.lineTo(x + rr, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rr);
+  ctx.lineTo(x, y + rr);
+  ctx.quadraticCurveTo(x, y, x + rr, y);
+  ctx.closePath();
+}
+
+/** 把一张图变成"一定画得出来"的位图（dataURL → Image，不碰原 img 的解码状态） */
+async function toBitmap(im) {
+  const src = im.currentSrc || im.src;
+  if (!src) return null;
+  if (src.startsWith('data:')) {
+    try {
+      const f = new Image();
+      f.src = src;
+      await f.decode();
+      if (f.naturalWidth) return f;
+    } catch { /* 落到下面按字节重取 */ }
+  }
+  try {
+    const r = await fetch(proxiedSrc(src));
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const blob = await r.blob();
+    const url = await new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result);
+      fr.onerror = () => rej(new Error('read'));
+      fr.readAsDataURL(blob);
+    });
+    const f = new Image();
+    f.src = url;
+    await f.decode();
+    if (f.naturalWidth) return f;
+  } catch { /* 拿不到就退回原 img */ }
+  // 最后的退路：页面上的 img 本身（桌面端一直可用）
+  try {
+    if (im.naturalWidth) {
+      await im.decode?.().catch(() => {});
+      return im;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+/**
+ * 找到这张图**真正被裁切的地方**
+ * ------------------------------------------------------------
+ * ⚠️ 圆角常常不在 `<img>` 上，而在它的父容器上（`.spath div` 是 `overflow:hidden` + 13px 圆角，
+ *    `.art` 是 18px，`.pcard` 是 22.6px）。只看 img 自己的 `border-radius` 会画出**方角**，
+ *    比页面上的观感差一档。所以往上找最近一个"会裁内容"的祖先，用它的矩形+圆角来裁。
+ */
+function clipOf(im, base, rootEl) {
+  let p = im.parentElement;
+  let guard = 0;
+  // ⚠️ 必须**包含导出元素本身**：`.pcard` / `.scard` 自己就是 `overflow:hidden` + 大圆角，
+  //    走到 rootEl 之前就 return 会让底图画出**方角**（A/B 的 3.6% 差异就是这四个角）。
+  while (p && guard < 12) {
+    const cs = getComputedStyle(p);
+    const cuts = cs.overflow !== 'visible' || cs.overflowX !== 'visible' || cs.overflowY !== 'visible';
+    if (cuts) {
+      const r = p.getBoundingClientRect();
+      return {
+        x: r.left - base.left,
+        y: r.top - base.top,
+        w: r.width,
+        h: r.height,
+        r: parseFloat(cs.borderTopLeftRadius) || 0,
+      };
+    }
+    if (p === rootEl) break;
+    p = p.parentElement;
+    guard += 1;
+  }
+  return null;
+}
+// 小工具：让 clipOf 能在不传 el 的情况下判到顶（避免额外参数）
+let __rootEl = null;
+function el_root(base) { return __rootEl || base; }
+
+/** 采集导出元素里所有要自己画的图 */
+async function collectPictureList(el) {
+  __rootEl = el;
+  const base = el.getBoundingClientRect();
+  const out = [];
+  const imgs = [...el.querySelectorAll('img')];
+  for (const im of imgs) {
+    // eslint-disable-next-line no-await-in-loop
+    const bmp = await toBitmap(im);
+    if (!bmp) continue;
+    const r = im.getBoundingClientRect();
+    if (!(r.width > 2 && r.height > 2)) continue; // 隐藏 / 未布局的不画
+    // 被祖先裁掉了（完全在导出元素之外）就跳过
+    if (r.right <= base.left + 1 || r.left >= base.right - 1
+      || r.bottom <= base.top + 1 || r.top >= base.bottom - 1) continue;
+    const cs = getComputedStyle(im);
+    const ownR = parseFloat(cs.borderTopLeftRadius) || 0;
+    const clip = clipOf(im, base, el) || {
+      x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height, r: ownR,
+    };
+    if (ownR > clip.r) clip.r = ownR;
+    // "铺满导出元素" = 底图（模糊底 / 人格卡插画）→ 要在 SVG 下面
+    const backdrop = r.width >= base.width * 0.9 && r.height >= base.height * 0.9;
+    out.push({
+      bmp,
+      x: r.left - base.left,
+      y: r.top - base.top,
+      w: r.width,
+      h: r.height,
+      fit: cs.objectFit || 'fill',
+      pos: parsePos2(cs.objectPosition),
+      clip,
+      backdrop,
+      node: im,
+    });
+  }
+  return out;
+}
+
+/**
+ * 按 object-fit / object-position 把位图画进一个矩形（带圆角裁切）
+ * ⚠️ 调用方已经把 ctx `scale(SC, SC)` 过了，所以这里**一律用 CSS 像素**，
+ *    绝对不能再乘一次 SC ——（第六十批踩过：重复缩放 ⇒ 出来是放大的局部，A/B 差 92%）
+ */
+function paintPicture(ctx, item) {
+  const { bmp, w, h, fit, pos, clip } = item;
+  const x = item.x;
+  const y = item.y;
+  const dw = w;
+  const dh = h;
+  if (dw <= 0 || dh <= 0) return;
+  const iw = bmp.naturalWidth || bmp.width;
+  const ih = bmp.naturalHeight || bmp.height;
+  if (!iw || !ih) return;
+
+  ctx.save();
+  const c = clip || { x, y, w: dw, h: dh, r: 0 };
+  roundRectPath(ctx, c.x, c.y, c.w, c.h, c.r);
+  ctx.clip();
+
+  if (fit === 'contain' || fit === 'scale-down') {
+    // 整张放进去（不裁），按 object-position 摆
+    const k0 = Math.min(dw / iw, dh / ih);
+    const k = fit === 'scale-down' ? Math.min(1, k0) : k0;
+    const tw = iw * k;
+    const th = ih * k;
+    ctx.drawImage(bmp, 0, 0, iw, ih, x + (dw - tw) * pos[0], y + (dh - th) * pos[1], tw, th);
+  } else if (fit === 'cover') {
+    // 铺满、超出部分裁掉
+    const boxAR = dw / dh;
+    const imgAR = iw / ih;
+    let sw = iw;
+    let sh = ih;
+    if (imgAR > boxAR) {
+      sw = ih * boxAR; // 图更宽 → 横向裁
+      sh = ih;
+    } else {
+      sw = iw;
+      sh = iw / boxAR; // 图更高 → 纵向裁
+    }
+    const sx = Math.max(0, Math.min(iw - sw, (iw - sw) * pos[0]));
+    const sy = Math.max(0, Math.min(ih - sh, (ih - sh) * pos[1]));
+    ctx.drawImage(bmp, sx, sy, sw, sh, x, y, dw, dh);
+  } else {
+    // fill（默认）/ none：拉满
+    ctx.drawImage(bmp, 0, 0, iw, ih, x, y, dw, dh);
+  }
+  ctx.restore();
+}
+
+/**
+ * 合成引擎：SVG 只画"非图片"，图片由这里画。
+ * 顺序：底色 → 底图 → SVG（文字/渐变/描边）→ 其余图片
+ */
+async function renderViaComposite(el, { targetWidth = 1080, bg = null } = {}) {
+  const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
+  const W = el.offsetWidth;
+  const H = el.offsetHeight;
+  if (!(W > 0) || !(H > 0)) throw new Error('导出元素不可见（尺寸为 0）');
+  const SC = calcScale(el, targetWidth);
+  const list = await collectPictureList(el);
+  if (!list.length) throw new Error('合成路径没有可画的图');
+  if (DBG) console.log('[export][合成] 共', list.length, '张图，其中底图', list.filter((i) => i.backdrop).length, '张');
+
+  // 底图会整片盖住宿主 ⇒ 把它的祖先背景清掉，免得 SVG 里那层不透明的卡面把底图盖住
+  const liveImgs = [...el.querySelectorAll('img')];
+  const backdropIdx = list.filter((i) => i.backdrop).map((i) => liveImgs.indexOf(i.node)).filter((i) => i >= 0);
+  const tweak = (clone) => {
+    const cloneImgs = [...clone.querySelectorAll('img')];
+    backdropIdx.forEach((idx) => {
+      let p = liveImgs[idx].parentElement;
+      let q = cloneImgs[idx]?.parentElement;
+      let guard = 0;
+      while (p && q && guard < 14) {
+        q.style.background = 'transparent';
+        q.style.backgroundColor = 'transparent';
+        q.style.backgroundImage = 'none';
+        if (p === el) break;
+        p = p.parentElement;
+        q = q.parentElement;
+        guard += 1;
+      }
+    });
+  };
+
+  // SVG 只负责文字/渐变：bg 传 null，底色最后自己铺
+  const svgCanvas = await renderViaSvg(el, {
+    targetWidth, bg: null, hideImages: true, tweak, returnCanvas: true,
+  });
+
+  const out = document.createElement('canvas');
+  out.width = svgCanvas.width;
+  out.height = svgCanvas.height;
+  const ctx = out.getContext('2d');
+  if (bg) {
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, out.width, out.height);
+  }
+  ctx.save();
+  ctx.scale(SC, SC);
+  list.filter((i) => i.backdrop).forEach((i) => paintPicture(ctx, i));
+  ctx.restore();
+  // SVG 画布已经是设备像素尺寸，1:1 叠上去
+  ctx.drawImage(svgCanvas, 0, 0);
+  ctx.save();
+  ctx.scale(SC, SC);
+  list.filter((i) => !i.backdrop).forEach((i) => paintPicture(ctx, i));
+  ctx.restore();
+  if (DBG) console.log('[export][合成] 画布', out.width, '×', out.height);
+  return out;
 }
 
 /**
@@ -601,26 +901,53 @@ export async function exportNodeToPng(el, opts = {}) {
   const { targetWidth = 1080, fallback = true, bg = null, preferHtml2canvas = false } = opts;
   if (preferHtml2canvas) return runHtml2canvas(el, { targetWidth, bg });
   const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
+  const FORCE_COMPOSITE = typeof window !== 'undefined' && window.__yingeForceComposite;
 
+  /**
+   * 三级引擎（第六十批定稿）
+   * ① SVG 第 1 次 —— 桌面端永远走这条，产出与改前**逐像素一致**
+   * ② SVG 第 2 次（等一帧）—— WebKit 的"首帧"类问题能被这一下救回
+   * ③ **canvas 合成**（图片不进 SVG，由 canvas 按实测矩形画）—— iOS 的确定性方案
+   * ④ html2canvas —— 最后一道
+   * ⚠️ 顺序不能倒：html2canvas 自己算布局、丢 `calc(var())` 间距，只能垫底。
+   */
   let lastErr = null;
-  for (let pass = 1; pass <= 2; pass += 1) {
-    try {
-      // eslint-disable-next-line no-await-in-loop
-      return await renderViaSvg(el, { targetWidth, bg });
-    } catch (e) {
-      lastErr = e;
-      if (DBG) console.warn(`[export] SVG 第 ${pass} 次没过：`, e?.message || e);
-      if (pass === 1) {
-        // 让浏览器把图片位图、字体、合成层都落定，再来一次
+
+  if (!FORCE_COMPOSITE) {
+    for (let pass = 1; pass <= 2; pass += 1) {
+      try {
         // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-        // eslint-disable-next-line no-await-in-loop
-        await new Promise((r) => setTimeout(r, 260));
+        return await renderViaSvg(el, { targetWidth, bg });
+      } catch (e) {
+        lastErr = e;
+        if (DBG) console.warn(`[export] SVG 第 ${pass} 次没过：`, e?.message || e);
+        if (pass === 1) {
+          // 让浏览器把图片位图、字体、合成层都落定，再来一次
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+          // eslint-disable-next-line no-await-in-loop
+          await new Promise((r) => setTimeout(r, 260));
+        }
       }
     }
   }
+
+  // ③ 合成路径
+  try {
+    if (DBG) console.warn('[export] 走合成路径（图片不进 SVG）');
+    const canvas = await renderViaComposite(el, { targetWidth, bg });
+    if (!imagesSeemPresent(canvas, el)) throw new Error('合成结果里图片缺失');
+    const out = canvas.toDataURL('image/png');
+    if (!out || out === 'data:,' || out.length < 5000) throw new Error('合成结果异常');
+    if (!(await pngSeemsRight(out, el))) throw new Error('合成 PNG 校验没通过');
+    return out;
+  } catch (e) {
+    lastErr = e;
+    if (DBG) console.warn('[export] 合成路径也没过：', e?.message || e);
+  }
+
   if (!fallback) throw lastErr;
-  if (DBG) console.warn('[export] 两次 SVG 都没过，改走 html2canvas：', lastErr?.message || lastErr);
+  if (DBG) console.warn('[export] 改走 html2canvas：', lastErr?.message || lastErr);
   // 兜底：html2canvas。它自己画像素、不走 SVG 的外链规则，在 WebKit 上反而更稳。
   return runHtml2canvas(el, { targetWidth, bg });
 }
