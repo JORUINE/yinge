@@ -150,6 +150,42 @@ function materializePseudo(src, dst) {
       css += `${k}:${cs.getPropertyValue(k)};`;
     }
     d.setAttribute('style', css);
+    /**
+     * ⭐⭐ 2026-10-21 第六十批：**"铺满宿主"的伪元素，盒子直接按宿主尺寸钉死**
+     * ------------------------------------------------------------
+     * 用户 iOS 真机上方形分享图「专辑旁边那块特效错位」——
+     * 那块东西有**横平竖直的硬边 + 柔和的径向渐变**，正是 `.scard.glassy::before`
+     * （顶部压暗 + 冠军色柔光 + 纱幕）被画到了错误的位置/尺寸上。
+     * 成因：伪元素不是真元素，`getComputedStyle(el,'::before')` 拿到的
+     * `top/left/width/height` 在不同引擎里可能是 **用值**、也可能是 **`auto`/`0px`**；
+     * 一旦位置是 auto、尺寸是从内容算的 shrink-to-fit，这个 div 就会被丢到
+     * **静态位置**、按内容大小渲染 —— 渐变层于是变成一块浮在卡上的小方块。
+     * 修法：只要这个伪元素是 `inset: 0` 这一类的"铺满宿主"层（四个方向都是 0），
+     * 就直接写出宿主的像素矩形。视觉上与真伪元素**完全等价**（本来就是铺满），
+     * 但不再依赖任何引擎对伪元素的计算结果。
+     * ⚠️ 只在宿主是定位元素时这么做（否则伪元素的包含块是祖先，不能按宿主算）。
+     */
+    try {
+      const t = cs.getPropertyValue('top');
+      const l = cs.getPropertyValue('left');
+      const r = cs.getPropertyValue('right');
+      const b = cs.getPropertyValue('bottom');
+      const zero = (v) => v === '0px' || v === '0' || v === '';
+      if (zero(t) && zero(l) && zero(r) && zero(b)
+        && getComputedStyle(src).position !== 'static') {
+        const rect = src.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          d.style.position = 'absolute';
+          d.style.boxSizing = 'border-box';
+          d.style.top = '0px';
+          d.style.left = '0px';
+          d.style.right = 'auto';
+          d.style.bottom = 'auto';
+          d.style.width = `${Math.round(rect.width * 100) / 100}px`;
+          d.style.height = `${Math.round(rect.height * 100) / 100}px`;
+        }
+      }
+    } catch { /* 拿不到几何就按原样 */ }
     // 伪元素的文本内容（如 `content: "×"`）搬成真实文本节点
     const text = content.replace(/^["']/, '').replace(/["']$/, '');
     if (text && !/^(url\(|counter\(|attr\(|open-quote|close-quote|no-open-quote|no-close-quote)/.test(text)) {
@@ -183,11 +219,27 @@ async function inlineImages(srcEl, dstEl) {
     // ① canvas 重绘（主路径）
     try {
       if (im.complete && im.naturalWidth > 0) {
-        const c = document.createElement('canvas');
-        c.width = im.naturalWidth;
-        c.height = im.naturalHeight;
-        c.getContext('2d').drawImage(im, 0, 0);
-        b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+        /**
+         * ⚠️⚠️ 2026-10-21 第六十批：**必须验像素**
+         *   WebKit 里 `drawImage` 会把图"画空"：`toDataURL` 要么给 `"data:,"`，
+         *   要么直接抛 `InvalidStateError`，**都不会报错到调用方**。
+         *   旧代码只要拿到一串不短的东西就当成功 ⇒ 空白图被塞进 SVG。
+         *   这里先用 24×24 小画布试画一次，全透明就判失败 → 走 fetch 原始字节。
+         */
+        const probe = document.createElement('canvas');
+        probe.width = 24;
+        probe.height = 24;
+        probe.getContext('2d').drawImage(im, 0, 0, 24, 24);
+        const pd = probe.getContext('2d').getImageData(0, 0, 24, 24).data;
+        let ink = false;
+        for (let k = 3; k < pd.length; k += 4) if (pd[k] > 8) { ink = true; break; }
+        if (ink) {
+          const c = document.createElement('canvas');
+          c.width = im.naturalWidth;
+          c.height = im.naturalHeight;
+          c.getContext('2d').drawImage(im, 0, 0);
+          b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+        }
       }
     } catch { /* 污染/异常 → 兜底 */ }
     // ② fetch 兜底
@@ -265,7 +317,7 @@ function imagesSeemPresent(canvas, el) {
   try {
     g = canvas.getContext('2d');
   } catch {
-    return true;
+    return false;
   }
   let checked = 0;
   let flat = 0;
@@ -283,7 +335,17 @@ function imagesSeemPresent(canvas, el) {
     try {
       d = g.getImageData(x, y, cw, ch).data;
     } catch {
-      return true; // 读不了（污染）⇒ 不做判断
+      /**
+       * ⭐⭐ 2026-10-21 第六十批：**这里原来是 `return true`（"读不了就不判断"）**
+       *   —— 正是它让 iOS 上的坏图一路"过检"：
+       *   SVG 里留着外链 ⇒ WebKit 画出个缺图的结果，同时把画布标记为被污染
+       *   ⇒ `getImageData` 抛 `Unable to get image data from canvas`
+       *   ⇒ 函数返回 true ⇒ 不切兜底 ⇒ 用户拿到"图丢字留"的成品。
+       *   语义上被污染只有一种成因：**导出内容引用了外部资源**，
+       *   也就是一定有图没进去。所以这里必须判**失败**。
+       *   （真正的 PNG/JPEG dataURL 画进画布永远不会污染，不会误伤。）
+       */
+      return false;
     }
     const cols = new Set();
     let minL = 255;
@@ -403,10 +465,14 @@ async function runHtml2canvas(el, { targetWidth, bg }) {
   return out;
 }
 
-export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true, bg = null, preferHtml2canvas = false } = {}) {
-  if (preferHtml2canvas) return runHtml2canvas(el, { targetWidth, bg });
+/**
+ * SVG(foreignObject) 主路径：克隆 → 内联样式/图片 → 交给浏览器渲染 → 画进 canvas
+ * ⚠️ 2026-10-21 第六十批：从 `exportNodeToPng` 里抽出来，为的是让外层能**重试一次**。
+ *    见下面 exportNodeToPng 的说明。
+ */
+async function renderViaSvg(el, { targetWidth = 1080, bg = null } = {}) {
   const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
-  try {
+  {
     const W = el.offsetWidth;
     const H = el.offsetHeight;
     if (!(W > 0) || !(H > 0)) throw new Error('导出元素不可见（尺寸为 0）');
@@ -513,10 +579,48 @@ export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true,
     //    这一步直接拿最终 PNG 当输入，验不过就换引擎重来 —— 验的是用户真正拿到的那份文件。
     if (!(await pngSeemsRight(out, el))) throw new Error('导出的 PNG 校验没通过');
     return out;
-  } catch (e) {
-    if (DBG) console.warn('[export] 主路径失败，改走 html2canvas：', e?.message || e);
-    if (!fallback) throw e;
-    // 兜底：html2canvas。移动端真机上它反而更可靠（自带图片管线，不依赖 SVG 的外链规则）。
-    return runHtml2canvas(el, { targetWidth, bg });
   }
+}
+
+/**
+ * 导出为 PNG dataURL。
+ * ------------------------------------------------------------
+ * ⭐⭐ 2026-10-21 第六十批：**改成「SVG 试两次 → 再退 html2canvas」**
+ *   用户 iOS 真机第 N 次反馈，而桌面端一直正常。查到的底层事实（见 saveImage.js 的注释）：
+ *   WebKit 里 SVG(foreignObject) 与内嵌图片的位图**不是同步就绪**的
+ *   —— 首次把 SVG 画进 canvas 时，图片往往是空的；同一段代码在 Chromium 里一次就对。
+ *   社区（html-to-image #461、dom-to-image、modern-screenshot 的 `delay` 选项）
+ *   给出的共同解法就是**等一帧再来一次**。
+ *   ⇒ 这里把「一次失败就换引擎」改成：
+ *        ① SVG 第 1 次 → 不过检 ⇒ ② 等一帧 + 重试 SVG 第 2 次 → 仍不过检 ⇒ ③ html2canvas
+ *   为什么不再直接换 html2canvas：它自己算布局，`calc(var())`、
+ *   `-webkit-line-clamp` 这类不认（第三十一批踩过，标题与副标题会贴在一起），
+ *   所以它只能是最后一道，不能是第一道。
+ */
+export async function exportNodeToPng(el, opts = {}) {
+  const { targetWidth = 1080, fallback = true, bg = null, preferHtml2canvas = false } = opts;
+  if (preferHtml2canvas) return runHtml2canvas(el, { targetWidth, bg });
+  const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
+
+  let lastErr = null;
+  for (let pass = 1; pass <= 2; pass += 1) {
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      return await renderViaSvg(el, { targetWidth, bg });
+    } catch (e) {
+      lastErr = e;
+      if (DBG) console.warn(`[export] SVG 第 ${pass} 次没过：`, e?.message || e);
+      if (pass === 1) {
+        // 让浏览器把图片位图、字体、合成层都落定，再来一次
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 260));
+      }
+    }
+  }
+  if (!fallback) throw lastErr;
+  if (DBG) console.warn('[export] 两次 SVG 都没过，改走 html2canvas：', lastErr?.message || lastErr);
+  // 兜底：html2canvas。它自己画像素、不走 SVG 的外链规则，在 WebKit 上反而更稳。
+  return runHtml2canvas(el, { targetWidth, bg });
 }

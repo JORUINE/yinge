@@ -105,7 +105,37 @@ async function forceLoadImages(el) {
 }
 
 /**
- * 把一张图**按实际渲染尺寸**重画成 dataURL
+ * 画布上**到底有没有画上东西**
+ * ------------------------------------------------------------
+ * ⚠️⚠️ 2026-10-21 第六十批：**这就是 iOS 上"图丢了但代码全绿"的根子**
+ *   实测（`_r60-taint.mjs` / `_r60-retry.mjs`，Playwright WebKit）：
+ *     图片 `naturalWidth = 1080`、`decode()` 也 resolve 了，
+ *     但 `ctx.drawImage(img, …)` 之后画布**是空的** —— `toDataURL()` 只返回
+ *     `"data:,"`（6 字节），或者干脆抛 `InvalidStateError: The object is in an invalid state.`，
+ *     **两种情况都不报"图没画上"**。
+ *   而在 Chromium 里同一段代码一次就对（24×24 里 576/576 个不透明像素）。
+ *   这正是社区记录多年的 Safari/WebKit 首帧问题（html-to-image #461、dom-to-image 的
+ *   "Safari 下图片偏移/缺失/空白"）：**SVG 与图片的位图在 WebKit 里不是同步就绪的**。
+ *   ⇒ 判据只能落在**像素**上：画完读回来，全透明就是没画上。
+ *   ⚠️ 不能用 `toDataURL().length` 判断：空白画布导出 JPEG 是一大段纯黑，长度照样很长。
+ * @returns {boolean} true=有像素；读不出来时返回 true（交给上层其它判据，别在这里误伤）
+ */
+function canvasHasInk(canvas) {
+  try {
+    const d = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let i = 3; i < d.length; i += 4) {
+      if (d[i] > 8) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * 把一张图**按实际渲染尺寸**重画成 dataURL（带"画上了吗"的校验与重试）
  * ------------------------------------------------------------
  * ⭐⭐ 2026-10-21 第五十七批：**iOS 真机丢图的真正机制**
  *   原来是把封面按 **naturalWidth（600×600）** 原样重画再 base64。
@@ -115,26 +145,81 @@ async function forceLoadImages(el) {
  *   ⇒ html2canvas 在移动档又把画布裁成 780×780 ⇒ 用户收到的就是"图丢、错位"的成品。
  *   修法：缩略图只按"它在页面上多大 × 3 倍（高清屏）"去画，最长边不超过 512。
  *   实测 15 张封面的 SVG 从 3.8 MB 降到几十 KB，主路径一次就过。
+ *
+ * ⭐⭐ 2026-10-21 第六十批：**加了"空画布"判定 + 重试**（见 canvasHasInk）。
+ *   第一次画空白就再等一帧重画，最多 3 次（40/120/260ms 递增）——
+ *   WebKit 的位图就绪是滞后的，第二次开始有像素。
+ *   ⇒ 拿不到真位图就**返回 null**（而不是返回一张空白 dataURL 冒充成功），
+ *     上层会退到「同源代理 / fetch 原始字节」，那条路不经过画布，一定拿得到真图。
  * @param {HTMLImageElement} img
  * @param {boolean} pngish 需要保留透明（PNG）还是可以压成 JPEG
  * @param {number} maxSide 最长边上限（px）
  */
-function redrawToB64(img, pngish, maxSide) {
+async function redrawToB64(img, pngish, maxSide) {
   if (!img || !img.naturalWidth || !img.naturalHeight) return null;
-  let w = img.naturalWidth;
-  let h = img.naturalHeight;
-  if (Number.isFinite(maxSide) && maxSide > 0) {
-    const k = Math.min(1, maxSide / Math.max(w, h));
-    w = Math.max(1, Math.round(w * k));
-    h = Math.max(1, Math.round(h * k));
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    // 先用一个 24×24 的小画布试探"这张图的位图到底能不能画"
+    //  （和真实画布走的是同一条解码路径，但读回像素只要 2 KB）
+    const probe = document.createElement('canvas');
+    probe.width = 24;
+    probe.height = 24;
+    try {
+      probe.getContext('2d').drawImage(img, 0, 0, 24, 24);
+    } catch {
+      /* 画都画不了 → 下面按"没墨"处理，等一帧再来 */
+    }
+    if (!canvasHasInk(probe)) {
+      // eslint-disable-next-line no-await-in-loop
+      await sleep([40, 120, 260][attempt] || 260);
+      // eslint-disable-next-line no-await-in-loop
+      await img.decode?.().catch(() => {});
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      continue;
+    }
+
+    let w = img.naturalWidth;
+    let h = img.naturalHeight;
+    if (Number.isFinite(maxSide) && maxSide > 0) {
+      const k = Math.min(1, maxSide / Math.max(w, h));
+      w = Math.max(1, Math.round(w * k));
+      h = Math.max(1, Math.round(h * k));
+    }
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d');
+    g.imageSmoothingQuality = 'high';
+    g.drawImage(img, 0, 0, w, h);
+    const url = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.9);
+    // 空白 JPEG 也会是一段很长的字符串 ⇒ 这里必须再看一眼像素
+    if (!canvasHasInk(c)) {
+      // eslint-disable-next-line no-await-in-loop
+      await sleep(120);
+      continue;
+    }
+    if (url && url.length >= 64) return url;
   }
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const g = c.getContext('2d');
-  g.imageSmoothingQuality = 'high';
-  g.drawImage(img, 0, 0, w, h);
-  return c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.9);
+  return null;
+}
+
+/**
+ * 拿**原始字节**转 dataURL（不经过画布）
+ * ------------------------------------------------------------
+ * 为什么必须有这条：上面画布那条路在 WebKit 上会"画空"；
+ * 而这条路只是取字节 + base64，**跟位图就绪无关**，所以它是 iOS 上的确定性兜底。
+ * ⚠️ 必须走同源代理（跨域 fetch 在 iOS 会被拦）。
+ */
+async function bytesToB64(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const blob = await r.blob();
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = () => rej(new Error('read'));
+    fr.readAsDataURL(blob);
+  });
 }
 
 /** 这张图在页面上渲染多大 → 决定 dataURL 该画多大（×3 覆盖高清屏，夹在 48~512 之间） */
@@ -151,6 +236,7 @@ async function preloadImagesAsDataUrl(el) {
   await forceLoadImages(el);
   const imgs = [...el.querySelectorAll('img')];
   const saved = [];
+  const missed = [];
   for (const im of imgs) {
     const src = im.currentSrc || im.src;
     if (!src || src.startsWith('data:') || src.startsWith('blob:')) continue;
@@ -177,7 +263,7 @@ async function preloadImagesAsDataUrl(el) {
           fresh.onerror = () => reject(new Error('proxy'));
           fresh.src = local;
         });
-        b64 = redrawToB64(fresh, pngish, maxSide);
+        b64 = await redrawToB64(fresh, pngish, maxSide);
       } catch {
         /* 代理不可用 → 继续走下面的老路 */
       }
@@ -193,28 +279,27 @@ async function preloadImagesAsDataUrl(el) {
         }
         if (im.complete && im.naturalWidth > 0) {
           // 按渲染尺寸降采样（透明图 PNG 保留 alpha，JPEG 会把透明区涂黑）
-          b64 = redrawToB64(im, pngish, maxSide);
+          b64 = await redrawToB64(im, pngish, maxSide);
         }
       } catch {
         /* 画布被污染 / 其它异常 → 走兜底 */
       }
     }
 
-    // ② 兜底一：fetch → blob → base64（canvas 不可用时才退到这里）
-    if (!b64 || b64.length < 64) {
+    /**
+     * ② **确定性兜底：拿原始字节**
+     * ------------------------------------------------------------
+     * ⚠️⚠️ 2026-10-21 第六十批：这条路现在被**提前到画布之后第一步**，
+     *   因为它完全不碰画布 —— 不依赖"位图就绪"，也就不会在 WebKit 上画空白。
+     *   之前它排在画布后面、而且判据是 `b64.length < 64`：
+     *   空白画布被当成成功（见 redrawToB64 的注释）⇒ 这条从来轮不到执行。
+     *   现在 redrawToB64 拿不到真位图会返回 null，这里就一定能接住。
+     */
+    if (!b64) {
       try {
-        // eslint-disable-next-line no-await-in-loop
         // 走同源代理（跨域 fetch 在 iOS 上会被拦；同源不会）
-        const r = await fetch(local);
         // eslint-disable-next-line no-await-in-loop
-        const blob = await r.blob();
-        // eslint-disable-next-line no-await-in-loop
-        b64 = await new Promise((res, rej) => {
-          const fr = new FileReader();
-          fr.onload = () => res(fr.result);
-          fr.onerror = () => rej(new Error('read'));
-          fr.readAsDataURL(blob);
-        });
+        b64 = await bytesToB64(local);
       } catch {
         /* 单个失败不阻断整体导出 */
       }
@@ -244,23 +329,39 @@ async function preloadImagesAsDataUrl(el) {
           fresh.src = local;
         });
         // ⚠️ 零尺寸保护在 redrawToB64 里（0×0 画布会静默产出空白图）
-        b64 = redrawToB64(fresh, pngish, maxSide);
+        b64 = await redrawToB64(fresh, pngish, maxSide);
       } catch {
         /* 三条路都拿不到就保持原地址，至少不阻断导出 */
       }
     }
 
-    if (!b64 || b64.length < 64) continue;
+    if (!b64 || b64.length < 64) {
+      missed.push(src);
+      continue;
+    }
     saved.push({ im, src: im.getAttribute('src') });
     im.setAttribute('src', b64);
     // 等换过来的图真正解码完，避免 SVG 抓到一个还没解码的 img
     // eslint-disable-next-line no-await-in-loop
     await im.decode?.().catch(() => {});
   }
-  return () => {
-    saved.forEach(({ im, src }) => {
-      if (src) im.setAttribute('src', src);
-    });
+  /**
+   * ⚠️ 2026-10-21 第六十批：**没能内联的图必须报出来**
+   *   以前这里静默 `continue` —— 于是 SVG 里留着 http 外链，而 SVG 当图片用时
+   *   **一条外链都加载不了** ⇒ 用户拿到"图丢字留"的成品，控制台却一句抱怨都没有。
+   *   现在把漏网的数量带出去，由 exportCardPng 打日志、由自检断言"必须为 0"。
+   */
+  if (missed.length) {
+    console.warn(`[export] ${missed.length}/${imgs.length} 张图没能内联（导出后很可能缺图）：`, missed.slice(0, 4));
+  }
+  return {
+    missed: missed.length,
+    total: imgs.length,
+    restore: () => {
+      saved.forEach(({ im, src }) => {
+        if (src) im.setAttribute('src', src);
+      });
+    },
   };
 }
 
@@ -277,9 +378,17 @@ export async function exportCardPng(el, { targetWidth = 1080, bg = null } = {}) 
   //       ⇒ 人格卡副标题/维度标签发暗、几乎看不清（用户截图）
   //     · SVG 方案走真渲染，变量在 inlineStyles 时已解析成具体色值 ⇒ 字色正确
   //   现在统一用 SVG，靠上面的**串行预转图片**解决真机丢图问题。
-  const restore = await preloadImagesAsDataUrl(el);
+  const { restore, missed, total } = await preloadImagesAsDataUrl(el);
   try {
-    return await exportNodeToPng(el, { targetWidth, bg, preferHtml2canvas: false });
+    const out = await exportNodeToPng(el, {
+      targetWidth,
+      bg,
+      preferHtml2canvas: false,
+      // 有图没能内联时，宁可多试一次（SVG 里外链一定加载不了，多试没意义）
+      missingImages: missed,
+      totalImages: total,
+    });
+    return out;
   } finally {
     restore();
   }
