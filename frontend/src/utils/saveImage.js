@@ -380,15 +380,13 @@ export async function exportCardPng(el, { targetWidth = 1080, bg = null } = {}) 
   //   现在统一用 SVG，靠上面的**串行预转图片**解决真机丢图问题。
   const { restore, missed, total } = await preloadImagesAsDataUrl(el);
   try {
-    const out = await exportNodeToPng(el, {
-      targetWidth,
-      bg,
-      preferHtml2canvas: false,
-      // 有图没能内联时，宁可多试一次（SVG 里外链一定加载不了，多试没意义）
-      missingImages: missed,
-      totalImages: total,
-    });
-    return out;
+    // ⚠️ missed/total 只用来报数（上面已经 console.warn 过）。**不要**在这里提前切引擎：
+    //    少一张图也该让 SVG 先试 —— 判断"到底缺没缺"由 cardExport 的逐图像素校验负责，
+    //    这里猜一次等于把桌面端也推去走 html2canvas。
+    if (import.meta.env?.DEV && missed) {
+      console.warn(`[export] 本次有 ${missed}/${total} 张图没内联，导出结果可能缺图`);
+    }
+    return await exportNodeToPng(el, { targetWidth, bg, preferHtml2canvas: false });
   } finally {
     restore();
   }
