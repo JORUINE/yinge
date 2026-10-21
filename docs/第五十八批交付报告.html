@@ -51,9 +51,23 @@
   <div class="b"><div class="v">6 型 + 2 形</div><div class="l">本轮逐个导出并校验的卡片数量</div></div>
 </div>
 
-<h2><span class="n">1</span>播放器与试听清单整合（方案 A）</h2>
+<h2><span class="n">1</span>播放器与试听清单整合（方案 A）—— <span class="no">已于同日回滚</span></h2>
 
-<div class="card">
+<div class="card" style="border-color:#f3c7c3;background:#fffafa">
+<p style="margin:0 0 8px"><b>⛔ 这一条已撤回，手机端已恢复原样。</b></p>
+<p style="margin:0">你指出：<b>每个端的设计只能影响单个端，我却把手机端的播放器版式改了。</b>已删掉本轮追加的全部相关样式（116 行，只删不加），
+并用「改前产物 vs 现在」做了手机端同输入 A/B：<b>元素数 117/117、逐元素几何与结构 0 差异</b>；
+转盘回到 <b>236×236</b>、方向键回到 <b>64×64</b>、`.nowbar` 回到 <code>display:flex / 圆角 26px</code>。</p>
+<div class="chk">手机端同输入 A/B（390×844，同一个 battle，同样点过「试听主打」）
+元素数 A/B = 117 / 117
+A(改前) nowbar: flex / 26px / wheel 236×236 / wk 64×4
+B(现在) nowbar: flex / 26px / wheel 236×236 / wk 64×4
+逐元素差异：0 处</div>
+<div class="note warn"><b>下面这一节保留原文，作为"我当时是怎么想的"的记录，但已经<b>不是</b>现在的状态。</b>
+如果整合这件事还要做，<b>请告诉我落到哪一端</b>（电脑端？），我只改那一端、并单独出一条该端的 A/B。</div>
+</div>
+
+<div class="card" style="opacity:.55">
 <div class="qa">
   <div class="q">你的话：「按你说的做这个整合方案」</div>
   <div class="a">手机档改成两列：<b>左边转盘、右边歌名/时间</b>；播放器 + 那句提示 + 试听清单<b>合成一张卡</b>（上下圆角各取一半）。桌面档一个字没动。</div>
