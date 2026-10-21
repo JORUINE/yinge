@@ -1,0 +1,184 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十七批交付报告（保存丢图三处真因 / 晋级图导出错位 / 签表框加宽+撤销）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:920px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .no{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fdeaea;color:#c0392b;white-space:nowrap}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 4px}
+  .b{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:13px 15px}
+  .b .v{font-size:21px;font-weight:800;color:#0f8a4a;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .b .v small{font-size:12.5px;font-weight:700;color:#7d97ab}
+  .b .l{font-size:12.3px;color:#7d97ab;margin-top:2px}
+  .qa{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:14px 16px;margin-bottom:12px}
+  .qa .q{font-size:13.6px;font-weight:800;color:#0B2A42;margin-bottom:6px}
+  .qa .a{font-size:13.4px;color:#46647E}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.4px;line-height:1.6;margin-top:8px;overflow-x:auto;white-space:pre-wrap}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+  @media (max-width:760px){.big{grid-template-columns:minmax(0,1fr)}}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十七批 · 2026-10-21</span>
+  <h1>保存丢图：这次找到的是三个"具体的机制"，不是"猜"</h1>
+  <p>你报了 4 件事：对位赛分享图右上角胶囊字崩了、同款签表框要加宽并加撤销、iOS 真机保存的图依旧丢图、
+  手机端完整晋级图横竖都错。四条全部处理，<b>三套断言 18 + 37 + 20 全绿</b>，桌面同输入 A/B <b>10 路由 0 差异</b>。</p>
+</div>
+
+<div class="big">
+  <div class="b"><div class="v">1.87 MB → <small>0.99 MB</small></div><div class="l">导出 SVG 内联样式的体积（真机解不动的元凶）</div></div>
+  <div class="b"><div class="v">780×780 → <small>1400×1398</small></div><div class="l">手机端晋级图导出尺寸（原来被裁成方图）</div></div>
+  <div class="b"><div class="v">600×600 → <small>48×48</small></div><div class="l">缩略图内联时的实际像素（按渲染尺寸降采样）</div></div>
+</div>
+
+<h2><span class="n">1</span>对位赛分享图：右上角「对位赛 · 战报」被劈成两行</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">你截图里保存下来的图是「对位赛 · 战」/「报」，页面上却是好的。这不是写错字，是**导出时字体度量差了一点**：</p>
+<div class="note">导出走「克隆 → 内联 computed style → 塞进 SVG 画出来」，<b>克隆体在另一个文档里渲染</b>，
+字体度量与页面可能差零点几像素。那个胶囊是弹性布局的子项、默认"自动尺寸"，
+页面里刚好放下、克隆体里差一点就在<b>文字内部</b>换行。第五十五批在分享卡的方形图上栽过同一手（专辑名叠在一起）。</div>
+<p style="margin:10px 0 0"><b>修法（固定两条）：</b>子项 <code>flex:0 0 auto</code> + <code>white-space:nowrap</code>，
+容器 <code>flex-wrap:wrap</code> —— 真放不下时在<b>元素之间</b>换行，而不是把一行字劈开。
+宽度够的时候观感完全不变。</p>
+<div class="chk">断言：在导出 PNG 的右上角区域数"文字行"
+改前：2 行（"75-118" + "244-249"）
+改后：1 行（44px 高）✅</div>
+</div>
+
+<h2><span class="n">2</span>同款签表框：加宽 + 撤销</h2>
+
+<div class="card">
+<table>
+  <tr><th>你的要求</th><th>做法</th><th>实测</th></tr>
+  <tr><td>框扩大一点（红框那样）</td>
+    <td>它原来长在 <code>.cinfo</code>（封面右边那一列）里，宽度被那一列锁死成一条竖窄条 ⇒ <b>搬成整行的独立块</b></td>
+    <td>宽度 <b>342px / 冠军卡 342px</b>（100%，原来是窄条）</td></tr>
+  <tr><td>加一个撤销按钮，取消一起玩、回到最开始</td>
+    <td>邀请码行末尾加「撤销」（低对比、不抢主操作），点了回到「和好友一起玩」</td>
+    <td>点击后 <code>.invitebox</code> 消失、按钮文案回到「和好友一起玩」✅</td></tr>
+</table>
+<div class="note warn"><b>如实说一件事：</b>撤销只清**本地**状态，后端那条"同款签表"记录不删。
+因为码已经生成出来了——万一你其实已经把链接发出去了，删掉后端会让对方的链接突然失效。
+如果你想要"真删除"，说一声，我加一个撤销接口。</div>
+<div class="note"><b>顺带发现：</b>邀请码生成后是**持久化**的（结果接口会用 <code>battle.shareCode</code> 回填），
+所以刷新页面这个框还会在。这是原本的设计、不是 bug；我一开始拿它当真 bug 去查了一轮，记在这里免得下次再绕。</div>
+</div>
+
+<h2><span class="n">3</span>iOS 真机保存依旧丢图 —— 这次挖到 5 个具体机制</h2>
+
+<div class="card">
+<div class="qa">
+  <div class="q">你的原话：「电脑端按 F12 模拟手机确实能直接保存、图片也没问题，但手机端真机 iOS 上点保存还是进这个页面（文件预览），保存的图还是依旧丢失图像」</div>
+  <div class="a"><b>这条线索极其关键</b>：F12 模拟手机走的还是**桌面 Chrome 的渲染引擎**，
+  所以它一直"正常"；真机上是 WebKit，两者在这里的行为完全不一样。我按"真机上会怎么失败"逐条挖，挖到 5 个：</div>
+</div>
+
+<table>
+  <tr><th style="width:34px">#</th><th>机制</th><th>后果</th><th>状态</th></tr>
+  <tr><td>1</td><td><b>晋级图组件里的封面还没带 <code>crossorigin</code></b>（<code>BracketListView</code> 2 处、<code>BracketNode</code> 3 处）</td>
+    <td>图能显示，但画进 canvas 会<b>污染画布</b> ⇒ <code>toDataURL()</code> 抛 SecurityError ⇒ 这张图必丢</td>
+    <td><b class="ok">已补</b></td></tr>
+  <tr><td>2</td><td><b>缩略图按 600×600 原图内联</b>（页面上一张才 26px）</td>
+    <td>15 张封面把 SVG 撑到 <b>1.9 MB</b>，真机解不动这么大的图</td>
+    <td><b class="ok">按渲染尺寸 ×3 降采样（48~512px）</b></td></tr>
+  <tr><td>3</td><td><b>每个元素都把继承来的 CSS 变量整份抄一遍</b><br>（99 个元素写出 <b>1.87 MB</b> 样式，平均每个 19 KB）</td>
+    <td>同上：SVG 越大越容易在真机上解码失败</td>
+    <td><b class="ok">只保留"被真正改过"的变量（值等于父元素就跳过）⇒ 样式 1.87→0.99 MB</b></td></tr>
+  <tr><td>4</td><td><b><code>fetch(超长 dataURL)</code> 在 iOS 上会截断</b><br>（保存那一步原来是 <code>await (await fetch(dataUrl)).blob()</code>）</td>
+    <td>写进"文件"的是一张 <b>残缺的 PNG</b> —— 大小看着有（你那张 2.1 MB）、<b>系统连缩略图都出不来</b>，
+    这正好对上你截图里那个灰白的 PNG 图标</td>
+    <td><b class="ok">改成 <code>atob</code> 自己解 base64 再拼 Blob，不经网络栈、无长度上限</b></td></tr>
+  <tr><td>5</td><td><b>兜底的 html2canvas 被按视口裁剪</b></td>
+    <td>主路径一失败就掉到它，而它把晋级图截成 <b>780×780 的方图</b>（你要的那张是 1400 高）</td>
+    <td><b class="ok">显式传入元素的 scroll 尺寸 + 撑开 clone 窗口</b></td></tr>
+</table>
+
+<div class="note bad"><b>排障中我自己踩的两个坑，也记下来：</b><br>
+① 我一度判断"是 data URL 太长解不了"，于是换成 <code>URL.createObjectURL(blob)</code>——
+<b>SVG 能解码了，但画布被污染</b>（blob 的 SVG 画进 canvas 后 <code>toDataURL</code> 直接抛
+"Tainted canvases may not be exported"），只能回退。**长度从来不是病根。**<br>
+② 我在改这个文件的过程中**把模板串末尾的 <code>&lt;/svg&gt;</code> 弄丢了**（编辑器匹配范围比预期大），
+于是 SVG 解析报 <code>Unexpected end of stream</code>。我是靠"打印 SVG 结尾 220 个字符"当场看出来的。
+<b>教训：改完这类拼接字符串，必须把产物结尾打出来看一眼。</b></div>
+
+<p style="margin:14px 0 4px"><b>还加了一道"结果自证"：</b>导出画完之后，拿页面里每个 <code>&lt;img&gt;</code>
+的位置去导出画布的同一块区域<b>数颜色</b>——纯色说明这张图没进去。超过一半的图是纯色，
+就判定"图丢了"，<b>自动换引擎重来</b>。这比"看文件大小"可靠得多：
+"图丢字留"的时候体积照样很大，旧判据永远放行。</p>
+<div class="chk">手机档完整晋级图导出（拦断全部跨域 fetch 的真机级环境）
+改前：780 × 780（被裁成方图，封面灰块）
+改后：1400 × 1398，四边干净（左1/右1/上1/下1 种颜色 = 纯背景），622 种颜色</div>
+
+<div class="note warn"><b>必须跟你说清楚：我没有 iPhone，最后这一步只能你验。</b>
+上面 5 条都是"真机上会失败的具体机制"，并且每条都有对应的改动和断言；
+但"iOS 上是不是真的好了"我给不出实测数字。<b>如果还丢，请把保存出来的那张图发我</b>，我按它的像素继续查。</div>
+</div>
+
+<h2><span class="n">4</span>手机端完整晋级图：横竖都错</h2>
+
+<div class="card">
+<p style="margin:0 0 6px">你截图里：竖版右边被切掉一块、封面变灰块、冠军卡压着一块白；横版冠军卡被裁在画面外。三个原因：</p>
+<table>
+  <tr><th>原因</th><th>为什么会这样</th><th>修法</th></tr>
+  <tr><td><b>导出时带着"观看用的缩放"</b></td>
+    <td>手机子页为了适配宽度给外层加了 CSS <code>zoom</code>；而导出是克隆内层元素，<b>祖先的 zoom 不在克隆树里</b>
+    ⇒ "看得见的比例尺"和"导出来的比例尺"不一致 ⇒ 右边被切</td>
+    <td>导出前把 zoom 归 1、导出后还原（<code>before-export</code> 钩子）</td></tr>
+  <tr><td><b>导出态被强制 <code>width:100%</code></b></td>
+    <td>这是我上一批为了"手机一屏看得全"加的规则，结果连导出那一瞬间也生效了 ⇒ 内容被挤进 382px</td>
+    <td>规则收窄成 <code>:not(.exporting)</code>，导出仍走 <code>max-content</code>（与桌面同一条路）</td></tr>
+  <tr><td><b>标题与冠军名被劈行</b></td>
+    <td>同第 1 条：fit-content 宽度被钉死，克隆体里字体度量一变就折行；而卡片高度也被钉死 ⇒ 折出来的第二行被裁</td>
+    <td>「音格 · YINGE.APP」与标签 nowrap；冠军名 / 歌手行改 <code>width:100%</code>（第五十五批同一口径）</td></tr>
+</table>
+<div class="note good"><b>实测：</b>竖版导出 <b>1400×1398</b>、横版 <b>480 KB</b>，封面全在、冠军卡完整、
+四边都是干净背景（左1/右1/上1/下1 种颜色）。两张成品图我都打开看过了。</div>
+</div>
+
+<h2><span class="n">5</span>本轮验收数字</h2>
+
+<div class="card">
+<table>
+  <tr><th>套件</th><th>条数</th><th>结果</th></tr>
+  <tr><td><code>_r57-verify.mjs</code>（胶囊 / 签表框+撤销 / 晋级图导出 / 桌面守卫）</td><td>18</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>_r55-verify.mjs</code>（导出细节回归：PC 播放器 / 方形图 / 组合一击）</td><td>37</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>_r56-verify.mjs</code>（晋级图改序 / 全屏子页 / 拦 fetch 导出）</td><td>20</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>probe-r40-desktop-ab.mjs</code>（桌面零影响，10 路由同输入 A/B）</td><td>10 路由</td><td><b class="ok">几何 0 / 结构 0 / JS 0</b></td></tr>
+</table>
+<div class="note">A/B 基线是真基线：<code>git stash</code> → 用改前源码重建 <code>dist-before-57</code> → <code>stash pop</code> → 重建 <code>dist</code>。</div>
+</div>
+
+<h2><span class="n">6</span>还没做 / 要你回一句的</h2>
+<div class="card">
+<table>
+  <tr><th>项</th><th>状态</th></tr>
+  <tr><td>播放器与歌曲清单整合（方案 A）</td><td>等你一句「按 A 做」（要缩转盘才能把歌名/时间放右边，动的是你拍板过的视觉）</td></tr>
+  <tr><td>iOS 真机复验</td><td><b>必须你测</b>：分享图 / 对位赛战报 / 人格卡 / 完整晋级图横竖各存一张</td></tr>
+  <tr><td>撤销邀请码要不要"真删后端记录"</td><td>现在是只清本地；要真删我再加接口</td></tr>
+  <tr><td>U3 人格详情页剩余 ~84px 留白</td><td>未做（上上批遗留）</td></tr>
+</table>
+</div>
+
+<div class="foot">音格 · 第五十七批交付报告　｜　2026-10-21　｜　配套：<code>docs/进度与执行清单.html</code>、<code>docs/index.html</code></div>
+</div>
+</body></html>

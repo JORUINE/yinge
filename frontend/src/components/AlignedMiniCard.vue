@@ -111,6 +111,9 @@ function short(name) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  /* 子项已 nowrap（见下）⇒ 放不下时在**元素之间**换行，而不是把一行字劈开 */
+  flex-wrap: wrap;
   margin-bottom: 10px;
 }
 .arep-mini .stop {
@@ -119,11 +122,25 @@ function short(name) {
   letter-spacing: 1.2px;
   color: var(--brand-deep);
 }
+/* ⚠️⚠️ 2026-10-21 第五十七批 · 用户真机截图：
+   「对位赛 · 战报」这个胶囊在**保存下来的图**里被劈成两行（"对位赛 · 战" / "报"），页面上却是好的。
+   成因与第五十五批方形图叠字完全同一类：导出走「克隆 → 内联 computed style」，
+   克隆体在另一个文档里渲染、字体度量与页面可能差零点几像素；
+   而弹性布局的子项默认是自动尺寸 ⇒ 差一点就在**文字内部**换行。
+   修法固定两条：子项 `flex:0 0 auto` + `white-space:nowrap`。
+   注意 `.pillx` 是全站共用的胶囊类，这里只在分享卡作用域内加，不影响别处。 */
+.arep-mini .mini-top > *,
+.arep-mini .mini-score > * {
+  flex: 0 0 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
 .arep-mini .mini-score {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 18px;
+  flex-wrap: wrap;
 }
 .arep-mini .msn {
   font-size: 17px;

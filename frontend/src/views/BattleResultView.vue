@@ -74,6 +74,8 @@
             <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
               查看对比
             </RouterLink>
+            <!-- 2026-10-21 第五十七批：用户"添加一个撤销按钮，可以取消一起玩、回到最开始的样子" -->
+            <button class="mini undo" type="button" @click="cancelInvite">撤销</button>
           </div>
         </div>
 
@@ -191,20 +193,27 @@
               <FavoriteButton :album="champion" />
             </div>
 
-            <!-- 同款签表：生成后露出邀请码与链接（好友打开即进同一批专辑） -->
-            <div v-if="invite.code" class="invitebox">
-              <div class="ibhd">
-                <b>同款签表已生成</b>
-                <span>把这串码或链接发给好友，他打开后打的是<b>完全同一批专辑</b></span>
-              </div>
-              <div class="ibrow">
-                <code class="ibcode">{{ invite.code }}</code>
-                <button class="mini" type="button" @click="copyInvite">复制链接</button>
-                <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
-                  查看对比
-                </RouterLink>
-              </div>
-            </div>
+          </div>
+        </div>
+
+        <!-- 同款签表（2026-10-21 第五十七批：**从 .cinfo 里搬出来**）
+             用户截图：这个框被挤在冠军卡的信息列里，只剩一条竖窄条，非常难看；
+             红框要求"扩大到和卡片差不多宽"。
+             根因：它原本是 `.cinfo`（封面右侧那一列）的子元素，宽度被那一列锁死了。
+             搬成 `.crown-wrap` 的兄弟节点 ⇒ 直接吃整行宽度。 -->
+        <div v-if="invite.code" class="invitebox wide">
+          <div class="ibhd">
+            <b>同款签表已生成</b>
+            <span>把这串码或链接发给好友，他打开后打的是<b>完全同一批专辑</b></span>
+          </div>
+          <div class="ibrow">
+            <code class="ibcode">{{ invite.code }}</code>
+            <button class="mini" type="button" @click="copyInvite">复制链接</button>
+            <RouterLink class="mini" :to="{ name: 'battle-join', params: { code: invite.code } }">
+              查看对比
+            </RouterLink>
+            <!-- 2026-10-21 第五十七批：用户"添加一个撤销按钮，可以取消一起玩、回到最开始的样子" -->
+            <button class="mini undo" type="button" @click="cancelInvite">撤销</button>
           </div>
         </div>
 
@@ -461,6 +470,7 @@
               initial-dir="v"
               :total-albums="battlePool"
               :total-artists="battleArtists"
+              :before-export="beginBracketExport"
             />
           </div>
         </div>
@@ -596,6 +606,25 @@ function resetBracket() {
   brkAuto.value = false;
   brkZoom.value = 1;
 }
+
+/**
+ * 导出前把"只为了在手机小屏上观看"的 zoom 临时归 1
+ * ------------------------------------------------------------
+ * ⚠️ 2026-10-21 第五十七批：用户保存的晋级图右侧被截、封面错位。
+ *   根因：`zoom` 加在 `.brkinner`（导出目标的**祖先**）上，
+ *   而导出是克隆 `.bshot` + 内联 computed style ⇒ **祖先的 zoom 根本不在克隆树里**。
+ *   结果：看得见的宽度＝382×zoom，导出来的宽度＝382 ⇒ 比例尺不一致、右边被切。
+ *   ⇒ 导出前归 1（这时 `.bshot` 会回到 max-content，与桌面端导出完全同一条路），
+ *     导出后还原。返回的还原函数由 BracketTree 在 finally 里调用。
+ */
+async function beginBracketExport() {
+  const prev = brkZoom.value;
+  brkZoom.value = 1;
+  await nextTick();
+  return () => {
+    brkZoom.value = prev;
+  };
+}
 // —— 和好友一起玩：同款签表 ——
 const inviting = ref(false);
 const invite = ref({ code: '' });
@@ -612,6 +641,20 @@ async function makeInvite() {
   } finally {
     inviting.value = false;
   }
+}
+
+/**
+ * 撤销「和好友一起玩」（2026-10-21 第五十七批 · 用户明确要求）
+ * ------------------------------------------------------------
+ * 用户：「添加一个撤销按钮，就是用户可以取消一起玩，回到最开始的样子」。
+ * 只清**本地**状态：邀请码本来就没发出去（页面上也没露给别人），
+ * 清掉后按钮回到「和好友一起玩」，页面结构与生成前完全一致。
+ * ⚠️ 后端那条记录不删 —— 那是"同款签表"的快照，别人拿不到码就进不来；
+ *    真删会连带影响已经分享出去的链接（如果用户其实已经发出去了）。
+ */
+function cancelInvite() {
+  invite.value = { code: '' };
+  ElMessage.info('已撤销，好友将无法再用这个码进入');
 }
 
 async function copyInvite() {
@@ -1549,6 +1592,38 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: var(--surface-2, rgba(255, 255, 255, 0.06));
 }
+/* 放大版（冠军卡下方那一块）：原来是 `.cinfo` 的子元素，被信息列锁成一个竖窄条 */
+.invitebox.wide {
+  margin-top: 16px;
+  padding: 14px 16px;
+}
+.invitebox.wide .ibhd b {
+  font-size: 15.5px;
+}
+.invitebox.wide .ibrow {
+  gap: 10px 12px;
+}
+/* 「撤销」：低对比、不抢主操作，但要一眼能找到（用户"取消一起玩、回到最开始的样子"） */
+.invitebox .mini.undo {
+  margin-left: auto;
+  color: var(--text3);
+  border-color: var(--line);
+  background: transparent;
+}
+.invitebox .mini.undo:hover {
+  color: #B45309;
+  border-color: rgba(180, 83, 9, 0.4);
+  background: rgba(180, 83, 9, 0.06);
+}
+@media (max-width: 640px) {
+  /* 手机上「撤销」单独占一行右对齐，避免和「查看对比」挤在一起换行换得很乱 */
+  .invitebox .ibrow .mini.undo {
+    margin-left: 0;
+  }
+  .invitebox.wide .ibrow {
+    gap: 8px;
+  }
+}
 
 /* 手机档（≤640）：小组 2 列、淘汰赛单列、隐藏比分分隔符（原 760） */
 @media (max-width: 640px) {
@@ -1827,12 +1902,16 @@ onBeforeUnmount(() => {
    ⚠️ 两条都带上 `.bshot.exporting`：导出那一瞬间 BracketTree 会给 `.bshot`
       加 `width: max-content`，若被它赢走，百分比宽度就会退化成"按内容撑"，
       又把 640px 撑回来。这里用 `.brksheet .bshot.exporting`（0,3,0）压过它。 */
-.brksheet :deep(.bshot),
-.brksheet :deep(.bshot.exporting) {
+/* ⚠️ 2026-10-21 第五十七批：这两条只在**观看态**生效（`:not(.exporting)`）。
+   导出那一瞬间 BracketTree 会给 `.bshot` 加 `.exporting`，那时必须回到
+   `width: max-content` + `.blist.compact` 的 640px —— 让导出走**和桌面端完全同一条路**。
+   之前我用 `.bshot.exporting` 也强制 100%，结果导出来的内容被挤进 382px，
+   用户看到的就是"右侧被截、封面错位"的严重错误。 */
+.brksheet :deep(.bshot:not(.exporting)) {
   display: block;
   width: 100%;
 }
-.brksheet :deep(.blist.compact) {
+.brksheet :deep(.bshot:not(.exporting) .blist.compact) {
   width: 100%;
 }
 </style>

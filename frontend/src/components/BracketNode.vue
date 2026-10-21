@@ -2,7 +2,7 @@
   <!-- 种子：还没打过，直接显示专辑 -->
   <div v-if="node && node.seed" class="bnode" :class="{ compact, vert: vertical }">
     <div class="bcard seed">
-      <img v-if="node.album.artworkUrl" :src="node.album.artworkUrl" alt="" loading="lazy" />
+      <img v-if="node.album.artworkUrl" :src="node.album.artworkUrl" alt="" loading="lazy" crossorigin="anonymous" />
       <span class="tn">{{ node.album.name }}</span>
     </div>
   </div>
@@ -30,6 +30,7 @@
           :src="node.match.leftAlbum.artworkUrl"
           alt=""
           loading="lazy"
+          crossorigin="anonymous"
         />
         <span class="tn">{{ node.match.leftAlbum ? node.match.leftAlbum.name : '待定' }}</span>
         <b class="sc">{{ scoreOf(node.match, 'l') }}</b>
@@ -40,6 +41,7 @@
           :src="node.match.rightAlbum.artworkUrl"
           alt=""
           loading="lazy"
+          crossorigin="anonymous"
         />
         <span class="tn">
           {{ node.match.rightAlbum ? node.match.rightAlbum.name : node.match.isBye ? '轮空' : '待定' }}

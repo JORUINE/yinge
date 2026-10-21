@@ -192,7 +192,10 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-21（<b>第五十六批 · 真机丢图收口 + 完整晋级图改序成全屏子页 + 播放器提速</b>：补 13 个 <code>crossorigin</code>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-21（<b>第五十七批 · 保存丢图的 5 个具体机制 + 晋级图导出错位 + 签表框加宽/撤销</b>：
+补第二批 <code>crossorigin</code>、缩略图降采样、CSS 变量只留改过的（样式 1.87→0.99 MB）、
+<code>atob</code> 造 Blob 替代超长 dataURL fetch、html2canvas 裁剪修正、导出结果逐图自证；18+37+20 条断言全绿、桌面 A/B 0 差异；<br>
+　　<b>第五十六批 · 真机丢图收口 + 完整晋级图改序成全屏子页 + 播放器提速</b>：补 13 个 <code>crossorigin</code>
 + 第三条兜底 + 反向裂图兜底，26 条断言全绿、桌面 A/B 10 路由 0 差异；<br>
 　　<b>第五十五批 · 保存图片丢封面的根因修复</b>：取图改 canvas 重绘优先（canvas-priority），37 条断言全绿 + 桌面 A/B 10 路由 0 差异；<br>
 　　<b>第五十四批 · 方形图真 1:1 + 导出保真 + 顶栏中部</b>；<b>第五十三批 · 复盘与未完事项计划</b>）——<br>
@@ -224,7 +227,27 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
       <b>本轮我犯的两个错也记进文档了</b>：① dev 接口的签表循环写成死循环，25 秒把后端吃到 OOM 4GB，
       而且爆点被我的日志顺序误导、差点冤枉 mongoose；② 探针两次判据取错（拿 <code>.sbg</code> 故意的 <code>scale(1.16)</code>
       当内容溢出；截图时页面停在被滚走的状态 ⇒ 假红"导出与预览差 150 亮度"）。<br>
-      <b>第五十六批（10-21，本轮）：真机还丢图 —— 只有那几处丢，是因为它们少了 <code>crossorigin</code></b>。<br>
+      <b>第五十七批（10-21，本轮）：iOS 保存丢图 —— 挖到 5 个具体机制，不再是"猜"</b>。<br>
+      你给的那条信息特别关键：<b>F12 模拟手机正常、真机 iOS 不行</b> —— 模拟还是桌面 Chrome 的引擎，
+      真机是 WebKit，两者在"大图 + canvas"这件事上行为完全不同。逐条挖到：
+      ① 晋级图组件里**第二批封面还是没带 <code>crossorigin</code>**（`BracketListView` 2 处、`BracketNode` 3 处）；
+      ② 缩略图按 **600×600 原图**内联，而页面上一张才 26px ⇒ 15 张封面把 SVG 撑到 **1.9 MB**；
+      ③ 更隐蔽的一条：**CSS 变量是可继承的**，`:root` 上那两百来个 `--el-*` / `--font-*` 会被**每个后代元素再抄一遍**
+      ⇒ 99 个元素写出 **1.87 MB** 样式。现在只保留"值真的和父元素不同"的变量（被局部重新定义的照旧保留）⇒ **1.87 → 0.99 MB**；
+      ④ 保存那一步原来是 `fetch(dataUrl)`，**iOS Safari 对超长 data URL 的 fetch 会截断** ⇒
+      写进"文件"的是一张**残缺 PNG**（你那张 2.1 MB、系统连缩略图都出不来，正是这个）⇒ 改成 `atob` 自己解 base64 拼 Blob；
+      ⑤ 主路径失败时兜底到 html2canvas，而它按视口裁剪 ⇒ 晋级图被截成 **780×780 方图** ⇒ 已显式传尺寸。
+      另外加了一道「导出结果自证」：导出后拿每张封面在画布上的位置去**数颜色**，纯色就判"图丢了"自动换引擎
+      —— 比"看文件大小"可靠（"图丢字留"时体积照样很大，旧判据永远放行）。<br>
+      <b>排障中我自己踩的两个坑也写进文档了</b>：① 先误判成"data URL 太长"，换成 blob URL 后**画布被污染**
+      （`toDataURL` 抛 Tainted）只能回退——长度从来不是病根；② 我改文件时把模板串末尾的 `</svg>` 弄丢了，
+      靠"打印 SVG 结尾 220 个字符"当场看出来。**改这种拼接串必须把产物结尾打出来看一眼。**<br>
+      <b>对位赛分享图</b>右上角「对位赛 · 战报」被劈成两行 ⇒ 子项 `nowrap`（导出图上该区域从 2 行文字变 1 行）；
+      <b>同款签表框</b>原来长在 `.cinfo` 里被锁成竖窄条 ⇒ 搬成整行块（342px = 冠军卡全宽）+ 加「撤销」按钮；
+      <b>完整晋级图</b>横竖都错 ⇒ 三个原因：祖先 `zoom` 不在克隆树里（比例尺不一致、右边被切）、
+      我上一批的 `width:100%` 连导出态也生效了（内容被挤进 382px）、标题与冠军名 fit-content 折行后被裁。
+      现在竖版 **1400×1398**、横版完整，四边都是干净背景。<br>
+      <b>第五十六批（10-21）：真机还丢图 —— 只有那几处丢，是因为它们少了 <code>crossorigin</code></b>。<br>
       上一批修的是<b>取图方式</b>（canvas 重绘优先），但你说<b>对位赛战报 / 结算分享 / 人格卡</b>仍然丢。
       把这三处的 <code>&lt;img&gt;</code> 全部捞出来逐个对：<b>分享页和人格卡有 <code>crossorigin="anonymous"</code>，另外几处没有</b>。
       没写它时浏览器按 no-cors 拉图 —— <b>图在页面上照常显示、你完全看不出问题</b>，但 <code>drawImage</code> 会把画布<b>污染</b>
@@ -522,6 +545,17 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第五十七批交付报告.html" style="color:#0369A1"><b>第五十七批交付报告</b></a></td><td><b style="color:#B45309">保存丢图：5 个具体机制，而不是"猜"</b>：
+        ① 晋级图组件里第二批封面<b>还是没 crossorigin</b>（BracketListView / BracketNode）⇒ 画布污染；
+        ② 缩略图按 600×600 原图内联 ⇒ 15 张封面把 SVG 撑到 1.9 MB；
+        ③ <b>每个元素都把继承的 CSS 变量整份抄一遍</b>（99 个元素写出 1.87 MB 样式）⇒ 真机解不动；
+        ④ 保存那一步 <code>fetch(超长 dataURL)</code> 在 iOS 会截断 ⇒ <b>残缺 PNG</b>（你那张 2.1 MB 系统都出不来缩略图）；
+        ⑤ 兜底的 html2canvas 按视口裁剪 ⇒ 晋级图被截成 780×780 方图。<br>
+        另加「导出结果逐图自证」：数导出画布里每个封面位置的颜色，纯色就判图丢了、自动换引擎。<br>
+        <b>对位赛分享图</b>右上角胶囊被劈两行 ⇒ 子项 <code>nowrap</code>（导出图该区域从 2 行文字变 1 行）；
+        <b>同款签表框</b>从 <code>.cinfo</code> 里搬出来（342px = 整行宽）+ 加「撤销」；
+        <b>完整晋级图</b>导出错位三因：祖先 <code>zoom</code> 不在克隆树、导出态被强制 <code>width:100%</code>、
+        标题/冠军名 fit-content 折行 ⇒ 竖版 1400×1398、横版完整，四边干净。</td></tr>
       <tr><td><a href="第五十六批交付报告.html" style="color:#0369A1"><b>第五十六批交付报告</b></a></td><td><b style="color:#B45309">真机还丢图 —— 这次找到"为什么只有这几处丢"</b>：
         对位赛战报 / 结算页 / 晋级图 / 对位小卡的 <code>&lt;img&gt;</code> <b>没写 <code>crossorigin</code></b>，
         图能显示但画布被污染 ⇒ <code>toDataURL()</code> 抛 SecurityError，上一批的 canvas 重绘在这几处救不回来。

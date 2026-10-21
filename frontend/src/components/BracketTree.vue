@@ -107,6 +107,17 @@ const props = defineProps({
    */
   totalAlbums: { type: Number, default: 0 },
   totalArtists: { type: Number, default: 0 },
+  /**
+   * 导出前的"临时恢复布局"钩子（2026-10-21 第五十七批）
+   * ------------------------------------------------------------
+   * ⚠️ 手机端「完整晋级图」是在一个全屏子页里看的，父组件给外层加了 CSS `zoom` 适配宽度。
+   *   而导出是克隆 `.bshot` 再内联 computed style —— **祖先的 zoom 不在克隆树里**，
+   *   于是"看得见的布局"和"导出来的布局"对不上：用户保存下来就是右侧被截、封面错位。
+   *   ⇒ 父组件传一个函数进来：导出前把 zoom 归 1、导出后还原。
+   *   必须是 async（要等一帧让新布局落上），返回的 function 用于还原。
+   * @type {null | (() => Promise<() => void>)}
+   */
+  beforeExport: { type: Function, default: null },
 });
 
 const tree = computed(() => buildBracketTree(props.matches));
@@ -164,14 +175,26 @@ const shotEl = ref(null);
 async function save() {
   const el = shotEl.value;
   if (!el || exporting.value) return;
-  // 等一帧让 .exporting 的样式（实心底 + 页眉页脚）真正落上再克隆
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-  const targetWidth = Math.min(2400, Math.max(1080, el.offsetWidth));
-  await exportAndSave(
-    el,
-    `音格-完整晋级图-${dir.value === 'v' ? '竖版' : '横版'}.png`,
-    { exporting, targetWidth, bg: '#f7fbff' },
-  );
+  // ① 先让父组件把"只影响观看、不该进导出"的东西（例如全屏子页的 zoom）临时关掉
+  let restoreLayout = null;
+  try {
+    restoreLayout = (await props.beforeExport?.()) || null;
+  } catch {
+    restoreLayout = null;
+  }
+  try {
+    // ② 等一帧让 .exporting 的样式（实心底 + 页眉页脚）真正落上再克隆
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const targetWidth = Math.min(2400, Math.max(1080, el.offsetWidth));
+    await exportAndSave(
+      el,
+      `音格-完整晋级图-${dir.value === 'v' ? '竖版' : '横版'}.png`,
+      { exporting, targetWidth, bg: '#f7fbff' },
+    );
+  } finally {
+    // ③ 无论成功失败都把观看状态还原（否则用户退出子页后布局是"导出态"）
+    restoreLayout?.();
+  }
 }
 </script>
 
@@ -260,7 +283,15 @@ async function save() {
   display: flex;
   align-items: baseline;
   gap: 10px;
+  /* 子项 nowrap（见下）⇒ 放不下时在元素之间换行，而不是把"音格 · YINGE.APP"劈成两行 */
+  flex-wrap: wrap;
   margin-bottom: 16px;
+}
+/* ⚠️ 2026-10-21 第五十七批：导出图里品牌行被劈成「音格 ·」/「YINGE.APP」两行。
+   成因同前：克隆体的字体度量与页面差零点几像素，弹性子项默认自动尺寸 ⇒ 文字内部换行。 */
+.bphd > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .bphd b {
   font-size: 17px;
@@ -329,7 +360,13 @@ async function save() {
   object-fit: cover;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
+/* ⚠️ 2026-10-21 第五十七批：导出图里冠军名被劈成「太陽之」/「子」，歌手行还被卡到框外。
+   根因是**fit-content 宽度被 inlineStyles 钉死**（第五十五批在分享卡的 `.cname` 上栽过同一手）：
+   页面上 `.cn` 的 computed width = 文字宽（如 76px），克隆体里字体度量差一点就换行，
+   而 `.champcard` 的高度也被钉死 ⇒ 换行后的内容直接溢出、被裁掉。
+   改成 `width:100%`（= 卡片内容宽，确定性数值）：短名字一行放下，长名字按同一宽度正常折行。 */
 .champcard .cn {
+  width: 100%;
   font-size: 19px;
   line-height: 1.25;
   font-weight: 900;
@@ -337,8 +374,12 @@ async function save() {
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .champcard .ca {
+  width: 100%;
   font-size: 13.5px;
   color: var(--text2);
+}
+.champcard .ct {
+  white-space: nowrap;
 }
 /* 紧凑版：冠军格一起缩小（与树的比例保持一致） */
 .champcard.mini {

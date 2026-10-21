@@ -16,7 +16,7 @@
         >
           <!-- 左：封面 · 专辑名 · 比分（比分贴着中间的冒号，形成左右对称的记分牌） -->
           <div class="lside" :class="sideClass(m, m.leftAlbum)">
-            <img v-if="m.leftAlbum?.artworkUrl" :src="m.leftAlbum.artworkUrl" alt="" loading="lazy" />
+            <img v-if="m.leftAlbum?.artworkUrl" :src="m.leftAlbum.artworkUrl" alt="" loading="lazy" crossorigin="anonymous" />
             <i v-else class="lph" aria-hidden="true"></i>
             <b class="lnm">{{ m.leftAlbum ? m.leftAlbum.name : '待定' }}</b>
             <span class="lsc">{{ scoreOf(m, 'l') }}</span>
@@ -26,7 +26,7 @@
 
           <!-- 右：镜像排布（row-reverse）—— 封面在最右，比分在最左 -->
           <div class="lside rev" :class="sideClass(m, m.rightAlbum)">
-            <img v-if="m.rightAlbum?.artworkUrl" :src="m.rightAlbum.artworkUrl" alt="" loading="lazy" />
+            <img v-if="m.rightAlbum?.artworkUrl" :src="m.rightAlbum.artworkUrl" alt="" loading="lazy" crossorigin="anonymous" />
             <i v-else class="lph" aria-hidden="true"></i>
             <b class="lnm">
               {{ m.rightAlbum ? m.rightAlbum.name : m.isBye ? '轮空' : '待定' }}

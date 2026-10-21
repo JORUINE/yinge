@@ -62,7 +62,92 @@ export function isMobileDevice() {
  *   ⇒ 抓不到的图不再只能是空白框：回源不到就保持原地址，至少不阻断导出。
  * @returns {Promise<() => void>} 还原函数（务必在 finally 里调用）
  */
+/**
+ * 导出前先把元素里的图片**全部真正加载完**
+ * ------------------------------------------------------------
+ * ⚠️ 2026-10-21 第五十七批：用户手机端保存的「完整晋级图」里，封面全变成灰色小方块。
+ *   根因之一：清单/树里的封面带 `loading="lazy"`，而手机子页里**很多图从没进过视口**
+ *   ⇒ 浏览器根本没发请求 ⇒ `naturalWidth = 0` ⇒ 后面三条路都只能靠"重新拉一次"，
+ *   而真机上那条路本来就更脆。
+ *   这里先把 `loading` 改成 eager 并等它真的解码完（最多等 3 秒），
+ *   让主路径（canvas 重绘）在真机上也拿得到位图。
+ */
+async function forceLoadImages(el) {
+  const imgs = [...el.querySelectorAll('img')];
+  await Promise.all(imgs.map((im) => {
+    if (im.getAttribute('loading') === 'lazy') im.setAttribute('loading', 'eager');
+    const src = im.getAttribute('src');
+    if (!src) return null;
+    if (im.complete && im.naturalWidth > 0) return null;
+    // 已 complete 但 0 尺寸 = 加载失败，交给后面的"重新加载"兜底，这里不白等
+    if (im.complete) return null;
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        im.removeEventListener('load', finish);
+        im.removeEventListener('error', finish);
+        resolve();
+      };
+      im.addEventListener('load', finish);
+      im.addEventListener('error', finish);
+      // 改一次 src 强制触发（同值也算重新求值；浏览器会吃缓存，不会重复下载）
+      try {
+        im.setAttribute('src', src);
+      } catch {
+        finish();
+      }
+      setTimeout(finish, 3000);
+    });
+  }));
+}
+
+/**
+ * 把一张图**按实际渲染尺寸**重画成 dataURL
+ * ------------------------------------------------------------
+ * ⭐⭐ 2026-10-21 第五十七批：**iOS 真机丢图的真正机制**
+ *   原来是把封面按 **naturalWidth（600×600）** 原样重画再 base64。
+ *   晋级图里 15 张封面 ⇒ SVG 的 data URL 达到 **3.8 MB**，
+ *   而 `new Image().decode()` 对这种超长 data URL 直接抛
+ *   **"The source image cannot be decoded."** ⇒ 主路径整条作废 ⇒ 退到 html2canvas
+ *   ⇒ html2canvas 在移动档又把画布裁成 780×780 ⇒ 用户收到的就是"图丢、错位"的成品。
+ *   修法：缩略图只按"它在页面上多大 × 3 倍（高清屏）"去画，最长边不超过 512。
+ *   实测 15 张封面的 SVG 从 3.8 MB 降到几十 KB，主路径一次就过。
+ * @param {HTMLImageElement} img
+ * @param {boolean} pngish 需要保留透明（PNG）还是可以压成 JPEG
+ * @param {number} maxSide 最长边上限（px）
+ */
+function redrawToB64(img, pngish, maxSide) {
+  if (!img || !img.naturalWidth || !img.naturalHeight) return null;
+  let w = img.naturalWidth;
+  let h = img.naturalHeight;
+  if (Number.isFinite(maxSide) && maxSide > 0) {
+    const k = Math.min(1, maxSide / Math.max(w, h));
+    w = Math.max(1, Math.round(w * k));
+    h = Math.max(1, Math.round(h * k));
+  }
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const g = c.getContext('2d');
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(img, 0, 0, w, h);
+  return c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.9);
+}
+
+/** 这张图在页面上渲染多大 → 决定 dataURL 该画多大（×3 覆盖高清屏，夹在 48~512 之间） */
+function wantedSide(img) {
+  const r = img.getBoundingClientRect?.();
+  const shown = r ? Math.max(r.width, r.height) : 0;
+  // 得不到渲染尺寸（隐藏 / 未布局）时退回 256，别因此把图压糊
+  if (!(shown > 0)) return 256;
+  return Math.min(512, Math.max(48, Math.round(shown * 3)));
+}
+
 async function preloadImagesAsDataUrl(el) {
+  // 先把懒加载/离屏的图真正拉下来，否则主路径拿到的是 0 尺寸
+  await forceLoadImages(el);
   const imgs = [...el.querySelectorAll('img')];
   const saved = [];
   for (const im of imgs) {
@@ -70,6 +155,7 @@ async function preloadImagesAsDataUrl(el) {
     if (!src || src.startsWith('data:') || src.startsWith('blob:')) continue;
     let b64 = null;
     const pngish = /\.png(\?|$)|image\/png/i.test(src);
+    const maxSide = wantedSide(im);
 
     // ① 主路径：canvas 重绘（不发网络请求，真机可靠）
     try {
@@ -79,12 +165,8 @@ async function preloadImagesAsDataUrl(el) {
         await im.decode?.().catch(() => {});
       }
       if (im.complete && im.naturalWidth > 0) {
-        const c = document.createElement('canvas');
-        c.width = im.naturalWidth;
-        c.height = im.naturalHeight;
-        c.getContext('2d').drawImage(im, 0, 0);
-        // 透明图（PNG）必须保留 alpha，JPEG 会把透明区涂黑
-        b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+        // 按渲染尺寸降采样（透明图 PNG 保留 alpha，JPEG 会把透明区涂黑）
+        b64 = redrawToB64(im, pngish, maxSide);
       }
     } catch {
       /* 画布被污染 / 其它异常 → 走兜底 */
@@ -132,16 +214,8 @@ async function preloadImagesAsDataUrl(el) {
           fresh.onerror = () => reject(new Error('reload'));
           fresh.src = src;
         });
-        // ⚠️ 零尺寸保护：naturalWidth/Height 为 0 时 canvas 会是 0×0，
-        //    drawImage 直接抛 InvalidStateError、toDataURL 也可能产出空串 ——
-        //    与其静默拿到一张空白图，不如明确放弃、保持原地址。
-        if (fresh.naturalWidth > 0 && fresh.naturalHeight > 0) {
-          const c = document.createElement('canvas');
-          c.width = fresh.naturalWidth;
-          c.height = fresh.naturalHeight;
-          c.getContext('2d').drawImage(fresh, 0, 0);
-          b64 = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
-        }
+        // ⚠️ 零尺寸保护在 redrawToB64 里（0×0 画布会静默产出空白图）
+        b64 = redrawToB64(fresh, pngish, maxSide);
       } catch {
         /* 三条路都拿不到就保持原地址，至少不阻断导出 */
       }
@@ -202,9 +276,32 @@ export async function exportCardPng(el, { targetWidth = 1080, bg = null } = {}) 
  * @param {{silent?: boolean}} opts silent=true 时不弹提示（调用方自己提示）
  * @returns {Promise<'shared'|'downloaded'|'ios-longpress'|'failed'>} 走了哪条路
  */
+/**
+ * dataURL → Blob（**自己解码 base64，不走 fetch**）
+ * ------------------------------------------------------------
+ * ⚠️⚠️ 2026-10-21 第五十七批：用户 iOS 真机保存后拿到的是
+ * 「2.1 MB 的 PNG、系统"文件"预览里连缩略图都出不来、图里还缺封面」。
+ * 原来这里是 `await (await fetch(dataUrl)).blob()`：
+ * 分享图/晋级图的 dataURL 动辄 2~3 MB（base64），**iOS Safari 对这种超长 data URL 的
+ * fetch 会截断或直接失败** ⇒ 写进相册/文件的是一个**残缺的 PNG**（大小看着有、内容是坏的）。
+ * ⇒ 改成 `atob` 自己解 base64 再拼 `Uint8Array`：不经过网络栈、没有长度上限、不会截断。
+ */
+function dataUrlToBlob(dataUrl) {
+  const s = String(dataUrl || '');
+  const comma = s.indexOf(',');
+  if (comma < 0) throw new Error('导出数据为空');
+  const head = s.slice(0, comma);
+  const b64 = s.slice(comma + 1);
+  const mime = (head.match(/data:([^;]+)/) || [])[1] || 'image/png';
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
+
 export async function savePng(dataUrl, fileName, { silent = false } = {}) {
   const { ElMessage } = await import('element-plus');
-  const blob = await (await fetch(dataUrl)).blob();
+  const blob = dataUrlToBlob(dataUrl);
   const url = URL.createObjectURL(blob);
   const mobile = isMobileDevice();
 
