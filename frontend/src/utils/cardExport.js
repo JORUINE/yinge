@@ -20,6 +20,7 @@
  * 同一张卡用 html2canvas 导出则间距为 0（对照图见 tools/pw 的输出）。
  */
 import html2canvas from 'html2canvas';
+import { proxiedSrc } from './imgProxy.js';
 
 /**
  * 去掉克隆树里的所有注释节点
@@ -192,7 +193,7 @@ async function inlineImages(srcEl, dstEl) {
     // ② fetch 兜底
     if (!b64 || b64.length < 64) {
       try {
-        const r = await fetch(s, { mode: 'cors' });
+        const r = await fetch(proxiedSrc(s));
         const b = await r.blob();
         b64 = await new Promise((res) => {
           const fr = new FileReader();
@@ -213,7 +214,7 @@ async function inlineImages(srcEl, dstEl) {
         await new Promise((resolve, reject) => {
           fresh.onload = () => resolve();
           fresh.onerror = () => reject(new Error('reload'));
-          fresh.src = s;
+          fresh.src = proxiedSrc(s);
         });
         if (fresh.naturalWidth > 0 && fresh.naturalHeight > 0) {
           b64 = canvasToB64(fresh, pngish);

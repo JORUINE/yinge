@@ -22,6 +22,7 @@ import comboRoutes from './modules/combos/combos.routes.js';
 import rankRoutes from './modules/rankings/rankings.routes.js';
 import adminRoutes from './modules/admin/admin.routes.js';
 import devRoutes from './modules/battles/dev.routes.js';
+import imgRoutes from './modules/media/img.routes.js';
 
 export function createApp() {
   const app = express();
@@ -76,6 +77,8 @@ export function createApp() {
   app.use('/api/share-cards', shareCardRouter);
   app.use('/api/rank', rankRoutes);
   app.use('/api/admin', adminRoutes);
+  // 封面同源代理：导出图片时用（见 modules/media/img.routes.js 的说明）
+  app.use('/api/img', imgRoutes);
 
   // ⚠️ 开发 / 测试专用：一键造一局"已结束"的对决（端到端探针用）。
   //    **只在非 production 注册** —— 生产环境这个路径必须是 404。

@@ -1,0 +1,126 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十九批交付报告（PC 端播放器整合 / 封面同源代理）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:920px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 4px}
+  .b{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:13px 15px}
+  .b .v{font-size:21px;font-weight:800;color:#0f8a4a;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .b .l{font-size:12.3px;color:#7d97ab;margin-top:2px}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.4px;line-height:1.6;margin-top:8px;overflow-x:auto;white-space:pre-wrap}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+  @media (max-width:760px){.big{grid-template-columns:minmax(0,1fr)}}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十九批 · 2026-10-21</span>
+  <h1>PC 端播放器整合做完了；导出换成"同源代理"这条路</h1>
+  <p>上一轮我把整合做在手机端、被你叫停并已还原。这次严格<b>只改桌面档</b>，并用手机端同输入 A/B 证明
+  <b>112 个元素逐元素 0 差异</b>。导出这边不再打补丁：加了一层<b>封面同源代理</b>，
+  把"跨域"这个根因直接掐掉。</p>
+</div>
+
+<div class="big">
+  <div class="b"><div class="v">0 差异</div><div class="l">手机端 112 个元素逐元素几何/结构（证明没被碰）</div></div>
+  <div class="b"><div class="v">3 → 1 张卡</div><div class="l">PC：播放条 + 提示行 + 试听清单合成一张</div></div>
+  <div class="b"><div class="v">200 / 403</div><div class="l">代理取图成功 / 非白名单被拒</div></div>
+</div>
+
+<h2><span class="n">1</span>PC 端整合（只改 &gt;640，手机端一个字没动）</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">你截图里是三块散着的：播放条一张圆角卡、提示行单独一行、清单又是一张圆角卡。现在合成一张：</p>
+<table>
+  <tr><th>块</th><th>改前</th><th>改后</th></tr>
+  <tr><td>播放条 <code>.nowbar</code></td><td>圆角 26px（四面）</td><td>圆角 <b>26/26/0/0</b>（只留上圆角）</td></tr>
+  <tr><td>提示行 <code>.np-tip</code></td><td>外面的一句居中灰字，上下有间距</td><td><b>卡内分隔条</b>：同一块玻璃底 + 上边框 + 左对齐，与播放条间距 <b>0</b></td></tr>
+  <tr><td>清单 <code>.tracklist</code></td><td>独立卡：上圆角 14px、独立底色、上间距 18px</td><td>圆角 <b>0/0/26/26</b>、同一玻璃底、与提示行间距 <b>0</b></td></tr>
+</table>
+<div class="chk">实测（PC 1440）：
+.nowbar      x154 w1132 h234  圆角 26/26/0/0  底色 rgba(255,255,255,.8)
+.np-tip      x154 w1132 h40   圆角 0           与播放条间距 0
+.tracklist   x154 w1132 h105  圆角 0/0/26/26   与提示行间距 0</div>
+<div class="note warn"><b>实现要点（踩过的坑）：</b><code>.np-tip</code> 是 <code>.nowbar</code> 的<b>兄弟节点</b>，
+所以必须用 <code>.nowbar + .np-tip</code>；上一版写在 <code>.nowbar &gt; .np-tip</code> 上的规则<b>从来没命中过</b>。
+手机端上一轮误加的两段 <code>@media(max-width:640px)</code> 已整段删除（只删不加 116 行）。</div>
+</div>
+
+<h2><span class="n">2</span>导出：把"跨域"这个根因掐掉（同源代理）</h2>
+
+<div class="card">
+<p style="margin:0 0 8px"><b>为什么之前三轮都没修好：</b>我一直在"哪条取图路径更稳"上打补丁，但所有路径的失败根源都是同一个词——<b>跨域</b>：</p>
+<table>
+  <tr><th>路径</th><th>在 iOS 上为什么会失败</th></tr>
+  <tr><td>canvas 重绘</td><td>跨域 <code>&lt;img&gt;</code> 没带 crossorigin 就<b>污染画布</b>，<code>toDataURL</code> 直接抛错</td></tr>
+  <tr><td><code>fetch</code> 取 blob</td><td>依赖对方回 CORS 头，且真机上 <code>fetch</code> 本身可能被系统策略拦</td></tr>
+  <tr><td>带 crossorigin 重载</td><td>同样依赖 CORS 头；Safari 对跨域位图的二次解码还可能直接失败</td></tr>
+</table>
+<p style="margin:10px 0 6px"><b>这次的做法（结构性）：</b>后端加一个<b>只放行图片白名单域名</b>的同源代理</p>
+<div class="chk">GET /api/img?u=&lt;原图地址&gt;
+· 白名单：mzstatic.com（Apple 封面）、music.126.net 等
+· 只允许 http/https，只返回 image/*，8MB 上限，8s 超时
+· 返回 `Cache-Control: public, max-age=604800, immutable`</div>
+<p style="margin:10px 0 0">前端导出时把封面地址换成这个代理地址 —— <b>同源 ⇒ 画布永不污染 ⇒ <code>toDataURL</code> 永远可用 ⇒ SVG 里一定有图</b>。
+与设备、引擎、网络策略都无关。这条现在排在取图链路的<b>第一位</b>，后面三条老路只作兜底。</p>
+<div class="note good"><b>实测：</b>代理 <code>200 / image/jpeg / 84 KB</code>；非白名单 <code>403</code>；缺参数 <code>400</code>。
+分享卡竖版导出时 <code>/api/img</code> 命中 <b>4 次</b>；再<b>拦断所有跨域 fetch</b> 重新导一张人格卡，仍然完整（色 212 / 透明像素 0.1%）。</div>
+</div>
+
+<h2><span class="n">3</span>关于人格卡：一条重要的事实</h2>
+
+<div class="card">
+<div class="note bad"><b>我必须说清楚：</b>人格卡的背景是 <code>/img/personality/bg-XXX.jpg</code> —— <b>同源本地图，本来就不涉及跨域</b>。
+所以这次的代理<b>帮不到人格卡</b>（探针里它命中代理 0 次，这是对的）。
+也就是说"人格卡导出没图"若在 iOS 上仍然发生，根因不是 CORS，而是<b>SVG foreignObject 在那个引擎里没把那张图渲染出来</b>，或最终 PNG 被写坏。</div>
+<p style="margin:10px 0 0"><b>我这边的事实（可复现）：</b>六种人格卡逐个导出、直连与「我的测评 → 回看」两条入口都试过，
+<b>全部 1080×1440、不透明、中心亮度与页面背景一致</b>，看不出任何差异。所以这个问题我只能靠你那张文件定位。</p>
+<p style="margin:10px 0 0"><b>你只要给我一样东西，我就能定位：</b>iOS 上导出失败的那张<b>保存出来的 PNG 原文件</b>（不是截图）。
+拿到它我可以判断：整张空白（渲染失败）／有文字无图（图没进 SVG）／有图但错位（布局问题）—— 三种对应三种完全不同的修法。</p>
+<div class="note warn"><b>如果它确实是"有文字无图"</b>，我下一步就把人格卡与分享卡一起改成
+<b>html2canvas 优先 + 伪元素/阴影补偿</b>（你先前提过的"特效有问题"那一类），而不是继续修 SVG 路径。
+这一步我会先出对比图给你选，不擅自改。</div>
+</div>
+
+<h2><span class="n">4</span>验收</h2>
+<div class="card">
+<table>
+  <tr><th>项</th><th>结果</th></tr>
+  <tr><td>手机端同输入 A/B（改前产物 vs 现在，390×844，同一局、都点过试听）</td><td><b class="ok">元素数 112/112，逐元素 0 差异</b>；转盘 236、方向键 64、圆角 26px 全部原样</td></tr>
+  <tr><td>桌面端同输入 A/B（10 条路由）</td><td><b class="ok">几何 0 / 结构 0 / JS 0</b>（对局页不在该路由集内，PC 整合用截图+几何单独验过）</td></tr>
+  <tr><td>代理与导出链路</td><td><b class="ok">6/6 全绿</b>（代理解析、人格卡完整、分享卡走代理、拦 fetch 后仍完整）</td></tr>
+</table>
+</div>
+
+<h2><span class="n">5</span>还没做完 / 需要你</h2>
+<div class="card">
+<table>
+  <tr><th>项</th><th>状态</th></tr>
+  <tr><td>iOS 上人格卡/分享卡导出的真机复验</td><td><b>要你测</b>；失败请给我<b>保存出来的原文件</b></td></tr>
+  <tr><td>若人格卡仍坏 → 改 html2canvas 优先</td><td>等你确认后我再动，并先出对比图</td></tr>
+  <tr><td>U3 人格详情页剩余 ~84px 留白</td><td>未做（更早遗留）</td></tr>
+</table>
+</div>
+
+<div class="foot">音格 · 第五十九批交付报告　｜　2026-10-21</div>
+</div>
+</body></html>

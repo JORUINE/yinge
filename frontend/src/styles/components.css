@@ -4721,3 +4721,31 @@ html.ua-edge .scard .smain .art {
     font-size: 12px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PC 端：播放器 + 提示行 + 试听清单 合成一张卡 · 2026-10-21
+   -------------------------------------------------------------------
+   用户截图（PC）：「这里的整合方案 pc 端的为什么没做」——
+   当时播放条是一张圆角卡、提示行单独一行、清单又是另一张圆角卡，三块看着是散的。
+   ⚠️ 严格只作用于 >640：手机端上一轮误改已完全回滚，这里不再碰它。
+   ⚠️ 注意 `.np-tip` 是 `.nowbar` 的**兄弟节点**（不是子节点）——
+      所以要用 `+` 而不是 `>`；上面 4708 那条 `.nowbar > .np-tip` 从来没命中过。
+   ═══════════════════════════════════════════════════════════════════ */
+@media (min-width: 641px) {
+  /* 播放条：只留上圆角 */
+  .nowbar {
+    border-radius: 26px 26px 0 0;
+  }
+  /* 提示行：从"外面的一句小字"变成卡内分隔条 */
+  .nowbar + .np-tip {
+    margin: 0;
+    padding: 9px 22px 10px;
+    background: var(--glass);
+    border-left: 1px solid var(--gbd);
+    border-right: 1px solid var(--gbd);
+    border-top: 1px solid var(--line);
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+}

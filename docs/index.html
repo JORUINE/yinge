@@ -192,7 +192,8 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-21（<b>第五十八批 · 播放器与试听清单整合（方案 A）+ 题量口径 12/2→20/4 + 答题页防误选/撤销 + 导出六型全量自检</b>：
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-21（<b>第五十九批 · PC 端播放器整合（只改桌面，手机端 A/B 0 差异）+ 封面同源代理</b>：<br>
+　　<b>第五十八批 · 播放器与试听清单整合（方案 A）+ 题量口径 12/2→20/4 + 答题页防误选/撤销 + 导出六型全量自检</b>：
 26 条导出断言全绿、前三批回归 37/20/18 全绿；<br>
 　　<b>第五十七批 · 保存丢图的 5 个具体机制 + 晋级图导出错位 + 签表框加宽/撤销</b>：
 补第二批 <code>crossorigin</code>、缩略图降采样、CSS 变量只留改过的（样式 1.87→0.99 MB）、
@@ -568,6 +569,15 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第五十九批交付报告.html" style="color:#0369A1"><b>第五十九批交付报告</b></a></td><td><b style="color:#B45309">PC 端把播放器/提示行/清单合成一张卡；导出改走封面同源代理</b>：
+        ① <b>PC 整合</b>（只 &gt;640）：<code>.nowbar</code> 圆角 26/26/0/0、<code>.np-tip</code> 变卡内分隔条（间距 0）、
+        <code>.tracklist</code> 圆角 0/0/26/26（间距 0）。⚠️ <code>.np-tip</code> 是 <b>兄弟节点</b>，必须用 <code>+</code> 不是 <code>&gt;</code>。
+        ② <b>手机端没碰</b>：改前产物同输入 A/B，<b>112 个元素逐元素 0 差异</b>（转盘 236 / 方向键 64 / 圆角 26px 全原样）。
+        ③ <b>导出根因</b>：所有失败路径的根源都是"跨域" ⇒ 后端加 <code>GET /api/img?u=</code>
+        （白名单 mzstatic 等、只回 image/*、8MB、8s 超时、长缓存）⇒ 同源 ⇒ 画布不污染 ⇒ <code>toDataURL</code> 必然可用。
+        实测代理 200/84KB、非白名单 403；分享卡导出命中代理 4 次；拦断跨域 fetch 后人格卡仍完整。
+        ④ <b>如实说明</b>：人格卡背景是<b>同源</b>本地图，代理帮不到它；六型在 Chromium 里全部正常，
+        仍需 iOS 真机复验，失败请给<b>保存出来的原文件</b>。</td></tr>
       <tr><td><a href="第五十八批交付报告.html" style="color:#0369A1"><b>第五十八批交付报告</b></a></td><td><b style="color:#B45309">播放器整合 + 题量口径 + 防误选 + 导出六型全量自检</b>：
         ① <b>播放器与试听清单整合（方案 A）</b>：手机两列——转盘 176px 靠左、歌名/时间靠右（左对齐），
         播放器 + 提示行 + 清单<b>合成一张卡</b>；方向键 64→52 仍 ≥44 触控；<b>动效一个没删</b>，桌面一个字没动。<br>

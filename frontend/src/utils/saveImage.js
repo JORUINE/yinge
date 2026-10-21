@@ -22,6 +22,7 @@
  *   用 `http://192.168.x.x` 真机访问时它不存在 ⇒ 直接走后面的兜底，这是预期的。
  */
 import { exportNodeToPng } from './cardExport.js';
+import { proxiedSrc } from './imgProxy.js';
 
 /** 是不是 iOS（含 iPadOS；iPad 桌面模式下 UA 是 Macintosh，用 maxTouchPoints 兜底） */
 export function isIOS() {
@@ -157,26 +158,54 @@ async function preloadImagesAsDataUrl(el) {
     const pngish = /\.png(\?|$)|image\/png/i.test(src);
     const maxSide = wantedSide(im);
 
-    // ① 主路径：canvas 重绘（不发网络请求，真机可靠）
-    try {
-      if (!im.complete || !im.naturalWidth) {
-        // 还没解码完就先等它（拿不到就自然落到兜底）
+    /**
+     * ⓪ **首选：走同源代理重新加载再重绘**
+     * ------------------------------------------------------------
+     * 同源 ⇒ 画布一定不污染 ⇒ `toDataURL` 一定成功。
+     * 这条现在排第一，因为它**不依赖**"对方的 CORS 头"和"fetch 能不能通"，
+     * 是唯一一条在 iOS Safari / 微信里也确定可用的路。
+     * 失败（后端没起、代理超时）才往下走原来的三条老路。
+     */
+    const local = proxiedSrc(src);
+    if (local !== src) {
+      try {
+        const fresh = new Image();
+        // ⚠️ 同源就不需要 crossorigin；带上也不会错，但保持最简
         // eslint-disable-next-line no-await-in-loop
-        await im.decode?.().catch(() => {});
+        await new Promise((resolve, reject) => {
+          fresh.onload = () => resolve();
+          fresh.onerror = () => reject(new Error('proxy'));
+          fresh.src = local;
+        });
+        b64 = redrawToB64(fresh, pngish, maxSide);
+      } catch {
+        /* 代理不可用 → 继续走下面的老路 */
       }
-      if (im.complete && im.naturalWidth > 0) {
-        // 按渲染尺寸降采样（透明图 PNG 保留 alpha，JPEG 会把透明区涂黑）
-        b64 = redrawToB64(im, pngish, maxSide);
+    }
+
+    // ① 老主路径：canvas 重绘（代理没拿到时才走）
+    if (!b64 || b64.length < 64) {
+      try {
+        if (!im.complete || !im.naturalWidth) {
+          // 还没解码完就先等它（拿不到就自然落到兜底）
+          // eslint-disable-next-line no-await-in-loop
+          await im.decode?.().catch(() => {});
+        }
+        if (im.complete && im.naturalWidth > 0) {
+          // 按渲染尺寸降采样（透明图 PNG 保留 alpha，JPEG 会把透明区涂黑）
+          b64 = redrawToB64(im, pngish, maxSide);
+        }
+      } catch {
+        /* 画布被污染 / 其它异常 → 走兜底 */
       }
-    } catch {
-      /* 画布被污染 / 其它异常 → 走兜底 */
     }
 
     // ② 兜底一：fetch → blob → base64（canvas 不可用时才退到这里）
     if (!b64 || b64.length < 64) {
       try {
         // eslint-disable-next-line no-await-in-loop
-        const r = await fetch(src, { mode: 'cors' });
+        // 走同源代理（跨域 fetch 在 iOS 上会被拦；同源不会）
+        const r = await fetch(local);
         // eslint-disable-next-line no-await-in-loop
         const blob = await r.blob();
         // eslint-disable-next-line no-await-in-loop
@@ -212,7 +241,7 @@ async function preloadImagesAsDataUrl(el) {
         await new Promise((resolve, reject) => {
           fresh.onload = () => resolve();
           fresh.onerror = () => reject(new Error('reload'));
-          fresh.src = src;
+          fresh.src = local;
         });
         // ⚠️ 零尺寸保护在 redrawToB64 里（0×0 画布会静默产出空白图）
         b64 = redrawToB64(fresh, pngish, maxSide);
