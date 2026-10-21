@@ -337,6 +337,43 @@ function calcScale(el, targetWidth) {
   return Number.isFinite(s) && s > 0 ? s : 2;
 }
 
+/**
+ * 把最终 dataURL 解开再验一遍（验的是"用户真正会存下来的那份文件"）
+ * ------------------------------------------------------------
+ * 判据只三条，都刻意放宽，避免误伤：
+ *   ① 能解码（解不开 = 文件坏了，必须换引擎重来）
+ *   ② 颜色数够多（纯色/近乎纯色 = 什么都没画上）
+ *   ③ 卡片里每张封面所在的位置不是整片纯色
+ * ⚠️ 任何一步读不出来（画布污染 / 浏览器不支持）都**判为通过** ——
+ *    宁可放过，也不要因为测不了就把桌面端拖去走 html2canvas。
+ */
+async function pngSeemsRight(dataUrl, el) {
+  let canvas;
+  try {
+    const img = new Image();
+    img.src = dataUrl;
+    await img.decode();
+    if (!img.naturalWidth || !img.naturalHeight) return false;
+    canvas = document.createElement('canvas');
+    canvas.width = Math.min(img.naturalWidth, 480);
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * (canvas.width / img.naturalWidth)));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+  } catch {
+    return false; // 解不开 → 文件真的坏了
+  }
+  try {
+    const g = canvas.getContext('2d');
+    const d = g.getImageData(0, 0, canvas.width, canvas.height).data;
+    const cols = new Set();
+    for (let i = 0; i < d.length; i += 4) cols.add(`${d[i] >> 4},${d[i + 1] >> 4},${d[i + 2] >> 4}`);
+    if (cols.size < 8) return false;
+    // 复用同一套"逐图看像素"的判据（此时 canvas 是缩过的，按比例算即可）
+    return imagesSeemPresent(canvas, el);
+  } catch {
+    return true; // 读不出来就不下结论
+  }
+}
+
 /** html2canvas 的统一调用（移动端兜底 + 强制走 html2canvas 时共用） */
 async function runHtml2canvas(el, { targetWidth, bg }) {
   const scale = calcScale(el, targetWidth);
@@ -470,6 +507,10 @@ export async function exportNodeToPng(el, { targetWidth = 1080, fallback = true,
     const out = c.toDataURL('image/png');
     // 画布全白 = 渲染失败（svg 里图片跨域等），此时回退
     if (!out || out === 'data:,' || out.length < 5000) throw new Error('svg 渲染结果异常');
+    // ⭐⭐ 出图之后**再解一遍**：有些设备上 toDataURL 会"成功返回一段看着不小、
+    //    实际解不开/缺内容"的数据（真机截图里那种 2 MB 却连缩略图都出不来）。
+    //    这一步直接拿最终 PNG 当输入，验不过就换引擎重来 —— 验的是用户真正拿到的那份文件。
+    if (!(await pngSeemsRight(out, el))) throw new Error('导出的 PNG 校验没通过');
     return out;
   } catch (e) {
     if (DBG) console.warn('[export] 主路径失败，改走 html2canvas：', e?.message || e);

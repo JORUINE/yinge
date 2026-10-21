@@ -37,7 +37,9 @@
       <RouterLink to="/personality/test" class="tile ghost">
         <div class="ring"></div>
         <h3>音乐人格</h3>
-        <p>12 道题，含 2 道听感题</p>
+        <!-- ⚠️ 2026-10-21 第五十八批：原来是硬编码「12 道题，含 2 道听感题」，
+             与真实抽题规则（20 / 4）不符。改成单一来源常量（见 utils/personalityFacts.js）。 -->
+        <p>{{ QUIZ_FACTS.total }} 道题，含 {{ QUIZ_FACTS.audio }} 道听感题</p>
         <span class="btn ghost">去测一测</span>
       </RouterLink>
     </div>
@@ -131,6 +133,7 @@ import { computed, onMounted, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { rankApi } from '@/api';
 import ResumeBar from '@/components/ResumeBar.vue';
+import { QUIZ_FACTS } from '@/utils/personalityFacts.js';
 
 const top = ref([]);
 const heroAlbum = computed(() => top.value[0] || null);

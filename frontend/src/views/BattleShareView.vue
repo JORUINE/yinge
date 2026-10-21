@@ -352,8 +352,18 @@ async function buildBlurBg() {
     c.width = S;
     c.height = S;
     const ctx = c.getContext('2d');
-    // cover 语义：按短边裁切后铺满（等比，不留白）
-    const scale = Math.max(S / img.naturalWidth, S / img.naturalHeight);
+    /**
+     * ⭐ 2026-10-21 第五十八批：**过扫（overscan）改在画布里做**
+     * ------------------------------------------------------------
+     * 原来靠 CSS `.scard .sbg { transform: scale(1.16) }` 把"模糊溢出的边"推出可视区。
+     * 但导出是「克隆 → 内联 computed style → 塞进 SVG 画成图」，
+     * **transform 在克隆树里最容易出偏差**（用户截图里那张竖版分享图：封面没了、
+     * 原地留一块灰色的圆角方块 —— 正是背景层被缩放/偏移后的残影）。
+     * ⇒ 把 1.18 倍过扫直接画进 canvas，`.sbg` 不再有 transform：
+     *   页面看起来一模一样，导出时少一个会出错的变量。
+     */
+    const OS = 1.18;
+    const scale = Math.max(S / img.naturalWidth, S / img.naturalHeight) * OS;
     const cover = { w: img.naturalWidth * scale, h: img.naturalHeight * scale };
     // ① 优先用 canvas 滤镜做真高斯模糊
     // ⚠️ 过扫（overscan）：模糊会把边缘采样到画布外变成透明，

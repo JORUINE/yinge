@@ -2038,4 +2038,27 @@ onUnmounted(() => clearTimeout(cutTimer));
     margin-top: 4px !important;
   }
 }
+/* ═══════════════════════════════════════════════════════════════════
+   试听清单并入播放器（手机档）· 2026-10-21 第五十八批
+   -------------------------------------------------------------------
+   用户要求"播放器和下面的歌曲清单整合到一起"。
+   DOM 不动（清单仍在播放器下面），靠**上下圆角各取一半 + 同一块玻璃底 + 去掉间隙**
+   把它读成一张卡里的一段 —— 这样不会碰到桌面档的结构（桌面 A/B 保 0 差异）。
+   播放器那边的上圆角/网格布局写在 styles/components.css 末尾（同一批）。
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .tracklist {
+    margin-top: 0;
+    border-radius: 0 0 22px 22px;
+    background: var(--glass);
+    border-top: 0;
+    padding: 12px 16px 14px;
+  }
+  .tracklist .tl-head {
+    margin-bottom: 10px;
+  }
+  .tracklist .tl-head b {
+    font-size: 13.5px;
+  }
+}
 </style>

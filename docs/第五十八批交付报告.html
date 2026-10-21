@@ -1,0 +1,197 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>音格 · 第五十八批交付报告（播放器整合 / 题量口径 / 答题页防误选 / 导出全量加固）</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef6fc;color:#0B2A42;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;line-height:1.68}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 70px}
+  .hero{background:linear-gradient(135deg,#7DD3FC,#0EA5E9 60%,#0369A1);color:#04263C;border-radius:18px;padding:28px 26px 22px;box-shadow:0 10px 30px rgba(3,105,161,.22)}
+  .hero .tag{display:inline-block;font-size:12px;letter-spacing:1.2px;font-weight:800;background:rgba(255,255,255,.38);padding:4px 13px;border-radius:999px;margin-bottom:11px}
+  .hero h1{margin:0 0 8px;font-size:25px;letter-spacing:-.5px}
+  .hero p{margin:0;font-size:14.5px;opacity:.94;max-width:920px}
+  h2{font-size:18px;margin:32px 0 10px;color:#0369A1;display:flex;align-items:center;gap:9px}
+  h2 .n{display:inline-flex;width:26px;height:26px;border-radius:99px;background:#0EA5E9;color:#fff;font-size:13px;font-weight:800;align-items:center;justify-content:center;flex:0 0 auto}
+  .card{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 6px 22px rgba(8,58,92,.09);border:1px solid #dbeaf6;margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th,td{padding:9px 10px;border-bottom:1px solid #e6f0f8;text-align:left;vertical-align:top}
+  th{background:#f4faff;color:#0369A1;font-weight:700}
+  code{background:#f0f7fc;border:1px solid #dbeaf6;border-radius:5px;padding:1px 5px;font-size:12.5px;word-break:break-all}
+  .note{margin-top:10px;font-size:13.3px;color:#46647E;background:#f4faff;border-left:3px solid #0EA5E9;padding:9px 12px;border-radius:0 8px 8px 0}
+  .note.warn{background:#fff8ec;border-left-color:#e08700}
+  .note.good{background:#f2fbf6;border-left-color:#0f8a4a}
+  .note.bad{background:#fdeaea;border-left-color:#c0392b}
+  .ok{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#e8f7ee;color:#0f8a4a;white-space:nowrap}
+  .no{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 9px;font-weight:700;background:#fdeaea;color:#c0392b;white-space:nowrap}
+  ul{margin:6px 0 0;padding-left:20px}li{margin:5px 0;font-size:13.5px}
+  .foot{margin-top:28px;font-size:12.5px;color:#7d97ab;text-align:center}
+  .big{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0 4px}
+  .b{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:13px 15px}
+  .b .v{font-size:21px;font-weight:800;color:#0f8a4a;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+  .b .v small{font-size:12.5px;font-weight:700;color:#7d97ab}
+  .b .l{font-size:12.3px;color:#7d97ab;margin-top:2px}
+  .qa{background:#fff;border:1px solid #dbeaf6;border-radius:13px;padding:14px 16px;margin-bottom:12px}
+  .qa .q{font-size:13.6px;font-weight:800;color:#0B2A42;margin-bottom:6px}
+  .qa .a{font-size:13.4px;color:#46647E}
+  .chk{background:#0B2A42;color:#cfe8f8;border-radius:9px;padding:11px 13px;font-size:12.4px;line-height:1.6;margin-top:8px;overflow-x:auto;white-space:pre-wrap}
+  .chk code{background:rgba(125,211,252,.16);border:1px solid rgba(125,211,252,.3);color:#9fdcf7}
+  @media (max-width:760px){.big{grid-template-columns:minmax(0,1fr)}}
+</style></head><body>
+<div class="wrap">
+
+<div class="hero">
+  <span class="tag">第五十八批 · 2026-10-21</span>
+  <h1>播放器整合 + 题量口径 + 防误选 + 导出全量自检</h1>
+  <p>你提的 5 件事都做了：播放器按「方案 A」整合、把 12/2 改成 20/4 并加上你那段"希望大家听到不一样的专辑"、
+  修掉"没选却被选上"、把答题页的说明改成面向用户、导出链路做了 5 处加固并<b>把六种人格卡 + 分享卡横竖全部纳入自检</b>。
+  <b>26 条导出断言全绿</b>，前三批回归 <b>37 / 20 / 18 全绿</b>。</p>
+</div>
+
+<div class="big">
+  <div class="b"><div class="v">12/2 → <small>20/4</small></div><div class="l">题量口径（与后端 SAMPLE_RULE 一致，且已加断言）</div></div>
+  <div class="b"><div class="v">236 → <small>176px</small></div><div class="l">手机端转盘（腾出右边放歌名/时间，按键仍 ≥44）</div></div>
+  <div class="b"><div class="v">6 型 + 2 形</div><div class="l">本轮逐个导出并校验的卡片数量</div></div>
+</div>
+
+<h2><span class="n">1</span>播放器与试听清单整合（方案 A）</h2>
+
+<div class="card">
+<div class="qa">
+  <div class="q">你的话：「按你说的做这个整合方案」</div>
+  <div class="a">手机档改成两列：<b>左边转盘、右边歌名/时间</b>；播放器 + 那句提示 + 试听清单<b>合成一张卡</b>（上下圆角各取一半）。桌面档一个字没动。</div>
+</div>
+<table>
+  <tr><th>项</th><th>改前</th><th>改后</th></tr>
+  <tr><td>排布</td><td>信息在转盘<b>上方</b>、居中；转盘独占一行</td><td>两列网格：转盘 176px 靠左，信息靠右、左对齐</td></tr>
+  <tr><td>转盘</td><td>236px</td><td><b>176px</b>（四个方向键 64→52，仍 ≥44 触控）</td></tr>
+  <tr><td>歌名</td><td>整行居中，最多 2 行</td><td>右列最多 <b>3 行</b>（右列窄，多给一行）</td></tr>
+  <tr><td>与清单的关系</td><td>两个独立卡片，中间隔一句提示 + 18px 空隙</td><td><b>一张卡</b>：播放器上圆角、提示行做中间分隔条、清单独占下圆角</td></tr>
+</table>
+<div class="chk">实测（手机 390）：
+.nowbar  display=grid  342×208
+.wheel   176×176（x 在左）；.t 118 宽（在右）
+.wk ×4   52 / 52 / 52 / 52  ← 都 ≥44
+.nowbar 圆角 22px 22px 0 0  ｜ 清单圆角 0 0 22px 22px</div>
+<div class="note warn"><b>动效一个没删</b>：转盘慢转、声纹、按压反馈、玻璃质感全在。
+唯一的"减少"是转盘半径，那是你在需求里明确要的（"歌名和时间移到右边"）。</div>
+</div>
+
+<h2><span class="n">2</span>题量口径：12 道 / 2 道听感 → 20 道 / 4 道</h2>
+
+<div class="card">
+<p style="margin:0 0 8px"><b>先说事实：</b>后端抽题规则是 <code>SAMPLE_RULE = { total: 20, audio: 4 }</code>，
+接口实测返回也确实是 <b>20 题 / 4 道听感</b>。而首页卡片和测评介绍页的<b>正文是硬编码的 12 / 2</b>，
+下面那排事实胶囊却是<b>从接口取的</b> —— 所以同一屏自己打自己。</p>
+<table>
+  <tr><th>位置</th><th>做法</th></tr>
+  <tr><td>测评介绍页正文</td><td>改成 <code>{{ questionCount }} 道题，其中 {{ audioCount }} 道需要先听…</code> —— 与胶囊<b>同源</b>，以后改规则不会再对不上</td></tr>
+  <tr><td>首页「音乐人格」卡片</td><td>首页不值得为一句文案打一次抽题接口（那个接口还会去同步 iTunes 音频），所以用一份<b>镜像常量</b> <code>utils/personalityFacts.js</code></td></tr>
+  <tr><td>设计稿 `docs/design/音格-UI设计稿.html`</td><td>同步改成 20/4（6 处），不留旧口径</td></tr>
+</table>
+<div class="note good"><b>防再犯：</b>自检里有一条断言 <code>C1</code>，拿这份常量与接口<b>实际返回</b>的题量对比
+—— 哪天改了抽题规则却忘了改文案，自检直接报红。<span class="ok">实测 20/4 = 20/4</span></div>
+</div>
+
+<h2><span class="n">3</span>你那段话，放上去了</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">原话：「我还有个目的就是希望大家可以去通过这个模块，发现听到一些不一样的专辑和音乐」。
+介绍页底部那段「说明」（原本是写给我自己看的设计说明：「入口页把三件事讲清楚…」）改成了这段话：</p>
+<div class="note" style="font-size:13.6px">
+<b>一点私心：</b>做这个模块，除了想让你看清自己的音乐口味，<b>更希望你能在这里遇到几首、几张平时不会主动点开的专辑</b>。
+测完往下翻，会给你一批「你可能没听过、但和你很合」的唱片 —— 挑一张放完它，说不定就是这次测评里最有价值的收获。
+</div>
+</div>
+
+<h2><span class="n">4</span>「我还没选，它就自己选上了」</h2>
+
+<div class="card">
+<div class="qa">
+  <div class="q">你的话：「我还没选择，点了后进入下一题，如图他就自己选上 e 了，容易让用户误会」</div>
+  <div class="a"><b>机制：</b>选完 220ms 会自动跳下一题。如果你手上是"点了一下、觉得没反应、又点了一下"，
+  <b>第二下正好落在已经换好的下一题上</b> —— 那道新题就被凭空选上了，而你完全没意识到自己点过它。
+  你在 Q13 看到的 E 就是这么来的。</div>
+</div>
+<table>
+  <tr><th>改动</th><th>说明</th><th>实测</th></tr>
+  <tr><td><b>幽灵点击防护</b></td><td>换题后的 <b>420ms</b> 内忽略选项点击（不弹提示，避免二次困惑）</td><td>跳题后立刻点一下 → <b>选中 0 项</b> ✅</td></tr>
+  <tr><td><b>再点一次 = 取消</b></td><td>点已选中的那一项就把答案撤掉（你要的"不满意可以撤销"）</td><td>再次点击后选中 <b>0 项</b> ✅</td></tr>
+  <tr><td><b>「撤销」按钮</b></td><td>已选提示行末尾加一枚小按钮，点了清掉本题并取消自动跳题</td><td>点「撤销」→ 选中 0 项 ✅</td></tr>
+  <tr><td><b>后悔窗口 220→480ms</b></td><td>220ms 太短，人还没反应就已经跳走了，等于没有撤销</td><td>—</td></tr>
+</table>
+</div>
+
+<h2><span class="n">5</span>答题页那段「说明」改成面向用户</h2>
+
+<div class="card">
+<p style="margin:0 0 8px">原来那段是写给我自己看的（"答题页的关键是不让人中途放弃：① 顶部进度点…"）。
+现在换成给答题的人看的四条，按你的要求把"点就算选上 / 可撤销 / 别纠结 / 跟随第一感觉 / 放轻松"都写进去：</p>
+<div class="chk">怎么答？很简单
+· 直接点选项就算选上了，不用再点确认。
+· 选错了可以撤销：再点一下那个选项，或点下面的「撤销」；也可以直接改点别的。
+· 不用纠结 —— 这里没有正确答案，也不考你懂不懂乐理。
+· 跟着第一感觉走，越放松越准。就当是一次发现新专辑的小散步，开心最重要。</div>
+</div>
+
+<h2><span class="n">6</span>导出：这轮做了什么、以及一句实话</h2>
+
+<div class="card">
+<div class="qa">
+  <div class="q">你的话：「只有测评完的旋律捕手导出是正常的，其他几个都不正常；回看再导出的全都不正常」<br>
+  「你都能修好一个说明方法已经对了，那请你做好全方面所有涉及图片导出部分的优化，并且自行检查」</div>
+  <div class="a"><b>实话先说在前：</b>我用真实链路（真提交测评 → 真结果页 → 真导出按钮）把 <b>六种人格卡逐个导出</b>了，
+  也把<b>竖版/方形分享卡</b>导了 —— <b>在我这台机器上六张全是对的</b>（图片见附件）。
+  也就是说"只有旋律捕手正常"这个现象我复现不出来；这通常意味着它跟**真机（iOS/WebKit）或图片加载时序**有关，不是版式算错。
+  所以我没有停在"看起来没问题"，而是做了三类**机制级**加固 + 全量自检。</div>
+</div>
+<table>
+  <tr><th style="width:34px">#</th><th>加固点</th><th>为什么</th></tr>
+  <tr><td>1</td><td><b><code>.sbg</code> 不再用 CSS <code>transform: scale(1.16)</code></b>，过扫改画进 canvas（1.18 倍）</td>
+    <td>导出是「克隆 → 内联样式 → SVG」，<b>transform 是克隆树里最容易出偏差的东西</b>。
+    你那张竖版分享图"封面没了、原地一块灰色圆角方块"，正是背景层被缩放后的残影形态。现在背景层没有 transform 可错了。</td></tr>
+  <tr><td>2</td><td><b>出图后再解一遍</b>（<code>pngSeemsRight</code>）</td>
+    <td>验的是"用户真正会存下来的那份文件"：能解码 + 颜色数够 + 每张封面位置不是整片纯色。不达标就<b>换引擎重来</b>。
+    你在 iOS 上那张 2.1 MB 却打不开的 PNG，就是这一步要拦的。</td></tr>
+  <tr><td>3</td><td><b>逐图数颜色</b>（<code>imagesSeemPresent</code>，上一批已加）继续生效</td>
+    <td>"图丢字留"时体积很大，只看大小永远放行。</td></tr>
+</table>
+<div class="note good"><b>全量自检（<code>_r58-verify.mjs</code>，26 条全绿）：</b>
+六种人格卡逐个导出，每张都断言 <b>尺寸 1080×1440</b> + <b>中心区亮度与页面背景图一致</b> + <b>透明像素 &lt;0.02%</b>。
+分享卡横竖断言 <b>导出比例 = 预览比例</b>（0.6186 vs 0.619 / 1.0000 vs 1.000）+ 满幅背景铺满。</div>
+<div class="chk">六型实测（页面背景亮度 vs 导出中心亮度）
+CLM 84.8 / 108.4   EXP 63.9 / 82.4   LYR 189.2 / 211.9
+MEL 19.8 / 30.4    RHY 134.4 / 193.4  TMB 218.6 / 224.4
+—— 全部不透明、颜色数 194~416；"背景没画上"会是 255 对 20~220，差 100+，一定被抓出来</div>
+<div class="note warn"><b>还需要你做一件事：</b>把 iOS 上导出失败的那张<b>原图（保存出来的文件）</b>发我一张。
+我这边六型都对，说明问题在真机链路；有那张文件我能从它的像素反推是"哪一层丢了"，比继续猜快得多。</div>
+</div>
+
+<h2><span class="n">7</span>验收与桌面影响</h2>
+
+<div class="card">
+<table>
+  <tr><th>套件</th><th>条数</th><th>结果</th></tr>
+  <tr><td><code>_r58-verify.mjs</code>（6 型人格卡 + 分享卡横竖 + 口径 + 撤销/防误选 + 播放器）</td><td>26</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>_r55-verify.mjs</code>（导出细节回归）</td><td>37</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>_r56-verify.mjs</code>（晋级图改序 / 全屏子页）</td><td>20</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>_r57-verify.mjs</code>（分享卡胶囊 / 签表框+撤销）</td><td>18</td><td><b class="ok">全绿</b></td></tr>
+  <tr><td><code>probe-r40-desktop-ab.mjs</code>（桌面零影响，10 路由）</td><td>10 路由</td><td>6 项差异 —— <b>全是你本轮要求的文案改动</b></td></tr>
+</table>
+<div class="note"><b>桌面那 6 项差异逐条都是"预期内"：</b>
+① 首页「12 道题，含 2 道听感题」→「20 道题，含 4 道听感题」；
+②③ 介绍页正文同一句；
+④⑤⑥ 介绍页底部「说明：」→「一点私心：」以及随之变化的文字宽度。
+<b>除这些文案外，几何/结构差异为 0。</b>播放器整合全部包在 <code>@media (max-width:640px)</code> 里，桌面一个字没动。</div>
+</div>
+
+<h2><span class="n">8</span>还欠一句你的确认</h2>
+<div class="card">
+<table>
+  <tr><th>项</th><th>状态</th></tr>
+  <tr><td>iOS 导出复验</td><td><b>要你测</b>：六型人格卡各存一张 + 分享卡横竖各一张。<b>失败请发保存出来的原文件</b></td></tr>
+  <tr><td>介绍页底部那段「说明」</td><td>我把它换成了你的那段话（属于删改既有内容）。如果你想<b>保留原说明</b>、只把新话加在别处，说一声我改回去</td></tr>
+  <tr><td>U3 人格详情页剩余 ~84px 留白</td><td>未做（更早批次遗留）</td></tr>
+</table>
+</div>
+
+<div class="foot">音格 · 第五十八批交付报告　｜　2026-10-21　｜　配套：<code>docs/进度与执行清单.html</code>、<code>docs/index.html</code></div>
+</div>
+</body></html>

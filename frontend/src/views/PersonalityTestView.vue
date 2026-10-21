@@ -104,15 +104,26 @@
             </button>
           </div>
           <p v-if="answers[current.questionId]" class="qnav-hint">
-            已选「{{ pickedLabel }}」<span class="qnav-hint-x">· 点选项可改选</span>
+            已选「{{ pickedLabel }}」
+            <span class="qnav-hint-x">· 选错了？点它一下就能取消，也可以直接点别的选项</span>
+            <!-- 真·撤销按钮：把这一题的答案清掉，并取消自动跳题 -->
+            <button class="undo-pick" type="button" @click="undoPick">撤销</button>
           </p>
         </div>
       </div>
 
-      <p class="note">
-        <b>说明：</b>答题页的关键是<b>不让人中途放弃</b>：① 顶部进度点，一眼知道还剩多少；
-        ② 一屏只出一道题，答完自动进下一题；③ 听感题必须能播出来，播放器嵌在题干下方。
-      </p>
+      <!-- ⚠️ 2026-10-21 第五十八批：这里原来是一段**写给开发者看的设计说明**
+           （"答题页的关键是不让人中途放弃…"），直接露在用户面前。
+           改成面向答题的人：怎么选、怎么撤、别纠结、放轻松。 -->
+      <div class="playtip">
+        <b>怎么答？很简单</b>
+        <ul>
+          <li><b>直接点选项就算选上了</b>，不用再点确认。</li>
+          <li><b>选错了可以撤销</b>：再点一下那个选项，或点下面的「撤销」；也可以直接改点别的。</li>
+          <li><b>不用纠结</b> —— 这里没有正确答案，也不考你懂不懂乐理。</li>
+          <li><b>跟着第一感觉走</b>，越放松越准。就当是一次发现新专辑的小散步，开心最重要。</li>
+        </ul>
+      </div>
     </template>
 
     <audio v-if="audioSrc" ref="audioEl" :src="audioSrc" @ended="playing = false"></audio>
@@ -175,8 +186,43 @@ watch(current, (q) => {
   playing.value = false;
 });
 
+/**
+ * 用户"没选却被选上"的防护（2026-10-21 第五十八批）
+ * ------------------------------------------------------------
+ * 用户原话：「我还没选择，点了后进入下一题，如图他就自己选上 e 了，容易让用户误会」。
+ * 机制：自动跳题是"选完 220ms 后"发生的，但**手指的第二下点击**会落在**已经换好的下一题**上，
+ * 于是那道新题就被"凭空"选上了（用户完全没意识到自己点过）。
+ * 对策：① 换题后的 `GHOST_MS` 内忽略选项点击（幽灵点击）；
+ *      ② 再点一次**已选中**的选项 = 撤销选择（用户"不满意可以撤销"）。
+ */
+const GHOST_MS = 420;
+let lastNavAt = 0;
+
+function markNav() {
+  lastNavAt = Date.now();
+}
+
+/** 撤销这一题的选择（用户"不满意可以撤销"）：清答案 + 掐掉还在等的那次自动跳题 */
+function undoPick() {
+  const qid = current.value.questionId;
+  if (!qid) return;
+  delete answers[qid];
+  pickToken.value += 1;
+  persist();
+}
+
 function pick(key) {
-  answers[current.value.questionId] = key;
+  // ① 刚换过题：这一下很可能是上一题的"余震"，忽略掉（并且不弹任何提示，避免用户困惑）
+  if (Date.now() - lastNavAt < GHOST_MS) return;
+  const qid = current.value.questionId;
+  // ② 再点已选中的那一项 = 撤销（用户要的"不满意可以撤销"）
+  if (answers[qid] === key) {
+    delete answers[qid];
+    persist();
+    pickToken.value += 1; // 取消掉可能还在等的那次自动跳题
+    return;
+  }
+  answers[qid] = key;
   persist();
   // 选完稍等片刻自动进下一题（最后一题不自动提交）
   // ⚠️ 2026-10-18 第四十六批：修自动跳转与手动「下一题」的竞态。
@@ -187,15 +233,18 @@ function pick(key) {
   //   修法：给这次点击发一个递增 token，回调里只有 token 仍是当前这次的才跳。 */
   const token = (pickToken.value += 1);
   if (!isLast.value) {
+    // ⚠️ 从 220ms 放宽到 480ms：留一段"后悔窗口"，让「再点一次取消」真的用得上。
+    //    太短（220）时人还没反应过来就已经跳走了，等于没有撤销。
     setTimeout(() => {
       if (token === pickToken.value && answers[current.value.questionId] === key) next();
-    }, 220);
+    }, 480);
   }
 }
 
 function prev() {
   if (idx.value > 0) {
     idx.value -= 1;
+    markNav();
     persist();
   }
 }
@@ -225,6 +274,7 @@ async function next() {
   }
   if (!isLast.value) {
     idx.value += 1;
+    markNav();
     persist();
     return;
   }
@@ -453,6 +503,51 @@ html[data-theme='dark'] .funnotice b {
 }
 .qnav-hint-x {
   color: var(--text3);
+}
+/* 撤销这一题（2026-10-21 第五十八批）：低对比但看得见、点得到（≥44 触控高） */
+.undo-pick {
+  margin-left: 10px;
+  padding: 4px 12px;
+  min-height: 30px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--brand-deep);
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.34);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.undo-pick:active {
+  background: rgba(14, 165, 233, 0.18);
+}
+/* 面向用户的答题提示（原来这里是一条写给开发者看的设计说明） */
+.playtip {
+  max-width: 720px;
+  margin: 18px auto 0;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--glass2);
+  border: 1px solid var(--line);
+  font-size: 13.5px;
+  line-height: 1.75;
+  color: var(--text2);
+}
+.playtip > b {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14.5px;
+  color: var(--text);
+}
+.playtip ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.playtip li {
+  margin: 4px 0;
+}
+.playtip li b {
+  color: var(--brand-deep);
 }
 /* ③ 进度条压紧凑：让题目 + 上一题/下一题能同屏 */
 .qbar {
