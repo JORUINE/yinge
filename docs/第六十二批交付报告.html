@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第六十二批交付报告 · 方卡「带上分享链接」不再被裁</title>
+<style>
+  :root {
+    --ink:#0f2434; --ink2:#3d5a6e; --muted:#6b8296; --bg:#f4f8fb; --card:#fff; --line:#dbe7ef;
+    --teal:#0f766e; --red:#b42318; --amber:#b45309;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:34px 20px 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.75 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 26px}
+  h2{font-size:19px;margin:34px 0 12px;padding-left:11px;border-left:4px solid var(--teal)}
+  p,li{margin:8px 0}
+  code{background:#eaf2f7;padding:1px 5px;border-radius:4px;font-size:13px;color:#0b4a6f}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:10px 0}
+  .verdict{border-left:4px solid var(--teal);background:#effaf6}
+  .warn{border-left:4px solid var(--amber);background:#fff8ec}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef5f9;font-weight:700;font-size:13px;color:var(--ink2)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .ok{color:var(--teal);font-weight:700}
+  .no{color:var(--red);font-weight:700}
+  .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi b{display:block;font-size:22px;color:var(--teal);font-variant-numeric:tabular-nums}
+  .kpi span{font-size:12.5px;color:var(--muted)}
+  .foot{margin-top:30px;color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>第六十二批 · 方形分享图「带上分享链接」不再被裁</h1>
+  <p class="sub">2026-10-22　｜　用户实测：iOS 保存已正常；但 PC / 手机上方卡里的链接被卡片下边缘切掉</p>
+
+  <div class="card verdict">
+    <b>一句话结论：</b>方形卡是<b>严格的 1:1</b>，而「带上分享链接」会多出一行 ——
+    这一行没有从任何地方"让"出空间，于是整块内容比卡片高，
+    被 <code>overflow:hidden</code> 一刀切在卡片下边缘。现在按卡片宽度分四档收紧，并对链接做<b>按宽度实测截字</b>。
+  </div>
+
+  <div class="kv">
+    <div class="kpi"><b>446 → 420</b><span>桌面 420 卡的内容高度（溢出 26px → 刚好装下）</span></div>
+    <div class="kpi"><b>369 → 342</b><span>手机 342 卡的内容高度（溢出 27px → 刚好装下）</span></div>
+    <div class="kpi"><b>15 + 2</b><span>15 种视口×缩放组合 + 2 次导出，全部通过</span></div>
+  </div>
+
+  <h2>一、为什么会被遮住</h2>
+  <p>方形卡从第五十四批起就是 <code>aspect-ratio: 1/1</code>，卡片高度被锁死；
+    卡片本体 <code>overflow: hidden</code>，内容一旦超出就<b>被裁掉，不会把卡撑高</b>。
+    而"带上分享链接"是在脚注里加了第二行，实测多出约 27~35px。</p>
+  <p>同时发现两个"方卡没跟着缩"的写死值：</p>
+  <ul>
+    <li><code>.sstat</code>（「16 张专辑 · 2 位歌手 · 11 场决出」）固定 <b>16px</b>，方卡不跟 <code>--sqk</code> 缩；</li>
+    <li><code>.sharel</code>（链接胶囊）固定 <b>12px</b> + 46 字符 —— 在 272~342 宽的卡上，一行根本放不下。</li>
+  </ul>
+
+  <h2>二、改法（只动"方卡 + 带链接"这一种组合）</h2>
+  <table>
+    <tr><th>改动</th><th>说明</th></tr>
+    <tr><td>脚注跟着缩</td><td><code>.sstat</code> / <code>.sharel</code> 改为 <code>max(12px, 16px × --sqk)</code>（守 12px 下限）</td></tr>
+    <tr><td>封面让位</td><td>方卡带链接时封面改为 37%（默认也才 42%），四档：37 / 30 / 24 / 15%</td></tr>
+    <tr><td>间距分档</td><td>按视口宽度分四档（≥448 / ≤447 / ≤387 / ≤347）收紧 padding 与 gap</td></tr>
+    <tr><td>链接截字</td><td>新增 <code>fitLinkText()</code>：量胶囊实际宽，按比例收字符（46 → 最少 18），
+        换形/勾选/窗口缩放都会重算</td></tr>
+    <tr><td>底边留白</td><td>四档都留 ≥8px 底部内边距，链接胶囊不再贴边</td></tr>
+    <tr><td>极窄兜底</td><td>视口 &lt;348 时卡片保底 260px，预览区可横向滚动 —— <b>宁可滚动，也不裁内容</b></td></tr>
+  </table>
+
+  <div class="card warn">
+    <b>一个取舍要说清：</b>为了在 1:1 里腾出这一行，<b>方卡里的冠军封面会小一档</b>（420 卡：147 → 131）。
+    不带链接时封面尺寸<b>完全不变</b>（<code>.with-link</code> 才生效）。
+  </div>
+
+  <h2>三、验收（可复跑）</h2>
+  <table>
+    <tr><th>项目</th><th>结果</th></tr>
+    <tr><td>视口 1440 / 1024 / 768 / 390 / 360 / 320 × 缩放 100% / 125% / 150%</td>
+        <td class="ok">15/15 通过</td></tr>
+    <tr><td>每档断言</td><td>卡片严格 1:1、内容不溢出、链接底边距卡底 ≥6px、链接文字不被胶囊裁、整页零横向溢出</td></tr>
+    <tr><td>导出</td><td class="ok">桌面/手机均 1080×1080；链接底边位于卡高 97.4%</td></tr>
+    <tr><td>竖版回归</td><td class="ok">3/3（高度自适应，不裁）</td></tr>
+    <tr><td>历史回归</td><td class="ok">_r55 37/37 · _r56 20/20 · _r57 18/18</td></tr>
+  </table>
+
+  <p class="foot">
+    探针：<code>tools/pw/_r62-measure.mjs</code>（视口×缩放矩阵）、<code>_r62-portrait.mjs</code>（竖版）、
+    <code>_r62-shots.mjs</code>（预览 + 导出取证）。取证图：<code>_analysis/r62/</code>。
+    改前备份：<code>_backup/20261022-1455_第六十二批-方卡带链接被裁/</code>。
+  </p>
+
+</div>
+</body>
+</html>

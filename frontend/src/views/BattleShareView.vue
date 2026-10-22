@@ -71,7 +71,7 @@
           <div
             ref="cardEl"
             class="scard glassy"
-            :class="{ square: shape === 'square' }"
+            :class="{ square: shape === 'square', 'with-link': shape === 'square' && withLink }"
             :style="cardStyle"
           >
             <!-- 模糊底：封面缩到 56px 再放大铺满 → 天然的"虚化封面"，导出也在 -->
@@ -149,7 +149,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
@@ -168,6 +168,8 @@ const cardEl = ref(null);
 
 const shape = ref('portrait');
 const withLink = ref(false);
+/** 链接最多印几个字（由 fitLinkText 按卡片实际宽度实测决定，见下方） */
+const linkCap = ref(46);
 
 const champion = computed(() => data.value?.champion || null);
 /**
@@ -236,9 +238,38 @@ const shareUrl = computed(() => `${location.host}/battle/${id}`);
 const shareUrlText = computed(() => {
   const raw = shareUrl.value.replace(/^https?:\/\//, '').replace(/^www\./, '');
   // 46 字符 ≈ 12px 等宽数字下 330px，胶囊可用宽约 380px —— 一行放得下且很少需要截断
-  const max = 46;
+  // ⚠️ 2026-10-22 第六十二批：46 是**桌面卡（420）**的可用长度；手机卡只有 272~342，
+  //    写死 46 会顶出胶囊（用户截图里链接露在卡外）。现在由 `fitLinkText()` 按实测宽收字。
+  const max = Math.max(18, linkCap.value);
   return raw.length > max ? `${raw.slice(0, max - 1)}…` : raw;
 });
+
+/**
+ * 按**实际可用宽度**决定链接印多少字（2026-10-22 第六十二批）
+ * ------------------------------------------------------------
+ * 起因：方卡最窄只有 272px，而链接一行 46 字符 ≈ 330px ⇒ 胶囊被卡片右边裁掉。
+ * 做法：量 `scrollWidth / clientWidth`，按比例收字符数，最多迭代 4 次（每次等一帧）。
+ * ⚠️ 必须用 JS 收字符，**不能用 CSS `text-overflow: ellipsis`**：
+ *    导出链路（html2canvas / SVG 克隆）遇到 CSS 截断会把字**水平压扁**（第 55 批的坑）。
+ */
+async function fitLinkText() {
+  const get = () => (cardEl.value?.querySelector ? cardEl.value.querySelector('.sharel') : null);
+  if (!get()) { linkCap.value = 46; return; }
+  let cap = 46;
+  linkCap.value = 46;
+  for (let i = 0; i < 4; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await nextTick();
+    const el = get();
+    if (!el) return;
+    const avail = el.clientWidth;
+    const need = el.scrollWidth;
+    if (!avail || need <= avail + 1) return;
+    cap = Math.max(18, Math.floor(cap * (avail / need)) - 2);
+    linkCap.value = cap;
+    if (cap <= 18) return;
+  }
+}
 
 const opponents = computed(() =>
   (data.value?.path || []).map((p) => p.opponent).filter(Boolean).slice(0, 5),
@@ -454,7 +485,33 @@ async function copyLink() {
   }
 }
 
-onMounted(load);
+/**
+ * 卡片宽度一变（切方形 / 勾链接 / 改窗口大小）就重算链接能印多少字。
+ * ⚠️ 必须等 DOM 更新完（nextTick）再量，否则量到的是上一版宽度。
+ */
+watch([shape, withLink], async () => {
+  linkCap.value = 46;
+  await nextTick();
+  await fitLinkText();
+});
+
+let rzTimer = 0;
+function onResize() {
+  clearTimeout(rzTimer);
+  rzTimer = setTimeout(() => { linkCap.value = 46; fitLinkText(); }, 160);
+}
+
+onMounted(async () => {
+  await load();
+  await nextTick();
+  await fitLinkText();
+  window.addEventListener('resize', onResize);
+});
+
+onUnmounted(() => {
+  clearTimeout(rzTimer);
+  window.removeEventListener('resize', onResize);
+});
 </script>
 
 <style scoped>
@@ -677,6 +734,70 @@ onMounted(load);
   color: #dceffd;
   font-variant-numeric: tabular-nums;
 }
+/* ⭐⭐⭐ 2026-10-22 第六十二批：方形卡 + 「带上分享链接」＝ 脚注多一行，
+   必须在 1:1 的盒子里把这一行"让"出来，否则链接会被卡底裁掉。
+   ------------------------------------------------------------
+   用户 10-22 截图：链接胶囊只露出上半截、被卡片下边缘切掉。
+   实测（改前，`_r62-measure.mjs`）：
+     · 桌面 420 卡：内容高 446，溢出 26px，链接底边在卡高 103.6% 处
+     · 手机 342 卡：内容高 369，溢出 27px，链接底边 105.2%
+     · 320 视口 272 卡：内容高 347，溢出 75px
+   根因两条：
+     ① `.sstat` 写死 16px、`.sharel` 写死 12px —— 方卡里这两个**不跟 `--sqk` 缩**；
+     ② 封面是唯一能大幅让位的元素，但方卡里它按百分比定宽，没有"为链接让位"的逻辑。
+   做法：
+     ① 两行脚注改为跟着 `--sqk` 缩（仍守 12px 下限）；
+     ② 封面占比 + 间距 + 脚注留白分四档收紧，每档都用探针实测留 ≥3px 余量；
+     ③ 档位按**视口宽度**切换（本页卡片宽 = min(420, 视口 − 48)）：
+        ≥448 → 38%（420 卡）｜≤447 → 32%（400~340 卡）
+        ≤387 → 26%（340~300 卡）｜≤347 → 21%（<300 卡）
+   ⚠️ 每一档都跑 `_r62-measure.mjs`（1440/1024/768/390/360/320 × 缩放 100/125/150%）。
+   ⚠️ 极端窄屏（视口 <348）卡片给 `min-width` 保底：宁可预览区横向滚动，也不裁内容。
+      导出仍是 1080×1080（`aspect-ratio` 没动）。 */
+.scard.square .sfoot .sstat {
+  font-size: max(12px, calc(16px * var(--sqk)));
+}
+.scard.square .sharel {
+  font-size: max(12px, calc(12px * var(--sqk)));
+  padding: 3px 10px;
+  line-height: 1.4;
+}
+.scard.square.with-link .smain .art { width: calc(37% * var(--sqk)); }
+.scard.square.with-link .smain { gap: max(2px, calc(3px * var(--sqk))); }
+.scard.square.with-link .sfoot {
+  margin-top: max(6px, calc(10px * var(--sqk)));
+  gap: max(5px, calc(7px * var(--sqk)));
+}
+/* 胶囊别贴满整行：留出左右呼吸（否则手机上像一条横杠），由 JS 按这个宽度收字数 */
+.scard.square.with-link .sharel { max-width: 92%; }
+.scard.square.with-link .roundline { margin-top: max(3px, calc(6px * var(--sqk))); }
+
+@media (max-width: 447px) {
+  .scard.square.with-link .smain .art { width: calc(30% * var(--sqk)); }
+  .scard.square.with-link { padding: 8px 11px 9px; }
+  .scard.square.with-link .smain { gap: 1px; }
+  .scard.square.with-link .sfoot { margin-top: 5px; gap: 4px; }
+  .scard.square.with-link .roundline { margin-top: 2px; }
+}
+@media (max-width: 387px) {
+  .scard.square.with-link .smain .art { width: calc(24% * var(--sqk)); }
+  .scard.square.with-link { padding: 7px 10px 9px; }
+  .scard.square.with-link .sfoot { margin-top: 4px; gap: 4px; }
+  .scard.square.with-link .spath { margin-top: 2px; }
+}
+@media (max-width: 347px) {
+  .scard.square.with-link .smain .art { width: calc(15% * var(--sqk)); }
+  .scard.square.with-link { padding: 4px 7px 8px; min-width: 260px; }
+  .scard.square.with-link .smain { gap: 0; }
+  .scard.square.with-link .sfoot { margin-top: 2px; gap: 2px; }
+  .scard.square.with-link .roundline { margin-top: 0; }
+  .scard.square.with-link .spath { margin-top: 1px; }
+}
+/* 极窄时预览区允许横向滚动（卡片保底 260，不裁内容） */
+@media (max-width: 347px) {
+  .sharewrap { overflow-x: auto; }
+}
+
 .roundline {
   /* 12 → 13（十三批）→ 15（十四批）→ 18（第十八批）→ **16px**（2026-10-11 第三十五批）
      —— 用户看冠军结算卡："绿色圈起来的文字字体缩小一点"。

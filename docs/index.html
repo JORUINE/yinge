@@ -192,7 +192,10 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-22（<b>第六十一批 · iOS 导出：封面旁暗带真因（box-shadow 被 WebKit 栅格化成硬边块）+ 首帧竞态实证 + 引擎策略定稿</b>：<br>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-22（<b>第六十二批 · 方形分享图「带上分享链接」不再被裁</b>：
+　　6 视口 × 3 缩放 <b>15/15</b>、导出 1080×1080、竖版与历史回归全绿：
+　　<a href="第六十二批交付报告.html"><b>第六十二批交付报告</b></a>；<br>
+　　<b>第六十一批 · iOS 导出：封面旁暗带真因（box-shadow 被 WebKit 栅格化成硬边块）+ 首帧竞态实证 + 引擎策略定稿</b>：<br>
 　　<b>自检 _r55 37/37 · _r56 20/20 · _r57 18/18 · _r60 6/6；桌面同输入 A/B 三张卡 md5 完全一致</b>：
 　　<a href="第六十一批交付报告.html"><b>第六十一批交付报告</b></a>；<br>
 　　<b>第六十批 · iOS 丢图真因改判（SVG 不渲染内嵌图片）+ 新增 canvas 合成引擎</b>：<br>
@@ -573,6 +576,12 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第六十二批交付报告.html" style="color:#0369A1"><b>第六十二批交付报告</b></a></td><td><b style="color:#B45309">方卡里的分享链接不再被卡片下边缘切掉</b>：
+        <b>原因</b>：方卡严格 1:1 + <code>overflow:hidden</code>，而「带上分享链接」多出一行（27~35px），没人给它让位
+        （桌面内容 446 / 卡 420，手机 369 / 342）。
+        <b>改法</b>：脚注跟着 <code>--sqk</code> 缩、封面四档让位（37/30/24/15%）、间距分四档、
+        链接按胶囊实测宽度收字（46→18），底部留 ≥8px；极窄时卡片保底 260、宁滚动不裁字。
+        <b>验收</b>：<b>15/15</b> 视口×缩放全绿；导出 <b>1080×1080</b>；竖版 3/3；_r55/_r56/_r57 全过。</td></tr>
       <tr><td><a href="第六十一批交付报告.html" style="color:#0369A1"><b>第六十一批交付报告</b></a></td><td><b style="color:#B45309">封面旁那块"硬边暗带"抓到真凶了：是 box-shadow 被 WebKit 栅格化坏了</b>：
         ① <b>暗带</b>：<code>.scard .art</code> 的 <code>box-shadow</code> 在 WebKit 的 SVG(foreignObject) 里被画成<b>硬边深色矩形</b>
         （封面右侧 62px、与封面等高）；该区域亮度 <b>34.9</b> vs 左侧对称区 <b>137.2</b>，关掉阴影恢复 <b>125.6</b>。
