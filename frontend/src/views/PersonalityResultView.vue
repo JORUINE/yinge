@@ -56,6 +56,14 @@
                 <div class="bar2"><i :style="{ width: s.ratio + '%' }"></i></div>
               </div>
             </div>
+            <!-- ⭐ 2026-10-22 第六十三批：旧记录（2026-09 之前）存的是**原始分**，
+                 旧题库选项分已被重写，无法还原成 10 分制 —— 与其印出「18 / 10」，
+                 不如如实说明并引导重测（接口里用 scoreState 标出来）。 -->
+            <p v-else-if="result.scoreState === 'legacy-missing'" class="hint muted">
+              这是一条早期记录：当时的维度分按原始分记录，无法换算成 10 分制，所以这里不展示（不是坏了）。
+              <RouterLink :to="{ name: 'personality-test' }">重新测一次</RouterLink>
+              就能看到完整的四维得分。
+            </p>
             <p v-else class="hint muted">这次没记录维度得分</p>
 
             <!-- 听歌人设标签（D3-C 传播层）

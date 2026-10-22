@@ -17,7 +17,7 @@ import {
   buildTemplateComment,
 } from './scoring.js';
 import { generateComment } from './qwen.client.js';
-import { DIMS, SAMPLE_RULE, SAMPLE_LIMITS, AUDIO_TAG_GENRE, AUDIO_WHITELIST } from '../../data/personality.js';
+import { DIMS, SAMPLE_RULE, SAMPLE_LIMITS, AUDIO_TAG_GENRE, AUDIO_WHITELIST, DIM_LABELS } from '../../data/personality.js';
 import { languageTagOf } from '../../data/languageTag.js';
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -462,13 +462,59 @@ export async function getResult(resultId, userId) {
 
   /**
    * ⚠️ scores 有两代格式：
-   *   旧记录：{ melody, rhythm, arrangement, calm }（4 维，直接就是展示值）
-   *   新记录：{ _display, _norm, _raw, ... }（6 维计分，_display 是折算好的 4 维）
-   * 前端只认"4 个键 → 画 4 根条"，所以这里统一输出 _display（旧记录原样返回）。
-   * 这样前端与人格卡样式**完全不用动**。
+   *   旧记录：{ melody, rhythm, arrangement, calm }（4 维，**原始分**，如 13/18/5/10）
+   *   新记录：{ _display, _norm, _raw, ... }（6 维计分，_display 是折算好的 4 维 0~1）
+   * 前端只认"4 个键 → 画 4 根条"，所以这里统一输出 _display。
+   *
+   * ⭐⭐ 2026-10-22 第六十三批：旧记录**不能再当 0~1 返回**，而且**也不该"重算"**。
+   *   起因（用户截图）：右栏「节奏 13 / 10」「编曲 18 / 10」，左边人格卡却是 10/10 —— 两边对不上。
+   *   根因：旧记录存的是原始分，前端按 0~1 的量纲换算，13 就原样印成 13/10。
+   *   为什么不用"按当时答卷重算"：实测（本机真库）12 道旧题的**选项已被重新撰写**，
+   *   同一个 optionKey 现在对应的分值已经不是当年那套（旧 raw melody 9 / rhythm 13 / arrangement 11，
+   *   重算得到 melody 24 / rhythm 13 / texture 1）⇒ 重算出来的是**另一份答卷**，比不显示更糟。
+   *   ⇒ 旧记录如实标成 `scoreState: 'legacy-missing'`：不给假数据，前端显示"早期记录无法还原"，
+   *     并引导重新测一次（新记录永远是 0~1 → 10 分制）。
    */
   const rawScores = result.scores || {};
-  const displayScores = rawScores._display || rawScores;
+  const hasDisplay = rawScores._display && Object.keys(rawScores._display).length;
+  const displayScores = hasDisplay ? rawScores._display : {};
+
+  const detail = rawScores._norm
+    ? {
+        norm: rawScores._norm,
+        raw: rawScores._raw,
+        similarity: rawScores._similarity,
+        ranking: rawScores._ranking,
+        questionCount: rawScores._questionCount,
+      }
+    : null;
+
+  /**
+   * 旧解读里的英文维度键（2026-10-22 第六十三批）
+   * 早期模板文案把内部键名直接拼进句子：「你在「arrangement」与「rhythm」上表现突出」。
+   * 库里 136 条有 15 条是这种（8 条旧记录 + 7 条早期新记录），分两种情况处理：
+   *   · 有 4 维展示值 ⇒ 按当前映射**重写整句**（数值也一起更新）
+   *   · 旧记录（没有展示值）⇒ 只把键名替换成中文，保留原句，不编造分数
+   * LLM 生成的解读一个字都不碰。
+   */
+  const RAW_DIM_IN_TEXT = /「(melody|rhythm|arrangement|lyric|texture|novelty|calm)」/;
+  let aiComment = result.aiComment;
+  if (result.aiCommentSource === 'template' && RAW_DIM_IN_TEXT.test(aiComment || '')) {
+    const keys = Object.keys(displayScores);
+    if (keys.length === 4) {
+      aiComment = buildTemplateComment({
+        typeName: type?.name || result.typeCode,
+        description: type?.description || '',
+        scores: displayScores,
+      });
+    } else {
+      // ⚠️ 必须用全局正则：一句话里通常有**两个**维度键，非全局只会换掉第一个
+      aiComment = String(aiComment || '').replace(
+        /「(melody|rhythm|arrangement|lyric|texture|novelty|calm)」/g,
+        (m, key) => `「${DIM_LABELS[key] || key}」`,
+      );
+    }
+  }
 
   return {
     resultId: String(result._id),
@@ -477,17 +523,11 @@ export async function getResult(resultId, userId) {
     typeName: type?.name || result.typeCode,
     typeDescription: type?.description || '',
     scores: displayScores,
+    /** ok = 四维展示值可用；legacy-missing = 早期记录，原始分无法还原，前端要说清楚 */
+    scoreState: hasDisplay ? 'ok' : 'legacy-missing',
     /** 6 维明细（原始分 / 归一化 / 匹配相似度 / 本次题量）—— 后台与复核用，前端不渲染 */
-    detail: rawScores._norm
-      ? {
-          norm: rawScores._norm,
-          raw: rawScores._raw,
-          similarity: rawScores._similarity,
-          ranking: rawScores._ranking,
-          questionCount: rawScores._questionCount,
-        }
-      : null,
-    aiComment: result.aiComment,
+    detail,
+    aiComment,
     aiCommentSource: result.aiCommentSource,
     answers: result.answers.map((a) => ({ questionId: String(a.questionId), optionKey: a.optionKey })),
     recommendAlbums: albums.map(musicService.serializeAlbum),

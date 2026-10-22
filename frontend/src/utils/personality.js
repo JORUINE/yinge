@@ -264,9 +264,18 @@ export function normalizeScores(scores) {
   return raw
     .filter(([k, v]) => k != null && v != null)
     .map(([k, v]) => {
-      const n = Number(v) || 0;
-      // 兼容 0-1（seed 里 dims 用的）与 0-10 两种量纲
-      const ten = n <= 1 ? Math.round(n * 10) : Math.round(n);
+      const n = Number(v);
+      /**
+       * 兼容 0-1（后端 _display / seed 的 dims）与 0-10 两种量纲。
+       * ⚠️ 2026-10-22 第六十三批：**必须夹到 0~10**。
+       *   起因：旧人格记录存的是原始分（13、18…），这里按 0~10 原样输出 ⇒ 右栏印出
+       *   「节奏 13 / 10」「编曲 18 / 10」，而左边人格卡 `PersonalityCard` 内部会 clamp 到 10 ⇒
+       *   **同一份数据，卡片和旁边的维度条对不上**（用户截图）。
+       *   现在两边都夹：后端已把旧记录重算成 0~1（见 personality.service.js 的 recomputeLegacy），
+       *   这里再兜一层，任何脏数据都不可能印出 >10 的分数。
+       */
+      const safe = Number.isFinite(n) ? n : 0;
+      const ten = Math.max(0, Math.min(10, safe <= 1 ? Math.round(safe * 10) : Math.round(safe)));
       return { key: k, label: dimLabel(k), ten, ratio: Math.max(3, Math.min(100, ten * 10)) };
     });
 }

@@ -145,6 +145,28 @@
       <p class="muted">先把对决投完，才能生成夺冠之路分享图。</p>
       <RouterLink :to="{ name: 'battle-pk', params: { id } }" class="btn pri">继续投票</RouterLink>
     </div>
+
+    <!-- 复制链接兜底（2026-10-22 第六十三批）
+         局域网 http 下浏览器不给写剪贴板 ⇒ 把链接摆出来并自动全选，长按即可拷贝。
+         ⚠️ 必须能"选中"：用 readonly input（不是 div），iOS/安卓长按才有系统菜单。 -->
+    <div v-if="copyFallbackUrl" class="copymask" @click.self="copyFallbackUrl = ''">
+      <div class="copybox" role="dialog" aria-modal="true" aria-label="复制链接">
+        <b>复制链接</b>
+        <p>这台设备不允许网页直接写剪贴板。链接已选中，长按后点「拷贝」即可。</p>
+        <input
+          ref="copyInput"
+          class="copyinput"
+          :value="copyFallbackUrl"
+          readonly
+          @focus="$event.target.select()"
+          @click="$event.target.select()"
+        />
+        <div class="copybtns">
+          <button class="btn ghost" type="button" @click="retryCopy">再试一次</button>
+          <button class="btn pri" type="button" @click="copyFallbackUrl = ''">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -170,6 +192,9 @@ const shape = ref('portrait');
 const withLink = ref(false);
 /** 链接最多印几个字（由 fitLinkText 按卡片实际宽度实测决定，见下方） */
 const linkCap = ref(46);
+/** 剪贴板写不进去时的兜底弹窗：把链接摆出来让用户长按复制 */
+const copyFallbackUrl = ref('');
+const copyInput = ref(null);
 
 const champion = computed(() => data.value?.champion || null);
 /**
@@ -475,14 +500,82 @@ async function download() {
   );
 }
 
+/**
+ * 复制链接（2026-10-22 第六十三批 · 真机修复）
+ * ------------------------------------------------------------
+ * 真机现象（用户截图）：iOS / 安卓通过局域网 `http://192.168.x.x:5173` 打开时，
+ * 点「复制链接分享」只弹出一条**灰色的链接提示**，剪贴板里什么都没有 —— 分享入口等于废了。
+ * 根因：`navigator.clipboard` **只在安全上下文**（https / localhost）才存在。
+ *   局域网 http 下 `navigator.clipboard` 是 undefined，旧代码直接进 catch，
+ *   只弹一条 `ElMessage.info(url)`（用户看到的就是那条灰条），链接并没有复制。
+ * 修法三级（按可靠性排序）：
+ *   ① 非安全上下文 ⇒ **同步** `document.execCommand('copy')`（必须在用户手势里，不能先 await）
+ *   ② 安全上下文 ⇒ Clipboard API
+ *   ③ 都不行 ⇒ 弹窗把链接摆出来并**自动全选**，提示长按复制
+ */
+function copyByExecCommand(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;';
+    document.body.appendChild(ta);
+    const sel = document.getSelection();
+    const ranges = sel && sel.rangeCount ? Array.from({ length: sel.rangeCount }, (_, i) => sel.getRangeAt(i)) : [];
+    ta.focus();
+    ta.select();
+    // iOS Safari：不调 setSelectionRange 时 select() 有时不生效
+    if (ta.setSelectionRange) ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (sel) {
+      sel.removeAllRanges();
+      ranges.forEach((r) => sel.addRange(r));
+    }
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 async function copyLink() {
   const url = `${location.origin}/battle/${id}`;
-  try {
-    await navigator.clipboard.writeText(url);
+  const secure = typeof window !== 'undefined' && window.isSecureContext;
+  // ① 局域网 http：先在**同一个用户手势**里同步复制
+  if (!secure && copyByExecCommand(url)) {
     ElMessage.success('链接已复制');
-  } catch {
-    ElMessage.info(url);
+    return;
   }
+  // ② 安全上下文：Clipboard API
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      ElMessage.success('链接已复制');
+      return;
+    } catch { /* 落到 ③ */ }
+  }
+  // ③ 再试一次 execCommand（有些浏览器 await 之后手势还在）
+  if (copyByExecCommand(url)) {
+    ElMessage.success('链接已复制');
+    return;
+  }
+  // ④ 兜底：弹窗 + 自动全选，让用户长按复制
+  copyFallbackUrl.value = url;
+  await nextTick();
+  copyInput.value?.focus();
+  copyInput.value?.select();
+}
+
+async function retryCopy() {
+  if (copyByExecCommand(copyFallbackUrl.value)) {
+    ElMessage.success('链接已复制');
+    copyFallbackUrl.value = '';
+    return;
+  }
+  await nextTick();
+  copyInput.value?.focus();
+  copyInput.value?.select();
+  ElMessage.info('请长按上面的链接选择「拷贝」');
 }
 
 /**
@@ -866,5 +959,64 @@ onUnmounted(() => {
 }
 .scard.square .cname.nm-xs {
   font-size: max(13px, calc(17px * var(--sqk)));
+}
+
+/* ═════ 复制链接兜底弹窗（2026-10-22 第六十三批）═════════════════════
+   局域网 http（手机真机调试常见）下浏览器不给写剪贴板，这里让用户自己长按复制。
+   z-index 要高过手机底部导航（1000 层）与 Element 的 message（2000 层）。 */
+.copymask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(6, 22, 34, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.copybox {
+  width: min(460px, 100%);
+  background: #fff;
+  color: #0f2434;
+  border-radius: 18px;
+  padding: 20px 20px 16px;
+  box-shadow: 0 24px 60px rgba(3, 18, 28, 0.35);
+  display: grid;
+  gap: 10px;
+}
+.copybox b {
+  font-size: 17px;
+}
+.copybox p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: #3d5a6e;
+}
+.copyinput {
+  width: 100%;
+  padding: 11px 12px;
+  font-size: 16px; /* iOS：输入框 <16px 会在聚焦时自动放大页面，这里必须 ≥16px */
+  line-height: 1.5;
+  border: 1px solid #cfe0ea;
+  border-radius: 10px;
+  background: #f4f9fc;
+  color: #0b4a6f;
+  font-variant-numeric: tabular-nums;
+}
+.copybtns {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .copybtns {
+    flex-direction: column-reverse;
+  }
+  .copybtns .btn {
+    width: 100%;
+  }
 }
 </style>

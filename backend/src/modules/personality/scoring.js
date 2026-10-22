@@ -15,7 +15,7 @@
  *   ③ 另出 `toDisplayDims()`：把 6 维折算回人格卡那 4 根条（前端零改动）。
  */
 
-import { DIMS, DISPLAY_DIMS, DIM_LABELS } from '../../data/personality.js';
+import { DIMS, DISPLAY_DIMS, DIM_LABELS, DISPLAY_DIM_LABELS } from '../../data/personality.js';
 
 /** 汇总各维度原始得分 */
 export function computeScores(questions, answers) {
@@ -155,10 +155,10 @@ export function buildTemplateComment({ typeName, description, scores, nickname }
   const top = Object.entries(scores || {})
     .sort((a, b) => Number(b[1]) - Number(a[1]))
     .slice(0, 2)
-    .map(([key]) => DIM_LABELS[key] || key);
+    .map(([key]) => DIM_LABELS[key] || DISPLAY_DIM_LABELS[key] || key);
   const who = nickname ? `${nickname}，` : '';
   const emphasis = top.length ? `其中「${top.join('」和「')}」这两项在你身上最明显，` : '';
-  return `${who}你的人格类型是「${typeName}」。${description}${emphasis}这让你在挑专辑时更在意与它呼应的表达方式 —— 去看下面那几推荐，是不是比你自己找的还准。`;
+  return `${who}你的人格类型是「${typeName}」。${description}${emphasis}这让你在挑专辑时更在意与它呼应的表达方式 —— 去看下面那几首推荐，是不是比你自己找的还准。`;
 }
 
 export default {

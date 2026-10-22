@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第六十三批交付报告 · 手机复制链接 + 人格维度数据统一</title>
+<style>
+  :root { --ink:#0f2434; --ink2:#3d5a6e; --muted:#6b8296; --bg:#f4f8fb; --card:#fff; --line:#dbe7ef;
+          --teal:#0f766e; --red:#b42318; --amber:#b45309; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:34px 20px 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.75 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 26px}
+  h2{font-size:19px;margin:34px 0 12px;padding-left:11px;border-left:4px solid var(--teal)}
+  h3{font-size:15.5px;margin:20px 0 8px;color:var(--ink2)}
+  p,li{margin:8px 0}
+  code{background:#eaf2f7;padding:1px 5px;border-radius:4px;font-size:13px;color:#0b4a6f}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:10px 0}
+  .verdict{border-left:4px solid var(--teal);background:#effaf6}
+  .warn{border-left:4px solid var(--amber);background:#fff8ec}
+  .bad{border-left:4px solid var(--red);background:#fef4f3}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef5f9;font-weight:700;font-size:13px;color:var(--ink2)}
+  .ok{color:var(--teal);font-weight:700}
+  .no{color:var(--red);font-weight:700}
+  .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi b{display:block;font-size:21px;color:var(--teal);font-variant-numeric:tabular-nums}
+  .kpi span{font-size:12.5px;color:var(--muted)}
+  .chain{display:grid;gap:8px;margin:12px 0}
+  .step{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;
+        background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .step b.n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;font-size:13px}
+  .step .t{font-weight:700;font-size:14.5px}
+  .step .d{color:var(--ink2);font-size:13.5px}
+  .foot{margin-top:30px;color:var(--muted);font-size:12.5px}
+  ul{padding-left:22px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>第六十三批 · 手机「复制链接分享」+ 人格维度数据统一</h1>
+  <p class="sub">2026-10-22　｜　① iOS/安卓复制链接只弹灰条、没进剪贴板　② 人格卡与右栏分数对不上、出现 13/10 与 18/10</p>
+
+  <div class="card verdict">
+    <b>两句话结论：</b><br>
+    ① 手机复制失败不是按钮坏了 —— 是<b>局域网 http 属于「非安全上下文」</b>，
+    <code>navigator.clipboard</code> 在这种页面里<b>根本不存在</b>，旧代码直接进 catch 弹了条灰条。
+    现在改成<b>三级复制</b>（execCommand → Clipboard API → 可长按的兜底弹窗），真机条件已复现并验证。<br>
+    ② 人格分数超 10 是<b>两代数据混用</b>：早期记录存的是原始分（13、18），新记录存 0~1；
+    前端按 0~1 换算、卡片内部又 clamp 到 10，于是「卡上 10/10、右栏 18/10」。
+    旧题库选项分已被重写 ⇒ <b>旧记录不再编造分数</b>，明确标注并引导重测；新记录全链路 0~1 严格受限。
+  </div>
+
+  <div class="kv">
+    <div class="kpi"><b>3 级</b><span>复制兜底（execCommand / Clipboard API / 长按弹窗）</span></div>
+    <div class="kpi"><b>16 / 16</b><span>人格数据统一性断言（跑真库 + 真接口）</span></div>
+    <div class="kpi"><b>22 / 22</b><span>人格题库纯函数自检（6 型可分性）</span></div>
+  </div>
+
+  <h2>一、手机复制链接：为什么只弹了一条灰条</h2>
+  <div class="chain">
+    <div class="step"><b class="n">1</b><div>
+      <div class="t">非安全上下文没有剪贴板 API</div>
+      <div class="d">只在 <code>https://</code> 或 <code>localhost</code> 下 <code>navigator.clipboard</code> 才存在。
+      手机通过 <code>http://192.168.1.65:5173</code> 打开时它是 <code>undefined</code>
+      （已实测：<code>isSecureContext=false</code>、<code>navigator.clipboard=false</code>）。</div>
+    </div></div>
+    <div class="step"><b class="n">2</b><div>
+      <div class="t">旧代码把它当成"复制失败"就结束了</div>
+      <div class="d"><code>try { await navigator.clipboard.writeText(url) } catch { ElMessage.info(url) }</code>
+      —— catch 里只是把链接**显示**出来（就是用户截图里那条灰条），从来没有写进剪贴板。
+      所以"好友一起玩"的分享链接等于废了。</div>
+    </div></div>
+    <div class="step"><b class="n">3</b><div>
+      <div class="t">现在的三级兜底</div>
+      <div class="d">① 非安全上下文：**同步** <code>document.execCommand('copy')</code>（必须在用户手势里，不能先 await）；
+      ② 安全上下文：Clipboard API；③ 都失败：弹出只读输入框并**自动全选**，提示长按拷贝。
+      全程失败才降级，不会再出现"看起来复制了其实没有"。</div>
+    </div></div>
+  </div>
+
+  <table>
+    <tr><th>验证（真机条件：局域网 http，非安全上下文）</th><th>结果</th></tr>
+    <tr><td><code>window.isSecureContext</code> / <code>navigator.clipboard</code></td><td>false / undefined（与手机一致）</td></tr>
+    <tr><td>点「复制链接分享」后的提示</td><td class="ok">「链接已复制」（不再是灰条）</td></tr>
+    <tr><td>剪贴板实际内容（从安全页读取）</td><td class="ok">= 本场链接，逐字符一致</td></tr>
+    <tr><td>强制两种复制都失败</td><td class="ok">弹出兜底弹窗：只读、已全选、文案说明「长按点拷贝」</td></tr>
+  </table>
+
+  <h2>二、人格维度：13/10、18/10 是怎么来的</h2>
+  <div class="card bad">
+    <b>根因不是"算错了"，是"两代数据被当成同一种量纲"。</b><br>
+    · 2026-09 之前的记录：<code>scores = { melody: 9, rhythm: 13, arrangement: 18, calm: 10 }</code> ——
+    <b>原始分</b>，本来就没有"满分 10"的概念；<br>
+    · 之后改成 6 维计分：<code>scores = { _display: {…0~1…}, _norm, _raw }</code>；<br>
+    · 前端只有一套换算 <code>n &lt;= 1 ? n*10 : n</code>：旧数据 13 → 直接印成「13 / 10」；
+    而人格卡组件内部 <code>clamp(0,10)</code> → 同一个 13 显示成 10/10 ⇒ <b>左右对不上</b>。
+  </div>
+
+  <h3>为什么旧记录不能"重算"</h3>
+  <p>试过按旧答卷重算（题目还在库里），但实测发现<b>旧题目的选项分值已被重写</b>：
+  同一条记录旧 <code>raw</code> 是 melody 9 / rhythm 13 / arrangement 11，
+  按现在的选项分重算得到 melody 24 / rhythm 13 / texture 1 —— 那已经是"另一份答卷"。
+  与其编一个看起来合理的数字，不如<b>如实说明</b>。</p>
+
+  <h3>这次改了什么</h3>
+  <table>
+    <tr><th>位置</th><th>改动</th></tr>
+    <tr><td><code>backend …/personality.service.js</code></td>
+        <td>旧记录（没有 <code>_display</code>）返回 <code>scores: {}</code> + <code>scoreState:'legacy-missing'</code>，
+        <b>不再把原始分当 0~1</b>；解读里残留的英文维度键按中文映射替换（全局替换，一句里常有两个键）。</td></tr>
+    <tr><td><code>backend/src/data/personality.js</code></td>
+        <td><code>DIM_LABELS</code> 补上 <code>arrangement: '编曲层次'</code>（这就是「你在「arrangement」…」的来源）。</td></tr>
+    <tr><td><code>backend …/scoring.js</code></td>
+        <td>标签查找兼容展示维度；模板文案「下面那几推荐」→「下面那几首推荐」。</td></tr>
+    <tr><td><code>frontend/src/utils/personality.js</code></td>
+        <td><code>normalizeScores</code> 统一夹到 <b>0~10</b>（卡片与右栏从此不可能不是一个数）。</td></tr>
+    <tr><td><code>frontend …/PersonalityResultView.vue</code></td>
+        <td>旧记录显示明确说明（"早期记录，无法换算，不是坏了"）+ 一键重测，不再显示空条或假分数。</td></tr>
+  </table>
+
+  <h2>三、复盘与自检（可复跑）</h2>
+  <table>
+    <tr><th>检查</th><th>结果</th></tr>
+    <tr><td>规则自洽：16 选择 + 4 听感 = 20；六维抽题数之和 = 16</td><td class="ok">通过</td></tr>
+    <tr><td>题库完整性：分值键只含 6 合法维度、有限非负；每题至少一个能加分的选项；中立 E 不带分</td><td class="ok">题库 208 个选项，0 异常</td></tr>
+    <tr><td>类型库：6 型、每型 6 维齐全且 0~1</td><td class="ok">通过</td></tr>
+    <tr><td>全链路模拟 300 次（抽题→计分→归一化→匹配→折算 4 维）</td><td class="ok">所有值 0~1；卡片与右栏 0 处不一致；最大展示值 7</td></tr>
+    <tr><td>库内 136 条历史结果（走真 <code>getResult()</code>）</td><td class="ok">四维齐全或明确 legacy-missing；0 处越界；0 条英文键</td></tr>
+    <tr><td>页面实测：新结果卡片四条 = 右栏四个数</td><td class="ok">2,4,3,3 = 2/10,4/10,3/10,3/10</td></tr>
+    <tr><td>页面实测：旧结果分支</td><td class="ok">显示说明文案、0 根条（不造假）</td></tr>
+    <tr><td>既有题库自检（6 型可分性 / 极端作答）</td><td class="ok">22/22</td></tr>
+    <tr><td>历史回归</td><td class="ok">_r55 37/37 · _r56 20/20 · _r57 18/18 · _r62 15/15</td></tr>
+  </table>
+
+  <div class="card warn">
+    <b>对你自己数据的处理：</b>库里有 <b>8 条 2026-09 的早期记录</b>无法还原成 10 分制（包括截图那张）。
+    打开它们会看到「这是一条早期记录…」+「重新测一次」；<b>重测一次就能拿到完整的四维得分</b>。
+    我没有改写入库数据，原始记录仍在。
+  </div>
+
+  <h2>四、下一步（已排进计划）</h2>
+  <ul>
+    <li><b>最终 UI 升级</b>（按前端设计守则逐条过）→ <b>100 张专辑混战·大逃杀模式</b>（赛制/分组/淘汰/名次口径由我定稿并自检）；</li>
+    <li>服务器与 AI 解读接入的选型建议见交付说明（本报告不展开，避免与部署文档重复）。</li>
+  </ul>
+
+  <p class="foot">
+    脚本：<code>backend/scripts/verify-personality-scores.mjs</code>（16 项，跑真库）、
+    <code>backend/scripts/verify-personality.mjs</code>（22 项纯函数）、
+    <code>tools/pw/_r63-copy.mjs</code>（真机条件复制）、
+    <code>tools/pw/_r63-personality-ui.mjs</code>（卡片 vs 右栏）。
+    改前备份：<code>_backup/20261022-1621_第六十三批-人格分数与手机复制/</code>。
+  </p>
+
+</div>
+</body>
+</html>

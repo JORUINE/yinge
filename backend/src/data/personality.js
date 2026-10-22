@@ -74,6 +74,9 @@ export const DIM_LABELS = {
   texture: '音色质感',
   novelty: '探索欲',
   calm: '安静倾向',
+  // ⚠️ 2026-10-22 第六十三批：arrangement 是**展示维度**（= lyric+texture 的均值），
+  //    之前漏在这张表里 ⇒ 模板解读拼出了「你在「arrangement」与「rhythm」上表现突出」这种中英混杂句。
+  arrangement: '编曲层次',
 };
 
 /** ===== 展示维度（人格卡上那 4 根条，保持原设计不变）===== */

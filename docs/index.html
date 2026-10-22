@@ -192,7 +192,10 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-22（<b>第六十二批 · 方形分享图「带上分享链接」不再被裁</b>：
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-22（<b>第六十三批 · 手机复制链接真机修复 + 人格维度数据统一</b>：
+　　人格自检 <b>16/16 + 22/22</b>、复制真机条件实测通过：
+　　<a href="第六十三批交付报告.html"><b>第六十三批交付报告</b></a>；<br>
+　　<b>第六十二批 · 方形分享图「带上分享链接」不再被裁</b>：
 　　6 视口 × 3 缩放 <b>15/15</b>、导出 1080×1080、竖版与历史回归全绿：
 　　<a href="第六十二批交付报告.html"><b>第六十二批交付报告</b></a>；<br>
 　　<b>第六十一批 · iOS 导出：封面旁暗带真因（box-shadow 被 WebKit 栅格化成硬边块）+ 首帧竞态实证 + 引擎策略定稿</b>：<br>
@@ -576,6 +579,13 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第六十三批交付报告.html" style="color:#0369A1"><b>第六十三批交付报告</b></a></td><td><b style="color:#B45309">手机复制链接失效 + 人格维度分数超 10，两件都修好了</b>：
+        <b>复制</b>：局域网 http 是非安全上下文，<code>navigator.clipboard</code> 不存在 ⇒ 旧代码只弹灰条。
+        改为三级兜底（execCommand → Clipboard API → 长按兜底弹窗），真机条件下剪贴板内容逐字符一致。
+        <b>维度</b>：旧记录存原始分、新记录存 0~1，前端与卡片两套换算 ⇒ 卡上 10/10、右栏 18/10。
+        旧记录标 <code>legacy-missing</code> 不造假数并引导重测；新记录统一 0~1 且两边夹 0~10。
+        顺带修掉解读里的英文维度键（缺 <code>arrangement</code> 中文名）。
+        <b>自检</b>：16/16（真库+真接口，含 300 次模拟）、22/22（纯函数）、37/20/18/15 历史回归全绿。</td></tr>
       <tr><td><a href="第六十二批交付报告.html" style="color:#0369A1"><b>第六十二批交付报告</b></a></td><td><b style="color:#B45309">方卡里的分享链接不再被卡片下边缘切掉</b>：
         <b>原因</b>：方卡严格 1:1 + <code>overflow:hidden</code>，而「带上分享链接」多出一行（27~35px），没人给它让位
         （桌面内容 446 / 卡 420，手机 369 / 342）。
