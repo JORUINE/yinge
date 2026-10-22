@@ -192,7 +192,10 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-21（<b>第六十批 · iOS 丢图真因改判（SVG 不渲染内嵌图片）+ 新增 canvas 合成引擎</b>：<br>
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-22（<b>第六十一批 · iOS 导出：封面旁暗带真因（box-shadow 被 WebKit 栅格化成硬边块）+ 首帧竞态实证 + 引擎策略定稿</b>：<br>
+　　<b>自检 _r55 37/37 · _r56 20/20 · _r57 18/18 · _r60 6/6；桌面同输入 A/B 三张卡 md5 完全一致</b>：
+　　<a href="第六十一批交付报告.html"><b>第六十一批交付报告</b></a>；<br>
+　　<b>第六十批 · iOS 丢图真因改判（SVG 不渲染内嵌图片）+ 新增 canvas 合成引擎</b>：<br>
 　　<b>第五十九批 · PC 端播放器整合（只改桌面，手机端 A/B 0 差异）+ 封面同源代理</b>：
 　　<b>第五十八批 · 播放器与试听清单整合（方案 A）+ 题量口径 12/2→20/4 + 答题页防误选/撤销 + 导出六型全量自检</b>：
 26 条导出断言全绿、前三批回归 37/20/18 全绿；<br>
@@ -570,6 +573,14 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第六十一批交付报告.html" style="color:#0369A1"><b>第六十一批交付报告</b></a></td><td><b style="color:#B45309">封面旁那块"硬边暗带"抓到真凶了：是 box-shadow 被 WebKit 栅格化坏了</b>：
+        ① <b>暗带</b>：<code>.scard .art</code> 的 <code>box-shadow</code> 在 WebKit 的 SVG(foreignObject) 里被画成<b>硬边深色矩形</b>
+        （封面右侧 62px、与封面等高）；该区域亮度 <b>34.9</b> vs 左侧对称区 <b>137.2</b>，关掉阴影恢复 <b>125.6</b>。
+        ② <b>改法</b>：克隆里剥掉图片容器的 box-shadow，合成路径用 canvas 按同参数自己画；
+        右侧/左侧亮度比 <b>0.27 → 0.91</b>。
+        ③ <b>另一个发现</b>：WebKit 的 foreignObject 是<b>首帧竞态</b>（立刻取像 6/6 全空，等 120ms 3/3 正常），
+        所以 iOS 直走合成、不等竞态。
+        ④ <b>验收</b>：<b>37/37 · 20/20 · 18/18 · 6/6</b>；桌面同输入 A/B 三张卡 <b>md5 完全一致</b>。</td></tr>
       <tr><td><a href="第六十批交付报告.html" style="color:#0369A1"><b>第六十批交付报告</b></a></td><td><b style="color:#B45309">导出丢图的真因找到了：WebKit 会把图画空，而且一句错都不报</b>：
         ① <b>机制</b>：图片 <code>naturalWidth=1080</code>、<code>decode()</code> 也成功，但 <code>drawImage()</code> 后画布是空的
         （<code>toDataURL()</code> 只有 <code>"data:,"</code> 6 字节 / 抛 <code>InvalidStateError</code>）；Chromium 一次就对。

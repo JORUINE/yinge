@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第六十一批交付报告 · 封面旁暗带 + 首帧竞态</title>
+<style>
+  :root {
+    --ink: #0f2434; --ink2: #3d5a6e; --muted: #6b8296;
+    --bg: #f4f8fb; --card: #fff; --line: #dbe7ef;
+    --teal: #0f766e; --red: #b42318; --amber: #b45309; --blue: #0b6ba8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 34px 20px 64px;
+    background: var(--bg); color: var(--ink);
+    font: 15px/1.75 -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { font-size: 27px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 13.5px; margin: 0 0 26px; }
+  h2 { font-size: 19px; margin: 34px 0 12px; padding-left: 11px; border-left: 4px solid var(--teal); }
+  h3 { font-size: 15.5px; margin: 20px 0 8px; color: var(--ink2); }
+  p, li { margin: 8px 0; }
+  code { background: #eaf2f7; padding: 1px 5px; border-radius: 4px; font-size: 13px; color: #0b4a6f; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin: 10px 0; }
+  .verdict { border-left: 4px solid var(--teal); background: #effaf6; }
+  .warn { border-left: 4px solid var(--amber); background: #fff8ec; }
+  .bad { border-left: 4px solid var(--red); background: #fef4f3; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: #eef5f9; font-weight: 700; font-size: 13px; color: var(--ink2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--teal); font-weight: 700; }
+  .no { color: var(--red); font-weight: 700; }
+  .chain { display: grid; gap: 8px; margin: 12px 0; }
+  .step { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start;
+          background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .step b.n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+              background: var(--teal); color: #fff; font-size: 13px; }
+  .step .t { font-weight: 700; font-size: 14.5px; }
+  .step .d { color: var(--ink2); font-size: 13.5px; }
+  .tag { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 20px;
+         background: #e6f4f1; color: var(--teal); margin-right: 6px; }
+  .tag.w { background: #fdf1e3; color: var(--amber); }
+  ul { padding-left: 22px; }
+  .foot { margin-top: 30px; color: var(--muted); font-size: 12.5px; }
+  .kv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  .kpi { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .kpi b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; color: var(--teal); }
+  .kpi span { font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>第六十一批交付报告 · 封面旁那块暗带，真凶找到了</h1>
+  <p class="sub">2026-10-22　｜　方形图「专辑旁边硬边＋斑块」· 竖图「冠军没图」· iOS 导出时好时坏</p>
+
+  <div class="card verdict">
+    <b>一句话结论：</b>暗带不是 CSS 写错，也不是渐变，是 <code>.art</code> 的
+    <code>box-shadow</code> 被 <b>WebKit 的 SVG(foreignObject) 栅格化成了硬边深色矩形</b>；
+    而图片"有时在有时不在"的根子是 <b>首帧竞态</b> —— 同一个 SVG，<code>decode()</code> 之后
+    <b>立刻</b>取像连续 6 次全空，中间等 <b>120ms</b> 连续 3 次全对。
+  </div>
+
+  <div class="kv">
+    <div class="kpi"><b>0.27 → 0.91</b><span>封面右/左亮度比（1.0＝没有暗带）</span></div>
+    <div class="kpi"><b>34.9 / 137.2</b><span>暗带区 vs 左侧对称区亮度（改前）</span></div>
+    <div class="kpi"><b>6/6 · 3/3</b><span>立刻取像全空 · 等 120ms 全对</span></div>
+  </div>
+
+  <h2>一、暗带到底长在哪</h2>
+  <p>把 WebKit 导出的方形图逐像素扫一遍，可以把它钉到具体坐标（CSS px，相对卡片）：
+  封面右缘 <b>x≈350</b>、暗带一直到 <b>x≈412</b>、上下与封面同高（<b>y 112~347</b>）——
+  <b>62px 宽、与封面等高的一块硬边矩形</b>。同一张卡左侧对称区的亮度是 137.2，这块只有 34.9。</p>
+
+  <svg viewBox="0 0 680 250" width="100%" style="max-width:680px;display:block;margin:10px auto 4px">
+    <rect x="20" y="20" width="464" height="210" rx="16" fill="#0a2438" stroke="#1e4b63"/>
+    <rect x="134" y="50" width="235" height="150" rx="18" fill="#7cc36a"/>
+    <!-- 暗带 -->
+    <rect x="369" y="50" width="62" height="150" fill="#111f14" opacity="0.28"/>
+    <rect x="369" y="50" width="62" height="150" fill="none" stroke="#b42318" stroke-dasharray="5 4"/>
+    <text x="510" y="90" fill="#b42318" font-size="13" font-family="sans-serif">暗带 62px</text>
+    <text x="510" y="108" fill="#b42318" font-size="13" font-family="sans-serif">（阴影本该是柔和的）</text>
+    <text x="510" y="132" fill="#3d5a6e" font-size="12" font-family="sans-serif">亮度 34.9 / 左侧 137.2</text>
+    <text x="134" y="232" fill="#3d5a6e" font-size="12" font-family="sans-serif">冠军封面（235×235）</text>
+    <text x="20" y="14" fill="#6b8296" font-size="12" font-family="sans-serif">导出图坐标系（CSS px）</text>
+  </svg>
+
+  <div class="card">
+    <b>归因实验（每一步只改一个变量，可复跑）：</b>
+    <table>
+      <tr><th>操作</th><th class="num">暗带区亮度</th><th>判定</th></tr>
+      <tr><td>① 基线</td><td class="num">32.7</td><td class="no">暗带在</td></tr>
+      <tr><td>② 去掉 <code>.art</code> 的 <code>box-shadow</code></td><td class="num">125.6</td><td class="ok">暗带消失</td></tr>
+      <tr><td>③ 换成 <code>filter: drop-shadow()</code></td><td class="num">125.6</td><td class="ok">不画阴影、也不出现暗带</td></tr>
+      <tr><td>④ 去掉 <code>::after</code> / <code>::before</code> / <code>backdrop-filter</code></td><td class="num">30~42</td><td class="no">都不影响</td></tr>
+      <tr><td>⑤ 阴影参数改成 0 偏移 / 0 模糊</td><td class="num">34.1</td><td class="no">与参数无关</td></tr>
+    </table>
+    <p class="foot" style="margin:6px 0 0">结论：只要这层 <code>box-shadow</code> 进了 SVG，WebKit 就把它画成硬边块；
+    换 <code>drop-shadow</code> 虽然不出现暗带，但<b>阴影整个丢了</b>（亮度＝完全没阴影）。</p>
+  </div>
+
+  <h2>二、修法：阴影不进 SVG，由 canvas 自己画</h2>
+  <div class="chain">
+    <div class="step"><b class="n">1</b><div>
+      <div class="t">克隆里把"图片容器"的阴影关掉</div>
+      <div class="d">用<b>临时属性标记</b>（<code>data-yinge-shadow-off</code>）而不是"下标配对"——
+      因为 <code>materializePseudo</code> 会往克隆树里插入伪元素 div，下标会错位（我第一次就栽在这，静默失效）。</div>
+    </div></div>
+    <div class="step"><b class="n">2</b><div>
+      <div class="t">按同一组参数用 canvas 画回来</div>
+      <div class="d"><code>parseShadows()</code> 解析 <code>rgba(...) 0px 18px 44px 0px</code>；
+      <code>paintShadow()</code> 在<b>设备像素</b>里画（canvas 的 <code>shadowBlur/Offset</code> 不吃 CTM，
+      混用会画到别处），再 <code>destination-out</code> 把形状本体挖掉，只留"形状之外"的柔和投影。</div>
+    </div></div>
+    <div class="step"><b class="n">3</b><div>
+      <div class="t">引擎策略（定稿）</div>
+      <div class="d">桌面 Chromium/Edge/OPR/Firefox → <b>SVG</b>（产物逐字节不变）；
+      WebKit（iOS Safari / 微信 / macOS Safari）→ <b>直走合成</b>，不等竞态；
+      未知引擎 → 先用「封面量级 600×600」的图做一次<b>首帧能力自测</b>；html2canvas 仍是最后一道。</div>
+    </div></div>
+  </div>
+
+  <h2>三、验收数字（都是跑出来的）</h2>
+  <table>
+    <tr><th>项目</th><th>结果</th><th>说明</th></tr>
+    <tr><td>桌面同输入 A/B（人格卡 / 竖卡 / 方卡）</td><td class="ok">md5 完全一致</td><td>改了导出链路，桌面三张卡<b>逐字节不变</b></td></tr>
+    <tr><td>WebKit 合成 vs 同机页面截图</td><td class="ok">整卡平均差 2.2~4.3</td><td>冠军封面 1.6 / 缩略图 2.1~3.9（文字行 10~13 属渲染抗锯齿）</td></tr>
+    <tr><td>暗带（封面右/左亮度比）</td><td class="ok">0.27 → 0.91</td><td>竖卡与方卡都 0.91，只保留应有的柔和投影</td></tr>
+    <tr><td><code>_r55</code> / <code>_r56</code> / <code>_r57</code></td><td class="ok">37/37 · 20/20 · 18/18</td><td>三批历史验收全绿（含"拦断跨域 fetch 仍要有图"）</td></tr>
+    <tr><td><code>_r60</code> 三情形导出自检</td><td class="ok">6/6</td><td>基线 / 模拟画布画空 / 模拟画布污染</td></tr>
+    <tr><td>WebKit 首次导出耗时</td><td class="ok">705ms</td><td>曾因跑"能力自测"飙到 <b>8.4s</b>，已改为 WebKit 不跑自测</td></tr>
+  </table>
+
+  <h2>四、一个被纠正的旧结论</h2>
+  <div class="card warn">
+    上一轮写的是「<b>SVG(foreignObject) 在 WebKit 里根本不渲染内嵌图片</b>」。这次用对照实验改成更准确的说法：
+    <b>不是不渲染，是首帧没就绪</b> —— 立刻取像 <code>alpha=0</code>（6/6），等 120ms 就正常（3/3）。
+    这意味着：<b>"试两次 SVG"不是完全没用，但等待时间无法保证</b>（卡里的图比测试图大得多），
+    所以 iOS 仍然<b>直接走合成</b>，不赌竞态。
+  </div>
+
+  <h2>五、还需要你做的</h2>
+  <ul>
+    <li>iPhone 上保存一次 <b>人格卡</b> 和 <b>方形分享图</b>；</li>
+    <li>若仍异常，请发<b>保存出来的那张原文件</b>（不是页面截图）—— 这样能分清是"空白 / 有字无图 / 错位"；</li>
+    <li>安卓与桌面这轮<b>没有改行为</b>（桌面 A/B 逐字节一致）。</li>
+  </ul>
+
+  <p class="foot">
+    证据与脚本：<code>tools/pw/_r61-run3.mjs</code>（两引擎导出）、<code>_r61-run4.mjs</code>（同机页面截图）、
+    <code>_r61-analyze2.mjs</code>（区域比对）、<code>_r61-bandcheck.mjs</code>（暗带）、
+    <code>_r61-vsdom.mjs</code>（导出 vs 页面）、<code>_r61-svgcap.mjs</code>（引擎能力 + 引擎选择）、
+    <code>_r61-repeat.mjs</code>（首帧竞态 6/6 vs 3/3）。<br>
+    图片来源：<code>tools/pw/_r61/out/</code>；改前备份：<code>_backup/20261022-1034_第六十一批-合成导出的box-shadow暗带/</code>。
+  </p>
+
+</div>
+</body>
+</html>

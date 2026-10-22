@@ -42,6 +42,152 @@ function stripComments(root) {
 }
 
 /**
+ * ⭐⭐⭐ 2026-10-22 第六十一批：识别 **WebKit 内核**（iOS Safari / 微信内置浏览器 / macOS Safari）
+ * ------------------------------------------------------------
+ * 为什么必须认引擎而不是"试两次再说"：
+ *   本地 Playwright WebKit + 用户三张 iOS 截图**三方对齐**证明：
+ *     **SVG(foreignObject) 在 WebKit 里就是不渲染内嵌 `<img>`（哪怕是 data URL）**——
+ *     · 人格卡：底图整层丢（导出区域不透明比 0.08，用户看到"背景全白"）
+ *     · 竖版卡：缩略图丢（区域量化色数 4）、冠军封面只剩模糊 .sbg（均值 107,159,74 vs 正确的 121,174,82）
+ *     · 方形卡：图能进来（与用户说的"方形至少图片能加载"一致）
+ *   这不是"首帧没就绪"的竞态（等一帧/等 260ms 都不救），**是稳定行为**
+ *   ⇒ 在 WebKit 上"试两次 SVG"只是白烧两次渲染，最后还是走合成。
+ *   ⇒ WebKit **跳过 SVG 直走合成路径**（图片不进 SVG，由 canvas 按实测矩形画）。
+ * ⚠️ 桌面 Chromium / Edge / OPR / Firefox 桌面**完全不碰**这条路（UA 排除）——
+ *    桌面产物与改前**逐字节一致**（同输入 A/B 验证，见 tools/pw/_r61-*）。
+ * ⚠️ 安卓**故意排除**：安卓 Chrome/WebView 的 SVG 行为与 iOS 不同（用户实测安卓下载与 PC 一致），
+ *    不能因为它"也可能是 WebKit 系"就把它拉进这条路。
+ * ⚠️ 逃生门：`window.__yingeForceSvg = true` 可强制回到旧链路（排障/A-B 用）。
+ */
+function isWebKitEngine() {
+  if (typeof navigator === 'undefined') return false;
+  if (typeof window !== 'undefined' && window.__yingeForceSvg) return false; // 逃生门
+  const ua = navigator.userAgent || '';
+  if (!ua) return false;
+  if (/Android/i.test(ua)) return false;                        // 安卓（含微信安卓版）
+  // iOS 上一切内置浏览器（Safari / 微信 / Chrome-iOS(CriOS) / Firefox-iOS(FxiOS)）内核都是 WebKit
+  if (/iPhone|iPad|iPod/i.test(ua) && /AppleWebKit/i.test(ua)) return true;
+  if (/MicroMessenger/i.test(ua) && /Mac OS X/i.test(ua)) return true; // Mac 版微信
+  if (/Edg\//i.test(ua) || /OPR\//i.test(ua)) return false;     // 桌面 Chromium 套壳
+  if (/Firefox\//i.test(ua)) return false;                      // 桌面 Firefox
+  if (/Chrome\/\d/i.test(ua)) return false;                     // 桌面 Chrome
+  return /Safari\/\d/i.test(ua);                                // macOS Safari（含 iPadOS 桌面模式 UA）
+}
+
+/**
+ * ⭐⭐⭐ 2026-10-22 第六十一批：**直接问引擎「foreignObject 里的 <img> 到底画不画」**
+ * ============================================================
+ * 为什么不能靠"导出后区域统计"来判断（第六十一批实证）：
+ *   在 WebKit 里强制走 SVG 路导人格卡，**底图整层丢失**，但 `imagesSeemPresent()`
+ *   仍然判"通过"—— 因为那片区域上有标题/说明文字和点光，
+ *   颜色数 92、明暗跨度 215、不透明比 1.00，**任何"平不平"的判据都看不出来**。
+ *   ⇒ 这就是"改了 6 轮、用户看不到任何改善"的假绿机制：坏图被返回，合成路径永远走不到。
+ *
+ * 做法（一次 8×8 的自测，带缓存，全程 <10ms）：
+ *   造一张 8×8 纯红 PNG → 内联进 foreignObject → 画进 canvas → 读中心像素。
+ *   画出来了就是 true；空白/异常就是 false。**这是"引擎能力"的直接观测**，
+ *   不依赖页面上有什么内容，也不会被文字/渐变干扰。
+ * ⚠️ 一旦 false，本次会话内所有导出都走合成（合成路径在 WebKit 上已验证）。
+ * ⚠️ WebKit 首帧的 canvas 可能坏（见 57/60 批），真失败时再测一次即可。
+ */
+let __svgImgSupport = null;
+export async function svgImageSupport() {
+  if (__svgImgSupport !== null) return __svgImgSupport;
+  const probe = async () => {
+    /**
+     * ⚠️⚠️ 哨兵必须是**真实照片量级的图**（600×600、带纹理的 JPEG）——
+     *   2026-10-22 实测（本机 Playwright，可复现）：
+     *   · 8×8 / 640×640 纯色图 ⇒ WebKit **能画**（返回 true，于是又变成假绿）
+     *   · 640×640 带纹理 JPEG / 真实 bg-MEL.jpg(1080×1440, 137KB) ⇒ WebKit **整张空白**
+     *   ⇒ 判据不是"能不能画图"，而是"能不能画**我们真正要导出的那种图**"。
+     *   所以这里画一张与封面同量级的彩色图（渐变 + 圆斑），压成 JPEG 再测。
+     */
+    const c = document.createElement('canvas');
+    c.width = 600; c.height = 600;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, 600, 600);
+    grad.addColorStop(0, '#ff0044');
+    grad.addColorStop(1, '#3300cc');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 600, 600);
+    for (let i = 0; i < 50; i++) {
+      g.fillStyle = `hsla(${(i * 37) % 360},80%,${35 + (i % 4) * 12}%,.55)`;
+      g.beginPath();
+      g.arc((i * 127) % 600, (i * 211) % 600, 30 + (i % 5) * 18, 0, 7);
+      g.fill();
+    }
+    const url = c.toDataURL('image/jpeg', 0.9);
+    if (!url || url === 'data:,' || url.length < 10000) return false;
+    const html = `<div xmlns="http://www.w3.org/1999/xhtml" style="width:40px;height:40px;overflow:hidden"><img src="${url}" width="40" height="40" style="display:block" /></div>`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><foreignObject x="0" y="0" width="40" height="40">${html}</foreignObject></svg>`;
+    const im = new Image();
+    im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    await im.decode();
+    const c2 = document.createElement('canvas');
+    c2.width = 40; c2.height = 40;
+    const g2 = c2.getContext('2d');
+    g2.drawImage(im, 0, 0, 40, 40);
+    const d = g2.getImageData(20, 20, 1, 1).data;
+    // 中心点必然是"有颜色且不透明"：空白时 alpha=0（WebKit 实测就是 [0,0,0,0]）
+    const ok = d[3] > 200 && (d[0] + d[1] + d[2]) > 40;
+    if (typeof window !== 'undefined') window.__svgCapProbe = { len: url.length, px: [d[0], d[1], d[2], d[3]], ok };
+    return ok;
+  };
+  try {
+    /**
+     * ⭐⭐⭐ 2026-10-22 实测补充（重要）：WebKit 里这条链路存在**首帧竞态** ——
+     *   同一段代码连续跑：`decode()` 之后立刻 `drawImage` ⇒ 全空白（alpha=0 ×6 次）；
+     *   中间等 **120ms** 再取像 ⇒ 全部正常（alpha=255 ×3 次）。
+     *   ⇒ 判据只认「**第一次就能画出来**」：需要等才行的引擎，真导出时同样不可靠
+     *     （卡片里的图比哨兵大得多，等待时间没有保证），一律判 false 走合成。
+     *   `delayTried` 只用于打日志，说明"是竞态，不是不支持"。
+     */
+    let delayTried = false;
+    __svgImgSupport = await probe();
+    if (!__svgImgSupport) {
+      await new Promise((r) => setTimeout(r, 150));
+      const retry = await probe();
+      if (retry) {
+        delayTried = true;
+        if (typeof window !== 'undefined' && window.__yingeExportDebug) {
+          console.warn('[export] 本引擎 foreignObject 首帧画不出图、等 150ms 才行（竞态）⇒ 仍判不可用，走合成');
+        }
+      }
+      __svgImgSupport = false;
+    }
+    if (typeof window !== 'undefined') window.__svgCapDelayTried = delayTried;
+  } catch {
+    __svgImgSupport = false;
+  }
+  return __svgImgSupport;
+}
+
+/**
+ * ⭐⭐ 第六十一批：位图"墨水滴"探针 —— 画 24×24 数不透明像素
+ * ------------------------------------------------------------
+ * 用途：`toBitmap` 每拿到一个位图来源都先过这一关。
+ *   WebKit 会把图"画空"而且**一句错都不报**：`naturalWidth=1080`、`decode()` 也 resolve，
+ *   但 `drawImage()` 之后画布是空的 —— `toDataURL()` 只返回 `"data:,"`（6 字节）。
+ *   旧代码"拿到一串不短的东西就当成功"⇒ 空图被画进导出结果（iOS 封面空白的直接成因）。
+ * ⚠️ 读不了像素（画布被污染）时**返回 1（放过）**：污染只可能是跨源图，那种情况
+ *    调用方还有别的兜底；这里不能因为测不了就扔掉一张本来能用的图。
+ */
+function inkRatio(im) {
+  try {
+    const c = document.createElement('canvas');
+    c.width = 24; c.height = 24;
+    const g = c.getContext('2d');
+    g.drawImage(im, 0, 0, 24, 24);
+    const d = g.getImageData(0, 0, 24, 24).data;
+    let ink = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 8) ink += 1;
+    return ink / (24 * 24);
+  } catch {
+    return 1;
+  }
+}
+
+/**
  * 这些属性对**静态截图**没有任何影响（过渡/动画/交互/滚动条/无障碍偏好等），
  * 但它们的计算值往往很长（`transition-property` 常是一整串、`animation-*` 同理）。
  * 内联它们只会撑大 SVG —— 而 SVG 越大，真机越容易解不动（见下面 inlineStyles 的说明）。
@@ -303,6 +449,7 @@ function canvasToB64(img, pngish) {
  *    宁可放过，也不要因为测不了就无脑切引擎（桌面现在是好的，不能把它拖下水）。
  */
 function imagesSeemPresent(canvas, el) {
+  const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
   let imgs;
   try {
     imgs = [...el.querySelectorAll('img')];
@@ -350,14 +497,35 @@ function imagesSeemPresent(canvas, el) {
     const cols = new Set();
     let minL = 255;
     let maxL = 0;
+    let opaque = 0;
+    let total = 0;
     for (let i = 0; i < d.length; i += 4) {
       const l = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
       if (l < minL) minL = l;
       if (l > maxL) maxL = l;
       cols.add(`${d[i] >> 4},${d[i + 1] >> 4},${d[i + 2] >> 4}`);
+      if (d[i + 3] > 8) opaque += 1;
+      total += 1;
     }
     checked += 1;
-    if (cols.size <= 3 || maxL - minL < 6) flat += 1;
+    const opaqueRatio = total ? opaque / total : 1;
+    /**
+     * ⭐⭐ 2026-10-22 第六十一批：**两个假绿机制都是这里漏的**
+     *   实测（WebKit / SVG 路，本地复现用户三张 iOS 截图）：
+     *   ① 人格卡整层丢图后，该区域 **alpha=0 全透明**，但 RGB 仍有噪声
+     *      （cols=18 span=255）⇒ 旧判据（只数颜色不数 alpha）判"有图"；
+     *   ② 竖卡缩略图丢图后，那片露出的是**模糊 .sbg**（不透明、有颜色但很平：
+     *      cols=4 span=18）⇒ 连"纯色"都判不出来（cols=4 > 3 且 span=18 > 6）。
+     *   ⇒ 判据升级（阈值全部按桌面真实封面标定：桌面 cols 232~415 / span 119~125，
+     *     留足一倍以上余量，不会误伤桌面）：
+     *     · 不透明比 < 0.5（大半透明）⇒ **硬失败**（真封面没有大面积透明）
+     *     · cols < 8 或 span < 24 ⇒ 记 flat（这是"有东西但平"，即丢图后露出的底层）
+     */
+    if (opaqueRatio < 0.5) {
+      if (DBG) console.warn(`[export] 校验：第 ${checked} 张图所在区域大半透明（不透明比 ${opaqueRatio.toFixed(2)}）—— 图没进去`);
+      return false;
+    }
+    if (cols.size < 8 || maxL - minL < 24) flat += 1;
   }
   if (!checked) return true;
   return flat / checked < 0.5;
@@ -526,8 +694,12 @@ async function renderViaSvg(el, { targetWidth = 1080, bg = null, hideImages = fa
       const top = [...stat.entries()].sort((a, b2) => b2[1] - a[1]).slice(0, 14);
       console.warn('[export] style 总字节', total, '元素数', clone.querySelectorAll('[style]').length);
       console.warn('[export] 体积榜：', top.map(([k, v]) => `${k}=${(v / 1024).toFixed(0)}K`).join(' '));
-      const leftImg = [...clone.querySelectorAll('img')].filter((i) => /^https?:/.test(i.getAttribute('src') || '')).length;
-      console.warn('[export] 外部引用', hits.length, '处；仍未内联的 img', leftImg, '个');
+      // ⚠️ 判"没内联"必须看**是不是 data: 开头**，不能只认 http(s)：
+      //    相对路径（/img/xxx.jpg）在 SVG 的 data URL 文档里**同样取不到**（第六十一批实证：
+      //    人格卡底图就是相对路径，SVG 里直接整层消失，而旧日志还报"0 个未内联"）。
+      const leftImgs = [...clone.querySelectorAll('img')].filter((i) => !/^data:/i.test(i.getAttribute('src') || ''));
+      console.warn('[export] 外部引用', hits.length, '处；仍未内联的 img', leftImgs.length, '个',
+        leftImgs.slice(0, 3).map((i) => String(i.getAttribute('src') || '').slice(0, 60)).join(' | '));
       if (hits.length) console.warn('[export] 示例：', hits.slice(0, 3).map((s) => s.slice(0, 120)));
     }
     const html = new XMLSerializer().serializeToString(clone);
@@ -662,14 +834,41 @@ function roundRectPath(ctx, x, y, w, h, r) {
 async function toBitmap(im) {
   const src = im.currentSrc || im.src;
   if (!src) return null;
+  const pngish = /\.png(\?|$)|image\/png/i.test(src);
+  /**
+   * ⭐⭐ 2026-10-22 第六十一批：每条来源都要过**墨水滴探针**，并且新增 canvas 重绘来源。
+   *   背景：iOS 上 `fetch(图片)` 经常被拦（第五十五批实测），旧顺序是
+   *     dataURL → fetch → 页面 img 本身。
+   *   · "页面 img 本身"这条路在 WebKit 上正好踩"图画空"：`decode()` resolve、
+   *     `naturalWidth` 正常，但画出来是空的 —— 于是合成路径画出一片空白。
+   *   · canvas 重绘（drawImage + toDataURL）**不依赖网络**，是真机上最可靠的一条；
+   *     但它自己也可能被"画空"⇒ 重绘完立刻用 inkRatio 验，空图当场丢弃走下一步。
+   * ⚠️ PNG 保留 PNG（透明封面不能压成 JPEG）；其余压 0.92（与 SVG 路的 canvasToB64 一致）。
+   */
   if (src.startsWith('data:')) {
     try {
       const f = new Image();
       f.src = src;
       await f.decode();
-      if (f.naturalWidth) return f;
+      if (f.naturalWidth && inkRatio(f) > 0.02) return f;
     } catch { /* 落到下面按字节重取 */ }
   }
+  // ② canvas 重绘（新增：不依赖网络）
+  try {
+    if (im.complete && im.naturalWidth > 0) {
+      const c = document.createElement('canvas');
+      c.width = im.naturalWidth;
+      c.height = im.naturalHeight;
+      c.getContext('2d').drawImage(im, 0, 0);
+      const u = c.toDataURL(pngish ? 'image/png' : 'image/jpeg', pngish ? undefined : 0.92);
+      if (u && u !== 'data:,' && u.length > 200) {
+        const f = new Image();
+        f.src = u;
+        await f.decode();
+        if (f.naturalWidth && inkRatio(f) > 0.02) return f;
+      }
+    }
+  } catch { /* 走下一步 */ }
   try {
     const r = await fetch(proxiedSrc(src));
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -683,13 +882,13 @@ async function toBitmap(im) {
     const f = new Image();
     f.src = url;
     await f.decode();
-    if (f.naturalWidth) return f;
+    if (f.naturalWidth && inkRatio(f) > 0.02) return f;
   } catch { /* 拿不到就退回原 img */ }
-  // 最后的退路：页面上的 img 本身（桌面端一直可用）
+  // 最后的退路：页面上的 img 本身（桌面端一直可用；同样要过墨水滴探针）
   try {
     if (im.naturalWidth) {
       await im.decode?.().catch(() => {});
-      return im;
+      if (inkRatio(im) > 0.02) return im;
     }
   } catch { /* ignore */ }
   return null;
@@ -718,6 +917,7 @@ function clipOf(im, base, rootEl) {
         w: r.width,
         h: r.height,
         r: parseFloat(cs.borderTopLeftRadius) || 0,
+        node: p,
       };
     }
     if (p === rootEl) break;
@@ -751,10 +951,18 @@ async function collectPictureList(el) {
       x: r.left - base.left, y: r.top - base.top, w: r.width, h: r.height, r: ownR,
     };
     if (ownR > clip.r) clip.r = ownR;
+    /**
+     * ⭐⭐ 2026-10-22 第六十一批：图片容器上的 box-shadow 不能在 SVG 里画（WebKit 会画成硬边暗块）
+     * ⇒ 记下来，克隆里关掉，合成时用 canvas 自己画（见 paintShadow）。
+     * 优先取"真正裁切这张图的那个祖先"（`.art` / `.spath div`），那里才是阴影的宿主。
+     */
+    const shadowHost = clip.node && clip.node !== im ? clip.node : im;
+    const shadow = parseShadows(getComputedStyle(shadowHost).boxShadow);
     // "铺满导出元素" = 底图（模糊底 / 人格卡插画）→ 要在 SVG 下面
     const backdrop = r.width >= base.width * 0.9 && r.height >= base.height * 0.9;
     out.push({
       bmp,
+      sc: 0, // 由调用方回填（合成时才知道 SC）
       x: r.left - base.left,
       y: r.top - base.top,
       w: r.width,
@@ -762,6 +970,8 @@ async function collectPictureList(el) {
       fit: cs.objectFit || 'fill',
       pos: parsePos2(cs.objectPosition),
       clip,
+      shadow: backdrop ? [] : shadow, // 底图的阴影没有任何意义（整卡都盖住了）
+      shadowHost,
       backdrop,
       node: im,
     });
@@ -821,8 +1031,123 @@ function paintPicture(ctx, item) {
 }
 
 /**
+ * ⭐⭐⭐ 2026-10-22 第六十一批：解析 `box-shadow` → 自己用 canvas 画
+ * ------------------------------------------------------------
+ * **为什么非得自己画**（本地 WebKit + 用户 iOS 截图对齐后的实锤）：
+ *   `.scard .art` 的 `box-shadow: 0 18px 44px rgba(0,0,0,.5)` 在 WebKit 的
+ *   SVG(foreignObject) 里**不被栅格化成柔和阴影**，而是画成一块**硬边深色矩形**
+ *   ——位置正好在封面右侧、与封面等高（实测 x 350~412 / y 112~347，亮度 34.9，
+ *   而同一张卡左侧对称区是 137.2）。这就是用户红圈标出的
+ *   「方形图 专辑旁边那块特效错位（硬边＋斑块）」。
+ *   实测归因：把 `.art` 的 box-shadow 去掉 ⇒ 该区域亮度 34.9 → 125.6（恢复）；
+ *   换成 `filter:drop-shadow()` ⇒ 阴影完全不画（125.6）但**没有暗带**。
+ *   ⇒ 定稿：**克隆里把图片容器的 box-shadow 关掉，合成路径自己按相同参数画**。
+ *
+ * 解析规则按浏览器 computed value 的实际形态写（`rgba(...) 0px 18px 44px 0px`），
+ * 依次取：颜色 → x 偏移 → y 偏移 → 模糊 → 扩张；`inset` 内阴影跳过（图片容器不用）。
+ */
+function parseShadows(css) {
+  const s0 = String(css || '').trim();
+  if (!s0 || s0 === 'none') return [];
+  // 顶层逗号切分（rgba(...) 里的逗号不能切）
+  const parts = [];
+  let depth = 0;
+  let cur = '';
+  for (const ch of s0) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    if (ch === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += ch;
+  }
+  parts.push(cur);
+  const out = [];
+  for (const raw of parts) {
+    const s = raw.trim();
+    if (!s || /\binset\b/.test(s)) continue;
+    const cm = s.match(/rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}/);
+    let color = cm ? cm[0] : '';
+    if (!color) {
+      // 关键字颜色（red / white / transparent …）
+      const word = s.replace(/-?[\d.]+px/g, ' ').replace(/\b0\b/g, ' ').trim().split(/\s+/)[0];
+      color = word || '';
+    }
+    if (!color || /^transparent$/i.test(color)) continue;
+    const nums = (s.replace(/rgba?\([^)]*\)/g, ' ')
+      .match(/-?[\d.]+/g) || []).map(Number).filter((n) => Number.isFinite(n));
+    const [sx = 0, sy = 0, blur = 0, spread = 0] = nums;
+    out.push({ x: sx, y: sy, blur: Math.max(0, blur), spread, color });
+  }
+  return out;
+}
+
+/**
+ * 用 canvas 画一条 CSS box-shadow（只保留"形状之外"的部分）
+ * ⚠️ 坐标全部是**设备像素**（这里临时把 transform 重置成 1），因为 canvas 的
+ *    `shadowOffsetX/Y` / `shadowBlur` 不吃 CTM，混用会画到别处。
+ * ⚠️ 先画形状再 `destination-out` 挖掉本体：否则实心阴影色会盖住卡片内容
+ *    （形状与图片矩形不一定完全重合）。
+ */
+function paintShadow(ctx, item) {
+  const list = item.shadow;
+  const c = item.clip;
+  if (!list || !list.length || !c || !(c.w > 0 && c.h > 0)) return;
+  const W = ctx.canvas.width;
+  const H = ctx.canvas.height;
+  if (!(W > 0 && H > 0)) return;
+  const sc = item.sc;
+  if (!paintShadow._buf || paintShadow._buf.width !== W || paintShadow._buf.height !== H) {
+    paintShadow._buf = document.createElement('canvas');
+    paintShadow._buf.width = W;
+    paintShadow._buf.height = H;
+  }
+  const buf = paintShadow._buf;
+  const g = buf.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, W, H);
+  for (const s of list) {
+    g.save();
+    g.shadowColor = s.color;
+    g.shadowOffsetX = s.x * sc;
+    g.shadowOffsetY = s.y * sc;
+    g.shadowBlur = s.blur * sc;
+    g.fillStyle = '#000';
+    roundRectPath(
+      g,
+      (c.x + s.spread) * sc,
+      (c.y + s.spread) * sc,
+      Math.max(0, (c.w - s.spread * 2)) * sc,
+      Math.max(0, (c.h - s.spread * 2)) * sc,
+      (c.r + s.spread) * sc,
+    );
+    g.fill();
+    g.restore();
+  }
+  g.globalCompositeOperation = 'destination-out';
+  roundRectPath(g, c.x * sc, c.y * sc, c.w * sc, c.h * sc, c.r * sc);
+  g.fill();
+  g.globalCompositeOperation = 'source-over';
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(buf, 0, 0);
+  ctx.restore();
+}
+
+/**
  * 合成引擎：SVG 只画"非图片"，图片由这里画。
- * 顺序：底色 → 底图 → SVG（文字/渐变/描边）→ 其余图片
+ * 顺序：底色 → 底图 → **bottom SVG**（文字/渐变/低层伪元素）→ 其余图片 → **overlay SVG**（高层伪元素）
+ * ------------------------------------------------------------
+ * ⭐⭐⭐ 2026-10-22 第六十一批：**SVG 拆成两层画**
+ *   修复前只有一层 SVG（图片全部藏掉），整块画在内容图**之前** ⇒
+ *   `.scard.glassy::after`（z-index:3：左上主高光 + 斜穿光带 + 底部微光）被图片盖住。
+ *   实测差距：缩略图区两引擎差 **17.6~18**（底部微光 radial 正好压在那里）、
+ *   冠军封面区差 8.4~10.2（斜穿光带穿过中部）—— 就是用户红圈标出的
+ *   「专辑旁边那块特效错位」在合成路径上的对应物。
+ *   修法：按 z-index 把伪元素拆两批——
+ *     · z < 2（内容层之下，如 `.scard.glassy::before` z1 的柔光/纱幕）→ 跟文字一起进 bottom SVG
+ *     · z ≥ 2（内容层之上，如 `::after` z3/z9 的光带/白边）→ 单独一层 overlay SVG，画在图片之后
+ *   没有高层伪元素的卡 ⇒ overlayNeeded=false，**只画一层，行为与修复前完全一致**。
+ * ⭐ 2026-10-22 第六十一批：**没有图片可画时退回普通 SVG**（不再抛错）。
+ *   纯文字卡（如某些战报）本来就没有 `<img>`，旧代码抛"合成路径没有可画的图"
+ *   ⇒ 白白滑到 html2canvas（它丢 calc(var()) 间距）——现在直接给普通 SVG。
  */
 async function renderViaComposite(el, { targetWidth = 1080, bg = null } = {}) {
   const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
@@ -831,13 +1156,37 @@ async function renderViaComposite(el, { targetWidth = 1080, bg = null } = {}) {
   if (!(W > 0) || !(H > 0)) throw new Error('导出元素不可见（尺寸为 0）');
   const SC = calcScale(el, targetWidth);
   const list = await collectPictureList(el);
-  if (!list.length) throw new Error('合成路径没有可画的图');
+  if (!list.length) {
+    // 没有图 ⇒ 合成没有意义，直接给普通 SVG（文字/渐变/伪元素全在里面）
+    if (DBG) console.warn('[export][合成] 没有图片可画，退回普通 SVG');
+    return renderViaSvg(el, { targetWidth, bg });
+  }
   if (DBG) console.log('[export][合成] 共', list.length, '张图，其中底图', list.filter((i) => i.backdrop).length, '张');
+  list.forEach((i) => { i.sc = SC; });
+
+  // 图片容器的 box-shadow：SVG 里会画成硬边暗块（WebKit 实测）⇒ 克隆里关掉，canvas 自己画
+  const shadowHosts = new Set(
+    list.filter((i) => i.shadow && i.shadow.length).map((i) => i.shadowHost).filter(Boolean),
+  );
+  if (DBG) console.log('[export][合成] 阴影宿主', shadowHosts.size, '张图带阴影：', list.map((i) => `${i.node.className || i.node.tagName}:${(i.shadow || []).length}`).join(' '));
+  /**
+   * ⚠️ 不能用「live[i] ↔ clone[i] 下标配对」：`materializePseudo` 会往克隆树里**插入**
+   *    伪元素 div，两边的元素序列长度/顺序就不再一致（第六十一批实测：下标法静默失效，
+   *    暗带原样存在）。改成**临时属性标记** —— 克隆会连属性一起复制，与插入顺序无关。
+   */
+  const stripShadows = (clone) => {
+    clone.querySelectorAll('[data-yinge-shadow-off]').forEach((n) => {
+      n.style.boxShadow = 'none';
+    });
+  };
+  const markShadowHosts = () => shadowHosts.forEach((n) => n.setAttribute('data-yinge-shadow-off', ''));
+  const unmarkShadowHosts = () => shadowHosts.forEach((n) => n.removeAttribute('data-yinge-shadow-off'));
+
 
   // 底图会整片盖住宿主 ⇒ 把它的祖先背景清掉，免得 SVG 里那层不透明的卡面把底图盖住
   const liveImgs = [...el.querySelectorAll('img')];
   const backdropIdx = list.filter((i) => i.backdrop).map((i) => liveImgs.indexOf(i.node)).filter((i) => i >= 0);
-  const tweak = (clone) => {
+  const clearBackdropBgs = (clone) => {
     const cloneImgs = [...clone.querySelectorAll('img')];
     backdropIdx.forEach((idx) => {
       let p = liveImgs[idx].parentElement;
@@ -854,11 +1203,66 @@ async function renderViaComposite(el, { targetWidth = 1080, bg = null } = {}) {
       }
     });
   };
+  /** 克隆里实体化伪元素的 z-index（materializePseudo 已把它内联进 style） */
+  const pseudoZ = (n) => {
+    const v = n.style?.zIndex || (typeof getComputedStyle === 'function' ? getComputedStyle(n).zIndex : '');
+    const z = parseInt(v, 10);
+    return Number.isFinite(z) ? z : 0;
+  };
+  /** 内容层的 z-index（`.scard > *:not(.sbg)` / `.pcard .inner` 都是 2）——伪元素 ≥ 它就要压到图片之上 */
+  const CONTENT_Z = 2;
+  const overlayState = { needed: false };
+
+  const tweakBottom = (clone) => {
+    clearBackdropBgs(clone);
+    stripShadows(clone);
+    // 高层伪元素（z ≥ 内容层）不在底层画，交给 overlay 那一次
+    clone.querySelectorAll('[data-pseudo]').forEach((n) => {
+      if (pseudoZ(n) >= CONTENT_Z) {
+        n.style.display = 'none';
+        overlayState.needed = true;
+      }
+    });
+  };
+  const tweakOverlay = (clone) => {
+    clearBackdropBgs(clone);
+    stripShadows(clone);
+    // 只留高层伪元素，其余一律隐藏（visibility 保留布局；伪元素 div 是根的直属子节点，不会被连坐）
+    [...clone.children].forEach((n) => {
+      if (n.hasAttribute && n.hasAttribute('data-pseudo') && pseudoZ(n) >= CONTENT_Z) return;
+      n.style.visibility = 'hidden';
+    });
+    // 根自己的卡面底色/背景图清掉——overlay 只画光带，不画卡面
+    clone.style.background = 'transparent';
+    clone.style.backgroundColor = 'transparent';
+    clone.style.backgroundImage = 'none';
+  };
 
   // SVG 只负责文字/渐变：bg 传 null，底色最后自己铺
-  const svgCanvas = await renderViaSvg(el, {
-    targetWidth, bg: null, hideImages: true, tweak, returnCanvas: true,
-  });
+  let svgCanvas;
+  let svgOverlay = null;
+  markShadowHosts();
+  try {
+    svgCanvas = await renderViaSvg(el, {
+      targetWidth, bg: null, hideImages: true, tweak: tweakBottom, returnCanvas: true,
+    });
+    if (overlayState.needed) {
+      try {
+        svgOverlay = await renderViaSvg(el, {
+          targetWidth, bg: null, hideImages: true, tweak: tweakOverlay, returnCanvas: true,
+        });
+        if (svgOverlay.width !== svgCanvas.width || svgOverlay.height !== svgCanvas.height) {
+          if (DBG) console.warn('[export][合成] overlay 尺寸不一致，放弃叠加层');
+          svgOverlay = null;
+        }
+      } catch (e) {
+        if (DBG) console.warn('[export][合成] overlay 渲染失败（不影响底层）：', e?.message || e);
+        svgOverlay = null;
+      }
+    }
+  } finally {
+    unmarkShadowHosts(); // 临时属性绝不能留在真实 DOM 上
+  }
 
   const out = document.createElement('canvas');
   out.width = svgCanvas.width;
@@ -876,44 +1280,66 @@ async function renderViaComposite(el, { targetWidth = 1080, bg = null } = {}) {
   ctx.drawImage(svgCanvas, 0, 0);
   ctx.save();
   ctx.scale(SC, SC);
-  list.filter((i) => !i.backdrop).forEach((i) => paintPicture(ctx, i));
+  list.filter((i) => !i.backdrop).forEach((i) => {
+    // 阴影先画（在被图片盖住之前），参数与页面上的 box-shadow 一致
+    if (!(typeof window !== 'undefined' && window.__yingeNoShadow)) paintShadow(ctx, i);
+    paintPicture(ctx, i);
+  });
   ctx.restore();
-  if (DBG) console.log('[export][合成] 画布', out.width, '×', out.height);
+  // 高层伪元素（::after 光带 / 白边）最后画，压在图片之上
+  if (svgOverlay) ctx.drawImage(svgOverlay, 0, 0);
+  if (DBG) console.log('[export][合成] 画布', out.width, '×', out.height, 'overlay=', !!svgOverlay);
   return out;
 }
 
 /**
  * 导出为 PNG dataURL。
  * ------------------------------------------------------------
- * ⭐⭐ 2026-10-21 第六十批：**改成「SVG 试两次 → 再退 html2canvas」**
- *   用户 iOS 真机第 N 次反馈，而桌面端一直正常。查到的底层事实（见 saveImage.js 的注释）：
- *   WebKit 里 SVG(foreignObject) 与内嵌图片的位图**不是同步就绪**的
- *   —— 首次把 SVG 画进 canvas 时，图片往往是空的；同一段代码在 Chromium 里一次就对。
- *   社区（html-to-image #461、dom-to-image、modern-screenshot 的 `delay` 选项）
- *   给出的共同解法就是**等一帧再来一次**。
- *   ⇒ 这里把「一次失败就换引擎」改成：
- *        ① SVG 第 1 次 → 不过检 ⇒ ② 等一帧 + 重试 SVG 第 2 次 → 仍不过检 ⇒ ③ html2canvas
- *   为什么不再直接换 html2canvas：它自己算布局，`calc(var())`、
- *   `-webkit-line-clamp` 这类不认（第三十一批踩过，标题与副标题会贴在一起），
- *   所以它只能是最后一道，不能是第一道。
+ * ⭐⭐⭐ 2026-10-22 第六十一批定稿的引擎选择：
+ *   · **非 WebKit（桌面 Chromium/Edge/OPR/Firefox）**：SVG 一次成，不过检再试一次，
+ *     仍不过才退合成。桌面产物与改前**逐字节一致**（同输入 A/B 验证）。
+ *   · **WebKit（iOS Safari / 微信内置 / macOS Safari）**：**跳过 SVG 直走合成**。
+ *     根因是实测三方对齐的稳定行为——WebKit 的 SVG(foreignObject) 不渲染内嵌 `<img>`，
+ *     试两次只是白烧渲染。合成路径把图片交给 canvas 按实测矩形画，
+ *     并用 z-index 把伪元素拆成 bottom/overlay 两层，保证 `::after` 光带压在图片之上。
+ *   · 两条路都不过 ⇒ html2canvas 垫底（它自己算布局，只能最后一道）。
  */
 export async function exportNodeToPng(el, opts = {}) {
   const { targetWidth = 1080, fallback = true, bg = null, preferHtml2canvas = false } = opts;
   if (preferHtml2canvas) return runHtml2canvas(el, { targetWidth, bg });
   const DBG = typeof window !== 'undefined' && window.__yingeExportDebug;
   const FORCE_COMPOSITE = typeof window !== 'undefined' && window.__yingeForceComposite;
+  /**
+   * ⭐⭐⭐ 2026-10-22 第六十一批：**WebKit 一步到位走合成，不再试 SVG**
+   * ------------------------------------------------------------
+   * 本地 WebKit 实测 + 用户三张 iOS 截图对齐：SVG(foreignObject) 在 WebKit 里
+   * **不渲染内嵌 `<img>`**（人格卡底图整层丢 / 竖卡缩略图丢 / 冠军封面只剩模糊底），
+   * 而且这是**稳定行为**（等帧/等 260ms 都救不回）⇒ "试两次 SVG"没有意义。
+   * 桌面 Chromium/Edge/OPR/Firefox 桌面不受影响（isWebKitEngine 全排除），
+   * 依旧走原来的「SVG 一次成」——桌面产物与改前逐字节一致。
+   * 逃生门：`window.__yingeForceSvg = true` 强制回到旧链路。
+   */
+  const WEBKIT = isWebKitEngine();
+  /**
+   * ⭐⭐⭐ 第六十一批补：**引擎能力实测**（只对非 WebKit 跑）
+   *   UA 是第一道；这里再用一张"封面量级"的图实测「foreignObject 里的 <img> 首帧画不画」，
+   *   结果缓存整个会话。判 false 时直接走合成，**不给坏图机会**。
+   * ⚠️ WebKit 不跑这个自测：UA 已经判定了，而且它首帧必失败、要等 150ms 才好
+   *    —— 跑一次会白白多花 1~8 秒（第六十一批实测首导 8.4s），用户体验不可接受。
+   */
+  const svgCapable = WEBKIT ? false : await svgImageSupport();
 
   /**
-   * 三级引擎（第六十批定稿）
-   * ① SVG 第 1 次 —— 桌面端永远走这条，产出与改前**逐像素一致**
-   * ② SVG 第 2 次（等一帧）—— WebKit 的"首帧"类问题能被这一下救回
-   * ③ **canvas 合成**（图片不进 SVG，由 canvas 按实测矩形画）—— iOS 的确定性方案
-   * ④ html2canvas —— 最后一道
+   * 三级引擎（第六十一批定稿）
+   * ① SVG 一次（**仅非 WebKit**）—— 桌面端永远走这条，产出与改前**逐像素一致**
+   * ② **canvas 合成**（图片不进 SVG，由 canvas 按实测矩形画；::after 类高层伪元素单独一层压在图上）
+   *    —— WebKit 的直接路径，也是其它引擎 SVG 两次不过后的路径
+   * ③ html2canvas —— 最后一道
    * ⚠️ 顺序不能倒：html2canvas 自己算布局、丢 `calc(var())` 间距，只能垫底。
    */
   let lastErr = null;
 
-  if (!FORCE_COMPOSITE) {
+  if (!FORCE_COMPOSITE && !WEBKIT && svgCapable) {
     for (let pass = 1; pass <= 2; pass += 1) {
       try {
         // eslint-disable-next-line no-await-in-loop
@@ -930,6 +1356,10 @@ export async function exportNodeToPng(el, opts = {}) {
         }
       }
     }
+  } else if (!svgCapable && DBG) {
+    console.warn('[export] 实测本引擎的 foreignObject 不渲染内嵌图片（8×8 自测未画出）⇒ 直走合成');
+  } else if (WEBKIT && DBG) {
+    console.warn('[export] WebKit 内核：跳过 SVG（foreignObject 不渲染内嵌图片，已实测），直走合成');
   }
 
   // ③ 合成路径
