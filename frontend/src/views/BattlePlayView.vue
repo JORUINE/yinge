@@ -425,9 +425,9 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref, nextTick, watch } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { battleApi, musicApi } from '@/api';
+import { battleApi, musicApi, shareApi } from '@/api';
 import { accentStyleOf, ensureAlbumAccent, blendWithBrand, withAlpha } from '@/utils/coverColor.js';
 import { ROUND_CN } from '@/utils/tournament.js';
 // 本地续玩：把"我正在打哪一局"记在本地，下次进来能一键接着打
@@ -445,6 +445,7 @@ const props = defineProps({
 });
 
 const route = useRoute();
+const router = useRouter();
 const id = route.params.id;
 
 const loading = ref(true);
@@ -753,9 +754,29 @@ async function load() {
     // 封面主色是异步取的：先把哈希色渲染出来，取到真色后自动更新
     loadAccents();
   } catch (err) {
+    // 分享链接的老地址兼容（2026-10-23 第六十四批）
+    // ------------------------------------------------------------
+    // 以前复制出去的链接是 `/battle/:id`（本页）。好友打开时必然 403/404。
+    // 已经发出去的链接收不回来，所以这里兜一下：能拿到公开结果就送去分享页。
+    if (await goPublicShareIfAny()) return;
     ElMessage.error(err?.message || '加载失败');
   } finally {
     loading.value = false;
+  }
+}
+
+/**
+ * 拿不到本人权限时，试试"这局是不是已经公开（打完）了"
+ * @returns {Promise<boolean>} true = 已经跳走，调用方不要再报错
+ */
+async function goPublicShareIfAny() {
+  try {
+    const pub = await shareApi.battle(id);
+    if (!pub) return false;
+    await router.replace({ name: 'battle-share', params: { id } });
+    return true;
+  } catch {
+    return false;
   }
 }
 

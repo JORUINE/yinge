@@ -476,6 +476,9 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- 复制链接兜底（2026-10-23 第六十四批：与分享页共用同一个组件） -->
+    <CopyLinkDialog v-if="copyFallbackUrl" :url="copyFallbackUrl" @close="copyFallbackUrl = ''" />
   </div>
 </template>
 
@@ -489,6 +492,9 @@ import FavoriteButton from '@/components/FavoriteButton.vue';
 import BracketTree from '@/components/BracketTree.vue';
 // 对位赛「简洁分享卡」抽成组件：结果页与分享页共用（否则分享页拿不到对位赛的图）
 import AlignedMiniCard from '@/components/AlignedMiniCard.vue';
+// 复制链接兜底弹窗（第六十四批）：与分享页 / 接龙页共用同一个组件
+import CopyLinkDialog from '@/components/CopyLinkDialog.vue';
+import { copyText } from '@/utils/clipboard.js';
 // 打完了 → 清掉「本地续玩」记录（否则首页会一直挂着一条"你还有一局没打完"）
 import { clearResumeIf } from '@/utils/resume.js';
 import { exportAndSave } from '@/utils/saveImage.js';
@@ -628,6 +634,8 @@ async function beginBracketExport() {
 // —— 和好友一起玩：同款签表 ——
 const inviting = ref(false);
 const invite = ref({ code: '' });
+/** 剪贴板写不进去时的兜底弹窗（第六十四批） */
+const copyFallbackUrl = ref('');
 
 async function makeInvite() {
   if (invite.value.code) return;
@@ -657,14 +665,23 @@ function cancelInvite() {
   ElMessage.info('已撤销，好友将无法再用这个码进入');
 }
 
+/**
+ * 复制「同款签表」链接（2026-10-23 第六十四批 · 真机修复）
+ * ------------------------------------------------------------
+ * 用户第二次反馈："手机端这个和好友一起玩 这链接复制了 还是出这个灰色的"。
+ * 根因：这里单独写了一份 `navigator.clipboard.writeText` + catch 里 `ElMessage.info(url)`，
+ *   第六十三批只修了分享页那份 ⇒ 局域网 http（≤非安全上下文）下 clipboard 是 undefined，
+ *   于是照样掉进 catch，只弹一条灰条，剪贴板里什么都没有。
+ * 现在统一走 `utils/clipboard.js`（同步 execCommand → Clipboard API → 兜底弹窗）。
+ */
 async function copyInvite() {
   const url = `${location.origin}/battle/join/${invite.value.code}`;
-  try {
-    await navigator.clipboard.writeText(url);
+  const r = await copyText(url);
+  if (r.ok) {
     ElMessage.success('链接已复制');
-  } catch {
-    ElMessage.info(url);
+    return;
   }
+  copyFallbackUrl.value = url;
 }
 
 /** 这一行的胜方在哪一侧（'left' | 'right' | null）。winnerAlbumId 与 left/right 同为外部 id，可直接比 */

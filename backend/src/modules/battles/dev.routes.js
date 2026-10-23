@@ -44,6 +44,12 @@ router.post(
     const pool = [4, 8, 16].includes(asked) ? asked : 8;
     const scopeType = req.body?.scopeType === 'aligned' ? 'aligned' : (req.body?.scopeType || 'artist');
     const isAligned = scopeType === 'aligned';
+    /**
+     * status（2026-10-23 第六十四批加）：默认造"已结束"，可选造"还在打"。
+     * 用途只有一个 —— 验证公开分享接口**不会**把没打完的局暴露出去。
+     * 仍然只在非 production 注册（见 app.js），不参与任何业务判定。
+     */
+    const status = req.body?.status === 'playing' ? 'playing' : 'finished';
 
     // 取真专辑（要 artworkUrl 真实的 —— 分享卡靠它取色与做模糊底）
     const albums = await Album.find({ artworkUrl: { $regex: '^https?://' } })
@@ -75,7 +81,7 @@ router.post(
       scopeKey: 'dev-fixture',
       artists,
       withRevival: false,
-      status: 'finished',
+      status,
       groupCount: 0,
       roundCount: isAligned ? 1 : Math.log2(pool),
       currentRound: isAligned ? 1 : Math.log2(pool),

@@ -7,10 +7,11 @@ import * as voteService from './vote.service.js';
 import { ok, paginated } from '../../shared/response.js';
 import { clientMeta } from '../../shared/http.js';
 
-function serializeBattle(battle) {
+function serializeBattle(battle, { publicView = false } = {}) {
   return {
     battleId: String(battle._id),
-    userId: String(battle.userId),
+    // 公开分享页不吐 userId（隐私）：好友只需要看结果，不需要知道这是谁的账号
+    ...(publicView ? {} : { userId: String(battle.userId) }),
     scopeType: battle.scopeType,
     scopeKey: battle.scopeKey,
     artists: battle.artists || [],
@@ -117,6 +118,24 @@ export async function result(req, res) {
   const { id } = req.validated.params;
   const data = await battleService.getResult(id, req.user._id);
   return ok(res, { ...data, battle: serializeBattle(data.battle) });
+}
+
+/**
+ * 公开只读结果（2026-10-23 第六十四批）
+ * ------------------------------------------------------------
+ * 无需登录：好友点开 `/battle/:id/share` 就能看到"你选出来的冠军"。
+ * 只对**已打完**的对决开放（口径见 battle.service.getPublicResult 的注释）。
+ * `viewerIsOwner` 用可选鉴权算出来，前端据此决定给"看完整战报"还是"我也来打一局"。
+ */
+export async function publicResult(req, res) {
+  const { id } = req.validated.params;
+  const data = await battleService.getPublicResult(id);
+  const viewerIsOwner = Boolean(req.user && String(req.user._id) === String(data.battle.userId));
+  return ok(res, {
+    ...data,
+    battle: serializeBattle(data.battle, { publicView: true }),
+    viewerIsOwner,
+  });
 }
 
 /** B-09 撤销上一步：把最后一票撤回，并把由此推进出来的场次一起退回去 */

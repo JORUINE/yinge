@@ -14,7 +14,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { validate } from '../../middleware/validate.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, optionalAuth } from '../../middleware/auth.js';
 import { asyncHandler } from '../../shared/http.js';
 import { SCOPE_TYPES } from '../../models/index.js';
 import * as controller from './battles.controller.js';
@@ -121,6 +121,22 @@ const codeParam = z.object({
 const inviteParam = z.object({ id: z.string().regex(/^[a-fA-F0-9]{24}$/, '无效的标识') });
 
 const router = Router();
+
+/**
+ * 公开只读：分享出去的冠军结果（2026-10-23 第六十四批）
+ * ------------------------------------------------------------
+ * ⚠️ **必须写在 `router.use(authenticate)` 之前** —— Express 的中间件只对它**后面**
+ *   声明的路由生效。写在后面会被强制登录拦掉，好友点开分享链接就只剩错误页。
+ * 用 optionalAuth 而不是不鉴权：要区分"看的人是不是这局的主人"，
+ * 前端据此决定给「看完整战报」还是「我也来打一局」。
+ */
+router.get(
+  '/public/:id',
+  validate(idParam, 'params'),
+  optionalAuth,
+  asyncHandler(controller.publicResult),
+);
+
 router.use(authenticate);
 
 // ---- 同款签表（好友一起玩）----

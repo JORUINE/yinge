@@ -16,6 +16,8 @@ import {
 } from '../../models/index.js';
 import config from '../../config/index.js';
 import {
+  AppError,
+  BizCode,
   BadRequestError,
   NotFoundError,
   ForbiddenError,
@@ -1905,9 +1907,47 @@ async function finishBattle(battle, matches) {
   await battle.save();
 }
 
-/** B-06 结果：标准赛制给夺冠路径；对位赛给逐行对照表 */
+/** B-06 结果：标准赛制给夺冠路径；对位赛给逐行对照表（**仅本人**，带归属校验） */
 export async function getResult(battleId, userId) {
   const battle = await loadOwnedBattle(battleId, userId);
+  return buildResult(battle);
+}
+
+/**
+ * 公开只读结果（2026-10-23 第六十四批）
+ * ============================================================
+ * 为什么要有它：分享的意义是"把链接甩过去，别人就能看到我选出来的冠军"。
+ * 原来复制出去的是 `/battle/:id`（继续投票页），那一页要登录 + 归属校验
+ * ⇒ 好友点开只会看到错误页，分享等于作废。
+ *
+ * 口径（自己定稿，不抛回用户）：
+ *   ① **只有已打完（status==='finished'）的对决**才对外可见 —— 没打完的局
+ *      暴露了就等于剧透"你已经选到哪一步"，而且页面也没有结果可看；
+ *   ② battleId 是 24 位 ObjectId（不可枚举），持有链接＝持有查看权，
+ *      这是标准的"知道链接就能看"模型；
+ *   ③ 返回里**不带 userId / 邮箱等隐私字段**（序列化时剔除）；
+ *   ④ 逐场比赛、比分、冠军、对位表全部沿用 buildResult，与本人看到的完全同口径。
+ */
+export async function getPublicResult(battleId) {
+  const battle = await Battle.findById(battleId);
+  if (!battle) throw new NotFoundError('分享的对决');
+  if (battle.status !== 'finished') {
+    // ⚠️ 不能用 `NotFoundError('这局还没打完…')` —— 那个类的构造器会拼上「不存在」，
+    //    文案会变成"…暂时没有可分享的结果不存在"（第六十四批自检当场抓到）。
+    throw new AppError('这局还没打完，暂时没有可分享的结果', {
+      bizCode: BizCode.NOT_FOUND,
+      httpStatus: 404,
+    });
+  }
+  return buildResult(battle);
+}
+
+/**
+ * 结果组装（本人页 / 分享页**共用同一份**，保证两边口径不会漂）
+ * @param {object} battle 已加载的 Battle 文档
+ */
+async function buildResult(battle) {
+  const battleId = battle._id;
   const matches = await BattleMatch.find({ battleId }).sort({ matchOrder: 1 });
   const albumDocs = await Album.find({ _id: { $in: battle.albumIds } });
   const albumMap = new Map(albumDocs.map((a) => [String(a._id), a]));
@@ -2027,4 +2067,5 @@ export default {
   createRevival,
   progressBattle,
   getResult,
+  getPublicResult,
 };

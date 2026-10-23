@@ -192,7 +192,11 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
 </div>
 
 <footer>
-音格 · 毕业设计过程交付物　｜　最后更新 2026-10-22（<b>第六十三批 · 手机复制链接真机修复 + 人格维度数据统一</b>：
+音格 · 毕业设计过程交付物　｜　最后更新 2026-10-23（<b>第六十四批 · 分享链接「别人点开就能看到冠军」+ 三个复制入口统一</b>：
+　　<b>分享自检 22/22 · 复制自检 18/18 · 方卡回归 20/20</b>，全项目审查 76 条接口调用 0 悬空：
+　　<a href="第六十四批交付报告.html"><b>第六十四批交付报告</b></a>　｜
+　　<a href="服务器与AI接入操作清单.html"><b>服务器与 AI 接入 · 操作清单</b></a>；<br>
+　　<b>第六十三批 · 手机复制链接真机修复 + 人格维度数据统一</b>：
 　　人格自检 <b>16/16 + 22/22</b>、复制真机条件实测通过：
 　　<a href="第六十三批交付报告.html"><b>第六十三批交付报告</b></a>；<br>
 　　<b>第六十二批 · 方形分享图「带上分享链接」不再被裁</b>：
@@ -579,6 +583,17 @@ footer{margin-top:50px;padding-top:18px;border-top:1px solid var(--line);
   <table style="width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px">
     <thead><tr><th style="width:300px">文档 / 文件</th><th>讲什么</th></tr></thead>
     <tbody>
+      <tr><td><a href="第六十四批交付报告.html" style="color:#0369A1"><b>第六十四批交付报告</b></a></td><td><b style="color:#B45309">分享链接别人点开就能看到冠军 + 三个复制入口统一</b>：
+        <b>复制</b>：全站有 3 个复制入口，上一批只修了分享页那一份 ⇒ 结算页「和好友一起玩」仍是老写法，照旧只弹灰条。
+        现在复制逻辑收成 <code>utils/clipboard.js</code> 唯一一份、兜底弹窗收成一个组件，三处共用。
+        <b>分享</b>：复制的是 <code>/battle/:id</code>（继续投票页，要登录 + 归属校验）⇒ 好友必 403。
+        新增公开只读接口 <code>GET /battles/public/:id</code>（只开放已打完的局、不含 userId），分享页去掉 <code>requiresAuth</code>，
+        复制改 <code>/battle/:id/share</code>；<b>老链接打开会自动跳转</b>，不用重发。
+        自检当场抓到 3 个连带 bug（文案"…结果不存在"、访客被 401 踢去登录页、访客点"继续投票"进别人对局）。</td></tr>
+      <tr><td><a href="服务器与AI接入操作清单.html" style="color:#0369A1"><b>服务器与 AI 接入 · 操作清单</b></a></td><td><b style="color:#B45309">照着点就行</b>：
+        两条线并行 —— 备案是长线（7~20 天）先提交；AI Key 今晚 10 分钟就能拿。
+        含百炼 API Key 领取步骤与验证命令、香港机/国内机/域名/备案的具体勾选项、要发给我的 5 样东西、8 个上线坑、
+        以及每条信息的<b>一手官方来源</b>。</td></tr>
       <tr><td><a href="第六十三批交付报告.html" style="color:#0369A1"><b>第六十三批交付报告</b></a></td><td><b style="color:#B45309">手机复制链接失效 + 人格维度分数超 10，两件都修好了</b>：
         <b>复制</b>：局域网 http 是非安全上下文，<code>navigator.clipboard</code> 不存在 ⇒ 旧代码只弹灰条。
         改为三级兜底（execCommand → Clipboard API → 长按兜底弹窗），真机条件下剪贴板内容逐字符一致。

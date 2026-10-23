@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音格 · 服务器与 AI 接入 · 操作清单</title>
+<style>
+  :root{--ink:#0b2437;--ink2:#3d5a6e;--muted:#6b8296;--bg:#f2f7fb;--card:#fff;--line:#dbe7ef;
+        --brand:#0369a1;--teal:#0f766e;--amber:#b45309;--red:#b42318}
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 18px 70px;background:var(--bg);color:var(--ink);
+       font:15px/1.75 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 24px}
+  h2{font-size:19px;margin:32px 0 10px;padding-left:11px;border-left:4px solid var(--brand)}
+  h3{font-size:15px;margin:18px 0 6px;color:var(--ink2)}
+  code{background:#eaf2f7;padding:1px 5px;border-radius:4px;font-size:13px;color:#0b4a6f;
+       word-break:break-all}
+  pre{background:#0f2434;color:#dbeafe;padding:13px 15px;border-radius:10px;overflow-x:auto;
+      font-size:12.5px;line-height:1.6}
+  pre code{background:none;color:inherit;padding:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin:10px 0}
+  .lead{border-left:4px solid var(--teal);background:#effaf6}
+  .warn{border-left:4px solid var(--amber);background:#fff8ec}
+  .bad{border-left:4px solid var(--red);background:#fef4f3}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef5f9;font-size:13px;color:var(--ink2)}
+  ul,ol{padding-left:22px;margin:8px 0}
+  li{margin:7px 0}
+  .task{list-style:none;padding-left:0;margin:10px 0}
+  .task li{display:grid;grid-template-columns:22px 1fr;gap:9px;align-items:start;
+           background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:7px 0}
+  .task .box{width:16px;height:16px;border:1.5px solid #9db8c9;border-radius:4px;margin-top:5px}
+  .task b{display:block;font-size:14.5px}
+  .task .d{color:var(--ink2);font-size:13.5px}
+  .done{color:var(--teal);font-size:12.5px;font-weight:700}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 8px;border-radius:999px;
+        background:rgba(14,165,233,.13);color:var(--brand);margin-left:6px;vertical-align:2px}
+  .tag.ok{background:rgba(15,118,110,.13);color:var(--teal)}
+  .tag.wa{background:rgba(180,83,9,.13);color:var(--amber)}
+  .foot{margin-top:34px;color:var(--muted);font-size:12.5px;text-align:center}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0}
+  .flow .b{background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center;font-size:12.5px}
+  .flow .b b{display:block;font-size:13px;color:var(--brand)}
+  @media (max-width:700px){.flow{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>服务器 + AI 接入 · 操作清单</h1>
+  <p class="sub">2026-10-23　｜　给胡祖锐本人照着点的版本　｜　两条线并行：<b>备案是长线（7~20 天），AI Key 今晚 10 分钟就能拿</b></p>
+
+  <div class="card lead">
+    <b>先说结论，别乱买：</b>
+    <ul>
+      <li><b>先买一台香港机器</b>（免备案，当天就能把网站跑起来给人看）—— 你现在的头等大事是"能演示"。</li>
+      <li><b>同时买一台国内机器 + 一个域名，当晚提交备案</b> —— 备案要等 7~20 天，越早提交越好；这台不急用，等备案通过才接域名。</li>
+      <li><b>AI Key 不用等服务器</b>：今晚就在百炼控制台建一个，填进本地 <code>.env</code> 立刻生效。</li>
+    </ul>
+  </div>
+
+  <div class="flow">
+    <div class="b"><b>今晚 ①</b>实名认证<br>（10 分钟）</div>
+    <div class="b"><b>今晚 ②</b>建 API Key<br>（10 分钟）</div>
+    <div class="b"><b>今晚 ③</b>买香港机<br>（20 分钟）</div>
+    <div class="b"><b>今晚 ④</b>提备案<br>（40 分钟）</div>
+  </div>
+
+  <h2>一、AI Key：今晚 10 分钟（不用等服务器）</h2>
+
+  <div class="card">
+    <b>我们代码里已经写好的口径</b>（不用你改代码，照填就行）：
+    <table>
+      <tr><th>环境变量</th><th>填什么</th></tr>
+      <tr><td><code>DASHSCOPE_API_KEY</code></td><td>控制台里复制的那串（<code>sk-</code> 开头）</td></tr>
+      <tr><td><code>QWEN_MODEL</code></td><td>默认 <code>qwen-plus</code>（想更便宜可换 <code>qwen-flash</code>）</td></tr>
+      <tr><td><code>QWEN_BASE_URL</code></td><td>默认 <code>https://dashscope.aliyuncs.com/compatible-mode/v1</code>（北京地域）</td></tr>
+    </table>
+    <p class="sub" style="margin:0">位置：<code>backend/.env</code>（这个文件已被 <code>.gitignore</code> 排除，<b>不会进仓库</b>）。</p>
+  </div>
+
+  <ul class="task">
+    <li><span class="box"></span><div>
+      <b>① 开通百炼</b>
+      <div class="d">打开 <a href="https://bailian.console.aliyun.com/" target="_blank" rel="noopener">bailian.console.aliyun.com</a>，
+      用你的阿里云账号登录 → 按提示开通「大模型服务平台百炼」。</div>
+      <div class="done">算成功：能进到百炼的控制台首页。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>② 建 API Key</b>
+      <div class="d">控制台右上角确认<b>地域 = 华北2（北京）</b>（我们默认 Base URL 就是这个地域）→
+      左侧「API-KEY」→ <b>创建 API Key</b> → 归属账号选「阿里云账号（主账号）」→ 权限选「全部」→ 确定 → 复制那串 Key。</div>
+      <div class="d">官方文档：<a href="https://help.aliyun.com/zh/model-studio/get-api-key" target="_blank" rel="noopener">获取与配置 API Key</a>（2026-10-21 更新）</div>
+      <div class="d">⚠️ <b>地域不能混用</b>：北京建的 Key 配上海的 Base URL 会报错。</div>
+      <div class="done">算成功：列表里出现一串 <code>sk-</code> 开头、点眼睛能看全的 Key。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>③ 先用命令行验一下这串 Key 能不能用</b>
+      <div class="d">在 Git Bash 里跑（把 <code>sk-xxx</code> 换成你的）：</div>
+      <pre><code>export DASHSCOPE_API_KEY='sk-xxx'
+curl -s https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions \
+  -H "Authorization: Bearer $DASHSCOPE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"qwen-plus","messages":[{"role":"user","content":"说一句话"}]}'</code></pre>
+      <div class="done">算成功：返回的 JSON 里有 <code>"choices"</code> 和一段中文；不是 <code>"code":"InvalidApiKey"</code>。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>④ 填进 <code>backend/.env</code> 并重启后端</b>
+      <div class="d">找到这一行，把 Key 贴在等号后面（不要加引号、不要留空格）：
+        <pre><code>DASHSCOPE_API_KEY=sk-你自己的那串</code></pre>
+        保存 → 停掉后端 → 重新 <code>npm run dev</code>（或 <code>node src/server.js</code>）。</div>
+      <div class="done">算成功：做一次人格测评，解读文字是"像人写的一段评语"，而不是套模板的几句话。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>⑤ 不用管的三件事（代码里已经做好了）</b>
+      <div class="d">① 每人每天最多真调 <b>5 次</b>（<code>LLM_DAILY_LIMIT</code>），防别人刷爆你的额度；
+      ② 连续失败 3 次自动<b>熔断</b> 10 分钟；③ 同一个人同类型同分数直接<b>复用上次解读</b>。</div>
+      <div class="d">就算 Key 没填、或额度用完，功能<b>也不会报错</b>，会自动降级成模板文案。</div>
+    </div></li>
+  </ul>
+
+  <div class="card warn">
+    <b>关于"免费额度"：</b>新账号通常有每个模型的免费额度，但<b>额度和有效期会变</b>，
+    我不在这里写死数字 —— 以控制台「费用与额度」页显示为准。够我们做毕设演示 + 答辩，正常用不完。
+  </div>
+
+  <h2>二、服务器：今晚/明晚 1 小时（先买香港）</h2>
+
+  <div class="card">
+    <b>为什么先买香港：</b>国内节点<b>必须备案</b>才能用域名访问（备案 7~20 天）；
+    香港节点<b>免备案</b>，买完当天就能把 IP 发给老师/同学看。
+  </div>
+
+  <ul class="task">
+    <li><span class="box"></span><div>
+      <b>① 实名认证</b>
+      <div class="d">阿里云控制台右上角「头像 → 实名认证」→ 个人认证（身份证 + 人脸）。
+      <b>姓名必须和后面备案、域名实名用同一个</b>，错一个字整套要重来。</div>
+      <div class="done">算成功：账号状态显示「已实名」。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>② 学生认证 / 领券（能省不少）</b>
+      <div class="d">搜「阿里云高校计划」做学生认证（学信网/学生证），再进「权益中心」把能领的券都领了。
+      <b>具体券面额以活动页当天显示为准</b>，我不替你承诺金额。</div>
+      <div class="done">算成功：权益中心里能看到"已领取"的 ECS 代金券。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>③ 买香港 ECS</b>
+      <div class="d">ECS 购买页 → <b>地域：中国香港</b> → 实例规格选<b>最便宜的一档（1~2 核 2G 足够）</b> →
+      镜像：<b>Ubuntu 22.04</b>（或「宝塔面板」镜像，图形化管理更省事）→ 系统盘 40G →
+      带宽按量/固定 1~3M 都行（我们页面很轻）→ 购买。</div>
+      <div class="d">参考价位（2026-10 记录，<b>以官网当日活动为准</b>）：新用户常见 <b>60~100 元/年</b> 档。
+      价格页：<a href="https://www.aliyun.com/price/product" target="_blank" rel="noopener">阿里云产品定价</a></div>
+      <div class="done">算成功：控制台「实例」里有一台<b>运行中</b>的机器，能看到公网 IP。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>④ 开放端口 + 拿到登录方式</b>
+      <div class="d">实例 → 安全组 → 入方向放行 <b>22（SSH）、80（HTTP）、443（HTTPS）</b>；
+      记下：<b>公网 IP、root 密码（或密钥）、地域、到期日</b>。</div>
+      <div class="done">算成功：本地 <code>ssh root@你的IP</code> 能登录进去。</div>
+    </div></li>
+  </ul>
+
+  <div class="card bad">
+    <b>不要做的事：</b>别买"云虚拟主机"（不能装 Node）、别买 Windows 系统（贵且吃内存）、
+    别选 4G 以上高配（我们整库才十几 MB，纯浪费）。
+  </div>
+
+  <h2>三、国内机器 + 域名 + 备案：今晚提交，剩下的交给时间</h2>
+
+  <ul class="task">
+    <li><span class="box"></span><div>
+      <b>① 买一台国内 ECS（备案要用）</b>
+      <div class="d">地域选<b>离你近的</b>（如成都/重庆/深圳）。<span class="tag wa">关键限制</span>
+      <b>购买时长必须 ≥ 3 个月</b>才能办备案 —— <b>直接买一年</b>最省事。</div>
+      <div class="done">算成功：控制台里有一台<b>包年包月</b>的国内实例。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>② 买域名 + 域名实名</b>
+      <div class="d"><a href="https://wanwang.aliyun.com/" target="_blank" rel="noopener">万网/域名注册</a> 搜一个短一点的名字。
+      <code>.cn</code> 与 <code>.com</code> 都行；<b>用同一个身份证做域名实名</b>，通常几小时到 1 天。</div>
+      <div class="d">⚠️ <b>买完先别解析</b> —— 备案没通过就解析，会被监测到未备案而阻断，反而添乱。</div>
+      <div class="done">算成功：域名列表里状态是「实名认证成功」。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>③ 提交 ICP 备案</b>
+      <div class="d">进 <a href="https://beian.aliyun.com/" target="_blank" rel="noopener">beian.aliyun.com</a> →
+      用买了国内机器的那个账号登录 → 开始备案 → 主体信息（身份证）→ 网站信息（名称、服务内容选"个人博客/其他"）→
+      上传资料 → 手机核验 → 提交。管局审核约 <b>7~20 个工作日</b>（各省不同）。</div>
+      <div class="d">官方查询入口：<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">工信部备案系统</a></div>
+      <div class="done">算成功：阿里云后台显示「已提交，待管局审核」，你会收到短信。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>④ 备案期间（等着的这十几天）干什么</b>
+      <div class="d">正好是我这边推进的时间：香港机上把站点跑通 → 录演示视频 → 写论文正文。
+      <b>不要干等</b>，备案是最不该占用你注意力的那件事。</div>
+    </div></li>
+
+    <li><span class="box"></span><div>
+      <b>⑤ 备案通过之后</b>
+      <div class="d">拿到备案号（形如 <code>蜀ICP备2026XXXXXX号</code>）→ 把域名解析到国内机 →
+      <b>把备案号发我，我加到页脚</b>（法规要求必须挂）。</div>
+      <div class="done">算成功：<code>https://你的域名</code> 能打开，页脚有备案号。</div>
+    </div></li>
+  </ul>
+
+  <h2>四、你要发给我的 5 样东西（发我之后我来配）</h2>
+  <table>
+    <tr><th>#</th><th>东西</th><th>用途</th></tr>
+    <tr><td>1</td><td>百炼 API Key（<code>sk-</code> 开头）</td><td>我来填 <code>.env</code> 并验证通不通</td></tr>
+    <tr><td>2</td><td>香港机：公网 IP / root 密码（或密钥）/ 系统</td><td>我写部署脚本、装 Node + MongoDB、跑起来</td></tr>
+    <tr><td>3</td><td>域名（备案通过后再给我）</td><td>配 Nginx 反代 + HTTPS</td></tr>
+    <tr><td>4</td><td>备案号</td><td>加到页脚（合规）</td></tr>
+    <tr><td>5</td><td>你希望的网站名 / 二级域名（如 <code>yinge.xxx.com</code>）</td><td>配路由</td></tr>
+  </table>
+
+  <div class="card warn">
+    <b>密钥安全：</b>Key 只发我一次就行，<b>不要贴到群聊、截图里、GitHub issue</b>。
+    我这边只会写进 <code>backend/.env</code>（已在 <code>.gitignore</code> 里）。
+    如果哪天不小心泄露了，去百炼控制台<b>删掉重建</b>一个，其它都不用改。
+  </div>
+
+  <h2>五、上线时容易踩的 8 个坑（提前知道就不会卡住）</h2>
+  <table>
+    <tr><th>坑</th><th>怎么躲</th></tr>
+    <tr><td>备案期间解析域名</td><td>先别解析，等备案号下来再解析</td></tr>
+    <tr><td><code>JWT_SECRET</code> 还用本地那个</td><td>线上必须换新随机串（生成命令在 <code>.env.example</code> 里）</td></tr>
+    <tr><td><code>CORS_ORIGINS</code> 没加线上域名</td><td>填 <code>https://你的域名</code>，否则前端请求全被拦</td></tr>
+    <tr><td>MongoDB 用本地 <code>127.0.0.1</code></td><td>线上要么装本机 MongoDB，要么用 Atlas 连接串</td></tr>
+    <tr><td>服务器内存 1G 跑不动</td><td>2G 起步；MongoDB 会吃内存</td></tr>
+    <tr><td>安全组没开 80/443</td><td>买了机第一时间放行</td></tr>
+    <tr><td>把 <code>.env</code> 提交进 git</td><td>仓库已忽略，但<b>不要手动</b> <code>git add -f</code></td></tr>
+    <tr><td>以为"有 IP 就能给人看"</td><td>国内机没备案，用 IP 访问 80 端口会被拦</td></tr>
+  </table>
+
+  <h2>六、来源清单</h2>
+  <table>
+    <tr><th>信息</th><th>来源</th><th>可信度</th></tr>
+    <tr><td>API Key 获取方式 / 环境变量名 / 北京地域 Base URL</td>
+      <td><a href="https://help.aliyun.com/zh/model-studio/get-api-key" target="_blank" rel="noopener">阿里云百炼官方文档 · 获取与配置 API Key</a>（2026-10-21 更新）</td>
+      <td><b>一手</b></td></tr>
+    <tr><td>百炼控制台入口</td>
+      <td><a href="https://bailian.console.aliyun.com/" target="_blank" rel="noopener">bailian.console.aliyun.com</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>模型与计费</td>
+      <td><a href="https://help.aliyun.com/zh/model-studio/models" target="_blank" rel="noopener">百炼 · 模型列表</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>ECS 价格</td>
+      <td><a href="https://www.aliyun.com/price/product" target="_blank" rel="noopener">阿里云产品定价</a></td>
+      <td><b>一手</b>（活动价天天变，以页面为准）</td></tr>
+    <tr><td>域名注册</td>
+      <td><a href="https://wanwang.aliyun.com/" target="_blank" rel="noopener">万网</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>ICP 备案</td>
+      <td><a href="https://beian.aliyun.com/" target="_blank" rel="noopener">阿里云备案系统</a> ｜
+          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">工信部备案查询</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>备选：DeepSeek（如果不想用千问）</td>
+      <td><a href="https://platform.deepseek.com/" target="_blank" rel="noopener">platform.deepseek.com</a> ｜
+          把 <code>QWEN_BASE_URL</code> 换成 <code>https://api.deepseek.com/v1</code>、<code>QWEN_MODEL</code> 换成 <code>deepseek-chat</code></td>
+      <td><b>一手</b>（未实测，换之前跟我说一声，我跑一遍）</td></tr>
+    <tr><td>备选：免服务器部署（Render / Atlas）</td>
+      <td><a href="https://render.com/" target="_blank" rel="noopener">render.com</a> ｜
+          <a href="https://www.mongodb.com/products/platform/atlas-database" target="_blank" rel="noopener">MongoDB Atlas</a></td>
+      <td>一手，但<b>国内访问慢</b>，只建议做临时演示</td></tr>
+  </table>
+
+  <div class="card">
+    <b>和已有文档的关系（避免你重复看）：</b>
+    这份是<b>"现在照这个做"</b>的执行清单；
+    更细的图文步骤在《阿里云连号操作单》《阿里云上线全流程手册》《部署执行手册》里，
+    选型对比在《服务器选型与执行路线》里。四份口径一致，冲突时<b>以本页为准</b>（最新）。
+  </div>
+
+  <div class="foot">音格 · 服务器与 AI 接入操作清单 · 2026-10-23 · 价格与免费额度均以官网当日显示为准</div>
+</div>
+</body>
+</html>

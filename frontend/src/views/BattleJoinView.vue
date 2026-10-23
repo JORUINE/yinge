@@ -141,6 +141,9 @@
         </div>
       </section>
     </template>
+
+    <!-- 复制链接兜底（2026-10-23 第六十四批：与分享页 / 结算页共用同一个组件） -->
+    <CopyLinkDialog v-if="copyFallbackUrl" :url="copyFallbackUrl" @close="copyFallbackUrl = ''" />
   </div>
 </template>
 
@@ -149,6 +152,9 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { battleApi } from '@/api';
+// 复制链接（第六十四批）：全站统一入口 + 统一兜底弹窗
+import CopyLinkDialog from '@/components/CopyLinkDialog.vue';
+import { copyText } from '@/utils/clipboard.js';
 
 const route = useRoute();
 const router = useRouter();
@@ -160,6 +166,8 @@ const errMsg = ref('');
 const info = ref({});
 const cmp = ref({});
 const myBattleId = ref('');
+/** 剪贴板写不进去时的兜底弹窗（第六十四批） */
+const copyFallbackUrl = ref('');
 
 const SCOPE_LABEL = {
   artist: '单歌手',
@@ -207,14 +215,18 @@ async function start() {
   }
 }
 
+/**
+ * 复制这份签表链接（2026-10-23 第六十四批 · 真机修复）
+ * 旧写法同样只试 Clipboard API，局域网 http 下必失败 ⇒ 手机端只弹灰条。
+ */
 async function copyLink() {
   const url = `${location.origin}/battle/join/${code.value}`;
-  try {
-    await navigator.clipboard.writeText(url);
+  const r = await copyText(url);
+  if (r.ok) {
     ElMessage.success('链接已复制，发给好友就能一起玩');
-  } catch {
-    ElMessage.info(url);
+    return;
   }
+  copyFallbackUrl.value = url;
 }
 
 onMounted(load);

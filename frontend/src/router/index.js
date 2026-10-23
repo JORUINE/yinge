@@ -24,7 +24,11 @@ const routes = [
   { path: '/battle/:id/pk', name: 'battle-pk', component: () => import('@/views/BattlePkView.vue'), meta: { title: '对决进行中', requiresAuth: true } },
   { path: '/battle/:id/bracket', name: 'battle-bracket', component: () => import('@/views/BattleBracketView.vue'), meta: { title: '对决对阵表', requiresAuth: true } },
   { path: '/battle/:id/result', name: 'battle-result', component: () => import('@/views/BattleResultView.vue'), meta: { title: '对决结果与夺冠之路', requiresAuth: true } },
-  { path: '/battle/:id/share', name: 'battle-share', component: () => import('@/views/BattleShareView.vue'), meta: { title: '夺冠之路分享图', requiresAuth: true } },
+  // ⚠️ 2026-10-23 第六十四批：分享页**不要求登录**。
+  //    这是"把链接甩给好友、他点开就能看到我选出来的冠军"的唯一出口；
+  //    加 requiresAuth 会让好友被拦去登录，加归属校验会让好友看到错误页。
+  //    数据由公开只读接口 `GET /api/battles/public/:id` 提供（只开放已打完的局）。
+  { path: '/battle/:id/share', name: 'battle-share', component: () => import('@/views/BattleShareView.vue'), meta: { title: '夺冠之路分享图' } },
 
   { path: '/personality', name: 'personality-intro', component: () => import('@/views/PersonalityIntroView.vue'), meta: { title: '音乐人格测评' } },
   { path: '/personality/test', name: 'personality-test', component: () => import('@/views/PersonalityTestView.vue'), meta: { title: '开始测评' } },

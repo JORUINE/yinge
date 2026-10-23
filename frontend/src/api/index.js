@@ -70,6 +70,17 @@ export const battleApi = {
   inviteCompare: (code) => http.get(`/battles/join/${code}/compare`),
 };
 
+/**
+ * 公开只读接口（2026-10-23 第六十四批）
+ * ------------------------------------------------------------
+ * 分享页要用，且**不能要求登录** —— 好友拿到链接点开就该直接看到冠军。
+ * 后端只对「已打完」的对决开放，返回里不含 userId 等隐私字段。
+ */
+export const shareApi = {
+  /** 某局对决的结果（冠军 / 夺冠路径 / 对位对照表） */
+  battle: (id) => http.get(`/battles/public/${id}`),
+};
+
 export const personalityApi = {
   // qids：续答时传上一次那套题的 id（刷新/误退后接着答）
   questions: (qids) => http.get('/personality/questions', { params: qids?.length ? { qids: qids.join(',') } : {} }),

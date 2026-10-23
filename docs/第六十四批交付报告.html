@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第六十四批交付报告 · 分享链接别人能打开 + 三个复制入口统一</title>
+<style>
+  :root { --ink:#0f2434; --ink2:#3d5a6e; --muted:#6b8296; --bg:#f4f8fb; --card:#fff; --line:#dbe7ef;
+          --teal:#0f766e; --red:#b42318; --amber:#b45309; }
+  *{box-sizing:border-box}
+  body{margin:0;padding:34px 20px 64px;background:var(--bg);color:var(--ink);
+       font:15px/1.75 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:27px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 26px}
+  h2{font-size:19px;margin:34px 0 12px;padding-left:11px;border-left:4px solid var(--teal)}
+  h3{font-size:15.5px;margin:20px 0 8px;color:var(--ink2)}
+  p,li{margin:8px 0}
+  code{background:#eaf2f7;padding:1px 5px;border-radius:4px;font-size:13px;color:#0b4a6f}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:10px 0}
+  .verdict{border-left:4px solid var(--teal);background:#effaf6}
+  .warn{border-left:4px solid var(--amber);background:#fff8ec}
+  .bad{border-left:4px solid var(--red);background:#fef4f3}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef5f9;font-weight:700;font-size:13px;color:var(--ink2)}
+  .ok{color:var(--teal);font-weight:700}
+  .no{color:var(--red);font-weight:700}
+  .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi b{display:block;font-size:21px;color:var(--teal);font-variant-numeric:tabular-nums}
+  .kpi span{font-size:12.5px;color:var(--muted)}
+  .chain{display:grid;gap:8px;margin:12px 0}
+  .step{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;
+        background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .step b.n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--teal);color:#fff;font-size:13px}
+  .step .t{font-weight:700;font-size:14.5px}
+  .step .d{color:var(--ink2);font-size:13.5px}
+  .foot{margin-top:30px;color:var(--muted);font-size:12.5px}
+  ul{padding-left:22px}
+  .flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:8px;align-items:center;margin:14px 0}
+  .flow .box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center;font-size:13px}
+  .flow .ar{color:var(--muted);font-size:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>第六十四批 · 分享链接「别人点开就能看到冠军」+ 三个复制入口统一</h1>
+  <p class="sub">2026-10-23　｜　① 手机「和好友一起玩 → 复制链接」还是只弹灰条　② 好友打开复制来的链接是错误页</p>
+
+  <div class="card verdict">
+    <b>两句话结论：</b><br>
+    ① 复制还是失效，<b>不是修法不对，是只修了一处</b>。全站有 <b>3 个复制入口</b>，
+    第六十三批只改「分享页」那一份，结算页「和好友一起玩」与接龙页仍是老写法
+    <code>navigator.clipboard.writeText</code> + <code>catch</code> 里弹灰条。
+    现在把复制逻辑收成<b>唯一一份</b> <code>utils/clipboard.js</code>，兜底弹窗收成<b>唯一一个</b>组件，三个入口共用。<br>
+    ② 好友打开是错误页，有<b>两道墙 + 一个落点错</b>：链接复制的是 <code>/battle/:id</code>（继续投票页），
+    该页路由 <code>requiresAuth</code>，后端还有<b>归属校验</b>（只有本人能看）。
+    现在新增<b>公开只读接口</b>，分享页<b>不再要求登录</b>，复制的链接改成 <code>/battle/:id/share</code>；
+    <b>已经发出去的老链接</b>打开也会自动跳到分享页 —— 不用重发。
+  </div>
+
+  <div class="kv">
+    <div class="kpi"><b>60 项</b><span>本轮断言（分享 22 + 复制 18 + 方卡回归 20）</span></div>
+    <div class="kpi"><b>3 → 1</b><span>复制实现收敛（原先三份各写各的）</span></div>
+    <div class="kpi"><b>0 条</b><span>前端接口悬空（76 条调用 ↔ 78 条后端路由）</span></div>
+  </div>
+
+  <h2>一、问题一：为什么「和好友一起玩」复制了还是灰条</h2>
+
+  <div class="card warn">
+    <b>根因不是"没修好"，是"只修了一处"。</b>
+    第六十三批我把复制逻辑内联在分享页里，另外两处没动（见下表）。
+    手机通过 <code>http://192.168.1.65:5173</code> 打开时 <code>isSecureContext === false</code>，
+    <code>navigator.clipboard</code> 是 <code>undefined</code> ⇒ 老代码直接掉进 <code>catch</code>，
+    执行 <code>ElMessage.info(url)</code> —— 就是你看到的那条灰色链接提示。
+  </div>
+
+  <table>
+    <tr><th>复制入口</th><th>文件（改前）</th><th>改前行为</th><th>现在</th></tr>
+    <tr>
+      <td>分享页「复制链接分享」</td>
+      <td>BattleShareView.vue</td>
+      <td>第六十三批已修（内联在本页）</td>
+      <td class="ok">走统一工具</td>
+    </tr>
+    <tr>
+      <td>结算页「和好友一起玩 → 复制链接」</td>
+      <td>BattleResultView.vue</td>
+      <td><span class="no">只试 Clipboard API ⇒ 灰条</span></td>
+      <td class="ok">走统一工具 + 兜底弹窗</td>
+    </tr>
+    <tr>
+      <td>接龙页「复制这份签表链接」</td>
+      <td>BattleJoinView.vue</td>
+      <td><span class="no">同上 ⇒ 灰条</span></td>
+      <td class="ok">走统一工具 + 兜底弹窗</td>
+    </tr>
+  </table>
+
+  <h3>复制策略（唯一实现：<code>frontend/src/utils/clipboard.js</code>）</h3>
+  <div class="chain">
+    <div class="step"><b class="n">1</b><div>
+      <div class="t">非安全上下文 ⇒ 同步 <code>document.execCommand('copy')</code></div>
+      <div class="d">必须<b>同步</b>：一旦先 <code>await</code>，浏览器就认为用户手势结束了，execCommand 失效。
+      这一步是手机直连局域网 IP 时唯一能成功的路。</div>
+    </div></div>
+    <div class="step"><b class="n">2</b><div>
+      <div class="t">安全上下文（https / localhost）⇒ Clipboard API</div>
+      <div class="d">线上部署后走这条，体验最好。</div>
+    </div></div>
+    <div class="step"><b class="n">3</b><div>
+      <div class="t">都不行 ⇒ 弹 <code>CopyLinkDialog</code></div>
+      <div class="d">readonly 输入框 + 挂载后自动全选，用户长按就能「拷贝」。
+      字号 <b>16px</b> 不能改小（iOS 上输入框 &lt;16px 聚焦会把整页放大）。</div>
+    </div></div>
+  </div>
+
+  <h2>二、问题二：为什么好友打开是错误页</h2>
+
+  <p>你说的那句话是对的：<b>「分享的意义就是链接甩过去，别人就能看到我选出来的冠军」</b>。
+  改前这条链路上有三处挡着：</p>
+
+  <table>
+    <tr><th>挡点</th><th>改前</th><th>改后</th></tr>
+    <tr><td>链接落点</td><td><code>/battle/:id</code> = 继续投票页</td><td><code>/battle/:id/share</code> = 分享页</td></tr>
+    <tr><td>前端路由</td><td><code>requiresAuth: true</code></td><td>不要求登录（公开只读）</td></tr>
+    <tr><td>后端取数</td><td>只有 <code>GET /battles/:id/result</code>，且 <code>loadOwnedBattle</code> 校验归属 ⇒ 好友 403</td><td>新增 <code>GET /battles/public/:id</code>，无需登录</td></tr>
+  </table>
+
+  <div class="flow">
+    <div class="box">好友点链接<br><code>/battle/:id/share</code></div>
+    <div class="ar">→</div>
+    <div class="box">公开接口<br><code>/api/battles/public/:id</code></div>
+    <div class="ar">→</div>
+    <div class="box">看到冠军卡<br>（可直接存图）</div>
+  </div>
+
+  <h3>公开接口的四条口径（我定稿，不再抛回给你）</h3>
+  <ul>
+    <li><b>只开放「已打完」的局</b>：没打完就公开等于剧透"你选到哪一步了"，页面上也没有结果可看。
+      访客点开这种链接会看到一句说明，不是白屏。</li>
+    <li><b>链接即权限</b>：<code>battleId</code> 是 24 位 ObjectId，猜不出来，属于标准的"知道链接就能看"。</li>
+    <li><b>不吐隐私</b>：返回的 <code>battle</code> 里<b>去掉 <code>userId</code></b>（断言已覆盖）。</li>
+    <li><b>口径与本人页完全一致</b>：公开接口和本人结果接口<b>调用同一个 <code>buildResult()</code></b>，
+      不会出现"我看到的冠军和好友看到的不一样"。</li>
+  </ul>
+
+  <div class="card">
+    <b>老链接不会作废：</b>已经发出去的 <code>/battle/:id</code> 链接，好友打开时这一页必然 403/404，
+    现在会先探一次公开接口 —— 拿得到就<b>自动跳到分享页</b>。本人打开自己没打完的局，行为完全不变。
+  </div>
+
+  <h2>三、自检当场抓到的 3 个连带 bug（都已修）</h2>
+  <table>
+    <tr><th>#</th><th>现象</th><th>根因</th><th>修法</th></tr>
+    <tr>
+      <td>1</td><td>空态文案变成「…暂时没有可分享的<b>结果不存在</b>」</td>
+      <td><code>NotFoundError</code> 的构造器会自动拼「不存在」后缀，我传了一整句进去</td>
+      <td>改用 <code>AppError</code> 直接给文案</td>
+    </tr>
+    <tr>
+      <td>2</td><td>访客点开"没打完的局"，空态<b>一个字都没有</b></td>
+      <td>分享页公开后，兜底分支仍会调需要登录的接口 ⇒ 401 ⇒ 触发全局登出回调被踢去登录页</td>
+      <td>没有令牌就<b>根本不发</b>那个请求</td>
+    </tr>
+    <tr>
+      <td>3</td><td>访客看到「继续投票」，点进去还是错误页</td>
+      <td>那个按钮指向别人的对局页（403）</td>
+      <td>非本人显示「我也来打一局」</td>
+    </tr>
+  </table>
+
+  <h2>四、全项目审查（机器判据，不是"我看着没问题"）</h2>
+  <table>
+    <tr><th>项目</th><th>判据</th><th>结果</th></tr>
+    <tr><td>接口契约</td><td>前端 <code>api/index.js</code> 的每次调用，后端必须有对应路由</td><td class="ok">76 条调用 ↔ 78 条路由，0 条悬空</td></tr>
+    <tr><td>路由 → 页面</td><td>路由表里每处 <code>import(...)</code> 的文件必须存在</td><td class="ok">28 处引用 / 28 个 .vue，全部存在</td></tr>
+    <tr><td>危险残留</td><td>不许有 <code>debugger</code>、<code>@ts-ignore</code>、未加开关的 <code>console.log</code></td><td class="ok">0 处</td></tr>
+    <tr><td>复制实现唯一性</td><td>除 <code>utils/clipboard.js</code> 外，任何 .vue 不得自己写剪贴板</td><td class="ok">0 处（防"只修一处"重演）</td></tr>
+    <tr><td>分享鉴权口径</td><td>分享路由无 <code>requiresAuth</code>；公开接口声明在 <code>router.use(authenticate)</code> 之前</td><td class="ok">4 项断言通过</td></tr>
+    <tr><td>规模（回仓库数）</td><td>不看旧文档，直接数</td><td>前端 27 路由 / 28 页面；后端 78 路由 / 12 模块</td></tr>
+  </table>
+
+  <div class="card warn">
+    <b>审查脚本自己也被修了 3 次</b>（这条值得记）：第一版把 <code>favoriteRouter</code> 的写法误判成"接口不存在"、
+    把注释里的 <code>navigator.clipboard.writeText</code> 当成违规、把 <code>if (DBG)</code> 包住的日志当成裸日志，
+    还因为我写的注释里含 <code>router.use(authenticate)</code> 这七个字而误判顺序。
+    <b>审查工具判错的代价 = 让人去改本来没问题的代码，比不查更糟。</b>三个判据都改准后才全绿。
+  </div>
+
+  <h2>五、回归数字（都是真跑出来的）</h2>
+  <table>
+    <tr><th>探针</th><th>覆盖</th><th>结果</th></tr>
+    <tr><td><code>_r62-measure.mjs</code></td><td>方形卡 + 带上链接：6 视口 × 3 缩放 = 15 组合</td><td class="ok">20 / 20</td></tr>
+    <tr><td><code>_r63-copy.mjs</code></td><td>分享页手机复制（期望值已同步成 <code>/share</code>）</td><td class="ok">通过</td></tr>
+    <tr><td><code>_r64-share.mjs</code></td><td>陌生人视角：无登录看冠军 / 老链接跳转 / 别的账号 / 未打完 / 对位赛</td><td class="ok">22 / 22</td></tr>
+    <tr><td><code>_r64-copy.mjs</code></td><td>三个入口真机条件复制 + 三处兜底弹窗</td><td class="ok">18 / 18</td></tr>
+    <tr><td><code>vite build</code></td><td>正式版 <code>frontend/dist</code></td><td class="ok">通过（12.0s）</td></tr>
+  </table>
+
+  <div class="card">
+    <b>方形卡链接的实测数字（链接多了 <code>/share</code> 这 6 个字符）：</b>
+    桌面 1:1 成立、链接胶囊在卡内、底距 <b>11px</b>；手机 1:1 成立、底距 <b>9px</b>、未裁切。
+    链接按既有规则尾部省略（<code>…</code>），这块你之前说过"没问题"，<b>只测不改</b>。
+  </div>
+
+  <h2>六、改动清单</h2>
+  <table>
+    <tr><th>文件</th><th>改动</th></tr>
+    <tr><td><code>frontend/src/utils/clipboard.js</code></td><td class="ok">新增：全站唯一复制实现（三级兜底）</td></tr>
+    <tr><td><code>frontend/src/components/CopyLinkDialog.vue</code></td><td class="ok">新增：统一兜底弹窗（readonly + 自动全选）</td></tr>
+    <tr><td><code>frontend/src/views/BattleShareView.vue</code></td><td>公开取数、去掉内联复制与弹窗、链接改 <code>/share</code></td></tr>
+    <tr><td><code>frontend/src/views/BattleResultView.vue</code></td><td>复制改走统一工具 + 兜底弹窗</td></tr>
+    <tr><td><code>frontend/src/views/BattleJoinView.vue</code></td><td>同上</td></tr>
+    <tr><td><code>frontend/src/views/BattlePlayView.vue</code></td><td>老链接兼容：拿到公开结果就跳分享页</td></tr>
+    <tr><td><code>frontend/src/router/index.js</code></td><td>分享页去掉 <code>requiresAuth</code></td></tr>
+    <tr><td><code>frontend/src/api/index.js</code></td><td>新增 <code>shareApi.battle(id)</code></td></tr>
+    <tr><td><code>backend/.../battle.service.js</code></td><td>抽出 <code>buildResult()</code>；新增 <code>getPublicResult()</code></td></tr>
+    <tr><td><code>backend/.../battles.controller.js</code></td><td>新增 <code>publicResult</code>；序列化支持"公开视图"（去 userId）</td></tr>
+    <tr><td><code>backend/.../battles.routes.js</code></td><td>新增 <code>GET /public/:id</code>（在鉴权之前）</td></tr>
+    <tr><td><code>backend/.../dev.routes.js</code></td><td>测试钩子：可造"还在打"的局（仅非 production）</td></tr>
+  </table>
+
+  <h2>七、还没做的</h2>
+  <ul>
+    <li>分享页目前只做"看结果 + 存图"，<b>二维码</b>要等有线上域名再接（本地 IP 印二维码没意义）。</li>
+    <li>分享落地页还没有"我也来打一局"的显式入口条（现在只在空态里给）—— 等你部署后再定要不要加，避免现在多一块 UI。</li>
+    <li>部署 / 备案 / AI Key 的具体步骤在《服务器与 AI 接入 · 操作清单》里。</li>
+  </ul>
+
+  <div class="foot">音格 · 第六十四批交付报告 · 2026-10-23 · 配套探针：<code>_r64-share.mjs</code> / <code>_r64-copy.mjs</code> / <code>_r64-audit.mjs</code>（位于工作区 <code>tools/pw/</code>）</div>
+</div>
+</body>
+</html>
