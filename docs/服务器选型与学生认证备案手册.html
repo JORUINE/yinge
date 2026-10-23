@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音格 · 服务器选型 / 学生认证 / 域名备案 · 详细手册</title>
+<style>
+  :root{--ink:#0b2437;--ink2:#3d5a6e;--muted:#6b8296;--bg:#f2f7fb;--card:#fff;--line:#dbe7ef;
+        --brand:#0369a1;--teal:#0f766e;--amber:#b45309;--red:#b42318}
+  *{box-sizing:border-box}
+  body{margin:0;padding:30px 18px 70px;background:var(--bg);color:var(--ink);
+       font:15px/1.75 -apple-system,"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif}
+  .wrap{max-width:940px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0 0 22px}
+  h2{font-size:19px;margin:34px 0 10px;padding-left:11px;border-left:4px solid var(--brand)}
+  h3{font-size:15px;margin:18px 0 6px;color:var(--ink2)}
+  code{background:#eaf2f7;padding:1px 5px;border-radius:4px;font-size:13px;color:#0b4a6f;word-break:break-all}
+  pre{background:#0f2434;color:#dbeafe;padding:12px 14px;border-radius:10px;overflow-x:auto;font-size:12.5px;line-height:1.6}
+  pre code{background:none;color:inherit;padding:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin:10px 0}
+  .lead{border-left:4px solid var(--teal);background:#effaf6}
+  .warn{border-left:4px solid var(--amber);background:#fff8ec}
+  .bad{border-left:4px solid var(--red);background:#fef4f3}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#eef5f9;font-size:13px;color:var(--ink2)}
+  ul,ol{padding-left:22px;margin:8px 0}
+  li{margin:6px 0}
+  .ok{color:var(--teal);font-weight:700}
+  .no{color:var(--red);font-weight:700}
+  .kv{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi b{display:block;font-size:20px;color:var(--teal);font-variant-numeric:tabular-nums}
+  .kpi span{font-size:12px;color:var(--muted)}
+  .steps{counter-reset:s;list-style:none;padding-left:0}
+  .steps>li{counter-increment:s;position:relative;padding:12px 14px 12px 48px;background:#fff;
+            border:1px solid var(--line);border-radius:12px;margin:8px 0}
+  .steps>li::before{content:counter(s);position:absolute;left:14px;top:12px;width:24px;height:24px;
+            border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+  .steps b{display:block;font-size:14.5px}
+  .steps .d{color:var(--ink2);font-size:13.5px}
+  .steps .done{color:var(--teal);font-size:12.5px;font-weight:700;margin-top:2px}
+  .mem{display:grid;grid-template-columns:150px 1fr;gap:6px 12px;font-size:13.5px;margin:10px 0}
+  .mem .k{color:var(--ink2)}
+  .mem .v{font-weight:700}
+  .bar{height:10px;background:#e7eff5;border-radius:99px;overflow:hidden;margin:4px 0 10px}
+  .bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#38bdf8,#0ea5e9)}
+  .foot{margin-top:34px;color:var(--muted);font-size:12.5px;text-align:center}
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:14px 0}
+  .flow .b{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;font-size:12px}
+  .flow .b b{display:block;font-size:12.5px;color:var(--brand)}
+  @media (max-width:760px){.kv{grid-template-columns:repeat(2,1fr)}.flow{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>服务器选型 / 学生认证 / 域名备案 · 详细手册</h1>
+  <p class="sub">2026-10-23　｜　写给四川电影电视学院 · 数字媒体技术 · 个人主体备案　｜　价格与活动均以阿里云官网当日显示为准</p>
+
+  <div class="card lead">
+    <b>三个问题，先给结论：</b>
+    <table>
+      <tr>
+        <td style="width:190px"><b>学生认证怎么弄</b></td>
+        <td>实名 → <code>university.aliyun.com</code> → 学生认证 → <b>学信网认证（支付宝扫码，1~3 分钟自动过）</b> → 领 300 元券。
+        过不了就转人工（学信网截图 + 手持学生证）。<b>每年只能领一次券。</b></td>
+      </tr>
+      <tr>
+        <td><b>买哪台</b></td>
+        <td><b>2 核 4G</b>（ECS 通用型 或 轻量应用服务器），不要 1 核 2G，也不要突发性能型 t6/t5。</td>
+      </tr>
+      <tr>
+        <td><b>2 核 2G 够不够</b></td>
+        <td><b>能跑，但不该买。</b>不是数据装不下（我们整库才 20.5MB），是<b>内存被三方分完</b>：
+        MongoDB 默认要吃掉一半内存做缓存，剩下的要养 Node + Nginx + 系统，
+        真正出事的是<b>在服务器上跑一次构建</b>——2G 基本必 OOM。见第二节的账。</td>
+      </tr>
+    </table>
+  </div>
+
+  <h2>一、我们到底有多大（真实数字，不是估的）</h2>
+
+  <div class="kv">
+    <div class="kpi"><b>20.5 MB</b><span>数据库真实数据量</span></div>
+    <div class="kpi"><b>3.2 MB</b><span>前端构建产物 dist</span></div>
+    <div class="kpi"><b>22 MB</b><span>后端 node_modules</span></div>
+    <div class="kpi"><b>35,000</b><span>曲库专辑数</span></div>
+  </div>
+
+  <table>
+    <tr><th>集合</th><th>条数</th><th>说明</th></tr>
+    <tr><td>albums</td><td>35,000</td><td>专辑（含封面外链、发行日期）</td></tr>
+    <tr><td>tracks</td><td>4,929</td><td>曲目（试听用）</td></tr>
+    <tr><td>artists</td><td>510</td><td>歌手</td></tr>
+    <tr><td>battles / battlematches / votes</td><td>705 / 4,143 / 5,342</td><td>对局、场次、票</td></tr>
+    <tr><td>users / personalityresults</td><td>555 / 139</td><td>用户与人格测评记录</td></tr>
+  </table>
+
+  <div class="card warn">
+    <b>为什么磁盘上看到 408MB？</b>那是 mongod 的数据目录总量，包含 journal 预分配、诊断日志、索引重建的临时文件。
+    <b>真实数据只有 20.5MB</b>（压缩后存储 11MB、索引 4.1MB）。
+    ⇒ <b>我们永远不是因为"数据大"需要升配</b>，40G 系统盘绰绰有余。
+  </div>
+
+  <h2>二、2 核 2G 到底够不够：把内存账算给你看</h2>
+
+  <p>2G 内存不是"全给你用"，是<b>四家分</b>：</p>
+  <div class="mem">
+    <div class="k">Linux 系统本身</div><div class="v">250 ~ 350 MB</div>
+    <div class="k">MongoDB</div><div class="v">≈ 500 MB 缓存 + 100 MB 自身 <span style="font-weight:400;color:#6b8296">（WiredTiger 默认缓存 = (内存−1G)×50%）</span></div>
+    <div class="k">Node 后端</div><div class="v">120 ~ 200 MB</div>
+    <div class="k">Nginx + 监控</div><div class="v">30 ~ 50 MB</div>
+    <div class="k" style="color:#b45309">合计</div><div class="v" style="color:#b45309">≈ 1.1 GB</div>
+  </div>
+
+  <div style="font-size:13.5px;color:#3d5a6e">2G 机器上，日常运行后剩余：</div>
+  <div class="bar"><i style="width:45%"></i></div>
+  <div style="font-size:12.5px;color:#6b8296;margin-bottom:14px">约 900MB 余量 —— <b>平时够，但没有冗余</b></div>
+
+  <div class="card bad">
+    <b>真正会翻车的是这三件事，不是"人多"：</b>
+    <ol>
+      <li><b>在服务器上跑 <code>npm install</code> / <code>vite build</code></b>：Node 构建进程峰值能吃到 800MB~1.5GB，
+      2G 机器直接 OOM，SSH 都连不上。<span class="ok">对策：本地构建好，只上传 <code>dist</code>（3.2MB）。</span></li>
+      <li><b>MongoDB 备份 / 建索引</b>：会临时拉高内存与 IO，2G 上容易把 Node 挤到 swap，页面卡死几秒。</li>
+      <li><b>封面图代理并发</b>：我们的图片走同源代理，几十个人同时刷封面时，CPU 会被打满（这是 CPU 问题，不是内存）。</li>
+    </ol>
+  </div>
+
+  <h3>结论与推荐</h3>
+  <table>
+    <tr><th>方案</th><th>评价</th><th>为什么</th></tr>
+    <tr>
+      <td><b>1 核 2G</b>（学生免费机常见档）</td>
+      <td class="no">不推荐</td>
+      <td>单核 + 2G，Mongo 与 Node 抢 CPU；只能当练习机。<b>且免费试用实例不支持备案</b>（官方明确）。</td>
+    </tr>
+    <tr>
+      <td><b>2 核 2G</b></td>
+      <td class="no">能跑，但不该买</td>
+      <td>日常够用，但没有冗余：一次备份或一次误操作上服务器构建就 OOM。你说要"面对真实用户 + 冗余"，这一档不满足。</td>
+    </tr>
+    <tr>
+      <td><b>2 核 4G</b></td>
+      <td class="ok">✅ 推荐</td>
+      <td>Mongo 缓存能给到 1.5G、Node 与系统各留余量；能直接在机上构建、能扛几百日活；
+        多出来的钱通常一年也就一百多。<b>这就是"冗余"最划算的一档。</b></td>
+    </tr>
+    <tr>
+      <td>4 核 8G</td>
+      <td>没必要（现在）</td>
+      <td>我们没有任何重计算在后端（图片导出全在浏览器里做）。钱应该先花在带宽/CDN 和备份上。</td>
+    </tr>
+  </table>
+
+  <div class="card warn">
+    <b>⚠️ 别买「突发性能型」（t6 / t5 / 经济型 e 的突发款）：</b>
+    这类机器靠 CPU 积分，积分用完会掉到 <b>10%~20% 基线性能</b>。
+    你看着是 2 核，实际高峰期比 1 核还慢，而且"卡"得毫无规律、很难排查。
+    买<b>通用型（g 系列）</b>或<b>轻量应用服务器</b>。
+  </div>
+
+  <h3>两条具体路线（选一条就行）</h3>
+  <table>
+    <tr><th></th><th>路线 A：轻量应用服务器</th><th>路线 B：ECS 云服务器</th></tr>
+    <tr><td>配置</td><td>2 核 4G</td><td>通用型 g8i / g7 · 2 核 4G</td></tr>
+    <tr><td>带宽</td><td>峰值带宽高（常见 200M 峰值 + 月流量包）</td><td>固定带宽 3~5 Mbps 或按量</td></tr>
+    <tr><td>优点</td><td><b>便宜</b>、含流量包、面板简单、<b>支持备案</b></td><td>可弹性升降配、可挂负载均衡、生态全</td></tr>
+    <tr><td>缺点</td><td>不能弹性伸缩、无内网打通</td><td>带宽单独计费，总价通常更高</td></tr>
+    <tr><td>适合</td><td class="ok"><b>我们（毕设 + 答辩演示）</b></td><td>以后要做正式产品再换</td></tr>
+  </table>
+
+  <div class="card">
+    <b>价格口径（我不写死数字，怕过期误导你）：</b>
+    学生 300 元券 + 新用户活动叠加后，2 核 4G 一年的实际支出通常落在<b>「零到一两百元」</b>区间；
+    具体以 <a href="https://www.aliyun.com/price/product" target="_blank" rel="noopener">阿里云产品定价页</a> /
+    轻量应用服务器活动页当日显示为准。<b>别信第三方"9.9 元"标题党</b>，那种通常是 1 核 1G 的短期试用。
+  </div>
+
+  <h3>真正的"冗余"应该这么做（不靠堆配置）</h3>
+  <ol>
+    <li><b>静态资源上 OSS + CDN</b>：<code>dist</code> 只有 3.2MB，放 OSS 后服务器只跑 API，省带宽也抗打。</li>
+    <li><b>开 2G swap</b>：给 OOM 一个缓冲垫（<code>fallocate -l 2G /swapfile</code>），突发时不会直接弄死进程。</li>
+    <li><b>MongoDB 每天自动备份</b>到 OSS，保留 7 天 —— 数据只有 20MB，备份几乎零成本。</li>
+    <li><b>应用保持无状态</b>：会话走 JWT、图片走外链，机器挂了换一台重跑部署脚本就能起（这也是我们现在的架构）。</li>
+    <li><b>图片别自己扛</b>：封面优先用外链 CDN，同源代理只做兜底并加缓存头。</li>
+  </ol>
+
+  <h2>三、阿里云学生认证：一步一步</h2>
+
+  <div class="card">
+    <b>前置条件：</b>① 阿里云账号已完成<b>个人实名认证</b>（身份证 + 人脸）；
+    ② 你的学校在阿里云合作范围内（大部分公办/民办本科都在，但<b>不是全部</b>）；
+    ③ 学信网能查到你的学籍。
+  </div>
+
+  <ol class="steps">
+    <li><b>进高校计划页</b>
+      <div class="d">电脑浏览器打开 <a href="https://university.aliyun.com/" target="_blank" rel="noopener">university.aliyun.com</a>，
+      登录你的阿里云账号 → 点「学生认证」。</div>
+      <div class="d">手机也可以：阿里云 App → 底部「发现」→「普惠权益」→「高校」→ 完成学生认证后领取。</div>
+    </li>
+    <li><b>选「学信网认证」</b>
+      <div class="d">系统会让你确认"账号实名信息 = 支付宝实名信息"，同意后<b>用支付宝扫码授权</b>，
+      阿里云会向学信网核验学籍。<b>1~3 分钟自动出结果</b>。</div>
+      <div class="done">算成功：页面显示"已完成学生身份验证"，券包里出现 300 元券。</div>
+    </li>
+    <li><b>如果自动认证失败 → 转人工</b>
+      <div class="d">准备两样东西（官方要求，缺一样会被打回）：<br>
+      ① <b>学信网截图</b>：必须能看到学信网标志、学生照片、姓名、身份证号、<b>学籍状态</b>；
+      如果学信网没有照片，<b>额外</b>要提供手持身份证照片。<br>
+      ② <b>手持学生证照片</b>：要包含<b>本人上半身</b> + 学生证信息页（照片、钢印、学号、姓名）。
+      学生证还没发？可用含学号/姓名/照片的学生卡或学校官方证件替代。<br>
+      ⚠️ 录取通知书封面<b>不能</b>单独作为有效凭证。</div>
+      <div class="done">算成功：1~3 个工作日后收到审核结果。</div>
+    </li>
+    <li><b>领券</b>
+      <div class="d">认证通过后在「学生用券中心」领 300 元无门槛抵扣金。
+      <b>一个身份证一年只能领一次</b>，领了就算当年用完；券有有效期，<b>过期作废</b>（以券面显示为准）。</div>
+    </li>
+    <li><b>用它下单</b>
+      <div class="d">在「学生用券中心」里挑 2 核 4G 的轻量应用服务器 / ECS，下单时勾选使用代金券。
+      <b>务必看清计费方式是"包年包月"且时长 ≥ 3 个月</b>（备案硬要求，见第五节）。</div>
+    </li>
+  </ol>
+
+  <div class="card warn">
+    <b>三个容易踩的点：</b>
+    ① 有人说"0 元免费机"——那种<b>免费试用实例不能用于备案</b>（阿里云官方明确），想上线必须买正式的包年包月；
+    ② 学生认证<b>毕业后权益失效</b>，已买的机器按原价续费；
+    ③ 若提示"查不到学籍"，先确认学校是否在合作名单、姓名/身份证/入学年份是否与学信网完全一致。
+  </div>
+
+  <h2>四、买服务器的顺序（别买错）</h2>
+
+  <div class="flow">
+    <div class="b"><b>①</b>实名认证<br>10 分钟</div>
+    <div class="b"><b>②</b>学生认证<br>1~3 分钟</div>
+    <div class="b"><b>③</b>领 300 券<br>立即</div>
+    <div class="b"><b>④</b>买香港机<br>先跑起来</div>
+    <div class="b"><b>⑤</b>买国内机<br>备案用 · 一年</div>
+  </div>
+
+  <div class="card">
+    <b>为什么是两台？</b>
+    <ul style="margin:6px 0">
+      <li><b>香港机（2 核 2G 也行）</b>：免备案，买完当天就能把网站挂上去给老师看。
+      它只承担"演示 + 开发测试"，不需要冗余。</li>
+      <li><b>国内机（2 核 4G，包年）</b>：<b>只为备案存在</b>。备案下来后，把正式站点迁到这台（或用域名直接指向它）。</li>
+    </ul>
+    <p style="margin:6px 0">如果预算紧：<b>先只买国内机 + 域名，当晚提备案</b>，用本地/局域网演示撑过审核期（我们现在就是这么做的）。</p>
+  </div>
+
+  <h2>五、域名备案：从买到能用，全流程</h2>
+
+  <h3>先满足三个硬条件（缺一个都提交不了）</h3>
+  <table>
+    <tr><th>条件</th><th>具体要求</th></tr>
+    <tr><td>服务器</td><td><b>阿里云中国内地节点</b>（香港/海外<b>不需要</b>备案，也<b>不能</b>在阿里云备案）；
+      <b>包年包月，购买时长 &gt; 3 个月</b>（含续费累计）；<b>必须购买公网带宽</b>。<br>
+      <span class="no">免费试用 ECS 不满足；按量付费要先转包年包月。</span></td>
+    </tr>
+    <tr><td>域名</td><td>已完成<b>域名实名认证</b>（用同一个身份证）。非阿里云注册的域名也能在阿里云备案（备案跟服务器走，不跟域名注册商走）。</td>
+    </tr>
+    <tr><td>主体</td><td>个人备案：身份证、本人手机号、能人脸核验。<b>姓名必须和实名、域名实名、备案主体完全一致</b>，错一个字都要重来。</td>
+    </tr>
+  </table>
+
+  <div class="card warn">
+    <b>一个账号同时只能有一个"备案中"的订单。</b>所以：<b>一次把要备案的域名填全</b>，别想着"先备一个试试"。
+  </div>
+
+  <ol class="steps">
+    <li><b>买好国内机 + 域名（域名先别解析）</b>
+      <div class="d">国内机选<b>包年</b>（≥3 个月是底线，建议直接一年）；域名买完立刻做<b>域名实名</b>，通常几小时到 1 天。</div>
+      <div class="d">⚠️ 备案期间域名<b>不要解析到大陆服务器</b>，否则会被监测阻断，反而影响审核。</div>
+    </li>
+    <li><b>进备案系统，选「首次备案」</b>
+      <div class="d"><a href="https://beian.aliyun.com/" target="_blank" rel="noopener">beian.aliyun.com</a> →
+      用<b>买了国内服务器的那同一个阿里云账号</b>登录 → 开始备案。
+      如果服务器和备案账号是同一个账号，<b>系统会自动生成"备案服务码"</b>，不用你手动申请。</div>
+    </li>
+    <li><b>填主体信息（个人）</b>
+      <div class="d">姓名、身份证号、手机号、常用邮箱、<b>通信地址（要精确到门牌号）</b>。地址写得含糊是最常见驳回原因之一。</div>
+    </li>
+    <li><b>填网站信息</b>
+      <div class="d">网站名称、域名、网站服务内容、网站负责人。<br>
+      <b>个人主体的写法建议：</b>网站名称里带上"个人"字样（如"音格 · 个人作品展示"），
+      服务内容选「其他」或「博客 / 个人空间」类，<b>不要选"论坛""社区""电商"</b>。<br>
+      <span class="no">个人备案不得从事经营性活动</span>：不能卖东西、不能放收费广告。</div>
+    </li>
+    <li><b>上传材料 + 人脸核验</b>
+      <div class="d">身份证正反面照片（四角完整、无反光）、手写承诺书（如需）、
+      用<b>阿里云 App 扫脸</b>完成网站负责人核验。<b>按系统提示逐步上传即可，每一步都有示例图。</b></div>
+    </li>
+    <li><b>阿里云初审（1~2 个工作日）</b>
+      <div class="d">会<b>打电话</b>给你核验（注意接听陌生号码）。材料有问题会告诉你改哪里；没问题直接提交管局。</div>
+    </li>
+    <li><b>工信部短信核验（收到后 24 小时内必须完成）</b>
+      <div class="d">手机会收到工信部短信，里面有 <b>6 位验证码</b>。去工信部备案系统输入
+      <b>验证码 + 手机号 + 身份证后 6 位</b>完成核验。<span class="no">超时未核验，订单会被退回重来。</span></div>
+    </li>
+    <li><b>管局审核（最长 20 个工作日）</b>
+      <div class="d">各省速度不同，快的几天、慢的两三周。期间<b>什么都不用做</b>，可在阿里云后台查进度。</div>
+    </li>
+    <li><b>下号 → 解析域名 → 挂备案号</b>
+      <div class="d">拿到备案号（形如 <code>蜀ICP备2026XXXXXX号</code>）后，才把域名解析到国内机；
+      <b>备案号必须挂在网站页脚</b>（法规要求），把号发我，我加到页脚。</div>
+    </li>
+    <li><b>公安联网备案（30 日内，最容易被忘）</b>
+      <div class="d">ICP 备案成功后，须在<b>网站开通之日起 30 日内</b>，到
+      <a href="https://www.beian.gov.cn/" target="_blank" rel="noopener">全国互联网安全管理服务平台</a>
+      办理公安联网备案，拿到公安备案号，同样挂在页脚。</div>
+    </li>
+  </ol>
+
+  <h3>备案材料清单（个人 · 照着准备）</h3>
+  <table>
+    <tr><th>材料</th><th>要点</th></tr>
+    <tr><td>身份证正反面</td><td>四角完整、文字清晰、不反光、不裁边</td></tr>
+    <tr><td>本人手机号</td><td>要能收短信、能接电话；与负责人一致</td></tr>
+    <tr><td>常用邮箱</td><td>能收通知</td></tr>
+    <tr><td>通信地址</td><td><b>精确到门牌号</b>（学校就写宿舍楼/学院门牌）</td></tr>
+    <tr><td>人脸核验</td><td>阿里云 App 扫码，按提示眨眼/转头</td></tr>
+    <tr><td>域名证书（如需）</td><td>阿里云注册的可直接自动带出</td></tr>
+    <tr><td>核验单 / 承诺书（如需）</td><td>系统会生成模板，打印签字后拍照上传</td></tr>
+  </table>
+
+  <h3>最容易驳回的 6 个原因</h3>
+  <table>
+    <tr><th>原因</th><th>怎么躲</th></tr>
+    <tr><td>网站名称像企业/行业站</td><td>个人主体加"个人"字样，不用"XX网/XX平台/XX商城"</td></tr>
+    <tr><td>服务内容选了需前置审批的类别</td><td>选「其他」或「博客/个人空间」，别选新闻、出版、药品、论坛</td></tr>
+    <tr><td>地址不精确</td><td>写到门牌号</td></tr>
+    <tr><td>备案期间域名已解析</td><td>下号前不解析</td></tr>
+    <tr><td>身份证照片反光/裁边</td><td>白底平放拍，四角完整</td></tr>
+    <tr><td>手机短信核验超 24 小时</td><td>收到短信立刻做</td></tr>
+  </table>
+
+  <div class="card bad">
+    <b>个人备案的内容红线（跟我们项目直接相关）：</b>
+    个人备案的网站<b>不能有经营性内容</b>，也<b>不建议开放公开发帖/评论墙</b>（容易被认定为"论坛"而要求专项审批）。
+    我们现在的形态（投票、个人结果、分享）属于非经营性，风险低；
+    <b>以后要加"用户发帖/公开社区"，先跟我说，我们改用其他合规路径。</b>
+  </div>
+
+  <h2>六、上线时间线（按今天 2026-10-23 起算）</h2>
+  <table>
+    <tr><th>时间</th><th>做什么</th><th>依赖</th></tr>
+    <tr><td>今晚</td><td>实名 → 学生认证 → 领券 → 建 API Key</td><td>无</td></tr>
+    <tr><td>今晚/明晚</td><td>买国内机（包年）+ 域名实名 → <b>提交备案</b></td><td>学生认证通过</td></tr>
+    <tr><td>明天</td><td>阿里云初审电话（注意接听）+ 24h 内工信部短信核验</td><td>备案订单</td></tr>
+    <tr><td>明天起 ~ 3 周</td><td><b>并行推进</b>：香港机部署演示站 → 录演示视频 → 论文正文</td><td>备案在管局排队</td></tr>
+    <tr><td>下号后</td><td>域名解析 → 挂备案号 → 公安联网备案（30 日内）</td><td>备案号</td></tr>
+  </table>
+
+  <h2>七、来源清单</h2>
+  <table>
+    <tr><th>信息</th><th>来源</th><th>可信度</th></tr>
+    <tr><td>学生身份验证流程 / 券规则 / 人工审核材料</td>
+      <td><a href="https://help.aliyun.com/zh/account/student-identity-verification" target="_blank" rel="noopener">阿里云帮助中心 · 学生身份验证</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>高校计划入口</td>
+      <td><a href="https://university.aliyun.com/" target="_blank" rel="noopener">university.aliyun.com</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>个人网站备案流程 / 时间（3~22 工作日）/ 公安备案 30 日</td>
+      <td><a href="https://help.aliyun.com/zh/icp-filing/basic-icp-service/getting-started/quick-start-for-icp-filing-for-personal-websites" target="_blank" rel="noopener">阿里云 · 个人网站备案快速入门</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>可备案服务器要求（内地节点 / 包年包月 &gt;3 个月 / 需公网带宽 / 免费试用不支持）</td>
+      <td><a href="https://helpcdn.aliyun.com/knowledge_detail/114097.html" target="_blank" rel="noopener">阿里云 · 备案服务器检查</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>备案流程与时限（初审 1~2 工作日 / 短信 24h / 管局 ≤20 工作日）</td>
+      <td><a href="https://beian.aliyun.com/" target="_blank" rel="noopener">阿里云备案控制台</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>公安联网备案入口</td>
+      <td><a href="https://www.beian.gov.cn/" target="_blank" rel="noopener">全国互联网安全管理服务平台</a></td>
+      <td><b>一手</b></td></tr>
+    <tr><td>价格 / 活动</td>
+      <td><a href="https://www.aliyun.com/price/product" target="_blank" rel="noopener">阿里云产品定价</a></td>
+      <td><b>一手</b>（天天变，以页面为准）</td></tr>
+    <tr><td>"2 核 2G 在服务器上构建会 OOM""突发型积分掉性能"</td>
+      <td>本机实测 + 通用经验判断</td>
+      <td><b>经验判断</b>（非官方数据，已标注为估算）</td></tr>
+  </table>
+
+  <div class="foot">音格 · 服务器选型 / 学生认证 / 备案手册 · 2026-10-23 · 与《服务器与AI接入操作清单》配套，冲突以本页为准（更详细）</div>
+</div>
+</body>
+</html>
